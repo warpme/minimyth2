@@ -1,9 +1,10 @@
 
 GARNAME      = fontconfig
-GARVERSION   = 2.13.96
+GARVERSION   = 2.17.1
 CATEGORIES   = lib
-MASTER_SITES = http://www.fontconfig.org/release/
+MASTER_SITES = https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = stop-building-po.patch
 LICENSE      = fontconfig
 fontconfig_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -24,6 +25,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--enable-libxml2 \
 	--disable-docs \
+	--disable-docbook \
 	--with-gnu-ld \
 	--with-arch=$(GARCH) \
 	--with-add-fonts=no
