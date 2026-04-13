@@ -1,10 +1,9 @@
 
 GARNAME      = nodejs
-GARVERSION   = 23.11.0
+GARVERSION   = 25.9.0
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/nodejs/node/archive/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
-# todo: PATCHFILES   = ticket45756-fix-arm64-cross-compilation.patch
 WORKSRC      = $(WORKDIR)/node-$(GARVERSION)
 LICENSE      = MIT
 
@@ -43,6 +42,6 @@ configure-custom:
 include ../../gar.mk
 
 # disabling LTO as with LTO build fails
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+CFLAGS   := $(filter-out -flto=auto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
