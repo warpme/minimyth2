@@ -43,7 +43,8 @@ mm_SOFTWARE               ?= \
 #                             mythfrontend_v34 \
 #                             gstreamer \
 #                             mythnetvision \
-#                             mythwebbrowser \
+#                             mythwebbrowser_qt5 \
+#                             mythwebbrowser_qt6 \
 #                             udisks1 \
 #                             mednafen \
 #                             stella \
