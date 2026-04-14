@@ -658,7 +658,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		chmod +s $@~$(bindir)/sway ; \
 	 fi
 	@echo "final permission fixups on some execs" ; \
-	 files="ssh sshd scp mplayer ntpd ntpdate mysql getconf makemkvcon" ; \
+	 files="ssh sshd scp mplayer ntpd ntpdate mysql getconf makemkvcon qt6/libexec/QtWebEngineProcess" ; \
 	 for file in $${files} ; do \
 			if [ -e $@~$(bindir)/$${file} ] ; then \
 				chmod +x $@~$(bindir)/$${file} ; \
@@ -667,6 +667,12 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	 for file in $${files} ; do \
 			if [ -e $@~$(sbindir)/$${file} ] ; then \
 				chmod +x $@~$(sbindir)/$${file} ; \
+			fi ; \
+	 done ; \
+	 for file in $${files} ; do \
+			if [ -e $@~$(libdir)/$${file} ] ; then \
+				echo "chmod +x on $@~$(libdir)/$${file}" ; \
+				chmod +x $@~$(libdir)/$${file} ; \
 			fi ; \
 	 done ;
 	@touch $@~
