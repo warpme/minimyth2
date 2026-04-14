@@ -1,0 +1,75 @@
+From d5404245e1aeab0bd416acfc3dd89652c6c3cfeb Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 24 Mar 2026 18:16:31 +0100
+Subject: [PATCH] usb: typec: tcpm: log when VDM AMS state machine is cancelled
+
+Since commit 0bc3ee92880d ("usb: typec: tcpm: Properly interrupt VDM
+AMS") the VDM AMS state machine is cancelled when a non-VDM messages
+arrives. With some PD devices [*] this sometimes results in missing
+negotiation of alternate modes due to a race condition:
+
+[    4.341899] AMS POWER_NEGOTIATION finished
+[    4.341906] cc:=4
+[    4.353165] AMS DISCOVER_IDENTITY start
+[    4.353187] PD TX, header: 0x176f
+[    4.365820] PD TX complete, status: 0
+[    4.365885] PD RX, header: 0x24a [1]
+[    4.365895] Stopping VDM state machine after receiving ctrl message with type 0xa
+[    4.365899] AMS DISCOVER_IDENTITY finished
+[    4.365903] cc:=4
+[    4.376612] PD TX, header: 0x964
+[    4.481320] PD RX, header: 0x444f [1]
+[    4.481353] PD RX, header: 0x64a [1]
+[    4.481374] PD TX, header: 0x964
+[    4.492423] PD TX complete, status: 0
+
+Apparently what happens is:
+1. Linux TCPM negotiated power as PD source
+2. Linux TCPM continues with identity discovery
+3. Display asks for a power swap
+4. Its request stops the state machine for the identity discovery
+6. The display sends answer for the identity discovery, but it is ignored
+7. Linux TCPM thinks all is done, but there is no DP
+
+While I have not yet found the correct fix for this, I think it's a good
+idea to have better logging to make the problem more obvious by adding a
+dedicated log message when the state machine is stopped early.
+
+[*] I noticed it with a Dell U2725QE display
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/typec/tcpm/tcpm.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/usb/typec/tcpm/tcpm.c b/drivers/usb/typec/tcpm/tcpm.c
+index 20b14b64d505..9ba9424ed95a 100644
+--- a/drivers/usb/typec/tcpm/tcpm.c
++++ b/drivers/usb/typec/tcpm/tcpm.c
+@@ -3214,6 +3214,7 @@ static void tcpm_pd_data_request(struct tcpm_port *port,
+ 	int ret;
+ 
+ 	if (tcpm_vdm_ams(port) && type != PD_DATA_VENDOR_DEF) {
++		tcpm_log(port, "Stopping VDM state machine after receiving data message with type %#x", type);
+ 		port->vdm_state = VDM_STATE_ERR_BUSY;
+ 		tcpm_ams_finish(port);
+ 		mod_vdm_delayed_work(port, 0);
+@@ -3414,6 +3415,7 @@ static void tcpm_pd_ctrl_request(struct tcpm_port *port,
+ 	 * VDM AMS if waiting for VDM responses and will be handled later.
+ 	 */
+ 	if (tcpm_vdm_ams(port) && type != PD_CTRL_NOT_SUPP && type != PD_CTRL_GOOD_CRC) {
++		tcpm_log(port, "Stopping VDM state machine after receiving ctrl message with type %#x", type);
+ 		port->vdm_state = VDM_STATE_ERR_BUSY;
+ 		tcpm_ams_finish(port);
+ 		mod_vdm_delayed_work(port, 0);
+@@ -3701,6 +3703,7 @@ static void tcpm_pd_ext_msg_request(struct tcpm_port *port,
+ 
+ 	/* stopping VDM state machine if interrupted by other Messages */
+ 	if (tcpm_vdm_ams(port)) {
++		tcpm_log(port, "Stopping VDM state machine after receiving ext message with type %#x", type);
+ 		port->vdm_state = VDM_STATE_ERR_BUSY;
+ 		tcpm_ams_finish(port);
+ 		mod_vdm_delayed_work(port, 0);
+-- 
+GitLab
+

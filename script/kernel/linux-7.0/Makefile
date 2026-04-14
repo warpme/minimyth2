@@ -294,6 +294,7 @@ PATCHFILES += 3308-arm64-dts-rockchip-rk3399-add-orangepi-4-and-4-lts.patch
 PATCHFILES += 3309-arm64-dts-rockchip-rk33xx-add-eth-wifi-aliases.patch
 PATCHFILES += 3310-arm64-dts-rockchip-rk3399-orangepi-4-lts-add-fan-support.patch
 PATCHFILES += 3311-arm64-dts-rockchip-rk3328-rk3566-add-cpu-gpu-overclock-overlays.patch
+#-- Rockchip 35x patches -----------------------------------------
 # rk35xx drivers additions
 PATCHFILES += 3400-Enable-rk356x-PCIe-controller.patch
 PATCHFILES += 3401-net-wireless-backport-aic8800-sdio-v2025_0926_91c9dae5-mm2.patch
@@ -386,7 +387,10 @@ PATCHFILES += 3509-drm-bridge-synopsys-dw-dp-Add-audio-support.patch
 # misc usb-type-c
 PATCHFILES += 3520-DEBUG-usb-typec-tcpm-also-log-to-dmesg.patch
 PATCHFILES += 3521-DEBUG-usb-typec-fusb302-also-log-to-dmesg.patch
-#PATCHFILES += 3522-USB-DP-phy-rockchip-inno-usb2-add-soft-vbusvalid-con.patch
+PATCHFILES += 3522-USB-DP-phy-rockchip-inno-usb2-add-soft-vbusvalid-con.patch
+PATCHFILES += 3523-usb-typec-tcpm-log-when-VDM-AMS-state-machine-is-cancelled.patch
+PATCHFILES += 3525-usb-typec-tcpm-improve-handling-of-DISCOVER_MODES-failures.patch
+PATCHFILES += 3526-usb-typec-tcpm-Also-use-SNK_WAIT_CAPABILITIES_TIMEOUT-for-vbus_never_low.patch
 # misc additions
 PATCHFILES += 3560-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
 PATCHFILES += 3561-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
