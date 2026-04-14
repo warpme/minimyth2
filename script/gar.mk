@@ -125,11 +125,6 @@ docdir = $($(DESTIMG)_docdir)
 sourcedir = $($(DESTIMG)_sourcedir)
 licensedir = $($(DESTIMG)_licensedir)
 versiondir = $($(DESTIMG)_versiondir)
-qt4prefix = $($(DESTIMG)_qt4prefix)
-qt4bindir = $($(DESTIMG)_qt4bindir)
-qt4includedir = $($(DESTIMG)_qt4includedir)
-qt4libdir = $($(DESTIMG)_qt4libdir)
-qt4qmake = $($(DESTIMG)_qt4qmake)
 qt5prefix = $($(DESTIMG)_qt5prefix)
 qt5bindir = $($(DESTIMG)_qt5bindir)
 qt5includedir = $($(DESTIMG)_qt5includedir)
@@ -143,14 +138,18 @@ qt6qmake = $($(DESTIMG)_qt6qmake)
 
 DESTDIR = $($(DESTIMG)_DESTDIR)
 
-ifeq ($(mm_QT_VERSION),qt4)
-qtqmake = $(qt4qmake)
-else
 ifeq ($(mm_QT_VERSION),qt6)
+qtprefix = $(qt6prefix)
+qtbindir = $(qt6bindir)
+qtincludedir = $(qt6includedir)
+qtlibdir = $(qt6libdir)
 qtqmake = $(qt6qmake)
 else
+qtprefix = $(qt5prefix)
+qtbindir = $(qt5bindir)
+qtincludedir = $(qt5includedir)
+qtlibdir = $(qt5libdir)
 qtqmake = $(qt5qmake)
-endif
 endif
 
 # Architecture
@@ -207,8 +206,8 @@ BUILD_SYSTEM_PATH := $(if $(BUILD_SYSTEM_PATH),$(BUILD_SYSTEM_PATH),$(PATH))
 GAR_SYSTEM_PATH := $(DESTDIR)$(bindir)-config:$(build_DESTDIR)$(build_esbindir):$(build_DESTDIR)$(build_ebindir):$(build_DESTDIR)$(build_sbindir):$(build_DESTDIR)$(build_bindir):$(build_DESTDIR)$(build_rootdir)/bin-build-system
 PATH := $(if $(wildcard $(build_DESTDIR)$(build_rootdir)/bin-build-system),$(GAR_SYSTEM_PATH),$(GAR_SYSTEM_PATH):$(BUILD_SYSTEM_PATH))
 
-LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir64):$(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt6libdir):$(build_DESTDIR)$(build_qt5libdir):$(build_DESTDIR)$(build_libdir)/mysql:/lib/$(GARBUILD):/usr/lib/$(GARBUILD)$(strip $(if $(filter i386,$(build_GARCH_FAMILY)),:/lib32:/usr/lib32:/lib:/usr/lib) $(if $(filter x86_64,$(build_GARCH_FAMILY)),:/lib64:/usr/lib64:/lib:/usr/lib))
-LD_LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir64):$(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt6libdir):$(build_DESTDIR)$(build_qt5libdir):$(build_DESTDIR)$(build_libdir)/mysql
+LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir64):$(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt6libdir):$(build_DESTDIR)$(build_qtlibdir):$(build_DESTDIR)$(build_libdir)/mysql:/lib/$(GARBUILD):/usr/lib/$(GARBUILD)$(strip $(if $(filter i386,$(build_GARCH_FAMILY)),:/lib32:/usr/lib32:/lib:/usr/lib) $(if $(filter x86_64,$(build_GARCH_FAMILY)),:/lib64:/usr/lib64:/lib:/usr/lib))
+LD_LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir64):$(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt6libdir):$(build_DESTDIR)$(build_qtlibdir):$(build_DESTDIR)$(build_libdir)/mysql
 
 # XXX: These macros should go in lib
 DIRSTODOTS = $(subst . /,./,$(patsubst %,/..,$(subst /, ,/$(1))))
