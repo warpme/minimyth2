@@ -172,9 +172,6 @@ mm-all:
 	@for software in $(mm_SOFTWARE) ; do \
 		if [ ! "$${software}" = "mythplugins"    ] && \
 		   [ ! "$${software}" = "mythfrontend"   ] && \
-		   [ ! "$${software}" = "mythfrontend_v36" ] && \
-		   [ ! "$${software}" = "mythfrontend_v35" ] && \
-		   [ ! "$${software}" = "mythfrontend_v34" ] && \
 		   [ ! "$${software}" = "mplayer-svn"    ] && \
 		   [ ! "$${software}" = "mythnetvision"  ] && \
 		   [ ! "$${software}" = "mythbrowser"    ] && \
