@@ -52,7 +52,8 @@ PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
-PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
+# on some x86 platforms enabled cec is causing fe crash at fe start
+# PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
