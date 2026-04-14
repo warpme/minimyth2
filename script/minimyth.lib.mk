@@ -68,7 +68,7 @@ FIX_LIBTOOL_LIBPATH = \
 	libpath_r=""                                                                                                            ; \
 	libpath_r="$${libpath_r} $(elibdir)"                                                                                    ; \
 	libpath_r="$${libpath_r} $(libdir)"                                                                                     ; \
-	libpath_r="$${libpath_r} $(qt5libdir)"                                                                                  ; \
+	libpath_r="$${libpath_r} $(qtlibdir)"                                                                                   ; \
 	libpath_r="$${libpath_r} $(libdir)/mysql"                                                                               ; \
 	libpath_r="$${libpath_r} $(if $(filter build       ,$(DESTIMG))                ,/lib/$(GARBUILD) /usr/lib/$(GARBUILD))" ; \
 	libpath_r="$${libpath_r} $(if $(filter build+i386  ,$(DESTIMG)+$(GARCH_FAMILY)),/lib32 /usr/lib32 /lib /usr/lib)"       ; \
@@ -232,6 +232,10 @@ gar-patch-%:
 		| sed 's%@GAR_qt5bindir@%$(qt5bindir)%g' \
 		| sed 's%@GAR_qt5includedir@%$(qt5includedir)%g' \
 		| sed 's%@GAR_qt5libdir@%$(qt5libdir)%g' \
+		| sed 's%@GAR_qt6prefix@%$(qt6prefix)%g' \
+		| sed 's%@GAR_qt6bindir@%$(qt6bindir)%g' \
+		| sed 's%@GAR_qt6includedir@%$(qt6includedir)%g' \
+		| sed 's%@GAR_qt6libdir@%$(qt6libdir)%g' \
 		| sed 's%@GAR_GARCH_FAMILY@%$(GARCH_FAMILY)%g' \
 		| sed 's%@GAR_CPP@%$(CPP)%g' \
 		| sed 's%@GAR_CC@%$(CC)%g' \
