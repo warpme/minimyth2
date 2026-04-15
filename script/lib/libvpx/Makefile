@@ -1,8 +1,9 @@
-GARNAME = libvpx
-GARVERSION = 1.7.0
-CATEGORIES = lib
+
+GARNAME      = libvpx
+GARVERSION   = 1.16.0
+CATEGORIES   = lib
 MASTER_SITES = https://github.com/webmproject/libvpx/archive/
-DISTFILES = v$(GARVERSION).tar.gz
+DISTFILES    = v$(GARVERSION).tar.gz
 
 LICENSE = LGPL2
 
