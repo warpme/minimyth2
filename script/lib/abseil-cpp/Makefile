@@ -18,3 +18,8 @@ CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 
 include ../../gar.mk
+
+post-install:
+	@sed -e "s|/usr|\$${CMAKE_SYSROOT}/usr|g" \
+	  -i $(DESTDIR)/usr/lib/cmake/absl/absl*.cmake
+	@$(MAKECOOKIE)
