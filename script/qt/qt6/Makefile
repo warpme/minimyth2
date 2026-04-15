@@ -1,6 +1,4 @@
 
-BUILD_QTWEBENGINE = no
-
 GARNAME      = qt-everywhere-src
 GARVERSION   = 6.11.0
 CATEGORIES   = qt
@@ -9,14 +7,13 @@ DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-qtdoc-uncoditionally-stop-building.patch
-# todo: PATCHFILES  += $(DISTNAME)-qtwebengine-hack-to-crosscompile.patch
-# LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
 endef
 
 ifneq ($(DESTIMG),build)
+# target build
 DEPENDS   =            \
 	lang/c         \
 	lang/cxx       \
@@ -30,19 +27,29 @@ DEPENDS   =            \
 	lib/libmng     \
 	lib/libpng     \
 	lib/libtiff    \
-	$(if $(filter yes,$(BUILD_QTWEBENGINE)),lib/nss) \
+	lib/libxslt    \
+	lib/libxml2    \
+	lib/nss        \
+	lib/nspr       \
 	lib/openssl    \
-	lib/pcre2      \
+	lib/libwebp    \
+	lib/re2        \
 	gtk/glib       \
 	gtk/harfbuzz   \
 	devel/zlib     \
-	devel/ruby     \
 	opengl/opengl  \
 	security/p11-kit \
 	xorg/xorg      \
-	python3/python-html5lib \
+
+#	devel/ruby     \
+#	python3/python-html5lib \
+#	devel/bison \
+#	devel/flex  \
+#	lib/nodejs  \
+#	utils/gperf \
 
 else
+# host build
 DEPENDS   =            \
 	lang/c         \
 	lang/cxx       \
@@ -53,10 +60,14 @@ BUILDDEPS = \
 	devel/bison \
 	devel/flex  \
 
+#	lib/dbus \
+#	lib/fontconfig \
+#	python3/python-html5lib \
+
 ifneq ($(DESTIMG),build)
 BUILDDEPS += qt/qt6
 else
-BUILDDEPS += $(if $(filter yes,$(BUILD_QTWEBENGINE)), devel/gn python3/python-html5lib lib/nodejs)
+BUILDDEPS += python3/python-html5lib lib/nodejs utils/gperf
 endif
 
 PWD := $(shell pwd)
@@ -96,6 +107,8 @@ CONFIGURE_ARGS = \
 	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
 	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
 	-DCMAKE_BUILD_PARALLEL_LEVEL=$(CPUS) \
+	-DBUILD_ONLY_GN=ON \
+	-DQT_GENERATE_SBOM=OFF \
 
 else
 # target
@@ -111,38 +124,8 @@ CONFIGURE_ARGS = \
 	-nomake tests \
 	-shared \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
-	-no-sql-{db2,ibase,oci,odbc,psql,sqlite} \
-	-sql-mysql \
-	-ltcg \
-	-feature-optimize_full \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-qt-host-path "../../build.d/$(GARNAME)-$(GARVERSION)_build" \
-	-skip qt3d \
-	-skip qtcharts \
-	-skip qtcoap \
-	-skip qtdatavis3d \
-	-skip qtdoc \
-	-skip qtgraphs \
-	-skip qtimageformats \
-	-skip qtlocation \
-	-skip qtlottie \
-	-skip qtmqtt \
-	-skip qtnetworkauth \
-	-skip qtopcua \
-	-skip qtpositioning \
-	-skip qtquick3d \
-	-skip qtquicktimeline \
-	-skip qtremoteobjects \
-	-skip qtscxml \
-	-skip qtsensors \
-	-skip qtserialbus \
-	-skip qtserialport \
-	-skip qtspeech \
-	-skip qttranslations \
-	-skip qttools \
-	-skip qtquick3dphysics \
-	-skip qtvirtualkeyboard \
-	$(if $(filter yes,$(BUILD_QTWEBENGINE)),WebEngineCore,-skip qtwebchannel -skip qtwebengine -skip qtwebsockets -skip qtwebview) \
 	-- $(DIRPATHS_CMAKE) \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	$(if $(filter i386,  $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") \
@@ -151,7 +134,11 @@ CONFIGURE_ARGS = \
 	$(if $(filter arm64, $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="aarch64") \
 	-DCMAKE_SYSROOT="$(DESTDIR)" \
 	-DQT_HOST_PATH_CMAKE_DIR=$(shell pwd)/work/build.d/$(GARNAME)-$(GARVERSION)_build/qtbase/lib/cmake/ \
-	-DBUILD_ONLY_GN="ON" \
+	-DQT_BUILD_MODULE_qtwebengine=ON \
+	-DQT_FEATURE_webengine_core=ON \
+	-DQT_FEATURE_webengine_system_icu=ON \
+	-DQT_GENERATE_SBOM=OFF \
+	-DGn_EXECUTABLE=$(shell pwd)/work/build.d/$(GARNAME)-$(GARVERSION)_build/qtwebengine/install/bin/gn \
 
 endif
 
@@ -160,6 +147,7 @@ configure-custom:
 	@rm -rf $(WORKBLD)
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ../$(DISTNAME)/configure $(CONFIGURE_ARGS)
+	@cat $(WORKBLD)/config.summary
 	@$(MAKECOOKIE)
 
 build-custom:
@@ -167,9 +155,12 @@ build-custom:
 ifeq ($(DESTIMG),build)
 	@cd $(WORKBLD) && $(CMAKE) --build . --parallel $(PARALLELMFLAGS) --target host_tools
 else
+	@#hack to force to use exact qt build-in gn binary
+	@sed -e "s|\$${Gn_EXECUTABLE}|$(shell pwd)\/work/build.d\/$(GARNAME)-$(GARVERSION)_build\/qtwebengine\/install\/bin\/gn|g" \
+	  -i $(shell pwd)/work/main.d/$(GARNAME)-$(GARVERSION)/qtwebengine/cmake/QtGnGen.cmake
 	@cd $(WORKBLD) && $(CMAKE) --build . --parallel $(PARALLELMFLAGS)
 endif
-	@$(MAKECOOKIE)
+	@#$(MAKECOOKIE)
 
 install-custom:
 ifeq ($(DESTIMG),build)
