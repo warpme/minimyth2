@@ -46,15 +46,7 @@ DEPENDS   =            \
 	security/p11-kit \
 	xorg/xorg      \
 
-
 #	lib/ffmpeg8.1  \
-
-#	devel/ruby     \
-#	python3/python-html5lib \
-#	devel/bison \
-#	devel/flex  \
-#	lib/nodejs  \
-#	utils/gperf \
 
 else
 # host build
@@ -67,10 +59,8 @@ endif
 BUILDDEPS = \
 	devel/bison \
 	devel/flex  \
-
-#	lib/dbus \
-#	lib/fontconfig \
-#	python3/python-html5lib \
+	lib/dbus \
+	lib/fontconfig \
 
 ifneq ($(DESTIMG),build)
 BUILDDEPS += qt/qt6
@@ -117,6 +107,11 @@ CONFIGURE_ARGS = \
 	-DCMAKE_BUILD_PARALLEL_LEVEL=$(CPUS) \
 	-DBUILD_ONLY_GN=ON \
 	-DQT_GENERATE_SBOM=OFF \
+
+# if webengine silently fails to be enabled for building,
+# add this to force building webengine and see configure output fwat is missing
+#	-DQT_BUILD_MODULE_qtwebengine=ON \
+#	-DQT_FEATURE_webengine_core=ON \
 
 else
 # target
