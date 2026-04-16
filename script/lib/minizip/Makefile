@@ -29,5 +29,6 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
+	@cp -f $(WORKSRC)/ints.h $(DESTDIR)$(includedir)/minizip/
 	@rm -f $(DESTDIR)$(libdir)/libminizip.la
 	@$(MAKECOOKIE)
