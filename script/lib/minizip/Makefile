@@ -1,8 +1,9 @@
-GARNAME = minizip
-GARVERSION = 1.2.11
-CATEGORIES = lib
+
+GARNAME      = minizip
+GARVERSION   = 1.3.2
+CATEGORIES   = lib
 MASTER_SITES = http://zlib.net/
-DISTFILES  = zlib-$(GARVERSION).tar.xz
+DISTFILES    = zlib-$(GARVERSION).tar.xz
 
 DESCRIPTION =
 define BLURB
