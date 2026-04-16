@@ -1,15 +1,10 @@
-GARNAME = tiff
-GARVERSION = 4.0.3
-CATEGORIES = lib
-MASTER_SITES  = http://download.osgeo.org/libtiff/
-MASTER_SITES += http://download.osgeo.org/libtiff/old/
-MASTER_SITES += http://ftp.remotesensing.org/pub/libtiff/
-MASTER_SITES += http://ftp.remotesensing.org/pub/libtiff/old/
-MASTER_SITES += ftp://ftp.remotesensing.org/pub/libtiff/
-MASTER_SITES += ftp://ftp.remotesensing.org/pub/libtiff/old/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = libtiff
-libtiff_LICENSE_TEXT = $(WORKSRC)/COPYRIGHT
+
+GARNAME       = libtiff
+GARVERSION    = v4.7.1
+CATEGORIES    = lib
+MASTER_SITES  = https://gitlab.com/libtiff/libtiff/-/archive/$(GARVERSION)/
+DISTFILES     = $(DISTNAME).tar.bz2
+# LICENSE       = LICENSE.md
 
 DESCRIPTION =
 define BLURB
