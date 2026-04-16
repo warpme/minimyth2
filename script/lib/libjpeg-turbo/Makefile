@@ -1,12 +1,12 @@
-GARNAME = libjpeg-turbo
-GARVERSION = 1.4.0
-CATEGORIES = lib
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = add_aarch64_detection.patch
+
+GARNAME      = libjpeg-turbo
+GARVERSION   = 3.1.4.1
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/
+DISTFILES    = $(GARVERSION).tar.gz
 
 LICENSE = jpeg
-jpeg_LICENSE_TEXT = $(WORKSRC)/README
+jpeg_LICENSE_TEXT = $(WORKSRC)/LICENSE.md
 DESCRIPTION = 
 
 define BLURB
@@ -14,15 +14,14 @@ endef
 
 DEPENDS = lang/c devel/yasm
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+WORKBLD = $(WORKSRC)_build
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--enable-silent-rules \
-	--disable-static \
-	--enable-shared \
-	--with-gnu-ld
+CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+BUILD_SCRIPTS     = $(WORKBLD)/Makefile
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+
+CMAKE_CONFIGURE_ARGS = \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 
 include ../../gar.mk
 
