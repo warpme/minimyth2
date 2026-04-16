@@ -23,15 +23,20 @@ DEPENDS   =            \
 	lib/freetype   \
 	lib/fontconfig \
 	lib/icu        \
+	lib/libjpeg-turbo \
 	lib/libjpeg    \
 	lib/libmng     \
 	lib/libpng     \
 	lib/libtiff    \
 	lib/libxslt    \
 	lib/libxml2    \
+	lib/libvpx     \
+	lib/minizip    \
 	lib/nss        \
 	lib/nspr       \
 	lib/openssl    \
+	lib/libpng     \
+	lib/libtiff    \
 	lib/libwebp    \
 	lib/re2        \
 	gtk/glib       \
@@ -40,6 +45,9 @@ DEPENDS   =            \
 	opengl/opengl  \
 	security/p11-kit \
 	xorg/xorg      \
+
+
+#	lib/ffmpeg8.1  \
 
 #	devel/ruby     \
 #	python3/python-html5lib \
@@ -126,6 +134,9 @@ CONFIGURE_ARGS = \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-qt-host-path "../../build.d/$(GARNAME)-$(GARVERSION)_build" \
+	-system-libjpeg \
+	-system-libpng \
+	-system-tiff \
 	-- $(DIRPATHS_CMAKE) \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	$(if $(filter i386,  $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") \
@@ -139,6 +150,12 @@ CONFIGURE_ARGS = \
 	-DQT_FEATURE_webengine_system_icu=ON \
 	-DQT_GENERATE_SBOM=OFF \
 	-DGn_EXECUTABLE=$(shell pwd)/work/build.d/$(GARNAME)-$(GARVERSION)_build/qtwebengine/install/bin/gn \
+	-DQT_FEATURE_system_re2=ON \
+	-DQT_FEATURE_webengine_system_re2=ON \
+
+#	-DQT_FEATURE_webengine_system_ffmpeg=ON \
+#	-DWEBENGINE_USE_SYSTEM_FFMPEG=ON \
+#	-DQT_FEATURE_webengine_proprietary_codecs=ON \
 
 endif
 
