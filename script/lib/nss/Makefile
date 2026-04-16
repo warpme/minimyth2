@@ -48,6 +48,7 @@ BUILD_ARGS = \
 	NSS_ENABLE_WERROR=0 \
 	NSS_DISABLE_CHACHAPOLY="1" \
 	NS_USE_GCC="1" \
+	NSS_DISABLE_BTI=1 \
 	all
 
 include ../../gar.mk
