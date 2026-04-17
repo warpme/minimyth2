@@ -16,8 +16,11 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 
 include ../../gar.mk
+
+CXXFLAGS += -ftls-model=global-dynamic
 
 post-install:
 	@sed -e "s|/usr|\$${CMAKE_SYSROOT}/usr|g" \
