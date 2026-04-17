@@ -219,6 +219,9 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		if [ -e $(DESTDIR)$(qt6prefix)/plugins/wayland-graphics-integration-client ] ; then                \
 			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/wayland-graphics-integration-client $@~$(qt6prefix)/plugins ; \
 		fi                                                                               ; \
+		if [ -e $(DESTDIR)$(qt6prefix)/plugins/tls ] ; then                                \
+			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/tls $@~$(qt6prefix)/plugins       ; \
+		fi                                                                               ; \
 	 else                                                                                      \
 		echo "copy qt5 plugins"                                                          ; \
 		rm -rf   $@~$(qt5prefix)/plugins                                                 ; \
