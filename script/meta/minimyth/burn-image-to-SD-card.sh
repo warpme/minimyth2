@@ -77,12 +77,12 @@ else
               disk_id=$(echo "${disk_info}" | grep "Device Identifier:" | awk '{print $3}')
 
         echo " "
-        echo "---------Detected devce---------- "
+        echo "---------Detected devce------------"
         echo "   Device   : [/dev/${disk_id}]"
         echo "   Model    : ${disk_name}"
         echo "   Size     : ${disk_size}"
         echo "   Protocol : ${disk_protocol}"
-        echo "--------------------------------- "
+        echo "-----------------------------------"
 
         if [[ "${disk_protocol}" == *"SD"* ]] || [[ "${disk_protocol}" == "Apple Fabric" ]] || [[ "${disk_name}" == *"Card Reader"* ]] || [[ "${disk_name}" == *"SD"* ]]; then
             echo "==> SD card found at [/dev/${disk_id}]. Good!"
