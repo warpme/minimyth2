@@ -147,6 +147,9 @@ CONFIGURE_ARGS = \
 	-DGn_EXECUTABLE=$(shell pwd)/work/build.d/$(GARNAME)-$(GARVERSION)_build/qtwebengine/install/bin/gn \
 	-DQT_FEATURE_system_re2=ON \
 	-DQT_FEATURE_webengine_system_re2=ON \
+	-DQT_FEATURE_openssl=ON \
+	-DQT_FEATURE_openssl_linked=ON \
+	-DINPUT_openssl=linked \
 
 #	-DQT_FEATURE_webengine_system_ffmpeg=ON \
 #	-DWEBENGINE_USE_SYSTEM_FFMPEG=ON \
