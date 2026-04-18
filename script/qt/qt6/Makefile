@@ -7,6 +7,7 @@ DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-qtdoc-uncoditionally-stop-building.patch
+PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compiling-with-external-ffmpeg81.patch
 
 DESCRIPTION = 
 define BLURB
@@ -150,10 +151,9 @@ CONFIGURE_ARGS = \
 	-DQT_FEATURE_openssl=ON \
 	-DQT_FEATURE_openssl_linked=ON \
 	-DINPUT_openssl=linked \
-
-#	-DQT_FEATURE_webengine_system_ffmpeg=ON \
-#	-DWEBENGINE_USE_SYSTEM_FFMPEG=ON \
-#	-DQT_FEATURE_webengine_proprietary_codecs=ON \
+	-DQT_FEATURE_webengine_system_ffmpeg=ON \
+	-DWEBENGINE_USE_SYSTEM_FFMPEG=ON \
+	-DQT_FEATURE_webengine_proprietary_codecs=ON \
 
 endif
 
