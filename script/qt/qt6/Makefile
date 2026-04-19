@@ -13,6 +13,56 @@ DESCRIPTION =
 define BLURB
 endef
 
+# modules required by myth
+# qtbase
+# qtdeclarative
+# qthttpserver
+# qtshadertools
+# qttools
+# qtwayland
+# qtwebchannel
+# qtwebengine
+# qtwebsockets
+# qtwebview
+
+# list of modules removed before compilation
+QT_MODULES_TO_REMOVE = \
+     qt3d \
+     qt5compat \
+     qtactiveqt \
+     qtcanvaspainter \
+     qtcharts \
+     qtcoap \
+     qtconnectivity \
+     qtdatavis3d \
+     qtdoc \
+     qtgraphs \
+     qtgrpc \
+     qtimageformats \
+     qtlanguageserver \
+     qtlocation \
+     qtlottie \
+     qtmqtt \
+     qtmultimedia \
+     qtnetworkauth \
+     qtopcua \
+     qtopenapi \
+     qtpositioning \
+     qtquick3d \
+     qtquick3dphysics \
+     qtquickeffectmaker \
+     qtquicktimeline \
+     qtremoteobjects \
+     qtscxml \
+     qtsensors \
+     qtserialbus \
+     qtserialport \
+     qtspeech \
+     qtsvg \
+     qttasktree \
+     qttranslations \
+     qtvirtualkeyboard \
+
 ifneq ($(DESTIMG),build)
 # target build
 DEPENDS   =            \
@@ -40,14 +90,13 @@ DEPENDS   =            \
 	lib/libtiff    \
 	lib/libwebp    \
 	lib/re2        \
+	lib/ffmpeg8.1  \
 	gtk/glib       \
 	gtk/harfbuzz   \
 	devel/zlib     \
 	opengl/opengl  \
 	security/p11-kit \
 	xorg/xorg      \
-
-#	lib/ffmpeg8.1  \
 
 else
 # host build
@@ -132,7 +181,6 @@ CONFIGURE_ARGS = \
 	-qt-host-path "../../build.d/$(GARNAME)-$(GARVERSION)_build" \
 	-system-libjpeg \
 	-system-libpng \
-	-system-tiff \
 	-- $(DIRPATHS_CMAKE) \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	$(if $(filter i386,  $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") \
@@ -154,6 +202,7 @@ CONFIGURE_ARGS = \
 	-DQT_FEATURE_webengine_system_ffmpeg=ON \
 	-DWEBENGINE_USE_SYSTEM_FFMPEG=ON \
 	-DQT_FEATURE_webengine_proprietary_codecs=ON \
+	-DQT_FEATURE_webengine_spellchecker=OFF \
 
 endif
 
@@ -258,6 +307,13 @@ CREATE_PLATFORM   = \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir))
 
 pre-configure:
+	@echo "removing uneeded modules" ; \
+	 for file in $(QT_MODULES_TO_REMOVE) ; do \
+	   echo "removing $(WORKSRC)/$${file}" ; \
+	   if [ -e $(WORKSRC)/$${file} ] ; then \
+	     rm -rf $(WORKSRC)/$${file} ; \
+	   fi ; \
+	 done
 	$(call CREATE_PLATFORM, $(PLATFORM_GARBUILD_BASE_PATH), $(PLATFORM_GARBUILD_PATH), build_)
 	$(call CREATE_PLATFORM, $(PLATFORM_GARHOST_BASE_PATH) , $(PLATFORM_GARHOST_PATH) ,       )
 	@$(MAKECOOKIE)
