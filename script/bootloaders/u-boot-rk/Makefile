@@ -32,7 +32,7 @@
 # mm_U-BOOT_BOARD_TYPE = test-rk3576.
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = roc-pc-rk3576_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock4d-rk3576_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-4d-rk3576_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3588.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
@@ -47,8 +47,8 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = nanopi-r6s-rk3588s_defconfig
 
 GARNAME      = u-boot-rk
-# git@ 05.01.2026 mainline 2026.01 GA
-GARVERSION   = 127a42c7257a6ffbbd1575ed1cbaa8f5408a44b3
+# git@ 05.04.2026 mainline 2026.04 GA
+GARVERSION   = 88dc2788777babfd6322fa655df549a019aa1e69
 # git@ 13.06.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = 74213af1e952c4683d2e35952507133b61394862
 MASTER_SITES = \
@@ -81,6 +81,9 @@ PATCHFILES  += 59-rk3576-rock4d_defconfig-enable-ufs-support.patch
 PATCHFILES  += 60-rk3588-generic_defconfig-enable-spi-building.patch
 PATCHFILES  += 61-rk3588-rock5a-rk3588s_defconfig-enable-spi-building.patch
 PATCHFILES  += 63-rk3588-add-rock5t_defconfig.patch
+PATCHFILES  += 64-rk3576-my-boards-enable-http-dowload-support.patch
+PATCHFILES  += 65-rk3588-my-boards-enable-http-dowload-support.patch
+PATCHFILES  += 67-rk3399-rk3328-my-boards-enable-http-dowload-support.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
