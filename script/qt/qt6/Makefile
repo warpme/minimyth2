@@ -307,6 +307,7 @@ CREATE_PLATFORM   = \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir))
 
 pre-configure:
+ifneq ($(DESTIMG),build)
 	@echo "removing uneeded modules" ; \
 	 for file in $(QT_MODULES_TO_REMOVE) ; do \
 	   echo "removing $(WORKSRC)/$${file}" ; \
@@ -314,6 +315,7 @@ pre-configure:
 	     rm -rf $(WORKSRC)/$${file} ; \
 	   fi ; \
 	 done
+endif
 	$(call CREATE_PLATFORM, $(PLATFORM_GARBUILD_BASE_PATH), $(PLATFORM_GARBUILD_PATH), build_)
 	$(call CREATE_PLATFORM, $(PLATFORM_GARHOST_BASE_PATH) , $(PLATFORM_GARHOST_PATH) ,       )
 	@$(MAKECOOKIE)
