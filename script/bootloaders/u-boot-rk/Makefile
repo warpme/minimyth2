@@ -83,6 +83,7 @@ PATCHFILES  += 61-rk3588-rock5a-rk3588s_defconfig-enable-spi-building.patch
 PATCHFILES  += 63-rk3588-add-rock5t_defconfig.patch
 PATCHFILES  += 64-rk3576-my-boards-enable-http-dowload-support.patch
 PATCHFILES  += 65-rk3588-my-boards-enable-http-dowload-support.patch
+PATCHFILES  += 66-rk3566-my-boards-enable-http-dowload-support.patch
 PATCHFILES  += 67-rk3399-rk3328-my-boards-enable-http-dowload-support.patch
 
 CATEGORIES   = bootloaders
