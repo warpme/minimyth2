@@ -201,7 +201,9 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		rm -rf   $@~$(qt6prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt6prefix)/plugins                                                 ; \
 		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/platforms        $@~$(qt6prefix)/plugins ; \
-		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/iconengines      $@~$(qt6prefix)/plugins ; \
+		if [ -e $(DESTDIR)$(qt6prefix)/plugins/iconengines ] ; then                           \
+			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/iconengines $@~$(qt6prefix)/plugins  ; \
+		fi                                                                                  ; \
 		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/imageformats     $@~$(qt6prefix)/plugins ; \
 		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/sqldrivers       $@~$(qt6prefix)/plugins ; \
 		if [ -e $(DESTDIR)$(qt6prefix)/plugins/xcbglintegrations ] ; then                                  \
@@ -674,7 +676,6 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	 done ; \
 	 for file in $${files} ; do \
 			if [ -e $@~$(libdir)/$${file} ] ; then \
-				echo "chmod +x on $@~$(libdir)/$${file}" ; \
 				chmod +x $@~$(libdir)/$${file} ; \
 			fi ; \
 	 done ;
@@ -1054,9 +1055,9 @@ $(top_build)/share: \
 
 install: build
 	@if [ $(mm_DISTRIBUTION_SHARE) = yes ] ; then                                                              \
+		echo "installing Shared Distribution content to [$(mm_SHARE_FILES)]"                             ; \
 		rm -rf   $(mm_SHARE_FILES)/                                                                      ; \
 		mkdir -p $(mm_SHARE_FILES)/                                                                      ; \
-		echo "installing RAMfs content on share [$(mm_SHARE_FILES)]"                                     ; \
 		echo '  copying version file'                                                                    ; \
 		cp -af $(top_build)/stage/version $(mm_SHARE_FILES)/version                                      ; \
 		echo '  copying kernel & boot files'                                                             ; \
@@ -1087,6 +1088,7 @@ install: build
 		cp -a $(top_build)/stage/gar-$(mm_NAME).tar.bz2 $(mm_SHARE_FILES)/gar-$(mm_NAME).tar.bz2         ; \
 	 fi
 	@if [ $(mm_INSTALL_ONLINE_UPDATES) = yes ] ; then                                                    \
+		echo "installing On-Line updates to [$(mm_ONLINE_UPDATES)]"                                ; \
 		rm -rf   $(mm_ONLINE_UPDATES)/                                                             ; \
 		mkdir -p $(mm_ONLINE_UPDATES)/                                                             ; \
 		echo '  copying boot files'                                                                ; \
@@ -1112,43 +1114,43 @@ install: build
 	@if [ $(mm_DISTRIBUTION_SDCARD) = yes ] ; then                                                 \
 		echo "made SD card distribution"                                                     ; \
 		$(build_bindir)/kickstart/create-image.sh "$(mm_BOARD_TYPE)"                         ; \
-		echo "installing SD Card image on [$(mm_SDCARD_FILES)]"                              ; \
+		echo "installing SD Card image to [$(mm_SDCARD_FILES)]"                              ; \
 		cp -a $(top_build)/stage/MiniMyth2-*-SD-Image.img.xz $(mm_SDCARD_FILES)/             ; \
 	 fi
 	@if [ $(mm_INSTALL_RAM_BOOT) = yes ] || \
 	    [ $(mm_INSTALL_NFS_BOOT) = yes ] ; then \
 		                                                                                                                 \
 		if [ $(mm_INSTALL_RAM_BOOT) = yes ] ; then                                                                       \
-			echo "installing RAMfs content on TFTP server [$(mm_TFTP_ROOT)]"                                       ; \
-			rm -rf   $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)                                                        ; \
-			mkdir -p $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)                                                        ; \
+			echo "installing RAMfs content on TFTP server to [$(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)]"  ; \
+			rm -rf   $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)                                             ; \
+			mkdir -p $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)                                             ; \
 			echo '  copying version file'                                                                          ; \
-			cp -a $(top_build)/stage/version $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/version                        ; \
+			cp -a $(top_build)/stage/version $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/version             ; \
 			echo '  copying kernel & boot files'                                                                   ; \
 			if [  $(mm_GARCH_FAMILY) = arm ] ; then                                                                  \
-				mkdir -p $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/boot                                           ; \
-				cp -a $(top_build)/stage/boot $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/                          ; \
+				mkdir -p $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/boot                                ; \
+				cp -a $(top_build)/stage/boot $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/               ; \
 			elif [  $(mm_GARCH_FAMILY) = arm64 ] ; then                                                              \
-				mkdir -p $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/boot                                           ; \
-				cp -a $(top_build)/stage/boot $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/                          ; \
+				mkdir -p $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/boot                                ; \
+				cp -a $(top_build)/stage/boot $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/               ; \
 			else                                                                                                     \
-				cp -a $(top_build)/stage/kernel $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/kernel                  ; \
+				cp -a $(top_build)/stage/kernel $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/kernel       ; \
 			fi                                                                                                     ; \
 			echo '  copying rootfs'                                                                                ; \
-			cp -a $(top_build)/stage/rootfs $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/rootfs                          ; \
+			cp -a $(top_build)/stage/rootfs $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs               ; \
 			echo '  copying extras'                                                                                ; \
-			cp -a $(top_build)/stage/extras.sfs $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/extras.sfs                  ; \
+			cp -a $(top_build)/stage/extras.sfs $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras.sfs       ; \
 			echo '  copying changelog'                                                                             ; \
-			cp -a $(top_build)/stage/changelog.txt $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/changelog.txt            ; \
+			cp -a $(top_build)/stage/changelog.txt $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/changelog.txt ; \
 			echo '  copying release-notes'                                                                         ; \
-			cp -a $(top_build)/stage/release-notes.txt $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/release-notes.txt    ; \
+			cp -a $(top_build)/stage/release-notes.txt $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/release-notes.txt ; \
 			echo '  copying supported HW lists'                                                                    ; \
-			cp -a $(top_build)/stage/supported-gfx-hardware.txt $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/supported-gfx-hardware.txt ; \
-			cp -a $(top_build)/stage/supported-IR-remotes.txt $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/supported-IR-remotes.txt     ; \
+			cp -a $(top_build)/stage/supported-gfx-hardware.txt $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/supported-gfx-hardware.txt ; \
+			cp -a $(top_build)/stage/supported-IR-remotes.txt $(mm_TFTP_ROOT)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME)/supported-IR-remotes.txt     ; \
 		fi                                                                                                             ; \
 		                                                                                        \
 		if [ $(mm_INSTALL_NFS_BOOT) = yes ] ; then                                              \
-			echo "installing NFS content on NFS server [$(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)]"  ; \
+			echo "installing NFS content on NFS server to [$(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)]"  ; \
 			echo " "                                                                      ; \
 			echo "  Writing NFS rootfs content on NFS server requires root priviliges."   ; \
 			echo "  Please provide root password..."                                      ; \
