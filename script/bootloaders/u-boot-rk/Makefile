@@ -29,10 +29,10 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3568_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3588_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3576.
+mm_U-BOOT_BOARD_TYPE = test-rk3576.
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = roc-pc-rk3576_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-4d-rk3576_defconfig
+mm_U-BOOT_BOARD_DEFCONFIG = rock-4d-rk3576_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3588.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
