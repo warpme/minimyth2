@@ -173,9 +173,9 @@ ifeq (1,1)
 # h6 drivers additions
 PATCHFILES += 2000-rtc-sun6i-Allow-RTC-wakeup-after-shutdown.patch
 PATCHFILES += 2001-firmware-arm_scpi-Support-unidirectional-mailbox-cha.patch
-PATCHFILES += 2002-mfd-add-AC200.patch
-PATCHFILES += 2003-revert-stop-exporting-phy_driver_register-unregister-for-ac200.patch
-PATCHFILES += 2004-net-phy-Add-support-for-AC200-EPHY.patch
+PATCHFILES += 2002-clk-gate-add-regmap-gate-support.patch
+PATCHFILES += 2003-mfd-ac200-add-support.patch
+PATCHFILES += 2004-mfd-ac200-add-ephy-syscon.patch
 PATCHFILES += 2005-net-wireless-add-xr819-support-07072021.patch
 PATCHFILES += 2006-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
 PATCHFILES += 2007-drm-sun4i-Add-support-for-DE33-CSC.patch
