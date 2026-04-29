@@ -243,7 +243,7 @@ PATCHFILES += 2507-arm64-dtsi-allwinner-h616-add-PWM-nodes.patch
 PATCHFILES += 2508-arm64-dtsi-allwinner-h616.dtsi-add-i2c-uart-pinctrl.patch
 PATCHFILES += 2509-arm64-dtsi-allwinner-h616-add-ac300-network.dtsi.patch
 # h616 board dts additions
-PATCHFILES += 2600-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
+PATCHFILES += 2600-arm64-dts-allwinner-h616-opi-zero23-improvements.patch
 PATCHFILES += 2601-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 2602-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
 PATCHFILES += 2603-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
@@ -256,7 +256,6 @@ PATCHFILES += 2609-arm64-dts-allwinner-h616-add-pendoo-x12pro-tvbox.patch
 PATCHFILES += 2610-arm64-dts-allwinner-h618-improve-transpeed-8k618-tvbox.patch
 PATCHFILES += 2611-arm64-dts-allwinner-h313-h616-h618-add-cpu-overclock-via-overlays.patch
 PATCHFILES += 2612-arm64-dts-allwinner-h313-h616-h618-add-gpu-overclock-via-overlays.patch
-PATCHFILES += 2613-arm64-dts-allwinner-h616-OrangePI-Zero3-disable-pmic-int.patch
 # a523 drivers additions
 PATCHFILES += 2700-axp20x-HACK-mfd-and-multiple-axp-on-the-bus.patch
 PATCHFILES += 2701-regulator-axp20x-force-polyphase-setup-for-axp323.patch
