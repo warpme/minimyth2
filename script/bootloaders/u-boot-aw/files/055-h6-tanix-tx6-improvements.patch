@@ -1,0 +1,435 @@
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6.dtsi u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6.dtsi
+--- u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6.dtsi	2026-04-06 19:59:18.000000000 +0200
++++ u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6.dtsi	2026-04-27 12:25:31.233896883 +0200
+@@ -17,6 +17,16 @@
+ 	#address-cells = <1>;
+ 	#size-cells = <1>;
+ 
++	ac200_pwm_clk: ac200_clk {
++		compatible = "pwm-clock";
++		#clock-cells = <0>;
++		clock-frequency = <24000000>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pwm1_pin>;
++		pwms = <&pwm 1 42 0>;
++		status = "disabled";
++	};
++
+ 	cpus {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+@@ -122,6 +132,13 @@
+ 		method = "smc";
+ 	};
+ 
++	scpi_protocol: scpi {
++		compatible = "arm,scpi";
++		mboxes = <&msgbox 2>, <&msgbox 3>;
++		mbox-names = "tx", "rx";
++		shmem = <&scpi_sram>;
++	};
++
+ 	timer {
+ 		compatible = "arm,armv8-timer";
+ 		arm,no-tick-in-suspend;
+@@ -135,6 +152,24 @@
+ 			(GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>;
+ 	};
+ 
++	sound_hdmi: sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,name = "HDMI";
++		simple-audio-card,mclk-fs = <128>;
++		simple-audio-card,frame-inversion;
++
++		simple-audio-card,codec {
++			sound-dai = <&hdmi>;
++		};
++
++		simple-audio-card,cpu {
++			sound-dai = <&i2s1>;
++			dai-tdm-slot-num = <2>;
++			dai-tdm-slot-width = <32>;
++		};
++	};
++
+ 	soc {
+ 		compatible = "simple-bus";
+ 		#address-cells = <1>;
+@@ -197,6 +232,18 @@
+ 			iommus = <&iommu 5>;
+ 		};
+ 
++		deinterlace: deinterlace@1420000 {
++			compatible = "allwinner,sun50i-h6-deinterlace";
++			reg = <0x01420000 0x2000>;
++			clocks = <&ccu CLK_BUS_DEINTERLACE>,
++				 <&ccu CLK_DEINTERLACE>,
++				 <&ccu CLK_MBUS_DEINTERLACE>;
++			clock-names = "bus", "mod", "ram";
++			resets = <&ccu RST_BUS_DEINTERLACE>;
++			interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
++			iommus = <&iommu 2>;
++		};
++
+ 		video-codec@1c0e000 {
+ 			compatible = "allwinner,sun50i-h6-video-engine";
+ 			reg = <0x01c0e000 0x2000>;
+@@ -206,7 +253,7 @@
+ 			resets = <&ccu RST_BUS_VE>;
+ 			interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
+ 			allwinner,sram = <&ve_sram 1>;
+-			iommus = <&iommu 3>;
++			iommus = <&iommu 1>, <&iommu 3>;
+ 		};
+ 
+ 		gpu: gpu@1800000 {
+@@ -241,6 +288,19 @@
+ 			#size-cells = <1>;
+ 			ranges;
+ 
++			sram_a2: sram@100000 {
++				compatible = "mmio-sram";
++				reg = <0x00100000 0x18000>;
++				#address-cells = <1>;
++				#size-cells = <1>;
++				ranges = <0 0x00100000 0x18000>;
++
++				scpi_sram: scpi-sram@17c00 {
++					compatible = "arm,scp-shmem";
++					reg = <0x17c00 0x200>;
++				};
++			};
++
+ 			sram_c: sram@28000 {
+ 				compatible = "mmio-sram";
+ 				reg = <0x00028000 0x1e000>;
+@@ -275,6 +335,7 @@
+ 			reg = <0x03001000 0x1000>;
+ 			clocks = <&osc24M>, <&rtc CLK_OSC32K>, <&rtc CLK_IOSC>;
+ 			clock-names = "hosc", "losc", "iosc";
++			protected-clocks = <CLK_BUS_MSGBOX>;
+ 			#clock-cells = <1>;
+ 			#reset-cells = <1>;
+ 		};
+@@ -314,6 +375,14 @@
+ 			cpu_speed_grade: cpu-speed-grade@1c {
+ 				reg = <0x1c 0x4>;
+ 			};
++
++			ephy_calib: ephy_calib@2c {
++				reg = <0x2c 0x2>;
++			};
++
++			ac200_bg: ac200_bg@30 {
++				reg = <0x30 0x2>;
++			};
+ 		};
+ 
+ 		timer@3009000 {
+@@ -368,6 +437,13 @@
+ 				drive-strength = <40>;
+ 			};
+ 
++			ext_rmii_pins: rmii_pins {
++				pins = "PA0", "PA1", "PA2", "PA3", "PA4",
++				       "PA5", "PA6", "PA7", "PA8", "PA9";
++				function = "emac";
++				drive-strength = <40>;
++			};
++
+ 			hdmi_pins: hdmi-pins {
+ 				pins = "PH8", "PH9", "PH10";
+ 				function = "hdmi";
+@@ -388,6 +464,12 @@
+ 				function = "i2c2";
+ 			};
+ 
++			i2c3_pins: i2c3-pins {
++				pins = "PB17", "PB18";
++				function = "i2c3";
++				bias-pull-up;
++			};
++
+ 			mmc0_pins: mmc0-pins {
+ 				pins = "PF0", "PF1", "PF2", "PF3",
+ 				       "PF4", "PF5";
+@@ -414,6 +496,11 @@
+ 				bias-pull-up;
+ 			};
+ 
++			pwm1_pin: pwm1-pin {
++				pins = "PB19";
++				function = "pwm1";
++			};
++
+ 			/omit-if-no-ref/
+ 			spi0_pins: spi0-pins {
+ 				pins = "PC0", "PC2", "PC3";
+@@ -618,6 +705,43 @@
+ 			#size-cells = <0>;
+ 		};
+ 
++		i2c3: i2c@5002c00 {
++			compatible = "allwinner,sun50i-h6-i2c",
++				     "allwinner,sun6i-a31-i2c";
++			reg = <0x05002c00 0x400>;
++			interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_I2C3>;
++			resets = <&ccu RST_BUS_I2C3>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&i2c3_pins>;
++			clock-frequency = <100000>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			ac200: mfd@10 {
++				compatible = "x-powers,ac200";
++				reg = <0x10>;
++				clocks = <&ac200_pwm_clk>;
++				interrupt-parent = <&pio>;
++				interrupts = <1 20 IRQ_TYPE_LEVEL_LOW>;
++				interrupt-controller;
++				#interrupt-cells = <1>;
++				nvmem-cells = <&ac200_bg>;
++				nvmem-cell-names = "bandgap";
++
++				ac200_ephy_ctl: syscon {
++					compatible = "x-powers,ac200-ephy-ctl";
++					nvmem-cells = <&ephy_calib>;
++					nvmem-cell-names = "calibration";
++					#clock-cells = <0>;
++					#reset-cells = <0>;
++					phy-mode = "rmii";
++					status = "disabled";
++				};
++			};
++		};
++
+ 		spi0: spi@5010000 {
+ 			compatible = "allwinner,sun50i-h6-spi",
+ 				     "allwinner,sun8i-h3-spi";
+@@ -678,7 +802,6 @@
+ 			dmas = <&dma 4>, <&dma 4>;
+ 			resets = <&ccu RST_BUS_I2S1>;
+ 			dma-names = "rx", "tx";
+-			status = "disabled";
+ 		};
+ 
+ 		spdif: spdif@5093000 {
+@@ -813,6 +936,7 @@
+ 		};
+ 
+ 		hdmi: hdmi@6000000 {
++			#sound-dai-cells = <0>;
+ 			compatible = "allwinner,sun50i-h6-dw-hdmi";
+ 			reg = <0x06000000 0x10000>;
+ 			reg-io-width = <1>;
+@@ -969,6 +1093,7 @@
+ 			clocks = <&osc24M>, <&rtc CLK_OSC32K>, <&rtc CLK_IOSC>,
+ 				 <&ccu CLK_PLL_PERIPH0>;
+ 			clock-names = "hosc", "losc", "iosc", "pll-periph";
++			protected-clocks = <CLK_R_APB1_TWD>;
+ 			#clock-cells = <1>;
+ 			#reset-cells = <1>;
+ 		};
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix.dtsi u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix.dtsi
+--- u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix.dtsi	2026-04-06 19:59:18.000000000 +0200
++++ u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix.dtsi	2026-04-27 12:31:57.376902999 +0200
+@@ -5,11 +5,16 @@
+ 
+ #include "sun50i-h6.dtsi"
+ #include "sun50i-h6-cpu-opp.dtsi"
++#include "sun50i-h6-gpu-opp.dtsi"
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ 
+ / {
+ 	aliases {
++		mmc0 = &mmc0;
++		mmc1 = &mmc1;
++		mmc2 = &mmc2;
++		ethernet0 = &emac;
+ 		serial0 = &uart0;
+ 	};
+ 
+@@ -17,26 +22,6 @@
+ 		stdout-path = "serial0:115200n8";
+ 	};
+ 
+-	connector {
+-		compatible = "hdmi-connector";
+-		ddc-en-gpios = <&pio 7 2 GPIO_ACTIVE_HIGH>; /* PH2 */
+-		type = "a";
+-
+-		port {
+-			hdmi_con_in: endpoint {
+-				remote-endpoint = <&hdmi_out_con>;
+-			};
+-		};
+-	};
+-
+-	/* used for FD650 LED display driver */
+-	i2c {
+-		compatible = "i2c-gpio";
+-		sda-gpios = <&pio 7 6 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH6 */
+-		scl-gpios = <&pio 7 5 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH5 */
+-		i2c-gpio,delay-us = <5>;
+-	};
+-
+ 	reg_vcc1v8: regulator-vcc1v8 {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vcc1v8";
+@@ -57,41 +42,22 @@
+ 		regulator-min-microvolt = <1135000>;
+ 		regulator-max-microvolt = <1135000>;
+ 	};
++};
+ 
+-	sound-spdif {
+-		compatible = "simple-audio-card";
+-		simple-audio-card,name = "sun50i-h6-spdif";
+-
+-		simple-audio-card,cpu {
+-			sound-dai = <&spdif>;
+-		};
+-
+-		simple-audio-card,codec {
+-			sound-dai = <&spdif_out>;
+-		};
+-	};
+-
+-	spdif_out: spdif-out {
+-		#sound-dai-cells = <0>;
+-		compatible = "linux,spdif-dit";
+-	};
++&ac200_ephy_ctl {
++	x-powers,led-polarity = <GPIO_ACTIVE_HIGH>;
++	phy-address = <1>;
++	status = "okay";
++};
+ 
+-	wifi_pwrseq: wifi-pwrseq {
+-		compatible = "mmc-pwrseq-simple";
+-		clocks = <&rtc CLK_OSC32K_FANOUT>;
+-		clock-names = "ext_clock";
+-		reset-gpios = <&r_pio 1 3 GPIO_ACTIVE_LOW>; /* PM3 */
+-	};
++&ac200_pwm_clk {
++	status = "okay";
+ };
+ 
+ &cpu0 {
+ 	cpu-supply = <&reg_vdd_cpu_gpu>;
+ };
+ 
+-&de {
+-	status = "okay";
+-};
+-
+ &dwc3 {
+ 	status = "okay";
+ };
+@@ -104,18 +70,31 @@
+ 	status = "okay";
+ };
+ 
++&emac {
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&ext_rmii_phy>;
++	status = "okay";
++};
++
+ &gpu {
+ 	mali-supply = <&reg_vdd_cpu_gpu>;
+ 	status = "okay";
+ };
+ 
+-&hdmi {
++&i2c3 {
+ 	status = "okay";
+ };
+ 
+-&hdmi_out {
+-	hdmi_out_con: endpoint {
+-		remote-endpoint = <&hdmi_con_in>;
++&mdio {
++	ext_rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-id0044.1400",
++			     "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++		resets = <&ac200_ephy_ctl>;
++		reset-names = "phy";
++		clocks = <&ac200_ephy_ctl>;
+ 	};
+ };
+ 
+@@ -135,7 +114,13 @@
+ 	mmc-pwrseq = <&wifi_pwrseq>;
+ 	bus-width = <4>;
+ 	non-removable;
++	keep-power-in-suspend;
+ 	status = "okay";
++
++	wifi: sdio_wifi@1 {
++		reg = <1>;
++		keep-power-in-suspend;
++	};
+ };
+ 
+ &mmc2 {
+@@ -162,13 +147,7 @@
+ 	vcc-pg-supply = <&reg_vcc1v8>;
+ };
+ 
+-&r_ir {
+-	status = "okay";
+-};
+-
+-&spdif {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&spdif_tx_pin>;
++&pwm {
+ 	status = "okay";
+ };
+ 
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix-tx6.dts u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix-tx6.dts
+--- u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix-tx6.dts	2026-04-06 19:59:18.000000000 +0200
++++ u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix-tx6.dts	2026-04-27 12:32:22.845423226 +0200
+@@ -9,21 +9,3 @@
+ 	model = "Tanix TX6";
+ 	compatible = "oranth,tanix-tx6", "allwinner,sun50i-h6";
+ };
+-
+-&r_ir {
+-	linux,rc-map-name = "rc-tanix-tx5max";
+-};
+-
+-&uart1 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&uart1_pins>, <&uart1_rts_cts_pins>;
+-	uart-has-rtscts;
+-	status = "okay";
+-
+-	bluetooth {
+-		compatible = "realtek,rtl8822cs-bt";
+-		device-wake-gpios = <&r_pio 1 2 GPIO_ACTIVE_HIGH>; /* PM2 */
+-		host-wake-gpios = <&r_pio 1 1 GPIO_ACTIVE_HIGH>; /* PM1 */
+-		enable-gpios = <&r_pio 1 4 GPIO_ACTIVE_HIGH>; /* PM4 */
+-	};
+-};
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix-tx6-mini.dts u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix-tx6-mini.dts
+--- u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix-tx6-mini.dts	2026-04-06 19:59:18.000000000 +0200
++++ u-boot-2026.04/dts/upstream/src/arm64/allwinner/sun50i-h6-tanix-tx6-mini.dts	2026-04-27 12:32:10.535346143 +0200
+@@ -9,7 +9,3 @@
+ 	model = "Tanix TX6 mini";
+ 	compatible = "oranth,tanix-tx6-mini", "allwinner,sun50i-h6";
+ };
+-
+-&r_ir {
+-	linux,rc-map-name = "rc-tanix-tx3mini";
+-};

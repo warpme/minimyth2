@@ -34,44 +34,41 @@
 
 
 GARNAME      = u-boot-aw
-GARVERSION   = 2025.04
+GARVERSION   = 2026.04
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
 
+PATCHFILES  += 01-fix-compiling-clock_sun50i_h6.c.patch
+
 # h6 boards related patches
 PATCHFILES  += 052-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 PATCHFILES  += 054-sunxi-Add-OrangePi-3-LTS-board.patch
-PATCHFILES  += 056-sunxi-dram-Fix-incorrect-ram-size-detection-for-some-H6-boards.patch
+PATCHFILES  += 055-h6-tanix-tx6-improvements.patch
+# PATCHFILES  += 056-sunxi-dram-Fix-incorrect-ram-size-detection-for-some-H6-boards.patch
 # h616 patches
 PATCHFILES  += 100-sunsi-add-h616-internal-eth-phy-support.patch
 PATCHFILES  += 101-unreliable-dram.patch
-PATCHFILES  += 102-sunxi-H616-GPU-enable-hack.patch
 PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
 PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
 PATCHFILES  += 106-Add-int-phy-eth-H313-h616-with-AC300.patch
-PATCHFILES  += 107-drivers-mmc-sunxi_mmc-fix-failing-rw-ops.patch
-PATCHFILES  += 109-hack-hack-fix-h618-boot-on-uboot2024.07.patch
-PATCHFILES  += 110-sunxi-H616-dram-Lower-max-row-count.patch
-PATCHFILES  += 111-sunxi-H616-dram-Improve-size-scan-procedure.patch
-PATCHFILES  += 112-sunxi-H616-dram-fix-pendoo-x12-size-detection.patch
-# PATCHFILES  += 113-add-dram-sizing-debug-verbosity.patch
 # h616 boards aditions.
 PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
 PATCHFILES  += 152-add-tanix-tx6s-defconfig.patch
 PATCHFILES  += 153-add-tanix_tx6s_axp313_defconfig.patch
 PATCHFILES  += 154-opi-zero2-add-mising-dram-para.patch
-PATCHFILES  += 155-opi-zero3-enable-more-usb-pwrled-add-aliases.patch
+PATCHFILES  += 155-dts-zero3-improvements.patch
 PATCHFILES  += 157-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
 PATCHFILES  += 158-add-pendoo-x12pro-defconfig.patch
 PATCHFILES  += 159-add-x96-q-lpddr3-v1.3-defconfig.patch
 PATCHFILES  += 160-add-vontar-h618-defconfig.patch
 PATCHFILES  += 161-dts-zero2w-improvements.patch
-PATCHFILES  += 162-add-tx1-defconfig.patch
+# to check PATCHFILES  += 162-add-tx1-defconfig.patch
 PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
 PATCHFILES  += 164-add-tx1-v1.2-defconfig.patch
 PATCHFILES  += 165-transpeed-8k618-t-improvements.patch
+PATCHFILES  += 166-beelink-gs1-improvements.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
