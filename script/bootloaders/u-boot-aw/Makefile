@@ -59,7 +59,7 @@ PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
 PATCHFILES  += 152-add-tanix-tx6s-defconfig.patch
 PATCHFILES  += 153-add-tanix_tx6s_axp313_defconfig.patch
-PATCHFILES  += 154-opi-zero2-add-mising-dram-para.patch
+PATCHFILES  += 154-dts-zero2-improvements.patch
 PATCHFILES  += 155-dts-zero3-improvements.patch
 PATCHFILES  += 157-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
 PATCHFILES  += 158-add-pendoo-x12pro-defconfig.patch
@@ -186,9 +186,3 @@ clean-all: clean
 
 menuconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
-#<------>@cp -f ./files/$(CONFIGFILE) $(CONFIGFILE).before.menuconfig; \
-#<------> cp -f $(WORKSRC)/.config ./files/$(CONFIGFILE); \
-#<------> echo "edited .config saved as $(CONFIGFILE) in package/files dir ... "; \
-#<------> cp -f $(WORKSRC)/.config $(CONFIGFILE).after.menuconfig; \
-#<------> echo "edited .config saved as $(CONFIGFILE).after.menuconfig in package dir ... "; \
-#<------> echo -n "Done! Press <Enter> to exit ... "; read
