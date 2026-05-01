@@ -67,8 +67,6 @@ PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # some fixes to build on minimyth2
 PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
-# update ffmpeg to 8.1
-PATCHFILES += 0151-ffmpeg-pull1328-Update-FFmpeg-to-version-8.1-05042026.patch
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
