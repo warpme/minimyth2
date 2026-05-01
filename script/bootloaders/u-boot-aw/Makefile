@@ -46,6 +46,8 @@ PATCHFILES  += 052-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 PATCHFILES  += 054-sunxi-Add-OrangePi-3-LTS-board.patch
 PATCHFILES  += 055-h6-tanix-tx6-improvements.patch
 # PATCHFILES  += 056-sunxi-dram-Fix-incorrect-ram-size-detection-for-some-H6-boards.patch
+PATCHFILES  += 057-enable-opi3lts-netbooting.patch
+PATCHFILES  += 058-enable-beelink-gs1-netbooting.patch
 # h616 patches
 PATCHFILES  += 100-sunsi-add-h616-internal-eth-phy-support.patch
 PATCHFILES  += 101-unreliable-dram.patch
@@ -68,7 +70,6 @@ PATCHFILES  += 161-dts-zero2w-improvements.patch
 PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
 PATCHFILES  += 164-add-tx1-v1.2-defconfig.patch
 PATCHFILES  += 165-transpeed-8k618-t-improvements.patch
-PATCHFILES  += 166-beelink-gs1-improvements.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
@@ -182,3 +183,12 @@ install-custom:
 clean-all: clean
 	@rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin
 	@rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin
+
+menuconfig: configure
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
+#<------>@cp -f ./files/$(CONFIGFILE) $(CONFIGFILE).before.menuconfig; \
+#<------> cp -f $(WORKSRC)/.config ./files/$(CONFIGFILE); \
+#<------> echo "edited .config saved as $(CONFIGFILE) in package/files dir ... "; \
+#<------> cp -f $(WORKSRC)/.config $(CONFIGFILE).after.menuconfig; \
+#<------> echo "edited .config saved as $(CONFIGFILE).after.menuconfig in package dir ... "; \
+#<------> echo -n "Done! Press <Enter> to exit ... "; read
