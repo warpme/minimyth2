@@ -1,10 +1,11 @@
 
 GARNAME      = gn
-# 0.2223.6e8e0d6d 5.04.2025
-GARVERSION   = 6e8e0d6d4a151ab2ed9b4a35366e630c55888444
+# main  @1.05.2026
+GARVERSION   = 9ece3f5254c273cb46606a6571963f931c3b012d
 CATEGORIES   = devel
 MASTER_SITES = https://gn.googlesource.com/gn/+archive/
-DISTFILES    = $(GARVERSION).tar.gz last_commit_position.h
+DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = 01-fix-compiling.patch
 LICENSE      = BSD_3_Clause
 
 DESCRIPTION = 
@@ -27,7 +28,9 @@ export AR = $(build_AR)
 
 configure-custom:
 	@# dealing with gn bug where gn still looks for last_commit_position.h despite --no-last-commit-position param
-	@cp $(WORKSRC)/last_commit_position.h $(WORKSRC)/src/gn/last_commit_position.h
+	@touch $(WORKSRC)/src/gn/last_commit_position.h
+	@echo "#define LAST_COMMIT_POSITION_NUM 01052026"       >> $(WORKSRC)/src/gn/last_commit_position.h
+	@echo "#define LAST_COMMIT_POSITION \"g$(GARVERSION)\"" >> $(WORKSRC)/src/gn/last_commit_position.h
 	@cd $(WORKSRC) ; python3 ./build/gen.py --no-last-commit-position
 	@$(MAKECOOKIE)
 
