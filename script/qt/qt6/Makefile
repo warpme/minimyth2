@@ -115,7 +115,7 @@ BUILDDEPS = \
 ifneq ($(DESTIMG),build)
 BUILDDEPS += qt/qt6
 else
-BUILDDEPS += python3/python-html5lib lib/nodejs utils/gperf
+BUILDDEPS += python3/python-html5lib lib/nodejs utils/gperf lib/nss
 endif
 
 PWD := $(shell pwd)
