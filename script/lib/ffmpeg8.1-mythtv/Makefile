@@ -16,12 +16,19 @@ PC_FILES       = libavcodec.pc libavdevice.pc libavfilter.pc libavformat.pc liba
 DEST_LIB_FILES = libavcodec.*  libavdevice.*  libavfilter.*  libavformat.*  libavutil.*  libswresample.*  libswscale.*
 SRC_LIB_FILES  = \
  libmythavcodec.so.62.28.100 \
+ libmythavcodec.so.62 \
  libmythavdevice.so.62.3.100 \
+ libmythavdevice.so.62 \
  libmythavfilter.so.11.14.100 \
+ libmythavfilter.so.11 \
  libmythavformat.so.62.12.100 \
+ libmythavformat.so.62 \
  libmythavutil.so.60.26.100 \
+ libmythavutil.so.60 \
  libmythswresample.so.6.3.100 \
- libmythswscale.so.9.5.100
+ libmythswresample.so.6 \
+ libmythswscale.so.9.5.100 \
+ libmythswscale.so.9
 DEST_BIN_FILES = ffmpeg ffprobe ffplay
 SRC_BIN_FILES  = mythffmpeg mythffprobe mythffplay
 
