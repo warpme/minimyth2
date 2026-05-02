@@ -156,8 +156,8 @@ Amlogic g12a    | Radxa-Zero       | works  (ap6256@SDIO)                   | no
 Amlogic s905w2  | TV98             | not works                              | not tested| n/a       | wip       | not works   | works       | not works (firmware issue)     | support in-progress           |
 Amlogic s905y4  | Khadas VIM1S     | works  (ap6256@SDIO)                   | not tested| n/a       | wip       | not works   | LED diode,OK| not works (firmware issue)     | support in-progress           |
 Broadcom 2837   | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | n/a       | not tested| works       | n/a         | no plans                       | all basics works nicelly      |
-Broadcom 2711   | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | n/a       | works     | works       | n/a         | no plans                       | all basics works nicelly      |
-Broadcom 2712   | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | n/a       | works     | works       | n/a         | no plans                       | all basics works nicelly      |
+Broadcom 2711   | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
+Broadcom 2712   | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
 Intel i5        | i5 NUC           | n/a                                    | n/a       | n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support               |
 Intel Z8500     | Beelink MII-V    | works  (ac3165@PCI-e)                  | not tested| n/a       | works     | n/a         | n/a         | works (s1idle)                 | perfect support               |
 Intel N3450     | Beelink BT4      | works  (ac3165@PCI-e)                  | not tested| n/a       | works     | n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
