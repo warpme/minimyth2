@@ -97,7 +97,7 @@ MiniMyth2 [Wiki](https://github.com/warpme/minimyth2/wiki)
 ### General Functionality
 This is general functionality avaliable on current code (Mainline Linux kernel)
 
-| Net boot  SoC             | Tested on        | WiFi Chip & Support          eMMC boot | SPI boot  | Net boot  | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
+| Net boot  SoC | Tested on        | WiFi Chip & Support                    | eMMC boot | SPI boot  | Net boot  | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
 ----------------|------------------|----------------------------------------|-----------|-----------|-----------|-------------|-------------|--------------------------------|-------------------------------|
 Allwinner H6    | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works     | n/a       | not tested| works       | works       | well supported                 | well supported                |
 Allwinner H6    | TanixTX6         | works  (ap6330@SDIO)                   | works     | n/a       | not tested| works       | works       | works                          | well supported                |
