@@ -34,5 +34,9 @@ sed "/Architecture\s*=.*/a DisableDownloadTimeout" -i ${dest}/etc/pacman.conf
 echo "blocking updates of kernel and firmwares ..."
 sed "s/\#IgnorePkg\s*=.*/IgnorePkg = linux-aarch64 linux-aarch64-headers linux-aarch64-api-headers linux-headers linux-api-headers linux-firmware linux-firmware\-\*/g" -i ${dest}/etc/pacman.conf
 
+# add to fstab /BOOT part. mounting
+echo "add to fstab /BOOT partiton mounting ..."
+echo "LABEL=BOOT	/boot	vfat	defaults	0	2" >> ${dest}/etc/fstab
+
 echo "----end----"
 exit 0
