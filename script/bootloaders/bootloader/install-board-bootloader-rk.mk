@@ -45,3 +45,4 @@ clean-bootloader:
 clean-all: clean-bootloader cookieclean downloadclean
 	@rm -f $(IDBLOADER)
 	@rm -f $(U-BOOT)
+	@rm -f $(U-BOOT-SPI)
