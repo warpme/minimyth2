@@ -22,6 +22,7 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = radxa-zero-3-rk3566_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = x96-x6-rk3566_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-3c-rk3566_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = urve-pi-rk3566_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3568.
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-3a-rk3568_defconfig
@@ -85,6 +86,7 @@ PATCHFILES  += 64-rk3576-my-boards-enable-http-dowload-support.patch
 PATCHFILES  += 65-rk3588-my-boards-enable-http-dowload-support.patch
 PATCHFILES  += 66-rk3566-my-boards-enable-http-dowload-support.patch
 PATCHFILES  += 67-rk3399-rk3328-my-boards-enable-http-dowload-support.patch
+PATCHFILES  += 68-rk3566-add-urve-pi_defconfig.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
