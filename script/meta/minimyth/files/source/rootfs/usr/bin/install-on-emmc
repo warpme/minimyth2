@@ -70,7 +70,7 @@ log_file="/var/log/install-on-emmc.log"
 
 
 
-ver=7.1
+ver=7.2
 
 command=$1
 
@@ -741,7 +741,10 @@ check_presence_and_select_target() {
 
     if [ ${devices_in_system} -lt 2 ] ; then
         #single device case
-            if is_present_and_not_booted_from ${emmc_dev} ; then
+            if is_present_and_not_booted_from ${sdcard_dev} ; then
+                target_dev=${sdcard_dev}
+                target_dev_name="SD Card"
+            elif is_present_and_not_booted_from ${emmc_dev} ; then
                 target_dev=${emmc_dev}
                 target_dev_name="eMMC"
             elif is_present_and_not_booted_from ${ufs_dev} ; then
@@ -768,6 +771,9 @@ check_presence_and_select_target() {
         echo "Multiple target candidates identified."
         echo "Please select target to operate on:"
         echo " "
+        if is_present_and_not_booted_from ${sdcard_dev} ; then
+            echo "(s): SD card"
+        fi
         if is_present_and_not_booted_from ${emmc_dev} ; then
             echo "(e): eMMC module"
         fi
@@ -783,7 +789,10 @@ check_presence_and_select_target() {
 
         read sel
 
-        if  [ "${sel}" = "e" ] ; then
+        if   [ "${sel}" = "s" ] ; then
+            target_dev=${sdcard_dev}
+            target_dev_name="SD Card"
+        elif [ "${sel}" = "e" ] ; then
             target_dev=${emmc_dev}
             target_dev_name="eMMC"
         elif [ "${sel}" = "f" ] ; then
@@ -996,9 +1005,6 @@ fi
 
 if [ "${command}" = "erase" ] ; then
 
-    skip_check_is_booted_from="yes"
-    check_presence_and_select_target
-    skip_check_is_booted_from="no"
 
     clean_working_env
 
@@ -1065,18 +1071,11 @@ elif [ "${command}" = "erasespi" ] ; then
 
 elif [ "${command}" = "bootloader" ] ; then
 
+    skip_check_is_booted_from="yes"
     check_presence_and_select_target
+    skip_check_is_booted_from="no"
 
     check_presence_and_select_source
-
-    if [ ${target_dev} != ${emmc_dev} ] ; then
-        echo "Writing bootloader is supported only for eMMC target ..."
-        echo "Current target is ${target_dev_name} (${target_dev})"
-        echo " "
-        echo "Exiting!"
-        echo " "
-        exit 1
-    fi
 
     confirm "to install/update bootloader on ${target_dev_name} (${target_dev})"
 
