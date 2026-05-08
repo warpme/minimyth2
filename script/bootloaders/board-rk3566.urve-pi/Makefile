@@ -9,6 +9,6 @@ DISTFILES    = \
 
 SOC_TYPE                  = rk3566
 mm_U-BOOT_BOARD_TYPE      = board-rk3566.urve-pi
-mm_U-BOOT_BOARD_DEFCONFIG = rock-3c-rk3566_defconfig
+mm_U-BOOT_BOARD_DEFCONFIG = urve-pi-rk3566_defconfig
 
 include ../bootloader/install-board-bootloader-rk.mk
