@@ -9,6 +9,6 @@ DISTFILES    = \
 
 SOC_TYPE                  = rk3399
 mm_U-BOOT_BOARD_TYPE      = board-rk3399.rockpi4-b
-mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4-rk3399_defconfig
+mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4b-rk3399_defconfig
 
 include ../bootloader/install-board-bootloader-rk.mk
