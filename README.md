@@ -118,9 +118,9 @@ Allwinner H618  | Vontar H618      | works  (ap6334@SDIO)                   | wo
 Allwinner H618  | OrangePi-Zero2w  | works  (uwe5622a@SDIO)                 | not tested| works     | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618  | Transpeed-8k618t | works  (hk2735@SDIO)                   | works     | n/a       | not tested| works       | works       | not works (firmware issue)     | some things are still missing |
 Rockchip 3328   | Beelink A1       | works  (rtl8821@USB)                   | not works | n/a       | not tested| works       | works       | currently power off/on         | well supported                |
-Rockchip 3399   | RockPI 4-b       | works  (ap6256@SDIO)                   | works     | works     | works     | works       | n/a         | currently power off/on         | well supported                |
-Rockchip 3399   | RockPI 4-se      | works  (ap6255@SDIO)                   | works     | works     | works     | works       | n/a         | currently power off/on         | well supported                |
-Rockchip 3399   | OrangePi-4 LTS   | works  (uwe5622@SDIO)                  | works     | works     | works     | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3399   | RockPI 4-b       | works  (ap6256@SDIO)                   | works     | not works | works     | works       | n/a         | currently power off/on         | well supported                |
+Rockchip 3399   | RockPI 4-se      | works  (ap6255@SDIO)                   | works     | not tested| works     | works       | n/a         | currently power off/on         | well supported                |
+Rockchip 3399   | OrangePi-4 LTS   | works  (uwe5622@SDIO)                  | works     | not tested| not works | works       | LED Diode,OK| not works                      | good prospects                |
 Rockchip 3528   | Vontar-R3        | not works                              | not tested| n/a       | not tested| not works   | not works   | not works                      | missing VOP3 so no HDMI       |
 Rockchip 3566   | X96-X6           | works  (am7256@SDIO)                   | works     | n/a       | not tested| works       | works       | not works                      | good prospects                |
 Rockchip 3566   | Quartz64 Model B | works  (cm256sm@SDIO)                  | not tested| works     | works     | works       | n/a         | not works                      | good prospects                |
