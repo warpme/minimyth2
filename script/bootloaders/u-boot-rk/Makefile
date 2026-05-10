@@ -8,9 +8,9 @@
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3399.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-4se-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4c-rk3399_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-4-lts_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4b-rk3399_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4se-rk3399_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3399_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3528.
@@ -87,6 +87,9 @@ PATCHFILES  += 65-rk3588-my-boards-enable-http-dowload-support.patch
 PATCHFILES  += 66-rk3566-my-boards-enable-http-dowload-support.patch
 PATCHFILES  += 67-rk3399-rk3328-my-boards-enable-http-dowload-support.patch
 PATCHFILES  += 68-rk3566-add-urve-pi_defconfig.patch
+PATCHFILES  += 69-rk3399-add-orangepi-4-lts_defconfig.patch
+PATCHFILES  += 70-rk3399-add-rock-pi-4b-rk3399_defconfig.patch
+PATCHFILES  += 71-rk3399-add-rock-pi-4se-rk3399_defconfig.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
