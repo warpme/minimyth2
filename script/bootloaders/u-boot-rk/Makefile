@@ -5,6 +5,7 @@
 # mm_U-BOOT_BOARD_TYPE = test-rk3328.
 # mm_U-BOOT_BOARD_DEFCONFIG = beelink-a1-rk3328_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3328_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = evb-rk3328_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3399.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-rk3399_defconfig
@@ -72,8 +73,8 @@ PATCHFILES  += 08-rockchip-change-spl-load-order.patch
 PATCHFILES  += 50-my-boards-rk3566-defconfigs-enable-overlays.patch
 PATCHFILES  += 51-my-boards-rk35xx-change-sdcard-alias-to-mmc0.patch
 PATCHFILES  += 52-rk3xxx-generic-defconfigs-change-sdcard-alias-to-mmc0.patch
-PATCHFILES  += 52-add-rk3566-x96-x6-defconfig.patch
-PATCHFILES  += 53-add-rk3328-beelink-a1-defconfig.patch
+PATCHFILES  += 52-rk3566-add-x96-x6-defconfig.patch
+PATCHFILES  += 53-rk3328-add-beelink-a1-defconfig.patch
 PATCHFILES  += 54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch
 PATCHFILES  += 56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch
 PATCHFILES  += 57-rk3399-orangepi-fix-nonworking-ddc.patch
