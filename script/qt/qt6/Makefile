@@ -1,6 +1,6 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.11.0
+GARVERSION   = 6.11.1
 CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/6.11/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
