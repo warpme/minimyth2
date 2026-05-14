@@ -1,0 +1,357 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+
+This reverts drvers/base part of 14cf406e08 to fix issue of qcs6490 audio making udev hang on kernel boot
+
+Full commit is https://github.com/torvalds/linux/commit/14cf406e083c0541e40cd467ae8336ecceede09e
+
+diff -Naur bad-old/drivers/base/base.h bad-new/drivers/base/base.h
+--- bad-old/drivers/base/base.h	2026-05-13 18:33:39.188001411 +0200
++++ bad-new/drivers/base/base.h	2026-05-13 18:57:21.596035324 +0200
+@@ -179,10 +179,19 @@
+ void driver_detach(const struct device_driver *drv);
+ void driver_deferred_probe_del(struct device *dev);
+ void device_set_deferred_probe_reason(const struct device *dev, struct va_format *vaf);
++static inline int driver_match_device_locked(const struct device_driver *drv,
++					     struct device *dev)
++{
++	device_lock_assert(dev);
++
++	return drv->bus->match ? drv->bus->match(dev, drv) : 1;
++}
++
+ static inline int driver_match_device(const struct device_driver *drv,
+ 				      struct device *dev)
+ {
+-	return drv->bus->match ? drv->bus->match(dev, drv) : 1;
++	guard(device)(dev);
++	return driver_match_device_locked(drv, dev);
+ }
+ 
+ static inline void dev_sync_state(struct device *dev)
+diff -Naur bad-old/drivers/base/bus.c bad-new/drivers/base/bus.c
+--- bad-old/drivers/base/bus.c	2026-05-13 16:02:55.256298188 +0200
++++ bad-new/drivers/base/bus.c	2026-05-13 18:57:21.596035324 +0200
+@@ -504,36 +504,6 @@
+ }
+ EXPORT_SYMBOL_GPL(bus_for_each_drv);
+ 
+-static ssize_t driver_override_store(struct device *dev,
+-				     struct device_attribute *attr,
+-				     const char *buf, size_t count)
+-{
+-	int ret;
+-
+-	ret = __device_set_driver_override(dev, buf, count);
+-	if (ret)
+-		return ret;
+-
+-	return count;
+-}
+-
+-static ssize_t driver_override_show(struct device *dev,
+-				    struct device_attribute *attr, char *buf)
+-{
+-	guard(spinlock)(&dev->driver_override.lock);
+-	return sysfs_emit(buf, "%s\n", dev->driver_override.name);
+-}
+-static DEVICE_ATTR_RW(driver_override);
+-
+-static struct attribute *driver_override_dev_attrs[] = {
+-	&dev_attr_driver_override.attr,
+-	NULL,
+-};
+-
+-static const struct attribute_group driver_override_dev_group = {
+-	.attrs = driver_override_dev_attrs,
+-};
+-
+ /**
+  * bus_add_device - add device to bus
+  * @dev: device being added
+@@ -567,15 +537,9 @@
+ 	if (error)
+ 		goto out_put;
+ 
+-	if (dev->bus->driver_override) {
+-		error = device_add_group(dev, &driver_override_dev_group);
+-		if (error)
+-			goto out_groups;
+-	}
+-
+ 	error = sysfs_create_link(&sp->devices_kset->kobj, &dev->kobj, dev_name(dev));
+ 	if (error)
+-		goto out_override;
++		goto out_groups;
+ 
+ 	error = sysfs_create_link(&dev->kobj, &sp->subsys.kobj, "subsystem");
+ 	if (error)
+@@ -586,9 +550,6 @@
+ 
+ out_subsys:
+ 	sysfs_remove_link(&sp->devices_kset->kobj, dev_name(dev));
+-out_override:
+-	if (dev->bus->driver_override)
+-		device_remove_group(dev, &driver_override_dev_group);
+ out_groups:
+ 	device_remove_groups(dev, sp->bus->dev_groups);
+ out_put:
+@@ -646,8 +607,6 @@
+ 
+ 	sysfs_remove_link(&dev->kobj, "subsystem");
+ 	sysfs_remove_link(&sp->devices_kset->kobj, dev_name(dev));
+-	if (dev->bus->driver_override)
+-		device_remove_group(dev, &driver_override_dev_group);
+ 	device_remove_groups(dev, dev->bus->dev_groups);
+ 	if (klist_node_attached(&dev->p->knode_bus))
+ 		klist_del(&dev->p->knode_bus);
+diff -Naur bad-old/drivers/base/core.c bad-new/drivers/base/core.c
+--- bad-old/drivers/base/core.c	2026-05-13 18:33:39.188001411 +0200
++++ bad-new/drivers/base/core.c	2026-05-13 18:57:21.596035324 +0200
+@@ -2556,7 +2556,6 @@
+ 	devres_release_all(dev);
+ 
+ 	kfree(dev->dma_range_map);
+-	kfree(dev->driver_override.name);
+ 
+ 	if (dev->release)
+ 		dev->release(dev);
+@@ -3160,7 +3159,6 @@
+ 	kobject_init(&dev->kobj, &device_ktype);
+ 	INIT_LIST_HEAD(&dev->dma_pools);
+ 	mutex_init(&dev->mutex);
+-	spin_lock_init(&dev->driver_override.lock);
+ 	lockdep_set_novalidate_class(&dev->mutex);
+ 	spin_lock_init(&dev->devres_lock);
+ 	INIT_LIST_HEAD(&dev->devres_head);
+diff -Naur bad-old/drivers/base/dd.c bad-new/drivers/base/dd.c
+--- bad-old/drivers/base/dd.c	2026-05-13 18:33:39.188001411 +0200
++++ bad-new/drivers/base/dd.c	2026-05-13 18:57:21.596035324 +0200
+@@ -381,66 +381,6 @@
+ }
+ __exitcall(deferred_probe_exit);
+ 
+-int __device_set_driver_override(struct device *dev, const char *s, size_t len)
+-{
+-	const char *new, *old;
+-	char *cp;
+-
+-	if (!s)
+-		return -EINVAL;
+-
+-	/*
+-	 * The stored value will be used in sysfs show callback (sysfs_emit()),
+-	 * which has a length limit of PAGE_SIZE and adds a trailing newline.
+-	 * Thus we can store one character less to avoid truncation during sysfs
+-	 * show.
+-	 */
+-	if (len >= (PAGE_SIZE - 1))
+-		return -EINVAL;
+-
+-	/*
+-	 * Compute the real length of the string in case userspace sends us a
+-	 * bunch of \0 characters like python likes to do.
+-	 */
+-	len = strlen(s);
+-
+-	if (!len) {
+-		/* Empty string passed - clear override */
+-		spin_lock(&dev->driver_override.lock);
+-		old = dev->driver_override.name;
+-		dev->driver_override.name = NULL;
+-		spin_unlock(&dev->driver_override.lock);
+-		kfree(old);
+-
+-		return 0;
+-	}
+-
+-	cp = strnchr(s, len, '\n');
+-	if (cp)
+-		len = cp - s;
+-
+-	new = kstrndup(s, len, GFP_KERNEL);
+-	if (!new)
+-		return -ENOMEM;
+-
+-	spin_lock(&dev->driver_override.lock);
+-	old = dev->driver_override.name;
+-	if (cp != s) {
+-		dev->driver_override.name = new;
+-		spin_unlock(&dev->driver_override.lock);
+-	} else {
+-		/* "\n" passed - clear override */
+-		dev->driver_override.name = NULL;
+-		spin_unlock(&dev->driver_override.lock);
+-
+-		kfree(new);
+-	}
+-	kfree(old);
+-
+-	return 0;
+-}
+-EXPORT_SYMBOL_GPL(__device_set_driver_override);
+-
+ /**
+  * device_is_bound() - Check if device is bound to a driver
+  * @dev: device to check
+@@ -988,7 +928,7 @@
+ 	bool async_allowed;
+ 	int ret;
+ 
+-	ret = driver_match_device(drv, dev);
++	ret = driver_match_device_locked(drv, dev);
+ 	if (ret == 0) {
+ 		/* no match */
+ 		return 0;
+diff -Naur bad-old/drivers/base/platform.c bad-new/drivers/base/platform.c
+--- bad-old/drivers/base/platform.c	2026-05-13 18:33:39.189001411 +0200
++++ bad-new/drivers/base/platform.c	2026-05-13 18:57:21.596035324 +0200
+@@ -603,6 +603,7 @@
+ 	kfree(pa->pdev.dev.platform_data);
+ 	kfree(pa->pdev.mfd_cell);
+ 	kfree(pa->pdev.resource);
++	kfree(pa->pdev.driver_override);
+ 	kfree(pa);
+ }
+ 
+@@ -1305,9 +1306,38 @@
+ }
+ static DEVICE_ATTR_RO(numa_node);
+ 
++static ssize_t driver_override_show(struct device *dev,
++				    struct device_attribute *attr, char *buf)
++{
++	struct platform_device *pdev = to_platform_device(dev);
++	ssize_t len;
++
++	device_lock(dev);
++	len = sysfs_emit(buf, "%s\n", pdev->driver_override);
++	device_unlock(dev);
++
++	return len;
++}
++
++static ssize_t driver_override_store(struct device *dev,
++				     struct device_attribute *attr,
++				     const char *buf, size_t count)
++{
++	struct platform_device *pdev = to_platform_device(dev);
++	int ret;
++
++	ret = driver_set_override(dev, &pdev->driver_override, buf, count);
++	if (ret)
++		return ret;
++
++	return count;
++}
++static DEVICE_ATTR_RW(driver_override);
++
+ static struct attribute *platform_dev_attrs[] = {
+ 	&dev_attr_modalias.attr,
+ 	&dev_attr_numa_node.attr,
++	&dev_attr_driver_override.attr,
+ 	NULL,
+ };
+ 
+@@ -1347,12 +1377,10 @@
+ {
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct platform_driver *pdrv = to_platform_driver(drv);
+-	int ret;
+ 
+ 	/* When driver_override is set, only bind to the matching driver */
+-	ret = device_match_driver_override(dev, drv);
+-	if (ret >= 0)
+-		return ret;
++	if (pdev->driver_override)
++		return !strcmp(pdev->driver_override, drv->name);
+ 
+ 	/* Attempt an OF style match first */
+ 	if (of_driver_match_device(dev, drv))
+@@ -1488,7 +1516,6 @@
+ const struct bus_type platform_bus_type = {
+ 	.name		= "platform",
+ 	.dev_groups	= platform_dev_groups,
+-	.driver_override = true,
+ 	.match		= platform_match,
+ 	.uevent		= platform_uevent,
+ 	.probe		= platform_probe,
+diff -Naur bad-old/drivers/base/power/runtime.c bad-new/drivers/base/power/runtime.c
+--- bad-old/drivers/base/power/runtime.c	2026-05-13 16:02:55.258314378 +0200
++++ bad-new/drivers/base/power/runtime.c	2026-05-13 18:57:21.596035324 +0200
+@@ -1895,7 +1895,6 @@
+ void pm_runtime_remove(struct device *dev)
+ {
+ 	__pm_runtime_disable(dev, false);
+-	flush_work(&dev->power.work);
+ 	pm_runtime_reinit(dev);
+ }
+ 
+diff -Naur bad-old/drivers/base/property.c bad-new/drivers/base/property.c
+--- bad-old/drivers/base/property.c	2026-05-13 18:33:39.189001411 +0200
++++ bad-new/drivers/base/property.c	2026-05-13 18:57:21.596035324 +0200
+@@ -797,18 +797,7 @@
+ fwnode_get_next_child_node(const struct fwnode_handle *fwnode,
+ 			   struct fwnode_handle *child)
+ {
+-	struct fwnode_handle *next;
+-
+-	if (IS_ERR_OR_NULL(fwnode))
+-		return NULL;
+-
+-	/* Try to find a child in primary fwnode */
+-	next = fwnode_call_ptr_op(fwnode, get_next_child_node, child);
+-	if (next)
+-		return next;
+-
+-	/* When no more children in primary, continue with secondary */
+-	return fwnode_call_ptr_op(fwnode->secondary, get_next_child_node, child);
++	return fwnode_call_ptr_op(fwnode, get_next_child_node, child);
+ }
+ EXPORT_SYMBOL_GPL(fwnode_get_next_child_node);
+ 
+@@ -852,7 +841,19 @@
+ struct fwnode_handle *device_get_next_child_node(const struct device *dev,
+ 						 struct fwnode_handle *child)
+ {
+-	return fwnode_get_next_child_node(dev_fwnode(dev), child);
++	const struct fwnode_handle *fwnode = dev_fwnode(dev);
++	struct fwnode_handle *next;
++
++	if (IS_ERR_OR_NULL(fwnode))
++		return NULL;
++
++	/* Try to find a child in primary fwnode */
++	next = fwnode_get_next_child_node(fwnode, child);
++	if (next)
++		return next;
++
++	/* When no more children in primary, continue with secondary */
++	return fwnode_get_next_child_node(fwnode->secondary, child);
+ }
+ EXPORT_SYMBOL_GPL(device_get_next_child_node);
+ 
+diff -Naur bad-old/include/linux/platform_device.h bad-new/include/linux/platform_device.h
+--- bad-old/include/linux/platform_device.h	2026-05-13 18:33:39.671001422 +0200
++++ bad-new/include/linux/platform_device.h	2026-03-22 15:15:44.000000000 +0100
+@@ -31,6 +31,11 @@
+ 	struct resource	*resource;
+ 
+ 	const struct platform_device_id	*id_entry;
++	/*
++	 * Driver name to force a match.  Do not set directly, because core
++	 * frees it.  Use driver_set_override() to set or clear it.
++	 */
++	const char *driver_override;
+ 
+ 	/* MFD cell pointer */
+ 	struct mfd_cell *mfd_cell;
+--
+
+MiniMyth2
+

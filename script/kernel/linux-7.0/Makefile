@@ -42,6 +42,10 @@ PATCHFILES  = linux-7.0.patch.gar
 PATCHFILES += linux-7.0-perl.patch.gar
 PATCHFILES += linux-7.0-defaults.patch
 
+# hack to fix qcs6490 hanging udev on audio devcie.
+PATCHFILES += 0000-drivers-base-revert-g14cf406e-to-fix-qcs6490-audio-hang.patch
+PATCHFILES += 0000-drivers-spi-revert-gcc34d77dd-required-by-revert-g14cf406e.patch
+
 ifeq (1,1)
 
 PATCHFILES += 0001-net-brcm80211-brcmfmac-pcie-stop-loading-txcap_blob-fw.patch
@@ -516,7 +520,8 @@ PATCHFILES += 5200-arm64-dts-qcom-qcs6490-audioreach-Modify-LPASS-macro.patch
 PATCHFILES += 5201-arm64-dts-qcom-sc7280-add-OPP-table-support-to-PCIe-.patch
 PATCHFILES += 5202-arm64-dts-qcom-sc7280-Add-cci-aliases.patch
 PATCHFILES += 5203-arm64-dts-qcom-sc7280-Add-psci-label.patch
-PATCHFILES += 5204-arm64-dts-qcom-improve-support-for-radxa-dragon-q6a.patch
+# PATCHFILES += 5204-arm64-dts-qcom-improve-support-for-radxa-dragon-q6a.patch
+PATCHFILES += 5204-arm64-dts-qcom-improve-support-for-radxa-dragon-q6a-v2.patch
 endif
 #------------------------------------------------------------
 

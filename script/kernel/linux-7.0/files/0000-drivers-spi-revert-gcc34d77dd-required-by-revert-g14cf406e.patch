@@ -1,0 +1,93 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+
+This reverts: spi: use generic driver_override infrastructure
+https://github.com/torvalds/linux/commit/cc34d77dd48708d810c12bfd6f5bf03304f6c824
+
+revert is required to fix compile failure after applying 0000-revert-drivers-base-g14cf406e-to-fix-qcs6490-audio-hang.patch
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.0.6/drivers/spi/spi.c linux-7.0.6/drivers/spi/spi.c
+--- linux-7.0.6/drivers/spi/spi.c	2026-05-11 08:21:59.000000000 +0200
++++ linux-7.0.6/drivers/spi/spi.c	2026-05-14 15:34:15.391756004 +0200
+@@ -52,6 +52,7 @@
+ 	struct spi_device	*spi = to_spi_device(dev);
+ 
+ 	spi_controller_put(spi->controller);
++	kfree(spi->driver_override);
+ 	free_percpu(spi->pcpu_statistics);
+ 	kfree(spi);
+ }
+@@ -74,9 +75,10 @@
+ 				     struct device_attribute *a,
+ 				     const char *buf, size_t count)
+ {
++	struct spi_device *spi = to_spi_device(dev);
+ 	int ret;
+ 
+-	ret = __device_set_driver_override(dev, buf, count);
++	ret = driver_set_override(dev, &spi->driver_override, buf, count);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -86,8 +88,13 @@
+ static ssize_t driver_override_show(struct device *dev,
+ 				    struct device_attribute *a, char *buf)
+ {
+-	guard(spinlock)(&dev->driver_override.lock);
+-	return sysfs_emit(buf, "%s\n", dev->driver_override.name ?: "");
++	const struct spi_device *spi = to_spi_device(dev);
++	ssize_t len;
++
++	device_lock(dev);
++	len = sysfs_emit(buf, "%s\n", spi->driver_override ? : "");
++	device_unlock(dev);
++	return len;
+ }
+ static DEVICE_ATTR_RW(driver_override);
+ 
+@@ -371,12 +378,10 @@
+ {
+ 	const struct spi_device	*spi = to_spi_device(dev);
+ 	const struct spi_driver	*sdrv = to_spi_driver(drv);
+-	int ret;
+ 
+ 	/* Check override first, and if set, only use the named driver */
+-	ret = device_match_driver_override(dev, drv);
+-	if (ret >= 0)
+-		return ret;
++	if (spi->driver_override)
++		return strcmp(spi->driver_override, drv->name) == 0;
+ 
+ 	/* Attempt an OF style match */
+ 	if (of_driver_match_device(dev, drv))
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.0.6/include/linux/spi/spi.h linux-7.0.6/include/linux/spi/spi.h
+--- linux-7.0.6/include/linux/spi/spi.h	2026-05-11 08:21:59.000000000 +0200
++++ linux-7.0.6/include/linux/spi/spi.h	2026-05-14 15:34:15.392001724 +0200
+@@ -159,6 +159,10 @@
+  * @modalias: Name of the driver to use with this device, or an alias
+  *	for that name.  This appears in the sysfs "modalias" attribute
+  *	for driver coldplugging, and in uevents used for hotplugging
++ * @driver_override: If the name of a driver is written to this attribute, then
++ *	the device will bind to the named driver and only the named driver.
++ *	Do not set directly, because core frees it; use driver_set_override() to
++ *	set or clear it.
+  * @pcpu_statistics: statistics for the spi_device
+  * @word_delay: delay to be inserted between consecutive
+  *	words of a transfer
+@@ -220,6 +224,7 @@
+ 	void			*controller_state;
+ 	void			*controller_data;
+ 	char			modalias[SPI_NAME_SIZE];
++	const char		*driver_override;
+ 
+ 	/* The statistics */
+ 	struct spi_statistics __percpu	*pcpu_statistics;
+--
+
+MiniMyth2
+
