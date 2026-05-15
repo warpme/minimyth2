@@ -22,7 +22,7 @@ install-custom:
 	@cp $(WORKSRC)/radxa-firmware-qcs6490/lib/firmware/qcom/qcs6490/a660_zap.mbn \
 	    $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/a660_zap.mbn
 	@cp $(WORKSRC)/radxa-firmware-qcs6490/lib/firmware/qcom/qcs6490/radxa/dragon-q6a/cdsp.mbn \
-	    $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/radxa/dragon-q6a/cdsp.mbn
+	    $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/cdsp.mbn
 	@$(MAKECOOKIE)
 
 clean-all: clean
