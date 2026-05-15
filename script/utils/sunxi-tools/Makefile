@@ -4,6 +4,8 @@ GARNAME      = sunxi-tools
 GARVERSION   = 7540cb235691be94ac5ef0181a73dd929949fc4e
 MASTER_SITES = https://github.com/linux-sunxi/sunxi-tools/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = 01-sunxi-fel-add-TOC0-boot-image-support.patch \
+               02-sunxi-fel-handle-H616-secure-FEL-SPL-handoff.patch
 CATEGORIES   = util
 LICENSE      = GPL2/LGPL2_1
 

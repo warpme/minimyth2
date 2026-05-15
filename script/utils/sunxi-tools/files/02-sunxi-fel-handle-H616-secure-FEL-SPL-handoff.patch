@@ -1,0 +1,1188 @@
+From 7205a559de3d96d898d539af8927c956ad1f23c9 Mon Sep 17 00:00:00 2001
+From: James Hilliard <james.hilliard1@gmail.com>
+Date: Wed, 13 May 2026 19:24:55 -0600
+Subject: [PATCH] sunxi-fel: handle H616 secure-FEL SPL handoff
+
+Newer secure-boot SoCs such as H616 enter FEL in non-secure SVC,
+so SPL cannot switch to AArch64 unless it first reaches secure state.
+
+Add a secure-SVC SPL thunk variant for SoCs that need this transition.
+The thunk executes the ROM SMC path, clears SCR.NS, installs the
+secure-SVC SP/LR and the secure GIC view expected by the ROM, then
+enters SPL from secure-SVC mode. When SPL returns, it restores the
+secure GIC view before resuming BROM FEL.
+
+Also add a small secure-SVC return thunk for command paths that need
+secure SID/register access but should return to FEL instead of entering
+SPL. Use the H616 SID shadow word at 0x03006240 to detect whether the
+SMC workaround is needed, so non-secure-boot boards skip it.
+
+Signed-off-by: James Hilliard <james.hilliard1@gmail.com>
+---
+ fel.c                                   | 168 +++++++++++++++------
+ soc_info.c                              |   2 +
+ soc_info.h                              |  11 +-
+ thunks/Makefile                         |  13 +-
+ thunks/README.md                        |   8 +-
+ thunks/fel-secure-svc.inc.S             |  43 ++++++
+ thunks/fel-spl-thunk-common.S           | 193 ++++++++++++++++++++++++
+ thunks/fel-to-secure-svc-return-thunk.S | 135 +++++++++++++++++
+ thunks/fel-to-secure-svc-return-thunk.h |  91 +++++++++++
+ thunks/fel-to-secure-svc-spl-thunk.S    |   7 +
+ thunks/fel-to-secure-svc-spl-thunk.h    | 121 +++++++++++++++
+ thunks/fel-to-spl-thunk.S               | 162 +-------------------
+ 12 files changed, 734 insertions(+), 220 deletions(-)
+ create mode 100644 thunks/fel-secure-svc.inc.S
+ create mode 100644 thunks/fel-spl-thunk-common.S
+ create mode 100644 thunks/fel-to-secure-svc-return-thunk.S
+ create mode 100644 thunks/fel-to-secure-svc-return-thunk.h
+ create mode 100644 thunks/fel-to-secure-svc-spl-thunk.S
+ create mode 100644 thunks/fel-to-secure-svc-spl-thunk.h
+
+diff --git a/fel.c b/fel.c
+index 323b601bcb..136b0b46ad 100644
+--- a/fel.c
++++ b/fel.c
+@@ -390,6 +390,14 @@ static uint32_t fel_to_spl_thunk[] = {
+ 	#include "thunks/fel-to-spl-thunk.h"
+ };
+ 
++static uint32_t fel_to_secure_svc_spl_thunk[] = {
++	#include "thunks/fel-to-secure-svc-spl-thunk.h"
++};
++
++static uint32_t fel_to_secure_svc_return_thunk[] = {
++	#include "thunks/fel-to-secure-svc-return-thunk.h"
++};
++
+ #define	DRAM_BASE		0x40000000
+ #define	DRAM_SIZE		0x80000000
+ 
+@@ -447,6 +455,8 @@ void fel_writel(feldev_handle *dev, uint32_t addr, uint32_t val)
+ 	fel_writel_n(dev, addr, &val, 1);
+ }
+ 
++static void aw_apply_smc_workaround(feldev_handle *dev);
++
+ void aw_fel_print_sid(feldev_handle *dev, bool force_workaround)
+ {
+ 	uint32_t key[4];
+@@ -458,6 +468,8 @@ void aw_fel_print_sid(feldev_handle *dev, bool force_workaround)
+ 		return;
+ 	}
+ 
++	aw_apply_smc_workaround(dev);
++
+ 	if (soc_info->sid_fix || force_workaround) {
+ 		pr_info("Read SID key via registers, base = 0x%08X\n",
+ 			soc_info->sid_base);
+@@ -483,6 +495,8 @@ void aw_fel_dump_sid(feldev_handle *dev)
+ 		return;
+ 	}
+ 
++	aw_apply_smc_workaround(dev);
++
+ 	for (const sid_section *s = soc_info->sid_sections; s->name; s++) {
+ 		uint32_t count = s->size_bits / 32;
+ 
+@@ -596,37 +610,103 @@ void aw_set_sctlr(feldev_handle *dev, soc_info_t *soc_info,
+ 	aw_write_arm_cp_reg(dev, soc_info, 15, 0, 1, 0, 0, sctlr);
+ }
+ 
+-/*
+- * Issue a "smc #0" instruction. This brings a SoC booted in "secure boot"
+- * state from the default non-secure FEL into secure FEL.
+- * This crashes on devices using "non-secure boot", as the BROM does not
+- * provide a handler address in MVBAR. So we have a runtime check.
+- */
+-void aw_apply_smc_workaround(feldev_handle *dev)
++static bool aw_fel_needs_smc_workaround(feldev_handle *dev)
+ {
+ 	soc_info_t *soc_info = dev->soc_info;
+ 	uint32_t val;
+-	uint32_t arm_code[] = {
+-		htole32(0xe1600070), /* smc	#0	*/
+-		htole32(0xe12fff1e), /* bx	lr	*/
+-	};
+ 
+-	/* Return if the SoC does not need this workaround */
+ 	if (!soc_info->needs_smc_workaround_if_zero_word_at_addr)
+-		return;
++		return false;
+ 
+ 	/* This has less overhead than fel_readl_n() and may be good enough */
+ 	aw_fel_read(dev, soc_info->needs_smc_workaround_if_zero_word_at_addr,
+-	            &val, sizeof(val));
++		    &val, sizeof(val));
++
++	return le32toh(val) == 0;
++}
++
++static void aw_fel_execute_thunk(feldev_handle *dev,
++				 const uint32_t *thunk,
++				 size_t thunk_code_size, uint32_t entry_addr,
++				 const sram_swap_buffers *swap_buffers)
++{
++	soc_info_t *soc_info = dev->soc_info;
++	struct timespec req = { .tv_nsec = 250000000 }; /* 250ms */
++	size_t thunk_size;
++	uint32_t *thunk_buf;
++	size_t i;
++
++	for (i = 0; swap_buffers[i].size; i++)
++		;
++
++	thunk_size = thunk_code_size + sizeof(entry_addr) +
++		     (i + 1) * sizeof(*swap_buffers);
++
++	if (thunk_size > soc_info->thunk_size)
++		pr_fatal("FEL thunk: bad size (need %zu, have %u)\n",
++			 thunk_size, soc_info->thunk_size);
++
++	thunk_buf = malloc(thunk_size);
++	if (!thunk_buf)
++		pr_fatal("FEL thunk: failed to allocate buffer\n");
++	memcpy(thunk_buf, thunk, thunk_code_size);
++	memcpy(thunk_buf + thunk_code_size / sizeof(uint32_t), &entry_addr,
++	       sizeof(entry_addr));
++	memcpy(thunk_buf + thunk_code_size / sizeof(uint32_t) + 1,
++	       swap_buffers, (i + 1) * sizeof(*swap_buffers));
++
++	for (i = 0; i < thunk_size / sizeof(uint32_t); i++)
++		thunk_buf[i] = htole32(thunk_buf[i]);
++
++	aw_fel_write(dev, thunk_buf, soc_info->thunk_addr, thunk_size);
++	aw_fel_execute(dev, soc_info->thunk_addr);
++	free(thunk_buf);
++
++	/* TODO: Try to find and fix the bug, which needs this workaround */
++	nanosleep(&req, NULL);
++}
++
++/*
++ * Apply the "smc #0" workaround. This moves a secure-boot FEL session from
++ * the default non-secure state into secure state.
++ * This crashes on devices using "non-secure boot", as the BROM does not
++ * provide a handler address in MVBAR. So we have a runtime check.
++ * Some newer SoCs need to perform the SMC and return to FEL via a thunk,
++ * which handles the monitor-to-SVC transition details.
++ */
++static void aw_apply_smc_workaround(feldev_handle *dev)
++{
++	soc_info_t *soc_info = dev->soc_info;
+ 
+ 	/* Return if the workaround is not needed or has been already applied */
+-	if (val != 0)
++	if (!aw_fel_needs_smc_workaround(dev))
+ 		return;
+ 
+-	pr_info("Applying SMC workaround... ");
+-	aw_fel_write(dev, arm_code, soc_info->scratch_addr, sizeof(arm_code));
+-	aw_fel_execute(dev, soc_info->scratch_addr);
+-	pr_info(" done.\n");
++	if (soc_info->needs_secure_svc_smc_workaround) {
++		uint32_t arm_code[] = {
++			htole32(0xe12fff1e), /* bx	lr		*/
++		};
++
++		pr_info("Applying SMC workaround via secure-SVC return thunk... ");
++		aw_fel_write(dev, arm_code, soc_info->spl_addr,
++			     sizeof(arm_code));
++		aw_fel_execute_thunk(dev, fel_to_secure_svc_return_thunk,
++				     sizeof(fel_to_secure_svc_return_thunk),
++				     soc_info->spl_addr,
++				     soc_info->swap_buffers);
++		pr_info(" done.\n");
++	} else {
++		uint32_t arm_code[] = {
++			htole32(0xe1600070), /* smc	#0		*/
++			htole32(0xe12fff1e), /* bx	lr		*/
++		};
++
++		pr_info("Applying SMC workaround... ");
++		aw_fel_write(dev, arm_code, soc_info->scratch_addr,
++			     sizeof(arm_code));
++		aw_fel_execute(dev, soc_info->scratch_addr);
++		pr_info(" done.\n");
++	}
+ }
+ 
+ /*
+@@ -789,15 +869,17 @@ void aw_restore_and_enable_mmu(feldev_handle *dev,
+ /* Minimum offset of the main U-Boot image within u-boot-sunxi-with-spl.bin. */
+ #define SPL_MIN_OFFSET 0x8000
+ 
+-uint32_t aw_fel_write_and_execute_spl(feldev_handle *dev, uint8_t *buf, size_t len)
++static uint32_t aw_fel_write_and_execute_spl(feldev_handle *dev, uint8_t *buf,
++					     size_t len)
+ {
+ 	soc_info_t *soc_info = dev->soc_info;
+ 	sram_swap_buffers *swap_buffers;
+ 	char header_signature[9] = { 0 };
+-	size_t i, thunk_size;
+-	uint32_t *thunk_buf;
++	size_t i;
+ 	uint32_t sp, sp_irq;
+ 	uint32_t spl_checksum, spl_len, spl_len_limit;
++	const uint32_t *thunk = fel_to_spl_thunk;
++	size_t thunk_code_size = sizeof(fel_to_spl_thunk);
+ 	uint32_t *buf32 = (uint32_t *)buf;
+ 	uint32_t cur_addr = soc_info->spl_addr;
+ 	uint32_t *tt = NULL;
+@@ -889,34 +971,18 @@ uint32_t aw_fel_write_and_execute_spl(feldev_handle *dev, uint8_t *buf, size_t l
+ 	if (len > 0)
+ 		aw_fel_write(dev, buf, cur_addr, len);
+ 
+-	thunk_size = sizeof(fel_to_spl_thunk) + sizeof(soc_info->spl_addr) +
+-		     (i + 1) * sizeof(*swap_buffers);
+-
+-	if (thunk_size > soc_info->thunk_size)
+-		pr_fatal("SPL: bad thunk size (need %d, have %d)\n",
+-			 (int)sizeof(fel_to_spl_thunk), soc_info->thunk_size);
+-
+-	thunk_buf = malloc(thunk_size);
+-	memcpy(thunk_buf, fel_to_spl_thunk, sizeof(fel_to_spl_thunk));
+-	memcpy(thunk_buf + sizeof(fel_to_spl_thunk) / sizeof(uint32_t),
+-	       &soc_info->spl_addr, sizeof(soc_info->spl_addr));
+-	memcpy(thunk_buf + sizeof(fel_to_spl_thunk) / sizeof(uint32_t) + 1,
+-	       swap_buffers, (i + 1) * sizeof(*swap_buffers));
+-
+-	for (i = 0; i < thunk_size / sizeof(uint32_t); i++)
+-		thunk_buf[i] = htole32(thunk_buf[i]);
++	if (soc_info->needs_secure_svc_smc_workaround &&
++	    aw_fel_needs_smc_workaround(dev)) {
++		thunk = fel_to_secure_svc_spl_thunk;
++		thunk_code_size = sizeof(fel_to_secure_svc_spl_thunk);
++		pr_info("SPL: enabling secure-SVC transition workaround\n");
++	}
+ 
+ 	pr_info("=> Executing the SPL...");
+-	aw_fel_write(dev, thunk_buf, soc_info->thunk_addr, thunk_size);
+-	aw_fel_execute(dev, soc_info->thunk_addr);
++	aw_fel_execute_thunk(dev, thunk, thunk_code_size,
++			     soc_info->spl_addr, swap_buffers);
+ 	pr_info(" done.\n");
+ 
+-	free(thunk_buf);
+-
+-	/* TODO: Try to find and fix the bug, which needs this workaround */
+-	struct timespec req = { .tv_nsec = 250000000 }; /* 250ms */
+-	nanosleep(&req, NULL);
+-
+ 	/* Read back the result and check if everything was fine */
+ 	aw_fel_read(dev, soc_info->spl_addr + 4, header_signature, 8);
+ 	if (strcmp(header_signature, "eGON.FEL") != 0)
+@@ -1537,8 +1603,14 @@ int main(int argc, char **argv)
+ 	 */
+ 	handle = feldev_open(busnum, devnum, AW_USB_VENDOR_ID, AW_USB_PRODUCT_ID);
+ 
+-	/* Some SoCs need the SMC workaround to enter the secure boot mode */
+-	aw_apply_smc_workaround(handle);
++	/*
++	 * Some SoCs need the SMC workaround to enter secure state.
++	 * On newer SoCs requiring the secure-SVC thunk, apply this
++	 * only when needed so ordinary FEL memory commands do not clobber the
++	 * SPL area.
++	 */
++	if (!handle->soc_info->needs_secure_svc_smc_workaround)
++		aw_apply_smc_workaround(handle);
+ 
+ 	/* Handle command-style arguments, in order of appearance */
+ 	while (argc > 1 ) {
+diff --git a/soc_info.c b/soc_info.c
+index 4cb6bcc44f..d54d75175c 100644
+--- a/soc_info.c
++++ b/soc_info.c
+@@ -561,6 +561,8 @@ soc_info_t soc_info_table[] = {
+ 		.rvbar_reg    = 0x09010040,
+ 		.rvbar_reg_alt= 0x08100040,
+ 		.ver_reg      = 0x03000024,
++		.needs_smc_workaround_if_zero_word_at_addr = 0x03006240,
++		.needs_secure_svc_smc_workaround = true,
+ 		.watchdog     = &wd_h6_compat,
+ 	},{
+ 		.soc_id       = 0x1851, /* Allwinner R329 */
+diff --git a/soc_info.h b/soc_info.h
+index 508f29dabf..e817b72cb2 100644
+--- a/soc_info.h
++++ b/soc_info.h
+@@ -107,12 +107,15 @@ typedef struct {
+  * - No access to the secure side of the GIC, so it can't be configured to
+  *   be accessible from non-secure world.
+  * - No RMR trigger on ARMv8 cores to bring the core into AArch64.
+- * However it has been found out that a simple "smc" call will immediately
+- * return from monitor mode, but with the NS bit cleared, so access to all
+- * secure peripherals is suddenly possible.
++ * On older SoCs, a simple "smc" call returns with the NS bit cleared,
++ * so access to all secure peripherals is suddenly possible. Newer SoCs
++ * may need a secure-SVC thunk to handle the monitor-to-SVC transition
++ * after the SMC call.
+  * The 'needs_smc_workaround_if_zero_word_at_addr' field can be used to
+  * have a check for this condition (reading from restricted addresses
+  * typically returns zero) and then activate the SMC workaround if needed.
++ * The 'needs_secure_svc_smc_workaround' field selects the thunk path for
++ * SoCs where SMC returns in monitor mode instead of secure SVC.
+  */
+ typedef struct {
+ 	uint32_t           soc_id;       /* ID of the SoC */
+@@ -135,6 +138,8 @@ typedef struct {
+ 	bool               icache_fix;
+ 	/* Use SMC workaround (enter secure mode) if can't read from this address */
+ 	uint32_t           needs_smc_workaround_if_zero_word_at_addr;
++	/* Use secure-SVC thunks when SMC returns in monitor mode */
++	bool               needs_secure_svc_smc_workaround;
+ 	uint32_t           sram_size;	/* Usable contiguous SRAM at spl_addr */
+ 	sram_swap_buffers *swap_buffers;
+ } soc_info_t;
+diff --git a/thunks/Makefile b/thunks/Makefile
+index 27ba55d0e2..894fdae749 100644
+--- a/thunks/Makefile
++++ b/thunks/Makefile
+@@ -2,14 +2,16 @@
+ # build "preprocessed" .h files for inclusion of ARM scratch code
+ #
+ 
+-SPL_THUNK := fel-to-spl-thunk.h
++FEL_EXEC_THUNKS := fel-to-spl-thunk.h
++FEL_EXEC_THUNKS += fel-to-secure-svc-spl-thunk.h
++FEL_EXEC_THUNKS += fel-to-secure-svc-return-thunk.h
+ THUNKS := clrsetbits.h
+ THUNKS += memcpy.h
+ THUNKS += readl_writel.h
+ THUNKS += rmr-thunk.h
+ THUNKS += sid_read_root.h
+ 
+-all: $(SPL_THUNK) $(THUNKS)
++all: $(FEL_EXEC_THUNKS) $(THUNKS)
+ # clean up object files afterwards
+ 	rm -f *.o
+ 
+@@ -24,9 +26,10 @@ OBJDUMP := $(CROSS_COMPILE)objdump
+ 
+ AWK_O_TO_H := LC_ALL=C awk -f objdump_to_h.awk
+ 
+-# The SPL thunk requires a different output format. The "style" variable for
+-# awk controls this, and causes the htole32() conversion to be omitted.
+-fel-to-spl-thunk.h: fel-to-spl-thunk.S FORCE
++# These thunks are copied into a uint32_t buffer and byte-swapped by fel.c.
++# The "style" variable for awk controls this, and causes the htole32()
++# conversion to be omitted.
++$(FEL_EXEC_THUNKS): %.h: %.S FORCE
+ 	$(AS) -o $(subst .S,.o,$<) -march=armv5te $<
+ 	$(OBJDUMP) -d $(subst .S,.o,$<) | $(AWK_O_TO_H) -v style=old > $@
+ 
+diff --git a/thunks/README.md b/thunks/README.md
+index e9ca949f24..50f01e993f 100644
+--- a/thunks/README.md
++++ b/thunks/README.md
+@@ -7,11 +7,9 @@ can be transferred to a suitable target device and then executed 'remotely',
+ usually via `sunxi-fel`.
+ 
+ Normally you don't need to change or (re)build anything within this folder.
+-Currently our main build process (via the parent directory's _Makefile_)
+-only includes `fel-to-spl-thunk.h` directly. Other _.h_ files are provided
+-**just for reference**. The main purpose of this folder is simply keeping
+-track of _.S_ sources, to help with possible future maintenance of the
+-various code snippets.
++Generated _.h_ files are included by the main build when referenced from
++`fel.c`. The main purpose of this folder is keeping track of _.S_ sources,
++to help with possible future maintenance of the various code snippets.
+ 
+ Please note that any files lacking explicit license information are intended
+ to be covered by the project's [overall license](../LICENSE.md) (GPLv2).
+diff --git a/thunks/fel-secure-svc.inc.S b/thunks/fel-secure-svc.inc.S
+new file mode 100644
+index 0000000000..5b62aaf7a0
+--- /dev/null
++++ b/thunks/fel-secure-svc.inc.S
+@@ -0,0 +1,43 @@
++SAVED_SP	.req	r10
++SAVED_LR	.req	r11
++
++.set	SUNXI_GICC_BASE,	0x03022000
++.set	SUNXI_GICD_BASE,	0x03021000
++
++.macro	switch_to_secure_svc
++	sync_before_branch
++	mov	SAVED_SP,  sp
++	mov	SAVED_LR,  lr
++	.word	0xe1600070			/* smc	#0 */
++	mov	TMP1,      #0
++	mcr	p15, 0, TMP1, c1, c1, 0		/* SCR = secure */
++	mcr	p15, 0, TMP1, c12, c0, 1	/* MVBAR = 0 */
++	bl	setup_secure_gic
++
++	.word	0xe123f30a			/* msr	SP_svc, SAVED_SP */
++	.word	0xe122f30b			/* msr	LR_svc, SAVED_LR */
++	.word	0xf57ff06f			/* isb */
++	mrs	TMP1,      cpsr
++	bic	TMP1,      TMP1, #0x1f
++	orr	TMP1,      TMP1, #0x13
++	msr	cpsr_fc,   TMP1			/* switch to secure-SVC mode */
++.endm
++
++.macro	emit_secure_svc_helpers
++setup_secure_gic:
++	/* Set the secure GIC view expected by secure-SVC FEL execution. */
++	ldr	TMP1,      gicc_ctlr
++	mov	TMP2,      #0xf
++	str	TMP2,      [TMP1]
++	mov	TMP2,      #0xf8
++	str	TMP2,      [TMP1, #4]
++	ldr	TMP1,      gicd_ctlr
++	mov	TMP2,      #3
++	str	TMP2,      [TMP1]
++	bx	lr
++
++gicc_ctlr:
++	.word	SUNXI_GICC_BASE
++gicd_ctlr:
++	.word	SUNXI_GICD_BASE
++.endm
+diff --git a/thunks/fel-spl-thunk-common.S b/thunks/fel-spl-thunk-common.S
+new file mode 100644
+index 0000000000..4569d51563
+--- /dev/null
++++ b/thunks/fel-spl-thunk-common.S
+@@ -0,0 +1,193 @@
++/*
++ * Copyright © 2015 Siarhei Siamashka <siarhei.siamashka@gmail.com>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the "Software"),
++ * to deal in the Software without restriction, including without limitation
++ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
++ * and/or sell copies of the Software, and to permit persons to whom the
++ * Software is furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice (including the next
++ * paragraph) shall be included in all copies or substantial portions of the
++ * Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++ * DEALINGS IN THE SOFTWARE.
++ */
++
++.arm
++
++.ifndef	SECURE_SVC_THUNK
++.set	SECURE_SVC_THUNK,	0
++.endif
++
++BUF1		.req	r0
++BUF2		.req	r1
++TMP1		.req	r2
++TMP2		.req	r3
++SWAPTBL		.req	r4
++FULLSIZE	.req	r5
++BUFSIZE		.req	r6
++CHECKSUM	.req	r7
++ENTRY_ADDR	.req	r8
++
++.macro	sync_before_branch
++	/*
++	 * Call the uploaded code, but before that make sure the CPU sees the
++	 * recently uploaded code. This requires a DSB and ISB.
++	 * The "dsb" and "isb" *instructions* are not available in ARMv5TE,
++	 * but at least for DSB we can use the CP15 register encoding. This
++	 * works for ARMv7 and v8 as well, because we have checked our SCTLR
++	 * before (in fel.c), so we know that CP15BEN is set.
++	 * The ARM926 core does not implement ISB, instead the TRM recommends
++	 * just a branch to achieve the same "flush the pipeline" effect.
++	 * As just this is not sufficient for later cores, check the MIDR
++	 * register, and do the DSB only for ARMv6 or later.
++	 * The input register for the CP15 instruction is ignored.
++	 */
++	mcr	p15, 0, TMP1, c7, c10, 4	/* CP15DSB */
++	mrc	p15, 0, TMP1, c0, c0, 0		/* read MIDR */
++	and	TMP1, TMP1, #(0xf << 16)	/* architecture */
++	cmp	TMP1, #(0x6 << 16)		/* ARMv5TEJ */
++	mcrgt	p15, 0, TMP1, c7, c5, 4		/* CP15ISB, if > ARMv5TEJ */
++.endm
++
++.if SECURE_SVC_THUNK
++.include "fel-secure-svc.inc.S"
++.endif
++
++entry_point:
++	b	setup_stack
++
++stack_begin:
++	.space	32, 0xff
++stack_end:
++	nop
++
++	/* A function, which walks the table and swaps all buffers */
++swap_all_buffers:
++	adr	SWAPTBL,   appended_data + 4
++swap_next_buffer:
++	ldr	BUF1,      [SWAPTBL],  #4
++	ldr	BUF2,      [SWAPTBL],  #4
++	ldr	BUFSIZE,   [SWAPTBL],  #4
++	cmp	BUFSIZE,   #0
++	bxeq    lr
++swap_next_word:
++	ldr	TMP1,      [BUF1]
++	ldr	TMP2,      [BUF2]
++	subs	BUFSIZE,   BUFSIZE,    #4
++	str	TMP1,      [BUF2],     #4
++	str	TMP2,      [BUF1],     #4
++	bne	swap_next_word
++	b	swap_next_buffer
++
++setup_stack: /* Save the original SP, LR and CPSR to stack */
++	ldr	ENTRY_ADDR, appended_data
++	adr	BUF1,      stack_end
++	str	sp,        [BUF1, #-4]!
++	mov	sp,        BUF1
++	mrs	TMP1,      cpsr
++	push	{TMP1, lr}
++
++	/* Disable IRQ and FIQ */
++	orr	TMP1,      #0xc0
++	msr	cpsr_c,    TMP1
++
++	/* Check if the instructions or data cache is enabled */
++	mrc	p15, 0, TMP1, c1, c0, 0
++	tst	TMP1,      #(1 << 2)
++	tsteq	TMP1,      #(1 << 12)
++	bne	cache_is_unsupported
++
++	bl	swap_all_buffers
++
++verify_checksum:
++	ldr	CHECKSUM,  checksum_seed
++	mov	BUF1,      ENTRY_ADDR
++	ldr     FULLSIZE,  [BUF1, #16]
++check_next_word:
++	ldr	TMP1,      [BUF1],   #4
++	subs	FULLSIZE,  FULLSIZE, #4
++	add	CHECKSUM,  CHECKSUM, TMP1
++	bne	check_next_word
++
++	ldr	TMP1,      [ENTRY_ADDR, #12]
++	subs	CHECKSUM,  CHECKSUM, TMP1, lsl #1
++	bne	checksum_is_bad
++
++	/* Change 'eGON.BT0' -> 'eGON.FEL' */
++	ldr	TMP1,	   egon_fel_str
++	str	TMP1,      [ENTRY_ADDR, #8]
++
++.if SECURE_SVC_THUNK
++	bl	call_entry
++	b	return_to_secure_fel
++.else
++	sync_before_branch
++	blx	ENTRY_ADDR
++	b	return_to_fel
++.endif
++
++cache_is_unsupported:
++	/* Bail out if cache is enabled and change 'eGON.BT0' -> 'eGON.???' */
++	ldr	TMP1,	   cache_enabled_str
++	str	TMP1,      [ENTRY_ADDR, #8]
++	b	return_to_fel_noswap
++
++checksum_is_bad:
++	/* The checksum test failed, so change 'eGON.BT0' -> 'eGON.BAD' */
++	ldr	TMP1,	   checksum_failed_str
++	str	TMP1,      [ENTRY_ADDR, #8]
++
++return_to_fel:
++	bl	swap_all_buffers
++
++.if SECURE_SVC_THUNK
++	b	return_to_fel_noswap
++return_to_secure_fel:
++	bl	swap_all_buffers
++	bl	setup_secure_gic
++	b	return_to_fel_noswap
++.endif
++
++return_to_fel_noswap:
++	pop	{TMP1, lr}
++	msr	cpsr_c,    TMP1 /* Restore the original CPSR */
++	ldr     sp,        [sp]
++	bx	lr
++
++checksum_seed:
++	.word	0x5f0a6c39
++egon_fel_str:
++	.ascii	".FEL"
++cache_enabled_str:
++	.ascii	".???"
++checksum_failed_str:
++	.ascii	".BAD"
++
++.if SECURE_SVC_THUNK
++call_entry:
++	switch_to_secure_svc
++	bx	ENTRY_ADDR
++	emit_secure_svc_helpers
++.endif
++
++appended_data:
++/*
++ * The appended data uses the following format:
++ *
++ *     struct {
++ *         uint32_t          entry_addr;
++ *         sram_swap_buffers swaptbl[];
++ *     };
++ *
++ * More details about the entry address and the 'sram_swap_buffers' struct
++ * can be found in the 'fel.c' source file.
++ */
+diff --git a/thunks/fel-to-secure-svc-return-thunk.S b/thunks/fel-to-secure-svc-return-thunk.S
+new file mode 100644
+index 0000000000..77de1bb425
+--- /dev/null
++++ b/thunks/fel-to-secure-svc-return-thunk.S
+@@ -0,0 +1,135 @@
++/*
++ * Copyright © 2015 Siarhei Siamashka <siarhei.siamashka@gmail.com>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the "Software"),
++ * to deal in the Software without restriction, including without limitation
++ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
++ * and/or sell copies of the Software, and to permit persons to whom the
++ * Software is furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice (including the next
++ * paragraph) shall be included in all copies or substantial portions of the
++ * Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++ * DEALINGS IN THE SOFTWARE.
++ */
++
++.arm
++
++BUF1		.req	r0
++BUF2		.req	r1
++TMP1		.req	r2
++TMP2		.req	r3
++SWAPTBL		.req	r4
++BUFSIZE		.req	r6
++ENTRY_ADDR	.req	r8
++
++.macro	sync_before_branch
++	/*
++	 * Call the uploaded code, but before that make sure the CPU sees the
++	 * recently uploaded code. This requires a DSB and ISB.
++	 * The "dsb" and "isb" *instructions* are not available in ARMv5TE,
++	 * but at least for DSB we can use the CP15 register encoding. This
++	 * works for ARMv7 and v8 as well, because we have checked our SCTLR
++	 * before (in fel.c), so we know that CP15BEN is set.
++	 * The ARM926 core does not implement ISB, instead the TRM recommends
++	 * just a branch to achieve the same "flush the pipeline" effect.
++	 * As just this is not sufficient for later cores, check the MIDR
++	 * register, and do the DSB only for ARMv6 or later.
++	 * The input register for the CP15 instruction is ignored.
++	 */
++	mcr	p15, 0, TMP1, c7, c10, 4	/* CP15DSB */
++	mrc	p15, 0, TMP1, c0, c0, 0		/* read MIDR */
++	and	TMP1, TMP1, #(0xf << 16)	/* architecture */
++	cmp	TMP1, #(0x6 << 16)		/* ARMv5TEJ */
++	mcrgt	p15, 0, TMP1, c7, c5, 4		/* CP15ISB, if > ARMv5TEJ */
++.endm
++
++.include "fel-secure-svc.inc.S"
++
++entry_point:
++	b	setup_stack
++
++stack_begin:
++	.space	32, 0xff
++stack_end:
++	nop
++
++	/* A function, which walks the table and swaps all buffers */
++swap_all_buffers:
++	adr	SWAPTBL,   appended_data + 4
++swap_next_buffer:
++	ldr	BUF1,      [SWAPTBL],  #4
++	ldr	BUF2,      [SWAPTBL],  #4
++	ldr	BUFSIZE,   [SWAPTBL],  #4
++	cmp	BUFSIZE,   #0
++	bxeq    lr
++swap_next_word:
++	ldr	TMP1,      [BUF1]
++	ldr	TMP2,      [BUF2]
++	subs	BUFSIZE,   BUFSIZE,    #4
++	str	TMP1,      [BUF2],     #4
++	str	TMP2,      [BUF1],     #4
++	bne	swap_next_word
++	b	swap_next_buffer
++
++setup_stack: /* Save the original SP, LR and CPSR to stack */
++	ldr	ENTRY_ADDR, appended_data
++	adr	BUF1,      stack_end
++	str	sp,        [BUF1, #-4]!
++	mov	sp,        BUF1
++	mrs	TMP1,      cpsr
++	push	{TMP1, lr}
++
++	/* Disable IRQ and FIQ */
++	orr	TMP1,      #0xc0
++	msr	cpsr_c,    TMP1
++
++	/* Check if the instructions or data cache is enabled */
++	mrc	p15, 0, TMP1, c1, c0, 0
++	tst	TMP1,      #(1 << 2)
++	tsteq	TMP1,      #(1 << 12)
++	bne	cache_is_unsupported
++
++	bl	swap_all_buffers
++	bl	call_entry
++	b	return_to_secure_fel
++
++cache_is_unsupported:
++	b	return_to_fel_noswap
++
++return_to_secure_fel:
++	bl	swap_all_buffers
++	bl	setup_secure_gic
++	b	return_to_fel_noswap
++
++return_to_fel_noswap:
++	pop	{TMP1, lr}
++	msr	cpsr_c,    TMP1 /* Restore the original CPSR */
++	ldr     sp,        [sp]
++	bx	lr
++
++call_entry:
++	switch_to_secure_svc
++	bx	ENTRY_ADDR
++	emit_secure_svc_helpers
++
++appended_data:
++/*
++ * The appended data uses the following format:
++ *
++ *     struct {
++ *         uint32_t          entry_addr;
++ *         sram_swap_buffers swaptbl[];
++ *     };
++ *
++ * More details about the entry address and the 'sram_swap_buffers' struct
++ * can be found in the 'fel.c' source file.
++ */
+diff --git a/thunks/fel-to-secure-svc-return-thunk.h b/thunks/fel-to-secure-svc-return-thunk.h
+new file mode 100644
+index 0000000000..aaee6841d5
+--- /dev/null
++++ b/thunks/fel-to-secure-svc-return-thunk.h
+@@ -0,0 +1,91 @@
++	/* <entry_point>: */
++	0xea000015, /*        0:    b          5c <setup_stack>             */
++	/* <stack_begin>: */
++	0xffffffff, /*        4:    .word      0xffffffff                   */
++	0xffffffff, /*        8:    .word      0xffffffff                   */
++	0xffffffff, /*        c:    .word      0xffffffff                   */
++	0xffffffff, /*       10:    .word      0xffffffff                   */
++	0xffffffff, /*       14:    .word      0xffffffff                   */
++	0xffffffff, /*       18:    .word      0xffffffff                   */
++	0xffffffff, /*       1c:    .word      0xffffffff                   */
++	0xffffffff, /*       20:    .word      0xffffffff                   */
++	/* <stack_end>: */
++	0xe1a00000, /*       24:    nop                                     */
++	/* <swap_all_buffers>: */
++	0xe28f4f42, /*       28:    add        r4, pc, #264                 */
++	/* <swap_next_buffer>: */
++	0xe4940004, /*       2c:    ldr        r0, [r4], #4                 */
++	0xe4941004, /*       30:    ldr        r1, [r4], #4                 */
++	0xe4946004, /*       34:    ldr        r6, [r4], #4                 */
++	0xe3560000, /*       38:    cmp        r6, #0                       */
++	0x012fff1e, /*       3c:    bxeq       lr                           */
++	/* <swap_next_word>: */
++	0xe5902000, /*       40:    ldr        r2, [r0]                     */
++	0xe5913000, /*       44:    ldr        r3, [r1]                     */
++	0xe2566004, /*       48:    subs       r6, r6, #4                   */
++	0xe4812004, /*       4c:    str        r2, [r1], #4                 */
++	0xe4803004, /*       50:    str        r3, [r0], #4                 */
++	0x1afffff9, /*       54:    bne        40 <swap_next_word>          */
++	0xeafffff3, /*       58:    b          2c <swap_next_buffer>        */
++	/* <setup_stack>: */
++	0xe59f80d0, /*       5c:    ldr        r8, [pc, #208]               */
++	0xe24f0044, /*       60:    sub        r0, pc, #68                  */
++	0xe520d004, /*       64:    str        sp, [r0, #-4]!               */
++	0xe1a0d000, /*       68:    mov        sp, r0                       */
++	0xe10f2000, /*       6c:    mrs        r2, CPSR                     */
++	0xe92d4004, /*       70:    push       {r2, lr}                     */
++	0xe38220c0, /*       74:    orr        r2, r2, #192                 */
++	0xe121f002, /*       78:    msr        CPSR_c, r2                   */
++	0xee112f10, /*       7c:    mrc        15, 0, r2, cr1, cr0, {0}     */
++	0xe3120004, /*       80:    tst        r2, #4                       */
++	0x03120a01, /*       84:    tsteq      r2, #4096                    */
++	0x1a000002, /*       88:    bne        98 <cache_is_unsupported>    */
++	0xebffffe5, /*       8c:    bl         28 <swap_all_buffers>        */
++	0xeb000008, /*       90:    bl         b8 <call_entry>              */
++	0xea000000, /*       94:    b          9c <return_to_secure_fel>    */
++	/* <cache_is_unsupported>: */
++	0xea000002, /*       98:    b          a8 <return_to_fel_noswap>    */
++	/* <return_to_secure_fel>: */
++	0xebffffe1, /*       9c:    bl         28 <swap_all_buffers>        */
++	0xeb000018, /*       a0:    bl         108 <setup_secure_gic>       */
++	0xeaffffff, /*       a4:    b          a8 <return_to_fel_noswap>    */
++	/* <return_to_fel_noswap>: */
++	0xe8bd4004, /*       a8:    pop        {r2, lr}                     */
++	0xe121f002, /*       ac:    msr        CPSR_c, r2                   */
++	0xe59dd000, /*       b0:    ldr        sp, [sp]                     */
++	0xe12fff1e, /*       b4:    bx         lr                           */
++	/* <call_entry>: */
++	0xee072f9a, /*       b8:    mcr        15, 0, r2, cr7, cr10, {4}    */
++	0xee102f10, /*       bc:    mrc        15, 0, r2, cr0, cr0, {0}     */
++	0xe202280f, /*       c0:    and        r2, r2, #983040              */
++	0xe3520806, /*       c4:    cmp        r2, #393216                  */
++	0xce072f95, /*       c8:    mcrgt      15, 0, r2, cr7, cr5, {4}     */
++	0xe1a0a00d, /*       cc:    mov        sl, sp                       */
++	0xe1a0b00e, /*       d0:    mov        fp, lr                       */
++	0xe1600070, /*       d4:    .word      0xe1600070                   */
++	0xe3a02000, /*       d8:    mov        r2, #0                       */
++	0xee012f11, /*       dc:    mcr        15, 0, r2, cr1, cr1, {0}     */
++	0xee0c2f30, /*       e0:    mcr        15, 0, r2, cr12, cr0, {1}    */
++	0xeb000007, /*       e4:    bl         108 <setup_secure_gic>       */
++	0xe123f30a, /*       e8:    .word      0xe123f30a                   */
++	0xe122f30b, /*       ec:    .word      0xe122f30b                   */
++	0xf57ff06f, /*       f0:    .word      0xf57ff06f                   */
++	0xe10f2000, /*       f4:    mrs        r2, CPSR                     */
++	0xe3c2201f, /*       f8:    bic        r2, r2, #31                  */
++	0xe3822013, /*       fc:    orr        r2, r2, #19                  */
++	0xe129f002, /*      100:    msr        CPSR_fc, r2                  */
++	0xe12fff18, /*      104:    bx         r8                           */
++	/* <setup_secure_gic>: */
++	0xe59f201c, /*      108:    ldr        r2, [pc, #28]                */
++	0xe3a0300f, /*      10c:    mov        r3, #15                      */
++	0xe5823000, /*      110:    str        r3, [r2]                     */
++	0xe3a030f8, /*      114:    mov        r3, #248                     */
++	0xe5823004, /*      118:    str        r3, [r2, #4]                 */
++	0xe59f200c, /*      11c:    ldr        r2, [pc, #12]                */
++	0xe3a03003, /*      120:    mov        r3, #3                       */
++	0xe5823000, /*      124:    str        r3, [r2]                     */
++	0xe12fff1e, /*      128:    bx         lr                           */
++	/* <gicc_ctlr>: */
++	0x03022000, /*      12c:    .word      0x03022000                   */
++	/* <gicd_ctlr>: */
++	0x03021000, /*      130:    .word      0x03021000                   */
+diff --git a/thunks/fel-to-secure-svc-spl-thunk.S b/thunks/fel-to-secure-svc-spl-thunk.S
+new file mode 100644
+index 0000000000..447257e8b5
+--- /dev/null
++++ b/thunks/fel-to-secure-svc-spl-thunk.S
+@@ -0,0 +1,7 @@
++/*
++ * Secure-SVC FEL-to-SPL thunk. This variant enters SPL after switching from
++ * monitor to secure-SVC mode.
++ */
++
++.set	SECURE_SVC_THUNK,	1
++.include "fel-spl-thunk-common.S"
+diff --git a/thunks/fel-to-secure-svc-spl-thunk.h b/thunks/fel-to-secure-svc-spl-thunk.h
+new file mode 100644
+index 0000000000..cf6d9ddb20
+--- /dev/null
++++ b/thunks/fel-to-secure-svc-spl-thunk.h
+@@ -0,0 +1,121 @@
++	/* <entry_point>: */
++	0xea000015, /*        0:    b          5c <setup_stack>             */
++	/* <stack_begin>: */
++	0xffffffff, /*        4:    .word      0xffffffff                   */
++	0xffffffff, /*        8:    .word      0xffffffff                   */
++	0xffffffff, /*        c:    .word      0xffffffff                   */
++	0xffffffff, /*       10:    .word      0xffffffff                   */
++	0xffffffff, /*       14:    .word      0xffffffff                   */
++	0xffffffff, /*       18:    .word      0xffffffff                   */
++	0xffffffff, /*       1c:    .word      0xffffffff                   */
++	0xffffffff, /*       20:    .word      0xffffffff                   */
++	/* <stack_end>: */
++	0xe1a00000, /*       24:    nop                                     */
++	/* <swap_all_buffers>: */
++	0xe28f4e16, /*       28:    add        r4, pc, #352                 */
++	/* <swap_next_buffer>: */
++	0xe4940004, /*       2c:    ldr        r0, [r4], #4                 */
++	0xe4941004, /*       30:    ldr        r1, [r4], #4                 */
++	0xe4946004, /*       34:    ldr        r6, [r4], #4                 */
++	0xe3560000, /*       38:    cmp        r6, #0                       */
++	0x012fff1e, /*       3c:    bxeq       lr                           */
++	/* <swap_next_word>: */
++	0xe5902000, /*       40:    ldr        r2, [r0]                     */
++	0xe5913000, /*       44:    ldr        r3, [r1]                     */
++	0xe2566004, /*       48:    subs       r6, r6, #4                   */
++	0xe4812004, /*       4c:    str        r2, [r1], #4                 */
++	0xe4803004, /*       50:    str        r3, [r0], #4                 */
++	0x1afffff9, /*       54:    bne        40 <swap_next_word>          */
++	0xeafffff3, /*       58:    b          2c <swap_next_buffer>        */
++	/* <setup_stack>: */
++	0xe59f8128, /*       5c:    ldr        r8, [pc, #296]               */
++	0xe24f0044, /*       60:    sub        r0, pc, #68                  */
++	0xe520d004, /*       64:    str        sp, [r0, #-4]!               */
++	0xe1a0d000, /*       68:    mov        sp, r0                       */
++	0xe10f2000, /*       6c:    mrs        r2, CPSR                     */
++	0xe92d4004, /*       70:    push       {r2, lr}                     */
++	0xe38220c0, /*       74:    orr        r2, r2, #192                 */
++	0xe121f002, /*       78:    msr        CPSR_c, r2                   */
++	0xee112f10, /*       7c:    mrc        15, 0, r2, cr1, cr0, {0}     */
++	0xe3120004, /*       80:    tst        r2, #4                       */
++	0x03120a01, /*       84:    tsteq      r2, #4096                    */
++	0x1a00000e, /*       88:    bne        c8 <cache_is_unsupported>    */
++	0xebffffe5, /*       8c:    bl         28 <swap_all_buffers>        */
++	/* <verify_checksum>: */
++	0xe59f7068, /*       90:    ldr        r7, [pc, #104]               */
++	0xe1a00008, /*       94:    mov        r0, r8                       */
++	0xe5905010, /*       98:    ldr        r5, [r0, #16]                */
++	/* <check_next_word>: */
++	0xe4902004, /*       9c:    ldr        r2, [r0], #4                 */
++	0xe2555004, /*       a0:    subs       r5, r5, #4                   */
++	0xe0877002, /*       a4:    add        r7, r7, r2                   */
++	0x1afffffb, /*       a8:    bne        9c <check_next_word>         */
++	0xe598200c, /*       ac:    ldr        r2, [r8, #12]                */
++	0xe0577082, /*       b0:    subs       r7, r7, r2, lsl #1           */
++	0x1a000006, /*       b4:    bne        d4 <checksum_is_bad>         */
++	0xe59f2044, /*       b8:    ldr        r2, [pc, #68]                */
++	0xe5882008, /*       bc:    str        r2, [r8, #8]                 */
++	0xeb000012, /*       c0:    bl         110 <call_entry>             */
++	0xea000006, /*       c4:    b          e4 <return_to_secure_fel>    */
++	/* <cache_is_unsupported>: */
++	0xe59f2038, /*       c8:    ldr        r2, [pc, #56]                */
++	0xe5882008, /*       cc:    str        r2, [r8, #8]                 */
++	0xea000006, /*       d0:    b          f0 <return_to_fel_noswap>    */
++	/* <checksum_is_bad>: */
++	0xe59f2030, /*       d4:    ldr        r2, [pc, #48]                */
++	0xe5882008, /*       d8:    str        r2, [r8, #8]                 */
++	/* <return_to_fel>: */
++	0xebffffd1, /*       dc:    bl         28 <swap_all_buffers>        */
++	0xea000002, /*       e0:    b          f0 <return_to_fel_noswap>    */
++	/* <return_to_secure_fel>: */
++	0xebffffcf, /*       e4:    bl         28 <swap_all_buffers>        */
++	0xeb00001c, /*       e8:    bl         160 <setup_secure_gic>       */
++	0xeaffffff, /*       ec:    b          f0 <return_to_fel_noswap>    */
++	/* <return_to_fel_noswap>: */
++	0xe8bd4004, /*       f0:    pop        {r2, lr}                     */
++	0xe121f002, /*       f4:    msr        CPSR_c, r2                   */
++	0xe59dd000, /*       f8:    ldr        sp, [sp]                     */
++	0xe12fff1e, /*       fc:    bx         lr                           */
++	/* <checksum_seed>: */
++	0x5f0a6c39, /*      100:    .word      0x5f0a6c39                   */
++	/* <egon_fel_str>: */
++	0x4c45462e, /*      104:    .word      0x4c45462e                   */
++	/* <cache_enabled_str>: */
++	0x3f3f3f2e, /*      108:    .word      0x3f3f3f2e                   */
++	/* <checksum_failed_str>: */
++	0x4441422e, /*      10c:    .word      0x4441422e                   */
++	/* <call_entry>: */
++	0xee072f9a, /*      110:    mcr        15, 0, r2, cr7, cr10, {4}    */
++	0xee102f10, /*      114:    mrc        15, 0, r2, cr0, cr0, {0}     */
++	0xe202280f, /*      118:    and        r2, r2, #983040              */
++	0xe3520806, /*      11c:    cmp        r2, #393216                  */
++	0xce072f95, /*      120:    mcrgt      15, 0, r2, cr7, cr5, {4}     */
++	0xe1a0a00d, /*      124:    mov        sl, sp                       */
++	0xe1a0b00e, /*      128:    mov        fp, lr                       */
++	0xe1600070, /*      12c:    .word      0xe1600070                   */
++	0xe3a02000, /*      130:    mov        r2, #0                       */
++	0xee012f11, /*      134:    mcr        15, 0, r2, cr1, cr1, {0}     */
++	0xee0c2f30, /*      138:    mcr        15, 0, r2, cr12, cr0, {1}    */
++	0xeb000007, /*      13c:    bl         160 <setup_secure_gic>       */
++	0xe123f30a, /*      140:    .word      0xe123f30a                   */
++	0xe122f30b, /*      144:    .word      0xe122f30b                   */
++	0xf57ff06f, /*      148:    .word      0xf57ff06f                   */
++	0xe10f2000, /*      14c:    mrs        r2, CPSR                     */
++	0xe3c2201f, /*      150:    bic        r2, r2, #31                  */
++	0xe3822013, /*      154:    orr        r2, r2, #19                  */
++	0xe129f002, /*      158:    msr        CPSR_fc, r2                  */
++	0xe12fff18, /*      15c:    bx         r8                           */
++	/* <setup_secure_gic>: */
++	0xe59f201c, /*      160:    ldr        r2, [pc, #28]                */
++	0xe3a0300f, /*      164:    mov        r3, #15                      */
++	0xe5823000, /*      168:    str        r3, [r2]                     */
++	0xe3a030f8, /*      16c:    mov        r3, #248                     */
++	0xe5823004, /*      170:    str        r3, [r2, #4]                 */
++	0xe59f200c, /*      174:    ldr        r2, [pc, #12]                */
++	0xe3a03003, /*      178:    mov        r3, #3                       */
++	0xe5823000, /*      17c:    str        r3, [r2]                     */
++	0xe12fff1e, /*      180:    bx         lr                           */
++	/* <gicc_ctlr>: */
++	0x03022000, /*      184:    .word      0x03022000                   */
++	/* <gicd_ctlr>: */
++	0x03021000, /*      188:    .word      0x03021000                   */
+diff --git a/thunks/fel-to-spl-thunk.S b/thunks/fel-to-spl-thunk.S
+index 577dd73888..950506aa1e 100644
+--- a/thunks/fel-to-spl-thunk.S
++++ b/thunks/fel-to-spl-thunk.S
+@@ -1,162 +1,6 @@
+ /*
+- * Copyright © 2015 Siarhei Siamashka <siarhei.siamashka@gmail.com>
+- *
+- * Permission is hereby granted, free of charge, to any person obtaining a
+- * copy of this software and associated documentation files (the "Software"),
+- * to deal in the Software without restriction, including without limitation
+- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+- * and/or sell copies of the Software, and to permit persons to whom the
+- * Software is furnished to do so, subject to the following conditions:
+- *
+- * The above copyright notice and this permission notice (including the next
+- * paragraph) shall be included in all copies or substantial portions of the
+- * Software.
+- *
+- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+- * DEALINGS IN THE SOFTWARE.
++ * Generic FEL-to-SPL thunk.
+  */
+ 
+-.arm
+-
+-BUF1		.req	r0
+-BUF2		.req	r1
+-TMP1		.req	r2
+-TMP2		.req	r3
+-SWAPTBL		.req	r4
+-FULLSIZE	.req	r5
+-BUFSIZE		.req	r6
+-CHECKSUM	.req	r7
+-SPL_ADDR	.req	r8
+-
+-entry_point:
+-	b	setup_stack
+-
+-stack_begin:
+-	.space	32, 0xff
+-stack_end:
+-	nop
+-
+-	/* A function, which walks the table and swaps all buffers */
+-swap_all_buffers:
+-	adr	SWAPTBL,   appended_data + 4
+-swap_next_buffer:
+-	ldr	BUF1,      [SWAPTBL],  #4
+-	ldr	BUF2,      [SWAPTBL],  #4
+-	ldr	BUFSIZE,   [SWAPTBL],  #4
+-	cmp	BUFSIZE,   #0
+-	bxeq    lr
+-swap_next_word:
+-	ldr	TMP1,      [BUF1]
+-	ldr	TMP2,      [BUF2]
+-	subs	BUFSIZE,   BUFSIZE,    #4
+-	str	TMP1,      [BUF2],     #4
+-	str	TMP2,      [BUF1],     #4
+-	bne	swap_next_word
+-	b	swap_next_buffer
+-
+-setup_stack: /* Save the original SP, LR and CPSR to stack */
+-	ldr	SPL_ADDR,  appended_data
+-	adr	BUF1,      stack_end
+-	str	sp,        [BUF1, #-4]!
+-	mov	sp,        BUF1
+-	mrs	TMP1,      cpsr
+-	push	{TMP1, lr}
+-
+-	/* Disable IRQ and FIQ */
+-	orr	TMP1,      #0xc0
+-	msr	cpsr_c,    TMP1
+-
+-	/* Check if the instructions or data cache is enabled */
+-	mrc	p15, 0, TMP1, c1, c0, 0
+-	tst	TMP1,      #(1 << 2)
+-	tsteq	TMP1,      #(1 << 12)
+-	bne	cache_is_unsupported
+-
+-	bl	swap_all_buffers
+-
+-verify_checksum:
+-	ldr	CHECKSUM,  checksum_seed
+-	mov	BUF1,      SPL_ADDR
+-	ldr     FULLSIZE,  [BUF1, #16]
+-check_next_word:
+-	ldr	TMP1,      [BUF1],   #4
+-	subs	FULLSIZE,  FULLSIZE, #4
+-	add	CHECKSUM,  CHECKSUM, TMP1
+-	bne	check_next_word
+-
+-	ldr	TMP1,      [SPL_ADDR, #12]
+-	subs	CHECKSUM,  CHECKSUM, TMP1, lsl #1
+-	bne	checksum_is_bad
+-
+-	/* Change 'eGON.BT0' -> 'eGON.FEL' */
+-	ldr	TMP1,	   egon_fel_str
+-	str	TMP1,      [SPL_ADDR, #8]
+-
+-	/*
+-	 * Call the SPL code, but before that make sure the CPU sees the
+-	 * recently uploaded code. This requires a DSB and ISB.
+-	 * The "dsb" and "isb" *instructions* are not available in ARMv5TE,
+-	 * but at least for DSB we can use the CP15 register encoding. This
+-	 * works for ARMv7 and v8 as well, because we have checked our SCTLR
+-	 * before (in fel.c), so we know that CP15BEN is set.
+-	 * The ARM926 core does not implement ISB, instead the TRM recommends
+-	 * just a branch to achieve the same "flush the pipeline" effect.
+-	 * As just this is not sufficient for later cores, check the MIDR
+-	 * register, and do the DSB only for ARMv6 or later.
+-	 * The input register for the CP15 instruction is ignored.
+-	 */
+-	mcr	p15, 0, TMP1, c7, c10, 4	/* CP15DSB */
+-	mrc	p15, 0, TMP1, c0, c0, 0		/* read MIDR */
+-	and	TMP1, TMP1, #(0xf << 16)	/* architecture */
+-	cmp	TMP1, #(0x6 << 16)		/* ARMv5TEJ */
+-	mcrgt	p15, 0, TMP1, c7, c5, 4		/* CP15ISB, if > ARMv5TEJ */
+-	blx	SPL_ADDR
+-
+-	/* Return back to FEL */
+-	b	return_to_fel
+-
+-cache_is_unsupported:
+-	/* Bail out if cache is enabled and change 'eGON.BT0' -> 'eGON.???' */
+-	ldr	TMP1,	   cache_enabled_str
+-	str	TMP1,      [SPL_ADDR, #8]
+-	b	return_to_fel_noswap
+-
+-checksum_is_bad:
+-	/* The checksum test failed, so change 'eGON.BT0' -> 'eGON.BAD' */
+-	ldr	TMP1,	   checksum_failed_str
+-	str	TMP1,      [SPL_ADDR, #8]
+-
+-return_to_fel:
+-	bl	swap_all_buffers
+-return_to_fel_noswap:
+-	pop	{TMP1, lr}
+-	msr	cpsr_c,    TMP1 /* Restore the original CPSR */
+-	ldr     sp,        [sp]
+-	bx	lr
+-
+-checksum_seed:
+-	.word	0x5f0a6c39
+-egon_fel_str:
+-	.ascii	".FEL"
+-cache_enabled_str:
+-	.ascii	".???"
+-checksum_failed_str:
+-	.ascii	".BAD"
+-
+-appended_data:
+-/*
+- * The appended data uses the following format:
+- *
+- *     struct {
+- *         uint32_t          spl_addr;
+- *         sram_swap_buffers swaptbl[];
+- *     };
+- *
+- * More details about the 'spl_addr' variable and the 'sram_swap_buffers'
+- * struct can be found in the 'fel.c' source file.
+- */
++.set	SECURE_SVC_THUNK,	0
++.include "fel-spl-thunk-common.S"
