@@ -1,9 +1,10 @@
 
 GARNAME      = ntp
-GARVERSION   = 4.2.8p17
+GARVERSION   = 4.2.8p18
 CATEGORIES   = net
 MASTER_SITES = http://www.eecis.udel.edu/~$(GARNAME)/$(GARNAME)_spool/$(GARNAME)4/$(GARNAME)-4.2/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = 01-fix-compile-wuth-newer-gcc.patch 02-fix-compile-with-newer-openssl.patch
 LICENSE      = ntp
 ntp_LICENSE_TEXT = $(WORKSRC)/COPYRIGHT
 
@@ -28,10 +29,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-ipv6 \
 	--without-rpath \
 	--with-gnu-ld \
-	--without-crypto \
 	--disable-thread-support \
-	--enable-linuxcaps \
-	--without-sntp \
+	--without-crypto \
 
 include ../../gar.mk
 
