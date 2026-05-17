@@ -148,6 +148,7 @@ Rockchip 3588   | Orange5 Plus     | n.a                                    | wo
 Rockchip 3588   | NanoPC-T6        | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588   | NanoPC-T6-LTS    | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588   | Rock5 ITX        | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Qualcomm QCS6490| Dragon Q6A       | works  (aic8800@USB)                   | works     | works     | works     | n/a         | n/a         | not works                      | good prospects                |
 Amlogic s905    | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not tested| n/a       | wip       | works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic s912    | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | not tested| n/a       | wip       | works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic sm1     | X96-Air          | works  (rtl8189@SDIO)                  | not tested| n/a       | wip       | works       | WiP         | not works (firmware issue)     | support stalled               |
