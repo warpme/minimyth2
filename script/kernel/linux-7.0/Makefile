@@ -499,29 +499,24 @@ endif
 ifeq (1,1)
 #-- Qualcomm patches -----------------------------------
 # qcs6490 drivers additions
-PATCHFILES += 5000-soc-qcom-geni-se-Add-MODULE_FIRMWARE-macro.patch
-PATCHFILES += 5001-soc-qcom-rpmh-Add-support-to-read-back-resource-sett.patch
-PATCHFILES += 5002-remoteproc-core-Allow-auto-retry-of-rproc_start.patch
-PATCHFILES += 5003-phy-qcom-qmp-combo-temporarily-fix-the-orientation-t.patch
-PATCHFILES += 5004-regulator-qcom-rpmh-Add-support-to-read-regulator-se.patch
-PATCHFILES += 5005-firmware-psci-Read-and-use-vendor-reset-types.patch
-PATCHFILES += 5006-drm-birdge-simple-bridge-Add-support-for-radxa-ra620.patch
-PATCHFILES += 5007-drm-msm-dpu-Add-missing-caps-and-blocks-to-sc7280-ca.patch
-PATCHFILES += 5008-drm-panel-Add-support-for-Orise-Tech-OTA7290B-DSI-Pa.patch
-PATCHFILES += 5009-drm-display-add-hw_params-callback-function-to-drm_c.patch
-PATCHFILES += 5010-drm-gpu-fix-4K-30-fps.patch
-PATCHFILES += 5011-phy-qcom-qmp-ufs-Fix-HS-G4-PHY-init-table-for-sc7280.patch
-PATCHFILES += 5012-scsi-ufs-qcom-temporarily-force-to-rate-A.patch
-PATCHFILES += 5013-scsi-ufs-qcom-Add-support-for-UFS-module-detection.patch
-PATCHFILES += 5014-spi-spi-qcom-qspi-Add-support-for-polling.patch
-PATCHFILES += 5016-media-venus-helpers-handle-correctly-vbuf-field.patch
-# qcs6490 board dts additions
-PATCHFILES += 5200-arm64-dts-qcom-qcs6490-audioreach-Modify-LPASS-macro.patch
-PATCHFILES += 5201-arm64-dts-qcom-sc7280-add-OPP-table-support-to-PCIe-.patch
-PATCHFILES += 5202-arm64-dts-qcom-sc7280-Add-cci-aliases.patch
-PATCHFILES += 5203-arm64-dts-qcom-sc7280-Add-psci-label.patch
-# PATCHFILES += 5204-arm64-dts-qcom-improve-support-for-radxa-dragon-q6a.patch
-PATCHFILES += 5204-arm64-dts-qcom-improve-support-for-radxa-dragon-q6a-v2.patch
+PATCHFILES += 5020-firmware-qcom-scm-Allow-QSEECOM-for-Radxa-Dragon-Q6A.patch
+PATCHFILES += 5021-ASoC-dt-bindings-google-sc7280-herobrine-Add-Radxa-Dragon-Q6A-sound-card.patch
+PATCHFILES += 5023-clk-qcom-gcc-sc7280-switch-GP-clocks-to-clk_rcg2_gp_ops.patch
+PATCHFILES += 5024-drm-display-add-hw_params-callback-function-to-drm_c.patch
+# dtsi additions
+PATCHFILES += 5220-arm64-dtsi-qcom-kodiak-Add-I2C-aliases-for-CCI.patch
+PATCHFILES += 5221-arm64-dtsi-qcom-kodiak-Mark-secondary-USB-controller-as-wakeup-source.patch
+PATCHFILES += 5222-arm64-dtsi-qcom-sc7280-Fix-PDC-reg-size-to-single-APSS-DRV-region.patch
+# board dts additions
+PATCHFILES += 5300-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Enable-UFS-controller.patch
+PATCHFILES += 5301-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Enable-USB-3.0-and-HDMI-ports.patch
+PATCHFILES += 5302-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Use-board-specific-CDSP-firmware.patch
+PATCHFILES += 5303-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Drop-QSPI-node-and-reserve-its-pins.patch
+PATCHFILES += 5304-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Correct-GPIO_27-label.patch
+PATCHFILES += 5305-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Align-reserved-memory-with-latest-firmware-map.patch
+PATCHFILES += 5306-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-factor-out-common-board-dtsi.patch
+PATCHFILES += 5307-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-add-LPASS-CPU-audio-variant.patch
+PATCHFILES += 5308-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-change-led-fn.patch
 endif
 #------------------------------------------------------------
 
