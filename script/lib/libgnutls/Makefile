@@ -1,6 +1,6 @@
 
 GARNAME      = gnutls
-GARVERSION   = 3.8.7
+GARVERSION   = 3.8.13
 CATEGORIES   = lib
 MASTER_SITES = https://www.gnupg.org/ftp/gcrypt/gnutls/v3.8/
 DISTFILES    = $(DISTNAME).tar.xz
@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/nettle
+DEPENDS = lang/c lib/nettle security/p11-kit
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -21,7 +21,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--with-included-libtasn1 \
 	--with-included-unistring \
-	--without-p11-kit \
+	--with-p11-kit \
 	--disable-gtk-doc \
 	--disable-gtk-doc-html \
 	--disable-gtk-doc-pdf \
@@ -29,6 +29,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+# turn-off LTO to reduce v.log build times...
 CFLAGS   := $(filter-out -flto=auto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
