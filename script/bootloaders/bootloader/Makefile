@@ -88,10 +88,6 @@ ifneq (,$(filter board-s912.beelink_gt1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s912.beelink_gt1
 endif
 
-ifneq (,$(filter board-g12.radxa_zero,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-g12.radxa_zero
-endif
-
 ifneq (,$(filter board-g12a.radxa_zero,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-g12a.radxa_zero
 endif
