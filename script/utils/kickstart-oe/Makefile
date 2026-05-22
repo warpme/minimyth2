@@ -11,6 +11,10 @@ DISTFILES    = \
 	s912-generic.wks \
 	g12-generic.conf \
 	g12-generic.wks \
+	g12a-generic.conf \
+	g12a-generic.wks \
+	g12b-generic.conf \
+	g12b-generic.wks \
 	sm1-generic.conf \
 	sm1-generic.wks \
 	s4-generic.conf \
@@ -95,6 +99,14 @@ S912_BOARDS_LIST= \
 # Amlogic G12 boards
 G12_BOARDS_LIST= \
 	board-g12.radxa_zero \
+
+# Amlogic G12A boards
+G12A_BOARDS_LIST= \
+	board-g12a.radxa_zero \
+
+# Amlogic G12B boards
+G12B_BOARDS_LIST= \
+	board-a311d.vim3 \
 
 # Amlogic SM1 boards
 SM1_BOARDS_LIST= \
@@ -245,7 +257,7 @@ DEPENDS = \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
-INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12_boards sm1_boards s4_boards sc2_boards t7_boards
+INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12_boards g12a_boards g12b_boards sm1_boards s4_boards sc2_boards t7_boards
 
 include ../../gar.mk
 
@@ -264,6 +276,12 @@ install-s912_boards:
 
 install-g12_boards:
 	@$(call COPY_FILES, $(G12_BOARDS_LIST), g12-generic)
+
+install-g12a_boards:
+	@$(call COPY_FILES, $(G12A_BOARDS_LIST), g12a-generic)
+
+install-g12b_boards:
+	@$(call COPY_FILES, $(G12B_BOARDS_LIST), g12b-generic)
 
 install-sm1_boards:
 	@$(call COPY_FILES, $(SM1_BOARDS_LIST), sm1-generic)
