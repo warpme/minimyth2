@@ -1,3 +1,45 @@
+
+This patch adds capability to run EIT scans in schedulled mode where scans will be in defined time windows.
+
+EIT scanner will switch to schedulled collecting of EIT if EITCrawIdleStart setting is bigger than 3600.
+If EITCrawIdleStart value is higher than 3600, EIT scanner will:
+ - start EITCrawIdleStart seconds after midnight
+ - will scan for EITCrawDuration minutes
+If EITCrawDuration setting is is not defined, EIT scan duration will run for default 240min (4h).
+
+Example:
+with EITCrawIdleStart set to 39000 and EITCrawDuration set to 270, and EIT enabled only on tuner 17, scanner will run like this
+
+at backend start:
+.......
+mythtv mythbackend[1311287]: SCR: Tuning to 11158000kHz, LoBand, V using UB=0, FREQ=1210MHz, POS=A
+mythtv mythbackend[1311287]: TVRec[5]: Scheduled EIT active scans. If enabled will: resume at 2026-05-22T10:52:05, take 270min, end at 2026-05-22T15:22:05
+mythtv mythbackend[1311287]: SCR: Tuning to 11158000kHz, LoBand, V using UB=1, FREQ=1420MHz, POS=A
+mythtv mythbackend[1311287]: TVRec[9]: Scheduled EIT active scans. If enabled will: resume at 2026-05-22T10:55:18, take 270min, end at 2026-05-22T15:25:18
+mythtv mythbackend[1311287]: SCR: Tuning to 12558000kHz, HiBand, V using UB=2, FREQ=1680MHz, POS=A
+mythtv mythbackend[1311287]: TVRec[13]: Scheduled EIT active scans. If enabled will: resume at 2026-05-22T10:54:10, take 270min, end at 2026-05-22T15:24:10
+mythtv mythbackend[1311287]: SCR: Tuning to 11411000kHz, LoBand, H using UB=3, FREQ=2040MHz, POS=A
+mythtv mythbackend[1311287]: TVRec[17]: Scheduled EIT active scans. If enabled will: resume at 2026-05-22T10:56:08, take 270min, end at 2026-05-22T15:26:08
+.......
+
+then, durring operation:
+.......
+May 22 10:47:27 mythtv mythbackend[1311287]: AutoExpire: CalcParams(): Max required Free Space: 15.0 GB w/freq: 15 min
+May 22 10:48:08 mythtv mythbackend[1311287]: Removing finished  HouseKeeperTask 'FindEncoders'.
+May 22 10:52:05 mythtv mythbackend[1311287]: TVRec[5]: EIT scanning disabled for input 5
+May 22 10:54:10 mythtv mythbackend[1311287]: TVRec[13]: EIT scanning disabled for input 13
+May 22 10:55:18 mythtv mythbackend[1311287]: TVRec[9]: EIT scanning disabled for input 9
+May 22 10:56:09 mythtv mythbackend[1311287]: TVRec[17]: EIT scanning enabled for input 17 connected to video source 8 'Cyfra'
+May 22 10:56:09 mythtv mythbackend[1311287]: TVRec[17]: Start EIT active scan on input 17
+May 22 10:56:09 mythtv mythbackend[1311287]: EITScanner[17]: EIT scan channel table for source 8 'Cyfra' with 13 multiplexes
+May 22 10:56:10 mythtv mythbackend[1311287]: TVRec[17]: TuningFrequency(Program(NULL) channel(23) input(<empty>) flags(EITScan,))
+May 22 10:56:11 mythtv mythbackend[1311287]: SCR: Tuning to 12264000kHz, HiBand, V using UB=3, FREQ=2040MHz, POS=A
+May 22 10:56:11 mythtv mythbackend[1311287]: TVRec[17]: Starting Signal Monitor
+May 22 10:56:11 mythtv mythbackend[1311287]: TVRec[17]: TuningSignalCheck: Still waiting.  Will timeout @ 10:56:36.730
+May 22 10:56:11 mythtv mythbackend[1311287]: DVBSigMon[17](/dev/dvb/adapter7/frontend0): Signal Locked
+.......
+
+
 Patch from MiniMyth2 project
 
 Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
@@ -5,29 +47,24 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp
---- mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp	2025-10-18 19:20:06.000000000 +0200
-+++ mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp	2025-10-28 12:57:32.212165942 +0100
-@@ -192,10 +192,11 @@
-     m_eitTransportTimeout = gCoreContext->GetDurSetting<std::chrono::minutes>("EITTransportTimeout", 5min);
-     if (m_eitTransportTimeout < 15s)
-         m_eitTransportTimeout = 15s;
--    m_eitCrawlIdleStart = gCoreContext->GetDurSetting<std::chrono::seconds>("EITCrawIdleStart", 60s);
-+    m_eitCrawlIdleStart = gCoreContext->GetDurSetting<std::chrono::seconds>("EITCrawlIdleStart", 60s);
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/libs/libmythtv/tv_rec.cpp mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/libs/libmythtv/tv_rec.cpp
+--- mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/libs/libmythtv/tv_rec.cpp	2026-05-22 10:51:03.133079993 +0200
++++ mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/libs/libmythtv/tv_rec.cpp	2026-05-22 10:50:41.756674043 +0200
+@@ -195,6 +195,7 @@
      m_eitScanPeriod     = gCoreContext->GetDurSetting<std::chrono::minutes>("EITScanPeriod", 15min);
      if (m_eitScanPeriod < 5min)
          m_eitScanPeriod = 5min;
-+    m_eitCrawlDuration  = gCoreContext->GetDurSetting<std::chrono::minutes>("EITCrawlDuration", 240min);
++    m_eitCrawlDuration  = gCoreContext->GetDurSetting<std::chrono::minutes>("EITCrawDuration", 240min);
      m_audioSampleRateDB = gCoreContext->GetNumSetting("AudioSampleRate");
      m_overRecordSecNrml = gCoreContext->GetDurSetting<std::chrono::seconds>("RecordOverTime");
      m_overRecordSecCat  = gCoreContext->GetDurSetting<std::chrono::minutes>("CategoryOverTime");
-@@ -1035,6 +1036,72 @@
+@@ -1061,6 +1062,72 @@
      m_autoRunJobs.erase(autoJob);
  }
  
 +bool TVRec::EITisInSchedulledScans(void)
 +{
-+    // If eitCrawlIdleStart is above m_eitCrawlTreshToSched sec then we enter schedulled mode.
++    // If eitCrawIdleStart is above m_eitCrawlTreshToSched sec then we enter schedulled mode.
 +    // For values m_eitCrawlTreshToSched and below we idle based scans.
 +    if (m_eitCrawlIdleStart <= m_eitCrawlTreshToSched)
 +        return false;
@@ -94,7 +131,7 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
  // NOLINTBEGIN(cppcoreguidelines-macro-usage)
  #define TRANSITION(ASTATE,BSTATE) \
     ((m_internalState == (ASTATE)) && (m_desiredNextState == (BSTATE)))
-@@ -1070,12 +1137,13 @@
+@@ -1096,12 +1163,13 @@
      // to avoid race condition with it's tuning requests.
      if (m_scanner && HasFlags(kFlagEITScannerRunning))
      {
@@ -111,7 +148,7 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
      }
  
      // Stop EIT scanning on all conflicting inputs so that
-@@ -1087,19 +1155,20 @@
+@@ -1113,19 +1181,20 @@
      {
          s_inputsLock.lockForRead();
          s_eitLock.lock();
@@ -135,7 +172,7 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
              }
          }
          s_eitLock.unlock();
-@@ -1146,12 +1215,12 @@
+@@ -1184,12 +1253,12 @@
  
      if (m_scanner && (m_internalState == kState_None))
      {
@@ -151,7 +188,7 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
      }
  }
  #undef TRANSITION
-@@ -1356,13 +1425,31 @@
+@@ -1394,13 +1463,31 @@
          (!GetDTVChannel() || GetDTVChannel()->IsMaster()) &&    // Card is master and not a multirec instance
          (m_dvbOpt.m_dvbEitScan || get_use_eit(m_inputId)))      // EIT is selected for card OR EIT is selected for video source
      {
@@ -186,7 +223,7 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
      }
  
      while (HasFlags(kFlagRunMainLoop))
-@@ -1508,103 +1595,127 @@
+@@ -1546,103 +1633,127 @@
          // Start active EIT scan
          bool conflicting_input = false;
          if (m_scanner && m_channel &&
@@ -374,7 +411,7 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
          }
  
          // We should be no more than a few thousand milliseconds,
-@@ -3635,8 +3746,7 @@
+@@ -3681,8 +3792,7 @@
      {
          m_scanner->StopActiveScan();
          ClearFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
@@ -384,7 +421,7 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
      }
  
      if (m_scanner && !request.IsOnSameMultiplex())
-@@ -4919,15 +5029,15 @@
+@@ -4965,15 +5075,15 @@
          if (enable)
          {
              if (!HasFlags(kFlagEITScannerRunning)
@@ -403,16 +440,16 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
              if (HasFlags(kFlagEITScannerRunning))
              {
                  m_scanner->StopActiveScan();
-@@ -4961,4 +5071,4 @@
+@@ -5007,4 +5117,4 @@
  static void apply_broken_dvb_driver_crc_hack(ChannelBase*, MPEGStreamData*) {}
  #endif // CONFIG_DVB
  
 -/* vim: set expandtab tabstop=4 shiftwidth=4: */
 +/* vim: set expandtab tabstop=4 shiftwidth=4: */
 \ No newline at end of file
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h
---- mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h	2025-10-18 19:20:06.000000000 +0200
-+++ mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h	2025-10-28 12:57:32.212165942 +0100
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/libs/libmythtv/tv_rec.h mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/libs/libmythtv/tv_rec.h
+--- mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/libs/libmythtv/tv_rec.h	2026-05-22 10:51:03.133824213 +0200
++++ mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/libs/libmythtv/tv_rec.h	2026-05-22 10:50:41.757127563 +0200
 @@ -334,6 +334,9 @@
      QString LoadProfile(void *tvchain, RecordingInfo *rec,
                          RecordingProfile &profile) const;
@@ -432,7 +469,7 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
      int                m_audioSampleRateDB        {0};
      std::chrono::seconds m_overRecordSecNrml      {0s};
      std::chrono::seconds m_overRecordSecCat       {0s};
-@@ -397,6 +402,7 @@
+@@ -399,6 +404,7 @@
      TuningRequest      m_lastTuningRequest        {0};
      QDateTime          m_eitScanStartTime;
      QDateTime          m_eitScanStopTime;
@@ -440,40 +477,28 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4
      mutable QMutex     m_triggerEventLoopLock;
      QWaitCondition     m_triggerEventLoopWait;
      bool               m_triggerEventLoopSignal   {false};
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/programs/mythtv-setup/backendsettings.cpp mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/programs/mythtv-setup/backendsettings.cpp
---- mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/programs/mythtv-setup/backendsettings.cpp	2025-10-18 19:20:06.000000000 +0200
-+++ mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/programs/mythtv-setup/backendsettings.cpp	2025-10-28 12:58:14.888832777 +0100
-@@ -390,14 +390,17 @@
-     return gc;
- };
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/programs/mythtv-setup/backendsettings.cpp mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/programs/mythtv-setup/backendsettings.cpp
+--- mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/programs/mythtv-setup/backendsettings.cpp	2026-05-14 20:31:56.000000000 +0200
++++ mythtv-db702c17cf91f62ed753c10662826f1c9ec21343/mythtv/programs/mythtv-setup/backendsettings.cpp	2026-05-22 10:50:41.757279433 +0200
+@@ -392,12 +392,15 @@
  
--static GlobalSpinBoxSetting *EITCrawIdleStart()
-+static GlobalSpinBoxSetting *EITCrawlIdleStart()
+ static GlobalSpinBoxSetting *EITCrawIdleStart()
  {
 -    auto *gc = new GlobalSpinBoxSetting("EITCrawIdleStart", 30, 7200, 30);
-+    auto *gc = new GlobalSpinBoxSetting("EITCrawlIdleStart", 30, 86400, 30);
++    auto *gc = new GlobalSpinBoxSetting("EITCrawIdleStart", 30, 86400, 30);
      gc->setLabel(QObject::tr("Backend idle before EIT crawl (secs)"));
      gc->setValue(60);
      QString help = QObject::tr(
 -        "The minimum number of seconds after a recorder becomes idle "
 -        "to wait before MythTV begins collecting EIT listings data.");
 +        "The number of seconds for idle recorders when collecting EIT listings begins. "
-+        "If this value is higher than 3600 sec, MythTV will switch to schedulled mode"
-+        " where collecting starts this number of seconds after midnight and will go"
-+        " for EITCrawlDuration or - if not defined, 4h time window."
++        "If this value is higher than 3600, MythTV will switch to schedulled mode"
++        " where collecting starts this number of seconds after midnight and will run"
++        " of EITCrawDuration minutes. If EITCrawDuration is not defined, EIT scan will run for 4h."
 +        );
      gc->setHelpText(help);
      return gc;
  }
-@@ -995,7 +998,7 @@
-     auto* group2a1 = new GroupSetting();
-     group2a1->setLabel(QObject::tr("EIT Scanner Options"));
-     group2a1->addChild(EITTransportTimeout());
--    group2a1->addChild(EITCrawIdleStart());
-+    group2a1->addChild(EITCrawlIdleStart());
-     group2a1->addChild(EITScanPeriod());
-     group2a1->addChild(EITEventChunkSize());
-     group2a1->addChild(EITCachePersistent());
 --
 
 MiniMyth2
