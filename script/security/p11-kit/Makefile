@@ -1,8 +1,8 @@
 
 GARNAME      = p11-kit
-GARVERSION   = 0.25.5
+GARVERSION   = 0.26.2
 CATEGORIES   = security
-MASTER_SITES = https://github.com/p11-glue/p11-kit/releases/download/0.25.5/
+MASTER_SITES = https://github.com/p11-glue/p11-kit/releases/download/0.26.2/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = BSD
 
