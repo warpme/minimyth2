@@ -92,6 +92,14 @@ ifneq (,$(filter board-g12.radxa_zero,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-g12.radxa_zero
 endif
 
+ifneq (,$(filter board-g12a.radxa_zero,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-g12a.radxa_zero
+endif
+
+ifneq (,$(filter board-a311d.vim3,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-a311d.vim3
+endif
+
 ifneq (,$(filter board-sm1.x96_air2g,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-sm1.x96_air2g
 endif
@@ -104,8 +112,8 @@ ifneq (,$(filter board-s905d3.vim3l,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905d3.vim3l
 endif
 
-ifneq (,$(filter board-a311d2-vim4,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-a311d2-vim4
+ifneq (,$(filter board-a311d2.vim4,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-a311d2.vim4
 endif
 
 ifneq (,$(filter board-rk3328.beelink_a1,$(mm_BOARD_TYPE)))
