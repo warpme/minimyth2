@@ -87,7 +87,8 @@ FIPVERSION   = 42d372123631066fb77fbcbb612dc3eb41a3f6f9
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/ \
                https://github.com/LibreELEC/amlogic-boot-fip/archive/
 DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
-PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch
+PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
+               02-g12b-khadas-vim3-hack-fix-no-pwr-on-hdmi.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKDIR)/amlogic-boot-fip-$(FIPVERSION)
 
