@@ -1,6 +1,6 @@
 
 GARNAME      = libgpiod
-GARVERSION   = 2.2.2
+GARVERSION   = 2.2.4
 CATEGORIES   = system
 MASTER_SITES = https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/snapshot/
 DISTFILES    = $(DISTNAME).tar.gz
