@@ -33,6 +33,8 @@ DEPENDS = \
 	firmware/rtl8852-firmware \
 	firmware/qcs6490-firmware \
 	firmware/aml-vdec-firmware \
+	firmware/ap6359sa-firmware \
+	firmware/ap6275p-firmware \
 
 include ../../gar.mk
 
