@@ -154,6 +154,7 @@ Amlogic s912    | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | no
 Amlogic sm1     | X96-Air          | works  (rtl8189@SDIO)                  | not tested| n/a       | wip       | works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic s905d3  | Khadas VIM3l     | works  (ap6398s@SDIO)                  | not tested| n/a       | wip       | works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic g12a    | Radxa-Zero       | works  (ap6256@SDIO)                   | not tested| n/a       | wip       | works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic g12b    | Khadas VIM3      | works  (rtl4359@SDIO)                  | not tested| n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic s905w2  | TV98             | not works                              | not tested| n/a       | wip       | not works   | works       | not works (firmware issue)     | support in-progress           |
 Amlogic s905y4  | Khadas VIM1S     | works  (ap6256@SDIO)                   | not tested| n/a       | wip       | not works   | LED diode,OK| not works (firmware issue)     | support in-progress           |
 Broadcom 2837   | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | n/a       | not tested| works       | n/a         | no plans                       | all basics works nicelly      |
