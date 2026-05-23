@@ -70,7 +70,7 @@ log_file="/var/log/install-on-emmc.log"
 
 
 
-ver=7.21
+ver=8.0
 
 command=$1
 
@@ -347,8 +347,8 @@ what_platform() {
         platform_type="rk3588"
 
     elif [[ "${platform}" =~ "amlogic" ]] ; then
-        echo "Rpi detected... Bad... as it is unsupported!"
-        platform_type="unsupported"
+        echo "Amlogic detected...Good!"
+        platform_type="amlogic"
 
     elif [[ "${platform}" =~ "raspberrypi" ]] ; then
         echo "Rpi detected... Bad... as it is unsupported!"
@@ -572,15 +572,15 @@ write4096_bootloader_to_target() {
     if [ -e "${idbloader_blob}" ] ; then
         msg "Will use idbloader from [/boot/bootloader/] ..."
     else
-        msg "No idbloader in [/boot/bootloader]. Will copy from ${source_dev} ..."
+        msg "No idbloader.img found in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
         do_cmd mkdir -p /boot/bootloader/
         do_cmd dd if=/dev/${source_dev} of=${idbloader_blob} bs=4k skip=8 count=256
     fi
 
     if [ -e "${uboot_blob}" ] ; then
-        msg "Will use u-boot from [/boot/bootloader/] ..."
+        msg "Will use u-boot.itb from [/boot/bootloader/] ..."
     else
-        msg "No u-boot in [/boot/bootloader]. Will copy from ${source_dev} ..."
+        msg "No u-boot.itb found in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
         do_cmd mkdir -p /boot/bootloader/
         do_cmd dd if=/dev/${source_dev} of=${uboot_blob} bs=4k skip=2048 count=512
     fi
@@ -590,10 +590,10 @@ write4096_bootloader_to_target() {
     msg "Writing idbloader.img to boot1 ..."
     write_target_bootX 1 ${idbloader_blob}
 
-    msg "Installing idbloader ..."
+    msg "Installing idbloader.img ..."
     do_cmd dd if=${idbloader_blob} of=/dev/${target_dev} bs=4k seek=8 conv=notrunc
 
-    msg "Installing u-boot ..."
+    msg "Installing u-boot.itb ..."
     do_cmd dd if=${uboot_blob} of=/dev/${target_dev} bs=4k seek=2048 conv=notrunc
 
     do_cmd sync
@@ -604,20 +604,56 @@ write_bootloader_to_target_allwinner() {
     uboot_blob="/boot/bootloader/u-boot-sunxi-with-spl.bin"
 
     if [ -e "${uboot_blob}" ] ; then
-        msg "Will use u-boot from [/boot/bootloader/] ..."
+        msg "Will use u-boot-sunxi-with-spl.bin from [/boot/bootloader/] ..."
     else
-        msg "No u-boot in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
+        msg "No u-boot-sunxi-with-spl.bin found in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
         do_cmd mkdir -p /boot/bootloader/
         do_cmd dd if=/dev/${source_dev} of=${uboot_blob} count=4096 skip=16
     fi
 
+    msg "Writing u-boot-sunxi-with-spl.bin to boot0 ..."
     write_target_bootX 0 ${uboot_blob}
+    msg "Writing u-boot-sunxi-with-spl.bin to boot1 ..."
     write_target_bootX 1 ${uboot_blob}
 
-    msg "Writing u-boot to ${target_dev} ..."
+    msg "Writing u-boot-sunxi-with-spl.bin to ${target_dev} ..."
     do_cmd dd if=${uboot_blob} of=/dev/${target_dev} seek=16 conv=notrunc
 
     do_cmd sync
+}
+
+write_bootloader_to_target_amlogic() {
+
+    if [ "${target_dev}" = "${sdcard_dev}" ] ; then
+        # target is SD card
+        uboot_blob="/boot/bootloader/u-boot.bin.sd.bin"
+    else
+        # target is eMMC
+        uboot_blob="/boot/bootloader/u-boot.bin"
+    fi
+
+    if [ ! -e "${uboot_blob}" ] ; then
+        msg "No u-boot found in [/boot/bootloader]. No any writes to ${source_dev} ..."
+    else
+
+        if [ "${target_dev}" = "${sdcard_dev}" ] ; then
+            # write to SD card
+            msg "Writing u-boot.bin.sd.bin to ${target_dev} ..."
+            do_cmd dd if=${uboot_blob} of=/dev/${target_dev} conv=fsync,notrunc bs=512 skip=1 seek=1
+        else
+            # target is eMMC
+            msg "Writing u-boot.bin to ${target_dev} ..."
+            do_cmd dd if=${uboot_blob} of=/dev/${target_dev} conv=fsync,notrunc
+
+            msg "Writing u-boot.bin to boot0 ..."
+            write_target_bootX 0 ${uboot_blob}
+            msg "Writing u-boot.bin to boot1 ..."
+            write_target_bootX 1 ${uboot_blob}
+        fi
+
+        do_cmd sync
+
+    fi
 }
 
 write_bootloader_to_spi_target() {
@@ -712,6 +748,9 @@ write_bootloader_to_target() {
     elif [ "$platform_type" = "rk3588" ] ; then
         # this is for rockchip 3588
         write_bootloader_to_target_rockchip
+
+    elif [ "$platform_type" = "amlogic" ] ; then
+        write_bootloader_to_target_amlogic
 
     else
         # this is for usupported
