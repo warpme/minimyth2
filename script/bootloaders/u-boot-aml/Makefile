@@ -3,7 +3,7 @@
 # By default - khadas vim3 is build
 
 ifeq (0,1)
-# s905
+# s905 generic device
 SOC_TYPE                  = s905
 mm_U-BOOT_BOARD_TYPE      = board-xxx
 mm_U-BOOT_BOARD_DEFCONFIG = p201_defconfig
@@ -35,7 +35,7 @@ FIP_BOARD                 = sei610
 endif
 
 ifeq (0,1)
-# g12b khadas vim3
+# g12b based khadas vim3
 SOC_TYPE                  = g12b
 mm_U-BOOT_BOARD_TYPE      = board-a311d.vim3
 mm_U-BOOT_BOARD_DEFCONFIG = khadas-vim3_defconfig
@@ -71,9 +71,9 @@ endif
 # Mainline U-boot
 GARNAME      = u-boot-aml
 
-# mainline 2026.07-rc2 - ?
+# mainline 2026.07-rc2 - fails with sd/emmc reading
 # GARVERSION   = 5732bd0f457b4c671e46574d64d4acb099c0f0a5
-# mainline 2026.04 GA - not works on radxa zero
+# mainline 2026.04 GA - fails with sd/emmc reading
 # GARVERSION   = 88dc2788777babfd6322fa655df549a019aa1e69
 # mainline 2026.01 GA
 GARVERSION   = 127a42c7257a6ffbbd1575ed1cbaa8f5408a44b3
@@ -87,7 +87,7 @@ FIPVERSION   = 42d372123631066fb77fbcbb612dc3eb41a3f6f9
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/ \
                https://github.com/LibreELEC/amlogic-boot-fip/archive/
 DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
-#PATCHFILES   = 01-g12a-fix-zero-dts.patch
+PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKDIR)/amlogic-boot-fip-$(FIPVERSION)
 
