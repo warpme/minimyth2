@@ -23,6 +23,7 @@ PATCHFILES  += music-ui.xml-applay-mythtv-pull774.patch
 PATCHFILES  += video-add-bookmark-state-and-watched-progress-bar.patch
 PATCHFILES  += osd-add-displayinfo-in-osddebug.patch
 PATCHFILES  += playbackbox-add-groupAlphabet-for-quick-navigation-within-groups.patch
+PATCHFILES  += recordings-ui-reduce-reclist-to-only-title.patch
 # PATCHFILES  += add-snow-animations.patch
 
 LICENSE      = GPL2
