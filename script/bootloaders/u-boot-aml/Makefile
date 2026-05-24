@@ -44,7 +44,7 @@ endif
 
 ifeq (0,1)
 # s905d3 based khadas vim3l
-SOC_TYPE                  = s905d3
+SOC_TYPE                  = sm1
 mm_U-BOOT_BOARD_TYPE      = board-s905d3.vim3l
 mm_U-BOOT_BOARD_DEFCONFIG = khadas-vim3l_defconfig
 FIP_BOARD                 = khadas-vim3l
@@ -88,7 +88,8 @@ MASTER_SITES = https://github.com/u-boot/u-boot/archive/ \
                https://github.com/LibreELEC/amlogic-boot-fip/archive/
 DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
 PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
-               02-g12b-khadas-vim3-hack-fix-no-pwr-on-hdmi.patch
+               02-g12b-khadas-vim3-hack-fix-no-pwr-on-hdmi.patch \
+               03-sm1-khadas-vim3l-add-http-netboot-support.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKDIR)/amlogic-boot-fip-$(FIPVERSION)
 
