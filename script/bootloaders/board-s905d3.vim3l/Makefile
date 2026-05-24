@@ -1,43 +1,15 @@
 
-GARNAME      = bootfiles-s905d3-vim3l
-GARVERSION   = 2026-02-07
+GARNAME      = bootfiles-board-s905d3.vim3l
+GARVERSION   = 2026-05-23
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
-             boot.config \
-             minimyth.conf \
-             box-s905d3-vim3l.config \
+               minimyth.conf \
+               extlinux.conf \
 
-WORKSRC      = $(WORKDIR)
+export SOC_TYPE                  = sm1
+export mm_U-BOOT_BOARD_TYPE      = board-s905d3.vim3l
+export mm_U-BOOT_BOARD_DEFCONFIG = khadas-vim3l_defconfig
+export FIP_BOARD                 = khadas-vim3l
 
-LICENSE = GPL2
-
-DESCRIPTION =
-define BLURB
-endef
-
-BUILD_SCRIPTS   = bootloader
-INSTALL_SCRIPTS = bootloader
-CLEAN_SCRIPTS   = bootloader
-
-include ../../gar.mk
-
-build-bootloader:
-	@#$(MAKECOOKIE)
-
-install-bootloader:
-	@$(MAKE) clean-all install -C ../aml-bootscipts-vendor-uboot
-	@mkdir -p $(DESTDIR)/boot
-	@cp -f $(WORKSRC)/boot.config $(DESTDIR)/boot/boot.config
-	@mkdir -p $(DESTDIR)/boot/box-config
-	@cp -rf   $(WORKSRC)/box-s905d3-vim3l.config $(DESTDIR)/boot/box-config/
-	@cp -f $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
-	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
-
-clean-bootloader:
-	@rm -rf $(DESTDIR)/boot/box-config/box-s905d3-vim3l.config
-	@rm -f  $(DESTDIR)/boot/boot.config
-	@rm -f  $(DESTDIR)/boot/minimyth.conf
-
-clean-all: clean-bootloader cookieclean downloadclean
-	@$(MAKE) clean-all -C ../aml-bootscipts-vendor-uboot
+include ../bootloader/install-board-bootloader-aml.mk
