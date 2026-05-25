@@ -279,7 +279,7 @@ rebuild-kernel:
 
 rebuild-mythtv:
 	@echo " ==> Cleaning mythtv ..."
-	@$(MAKE) -C ../../myth/mythtv clean clean-all
+	@$(MAKE) -C ../../myth/mythtv clean
 	@echo " ==> Rebuilding and Reinstalling image ..."
 	@$(MAKE) clean install
 
