@@ -35,6 +35,22 @@ FIP_BOARD                 = sei610
 endif
 
 ifeq (0,1)
+# sm1 based x96-air
+SOC_TYPE                  = sm1
+mm_U-BOOT_BOARD_TYPE      = board-sm1.x96_air2g
+mm_U-BOOT_BOARD_DEFCONFIG = sei610_defconfig
+FIP_BOARD                 = sei610
+endif
+
+ifeq (0,1)
+# sm1 based tanix tx5 plus
+SOC_TYPE                  = sm1
+mm_U-BOOT_BOARD_TYPE      = board-sm1.tanix_tx5_plus
+mm_U-BOOT_BOARD_DEFCONFIG = sei610_defconfig
+FIP_BOARD                 = radxa-zero
+endif
+
+ifeq (0,1)
 # g12b based khadas vim3
 SOC_TYPE                  = g12b
 mm_U-BOOT_BOARD_TYPE      = board-a311d.vim3
@@ -88,7 +104,6 @@ MASTER_SITES = https://github.com/u-boot/u-boot/archive/ \
                https://github.com/LibreELEC/amlogic-boot-fip/archive/
 DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
 PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
-               02-g12b-khadas-vim3-hack-fix-no-pwr-on-hdmi.patch \
                03-sm1-khadas-vim3l-add-http-netboot-support.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKDIR)/amlogic-boot-fip-$(FIPVERSION)
