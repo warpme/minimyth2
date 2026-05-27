@@ -515,6 +515,8 @@ PATCHFILES += 5305-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Align-reserved-memory
 PATCHFILES += 5306-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-factor-out-common-board-dtsi.patch
 PATCHFILES += 5307-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-add-LPASS-CPU-audio-variant.patch
 PATCHFILES += 5308-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-change-led-fn.patch
+PATCHFILES += 5309-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-finetune-display-pipeline.patch
+PATCHFILES += 5310-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-add-missing-pcie-regulators-disable-eud.patch
 endif
 #------------------------------------------------------------
 
