@@ -26,7 +26,7 @@ mm_U-BOOT_BOARD_DEFCONFIG = radxa-zero_defconfig
 FIP_BOARD                 = radxa-zero
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # sm1 based x96-air
 SOC_TYPE                  = sm1
 mm_U-BOOT_BOARD_TYPE      = board-sm1.x96_air2g
