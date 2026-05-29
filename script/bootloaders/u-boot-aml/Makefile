@@ -26,7 +26,7 @@ mm_U-BOOT_BOARD_DEFCONFIG = radxa-zero_defconfig
 FIP_BOARD                 = radxa-zero
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # sm1 based x96-air
 SOC_TYPE                  = sm1
 mm_U-BOOT_BOARD_TYPE      = board-sm1.x96_air2g
@@ -97,7 +97,8 @@ MASTER_SITES = https://github.com/u-boot/u-boot/archive/ \
 DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
 PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
                03-sm1-khadas-vim3l-add-http-netboot-support.patch \
-               04-sm1-add-tanix-tx5plus_defconfig.patch
+               04-sm1-add-tanix-tx5plus_defconfig.patch \
+               05-sm1-add-x96-air_defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKDIR)/amlogic-boot-fip-$(FIPVERSION)
 
