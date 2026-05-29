@@ -1,43 +1,15 @@
 
-GARNAME      = bootfiles-sm1.x96_air2g
-GARVERSION   = 2025-11-22
+GARNAME      = bootfiles-board-sm1.x96_air2g
+GARVERSION   = 2026-05-29
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
-             boot.config \
-             minimyth.conf \
-             box-sm1-x96_air2g.config \
+               minimyth.conf \
+               extlinux.conf \
 
-WORKSRC      = $(WORKDIR)
+export SOC_TYPE                  = sm1
+export mm_U-BOOT_BOARD_TYPE      = board-sm1.x96_air2g
+export mm_U-BOOT_BOARD_DEFCONFIG = x96_air_defconfig
+export FIP_BOARD                 = x96-air
 
-LICENSE = GPL2
-
-DESCRIPTION =
-define BLURB
-endef
-
-BUILD_SCRIPTS   = bootloader
-INSTALL_SCRIPTS = bootloader
-CLEAN_SCRIPTS   = bootloader
-
-include ../../gar.mk
-
-build-bootloader:
-	@$(MAKECOOKIE)
-
-install-bootloader:
-	@$(MAKE) clean-all install -C ../aml-bootscipts-vendor-uboot
-	@mkdir -p $(DESTDIR)/boot
-	@cp -f $(WORKSRC)/boot.config $(DESTDIR)/boot/boot.config
-	@mkdir -p $(DESTDIR)/boot/box-config
-	@cp -rf   $(WORKSRC)/box-sm1-x96_air2g.config $(DESTDIR)/boot/box-config/
-	@cp -f $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
-	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
-
-clean-bootloader:
-	@rm -rf $(DESTDIR)/boot/box-config/box-sm1-x96_air2g.config
-	@rm -f  $(DESTDIR)/boot/boot.config
-	@rm -f  $(DESTDIR)/boot/minimyth.conf
-
-clean-all: clean-bootloader cookieclean downloadclean
-	@$(MAKE) clean-all -C ../aml-bootscipts-vendor-uboot
+include ../bootloader/install-board-bootloader-aml.mk
