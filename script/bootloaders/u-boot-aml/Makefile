@@ -27,27 +27,19 @@ FIP_BOARD                 = radxa-zero
 endif
 
 ifeq (0,1)
-# sm1 generic device
-SOC_TYPE                  = sm1
-mm_U-BOOT_BOARD_TYPE      = board-xxx
-mm_U-BOOT_BOARD_DEFCONFIG = sei610_defconfig
-FIP_BOARD                 = sei610
-endif
-
-ifeq (0,1)
 # sm1 based x96-air
 SOC_TYPE                  = sm1
 mm_U-BOOT_BOARD_TYPE      = board-sm1.x96_air2g
-mm_U-BOOT_BOARD_DEFCONFIG = sei610_defconfig
-FIP_BOARD                 = sei610
+mm_U-BOOT_BOARD_DEFCONFIG = x96_air_defconfig
+FIP_BOARD                 = x96-air
 endif
 
 ifeq (0,1)
 # sm1 based tanix tx5 plus
 SOC_TYPE                  = sm1
 mm_U-BOOT_BOARD_TYPE      = board-sm1.tanix_tx5_plus
-mm_U-BOOT_BOARD_DEFCONFIG = sei610_defconfig
-FIP_BOARD                 = radxa-zero
+mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx5plus_defconfig
+FIP_BOARD                 = tanix-tx5plus
 endif
 
 ifeq (0,1)
@@ -104,7 +96,8 @@ MASTER_SITES = https://github.com/u-boot/u-boot/archive/ \
                https://github.com/LibreELEC/amlogic-boot-fip/archive/
 DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
 PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
-               03-sm1-khadas-vim3l-add-http-netboot-support.patch
+               03-sm1-khadas-vim3l-add-http-netboot-support.patch \
+               04-sm1-add-tanix-tx5plus_defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKDIR)/amlogic-boot-fip-$(FIPVERSION)
 
