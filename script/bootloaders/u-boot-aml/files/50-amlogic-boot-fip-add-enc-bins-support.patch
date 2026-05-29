@@ -1,0 +1,145 @@
+diff --speed-large-files --no-dereference --minimal -Naur amlogic-boot-fip-42d372123631066fb77fbcbb612dc3eb41a3f6f9/g12a.inc amlogic-boot-fip-42d372123631066fb77fbcbb612dc3eb41a3f6f9/g12a.inc
+--- amlogic-boot-fip-42d372123631066fb77fbcbb612dc3eb41a3f6f9/g12a.inc	2026-03-15 03:12:14.000000000 +0100
++++ amlogic-boot-fip-42d372123631066fb77fbcbb612dc3eb41a3f6f9/g12a.inc	2026-05-29 23:39:41.463294901 +0200
+@@ -16,6 +16,8 @@
+ endif
+ 
+ AML_ENCRYPT ?= aml_encrypt_g12a
++GXLIMG_BIN ?= gxlimg
++GXLIMG_PRESENT := $(shell command -v gxlimg 2> /dev/null)
+ 
+ .PHONY: clean distclean
+ .NOTPARALLEL: ${TMP}/bl30_new.bin ${TMP}/bl2_new.bin ${TMP}/bl30_new.bin.g12a.enc ${TMP}/bl30_new.bin.enc ${TMP}/bl31.img.enc ${TMP}/bl33.bin.enc ${TMP}/bl2.n.bin.sig ${O}/u-boot.bin
+@@ -30,50 +32,102 @@
+ 	rm -f ${TMP}/bl301_zero.bin ${TMP}/bl30_zero.bin ${TMP}/bl2.n.bin.sig
+ 
+ distclean: clean
+-	rm -f ${O}/u-boot.bin ${O}/u-boot.bin.sd.bin ${O}/u-boot.bin.usb.bl2 ${O}/u-boot.bin.usb.tpl
++	@rm -f ${O}/u-boot.bin ${O}/u-boot.bin.sd.bin ${O}/u-boot.bin.usb.bl2 ${O}/u-boot.bin.usb.tpl
+ 
+-${TMP}/bl30_new.bin: bl30.bin bl301.bin
+-	./blx_fix.sh bl30.bin ${TMP}/zero_tmp ${TMP}/bl30_zero.bin bl301.bin ${TMP}/bl301_zero.bin ${TMP}/bl30_new.bin bl30
+-	@if [ -e ${TMP}/zero_tmp ] ; then rm ${TMP}/zero_tmp ; fi
+-	@rm ${TMP}/bl30_zero.bin ${TMP}/bl301_zero.bin
++define CHECK_PRESENCE
++	@if [ ! -e $1 ] ; then \
++		if [ -e $2 ] ; then \
++			echo "using signed $2 file ..."; \
++			touch $1; \
++		else \
++			echo "missing $1 Exiting ..."; \
++			exit 1; \
++		fi \
++	fi
++endef
++
++bl2.bin:
++	$(call CHECK_PRESENCE,bl2.bin,bl2.sign)
++
++acs.bin:
++	$(call CHECK_PRESENCE,acs.bin,bl2.sign)
++
++bl30.bin:
++	$(call CHECK_PRESENCE,bl30.bin,bl30.enc)
++
++bl301.bin:
++	$(call CHECK_PRESENCE,bl301.bin,bl301.enc)
++
++bl31.img:
++	$(call CHECK_PRESENCE,bl31.bin,bl31.enc)
+ 
+ ${TMP}/bl2_new.bin: bl2.bin acs.bin
+-	./blx_fix.sh bl2.bin ${TMP}/zero_tmp ${TMP}/bl2_zero.bin acs.bin ${TMP}/bl21_zero.bin ${TMP}/bl2_new.bin bl2
+-	@if [ -e ${TMP}/zero_tmp ] ; then rm ${TMP}/zero_tmp ; fi
+-	@rm ${TMP}/bl2_zero.bin ${TMP}/bl21_zero.bin
++	@if [ -e bl2.sign ] ; then \
++		echo "FIP will directly use already signed bl20.sign file ..."; \
++		cp bl2.sign ${TMP}/bl2.n.bin.sig; \
++		touch ${TMP}/bl2_new.bin; \
++	else \
++		./blx_fix.sh bl2.bin ${TMP}/zero_tmp ${TMP}/bl2_zero.bin acs.bin ${TMP}/bl21_zero.bin ${TMP}/bl2_new.bin bl2; \
++		if [ -e ${TMP}/zero_tmp ] ; then rm ${TMP}/zero_tmp; fi; \
++		rm ${TMP}/bl2_zero.bin ${TMP}/bl21_zero.bin; \
++	fi
++
++${TMP}/bl30_new.bin: bl30.bin bl301.bin
++	@if [ -e bl30.enc ] ; then \
++		echo "FIP will directly use already encoded bl30.enc file ..."; \
++		cp bl30.enc ${TMP}/bl30_new.bin.enc; \
++		touch ${TMP}/bl30_new.bin; \
++	else \
++		./blx_fix.sh bl30.bin ${TMP}/zero_tmp ${TMP}/bl30_zero.bin bl301.bin ${TMP}/bl301_zero.bin ${TMP}/bl30_new.bin bl30; \
++		if [ -e ${TMP}/zero_tmp ] ; then rm ${TMP}/zero_tmp; fi; \
++		rm ${TMP}/bl30_zero.bin ${TMP}/bl301_zero.bin; \
++	fi
++
++ifdef GXLIMG_PRESENT
++
++${TMP}/bl2.n.bin.sig: ${TMP}/bl2_new.bin
++	@if [ ! -e bl2.sign ] ; then \
++		${GXLIMG_BIN} -t bl2 -s ${TMP}/bl2_new.bin ${TMP}/bl2.n.bin.sig; \
++	fi
+ 
+-ifneq ($(GXLIMG_PATH),)
+ ${TMP}/bl30_new.bin.enc: ${TMP}/bl30_new.bin
+-	${GXLIMG_PATH} -t bl30 -s ${TMP}/bl30_new.bin ${TMP}/bl30_new.bin.enc
++	@if [ ! -e bl30.enc ] ; then \
++		${GXLIMG_BIN} -t bl30 -s ${TMP}/bl30_new.bin ${TMP}/bl30_new.bin.enc; \
++	fi
+ 
+ ${TMP}/bl31.img.enc: bl31.img
+-	${GXLIMG_PATH} -t bl3x -s bl31.img ${TMP}/bl31.img.enc
++	@if [ -e bl31.enc ] ; then \
++		echo "FIP will directly use already signed bl31.enc file ..."; \
++		cp bl31.enc ${TMP}/bl31.img.enc; \
++	else \
++		${GXLIMG_BIN} -t bl3x -s bl31.img ${TMP}/bl31.img.enc; \
++	fi
+ 
+ ${TMP}/bl33.bin.enc: ${BL33}
+-	${GXLIMG_PATH} -t bl3x -s ${BL33} ${TMP}/bl33.bin.enc
+-
+-${TMP}/bl2.n.bin.sig: ${TMP}/bl2_new.bin
+-	${GXLIMG_PATH} -t bl2 -s ${TMP}/bl2_new.bin ${TMP}/bl2.n.bin.sig
++	@${GXLIMG_BIN} -t bl3x -s ${BL33} ${TMP}/bl33.bin.enc
+ 
+ ${O}/u-boot.bin: ${TMP}/bl2.n.bin.sig ${TMP}/bl30_new.bin.enc ${TMP}/bl31.img.enc ${TMP}/bl33.bin.enc
+-	if [ -e lpddr3_1d.fw ] ; then \
+-		${GXLIMG_PATH} -t fip --rev v3 \
++	@echo "Packing FIP in gxlimg mode ..."
++	@if [ -e lpddr3_1d.fw ] ; then \
++		${GXLIMG_BIN}  -t fip --rev v3 \
+ 			       --bl2 ${TMP}/bl2.n.bin.sig --bl30 ${TMP}/bl30_new.bin.enc \
+ 			       --bl31 ${TMP}/bl31.img.enc --bl33 ${TMP}/bl33.bin.enc \
+ 			       --ddrfw ddr4_1d.fw --ddrfw ddr4_2d.fw --ddrfw ddr3_1d.fw \
+ 			       --ddrfw piei.fw --ddrfw lpddr4_1d.fw --ddrfw lpddr4_2d.fw \
+ 			       --ddrfw diag_lpddr4.fw --ddrfw aml_ddr.fw --ddrfw lpddr3_1d.fw \
+-			       ${O}/u-boot.bin;\
++			       ${O}/u-boot.bin; \
+ 	else \
+-		${GXLIMG_PATH} -t fip --rev v3 \
++		${GXLIMG_BIN}  -t fip --rev v3 \
+ 			       --bl2 ${TMP}/bl2.n.bin.sig --bl30 ${TMP}/bl30_new.bin.enc \
+ 			       --bl31 ${TMP}/bl31.img.enc --bl33 ${TMP}/bl33.bin.enc \
+ 			       --ddrfw ddr4_1d.fw --ddrfw ddr4_2d.fw --ddrfw ddr3_1d.fw \
+ 			       --ddrfw piei.fw --ddrfw lpddr4_1d.fw --ddrfw lpddr4_2d.fw \
+ 			       --ddrfw diag_lpddr4.fw --ddrfw aml_ddr.fw \
+-			       ${O}/u-boot.bin;\
++			       ${O}/u-boot.bin; \
+ 	fi
+ else
++$(warning "no gxlimg found. Bad... we will run in aml_encrypt_g12a mode.")
++
+ ${TMP}/bl30_new.bin.g12a.enc: ${TMP}/bl30_new.bin
+ 	${QEMU} ./${AML_ENCRYPT} --bl30sig --input ${TMP}/bl30_new.bin --output ${TMP}/bl30_new.bin.g12a.enc --level v3
+ 
+@@ -90,7 +144,8 @@
+ 	${QEMU} ./${AML_ENCRYPT} --bl2sig --input ${TMP}/bl2_new.bin --output ${TMP}/bl2.n.bin.sig
+ 
+ ${O}/u-boot.bin: ${TMP}/bl2.n.bin.sig ${TMP}/bl30_new.bin.enc ${TMP}/bl31.img.enc ${TMP}/bl33.bin.enc
+-	if [ -e lpddr3_1d.fw ] ; then \
++	@echo "Packing FIP in aml_encrypt_g12a mode ..." \
++	@if [ -e lpddr3_1d.fw ] ; then \
+ 		${QEMU} ./${AML_ENCRYPT} --bootmk --output ${O}/u-boot.bin --level v3 \
+ 			       --bl2 ${TMP}/bl2.n.bin.sig --bl30 ${TMP}/bl30_new.bin.enc \
+ 			       --bl31 ${TMP}/bl31.img.enc --bl33 ${TMP}/bl33.bin.enc \
