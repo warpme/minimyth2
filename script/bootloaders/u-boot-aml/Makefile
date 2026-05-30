@@ -98,11 +98,12 @@ DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
 PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
                03-sm1-khadas-vim3l-add-http-netboot-support.patch \
                04-sm1-add-tanix-tx5plus_defconfig.patch \
-               05-sm1-add-x96-air_defconfig.patch
-FIPPATCHFILES = 50-amlogic-boot-fip-add-enc-bins-support.patch \
-                51-amlogic-boot-fip-add-x96-air-support.patch
+               05-sm1-add-x96-air_defconfig.patch \
+               50-amlogic-boot-fip-add-enc-bins-support.patch \
+               51-amlogic-boot-fip-add-x96-air-support.patch \
+               52-amlogic-boot-fip-add-tanix-tx5plus-support.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-FIPSRC       = $(WORKDIR)/amlogic-boot-fip-$(FIPVERSION)
+FIPSRC       = $(WORKSRC)/amlogic-boot-fip
 
 CATEGORIES   = bootloaders
 LICENSE      = GPL2
@@ -132,6 +133,11 @@ CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_DEFCONFIG)
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
+post-extract:
+	@mkdir -p $(WORKSRC)/amlogic-boot-fip
+	@cp -rf $(WORKDIR)/amlogic-boot-fip-$(FIPVERSION)/* $(WORKSRC)/amlogic-boot-fip/
+	@$(MAKECOOKIE)
+
 configure-custom:
 	@echo " "
 	@echo "------------------------------------------------------------------"
@@ -158,8 +164,6 @@ build-custom:
 
 install-custom:
 	@echo "Patching FIP ..."
-	@cd files && patch -N -f -d ../$(FIPSRC) -p1 < 50-amlogic-boot-fip-add-enc-bins-support.patch
-	@cd files && patch -N -f -d ../$(FIPSRC) -p1 < 51-amlogic-boot-fip-add-x96-air-support.patch
 	@echo "----- FIP start ----------------------------------------------------------------"
 	@echo "Running FIP in $(FIPSRC) for $(FIP_BOARD) ..."
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)"
