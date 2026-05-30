@@ -9,8 +9,6 @@ DISTFILES    = \
 	s905-generic.wks \
 	s912-generic.conf \
 	s912-generic.wks \
-	g12-generic.conf \
-	g12-generic.wks \
 	g12a-generic.conf \
 	g12a-generic.wks \
 	g12b-generic.conf \
@@ -96,10 +94,6 @@ S905_BOARDS_LIST= \
 S912_BOARDS_LIST= \
 	board-s912.beelink_gt1 \
 
-# Amlogic G12 boards
-G12_BOARDS_LIST= \
-	board-g12.radxa_zero \
-
 # Amlogic G12A boards
 G12A_BOARDS_LIST= \
 	board-g12a.radxa_zero \
@@ -112,6 +106,7 @@ G12B_BOARDS_LIST= \
 SM1_BOARDS_LIST= \
 	board-sm1.x96_air2g \
 	board-s905d3.vim3l \
+	board-sm1.tanix_tx5_plus \
 
 # Amlogic S4 boards
 S4_BOARDS_LIST= \
@@ -257,7 +252,7 @@ DEPENDS = \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
-INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12_boards g12a_boards g12b_boards sm1_boards s4_boards sc2_boards t7_boards
+INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12a_boards g12b_boards sm1_boards s4_boards sc2_boards t7_boards
 
 include ../../gar.mk
 
@@ -273,9 +268,6 @@ install-s905_boards:
 
 install-s912_boards:
 	@$(call COPY_FILES, $(S912_BOARDS_LIST), s912-generic)
-
-install-g12_boards:
-	@$(call COPY_FILES, $(G12_BOARDS_LIST), g12-generic)
 
 install-g12a_boards:
 	@$(call COPY_FILES, $(G12A_BOARDS_LIST), g12a-generic)
