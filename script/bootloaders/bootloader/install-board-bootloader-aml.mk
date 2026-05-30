@@ -15,7 +15,7 @@ CLEAN_SCRIPTS   += bootloader
 
 include ../../gar.mk
 
-U-BOOT-AML = $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.bin.sd.bin
+U-BOOT-AML = $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.bin
 
 $(U-BOOT-AML):
 	@$(MAKE) clean install  -C ../u-boot-aml
@@ -24,7 +24,7 @@ $(U-BOOT-AML):
 install-bootloader: $(U-BOOT-AML)
 	@mkdir -p $(DESTDIR)/boot/extlinux
 	@mkdir -p $(DESTDIR)/boot/$(SOC_TYPE)loaderfiles
-	@cp -f    $(U-BOOT-AML) $(DESTDIR)/boot/$(SOC_TYPE)loaderfiles/u-boot.bin.sd.bin
+	@cp -f    $(U-BOOT-AML) $(DESTDIR)/boot/$(SOC_TYPE)loaderfiles/u-boot.bin
 	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
