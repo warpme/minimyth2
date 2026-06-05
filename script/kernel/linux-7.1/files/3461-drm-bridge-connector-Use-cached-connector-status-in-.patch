@@ -1,0 +1,43 @@
+From f04fd512dda398f014c3d358a006c8e0dcd82ff4 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 22 Apr 2026 01:26:32 +0300
+Subject: [PATCH 127/159] drm/bridge-connector: Use cached connector status in
+ .get_modes()
+
+Replace the active drm_bridge_connector_detect() call in get_modes()
+with a read of the already-cached connector->status.
+
+The .get_modes() callback is only invoked from
+drm_helper_probe_single_connector_modes(), which has already retrieved
+the connector status.  Calling detect again is redundant and triggers a
+duplicate hotplug event.  This is also a prerequisite for switching to
+the .detect_ctx() hook, which requires a drm_modeset_acquire_ctx not
+available in the .get_modes() path.
+
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/display/drm_bridge_connector.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/display/drm_bridge_connector.c b/drivers/gpu/drm/display/drm_bridge_connector.c
+index 4333cc66073..2b74373cac5 100644
+--- a/drivers/gpu/drm/display/drm_bridge_connector.c
++++ b/drivers/gpu/drm/display/drm_bridge_connector.c
+@@ -300,12 +300,10 @@ static const struct drm_connector_funcs drm_bridge_connector_funcs = {
+ static int drm_bridge_connector_get_modes_edid(struct drm_connector *connector,
+ 					       struct drm_bridge *bridge)
+ {
+-	enum drm_connector_status status;
+ 	const struct drm_edid *drm_edid;
+ 	int n;
+ 
+-	status = drm_bridge_connector_detect(connector, false);
+-	if (status != connector_status_connected)
++	if (connector->status != connector_status_connected)
+ 		goto no_edid;
+ 
+ 	drm_edid = drm_bridge_edid_read(bridge, connector);
+-- 
+2.53.0
+

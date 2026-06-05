@@ -1,0 +1,55 @@
+From bdf421df28128d7444a19f21d5fcb07bbd4c9a51 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 4 Feb 2026 01:11:56 +0200
+Subject: [PATCH 142/159] drm/bridge: dw-hdmi-qp: Log resolution and refresh
+ rate in atomic_enable()
+
+The debug entry in the HDMI branch of dw_hdmi_qp_bridge_atomic_enable()
+previously printed the literal string 'HDMI' as the mode field, giving
+no information about the actual display timing being configured.
+
+Extend it to include the active resolution and refresh rate by
+retrieving the CRTC mode from the incoming atomic state:
+
+  dw_hdmi_qp_bridge_atomic_enable mode=1920x1080@50Hz fmt=RGB rate=185625000 bpc=10
+
+This makes the log line self-contained and directly useful when
+debugging mode-setting issues, format negotiation, or TMDS rate
+mismatches without having to cross-reference a separate mode dump.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 36fbd3831bc..8de0da238a0 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -857,6 +857,8 @@ static void dw_hdmi_qp_bridge_atomic_enable(struct drm_bridge *bridge,
+ {
+ 	struct dw_hdmi_qp *hdmi = bridge->driver_private;
+ 	struct drm_connector_state *conn_state;
++	const struct drm_display_mode *mode;
++	struct drm_crtc_state *crtc_state;
+ 	unsigned int op_mode;
+ 
+ 	hdmi->curr_conn = drm_atomic_get_new_connector_for_encoder(state,
+@@ -869,9 +871,13 @@ static void dw_hdmi_qp_bridge_atomic_enable(struct drm_bridge *bridge,
+ 		return;
+ 
+ 	if (hdmi->curr_conn->display_info.is_hdmi) {
+-		dev_dbg(hdmi->dev, "%s mode=HDMI %s rate=%llu bpc=%u\n", __func__,
++		crtc_state = drm_atomic_get_new_crtc_state(state, conn_state->crtc);
++		mode = &crtc_state->mode;
++		dev_dbg(hdmi->dev, "%s mode=%ux%u@%uHz fmt=%s rate=%llu bpc=%u\n", __func__,
++			mode->hdisplay, mode->vdisplay, drm_mode_vrefresh(mode),
+ 			drm_hdmi_connector_get_output_format_name(conn_state->hdmi.output_format),
+ 			conn_state->hdmi.tmds_char_rate, conn_state->hdmi.output_bpc);
++
+ 		op_mode = 0;
+ 		hdmi->tmds_char_rate = conn_state->hdmi.tmds_char_rate;
+ 
+-- 
+2.53.0
+

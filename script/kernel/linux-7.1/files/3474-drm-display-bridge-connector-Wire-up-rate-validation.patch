@@ -1,0 +1,110 @@
+From f2df4fb21334e05137e916ce24ef1a5303ca8bdc Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 25 Mar 2026 01:27:05 +0200
+Subject: [PATCH 139/159] drm/display: bridge-connector: Wire up rate
+ validation for HDMI 2.1 bridges
+
+The bridge connector infrastructure acts as a generic glue layer between
+drm_bridge implementations and the DRM connector framework, delegating
+TMDS character rate validation to the underlying bridge via
+.hdmi_tmds_char_rate_valid().  FRL-capable bridges need the same
+treatment for the new .frl_rate_valid() connector hook introduced to
+support HDMI 2.1 mode validation.
+
+Add the corresponding .hdmi_frl_rate_valid() hook to struct
+drm_bridge_funcs, documented as optional and gated on
+DRM_BRIDGE_OP_HDMI, to be consistent with all other HDMI bridge
+callbacks.
+
+Provide drm_bridge_connector_frl_rate_valid(), which implements the
+.frl_rate_valid() callback in drm_connector_hdmi_funcs by forwarding the
+call to the HDMI bridge .hdmi_frl_rate_valid() hook.
+
+The delegation follows the same pattern as the TMDS equivalent, with one
+exception: if the bridge does not implement the callback, reject the FRL
+modes rather than silently permitting them.  Unlike the TMDS path, FRL
+support must be explicit.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../gpu/drm/display/drm_bridge_connector.c    | 22 ++++++++++++++++++
+ include/drm/drm_bridge.h                      | 23 +++++++++++++++++++
+ 2 files changed, 45 insertions(+)
+
+diff --git a/drivers/gpu/drm/display/drm_bridge_connector.c b/drivers/gpu/drm/display/drm_bridge_connector.c
+index d3aaa818383..d9e5f02ccb7 100644
+--- a/drivers/gpu/drm/display/drm_bridge_connector.c
++++ b/drivers/gpu/drm/display/drm_bridge_connector.c
+@@ -416,6 +416,27 @@ drm_bridge_connector_tmds_char_rate_valid(const struct drm_connector *connector,
+ 		return MODE_OK;
+ }
+ 
++static enum drm_mode_status
++drm_bridge_connector_frl_rate_valid(const struct drm_connector *connector,
++				    const struct drm_display_mode *mode,
++				    unsigned long long frl_data_rate,
++				    unsigned long long frl_max_link_rate)
++{
++	struct drm_bridge_connector *bridge_connector =
++		to_drm_bridge_connector(connector);
++	struct drm_bridge *bridge;
++
++	bridge = bridge_connector->bridge_hdmi;
++	if (!bridge)
++		return MODE_ERROR;
++
++	if (bridge->funcs->hdmi_frl_rate_valid)
++		return bridge->funcs->hdmi_frl_rate_valid(bridge, mode,
++							  frl_data_rate,
++							  frl_max_link_rate);
++	return MODE_CLOCK_HIGH;
++}
++
+ static int drm_bridge_connector_clear_avi_infoframe(struct drm_connector *connector)
+ {
+ 	struct drm_bridge_connector *bridge_connector =
+@@ -567,6 +588,7 @@ drm_bridge_connector_read_edid(struct drm_connector *connector)
+ 
+ static const struct drm_connector_hdmi_funcs drm_bridge_connector_hdmi_funcs = {
+ 	.tmds_char_rate_valid = drm_bridge_connector_tmds_char_rate_valid,
++	.frl_rate_valid = drm_bridge_connector_frl_rate_valid,
+ 	.read_edid = drm_bridge_connector_read_edid,
+ 	.avi = {
+ 		.clear_infoframe = drm_bridge_connector_clear_avi_infoframe,
+diff --git a/include/drm/drm_bridge.h b/include/drm/drm_bridge.h
+index 6626c1afbd5..7cf37cc9d52 100644
+--- a/include/drm/drm_bridge.h
++++ b/include/drm/drm_bridge.h
+@@ -709,6 +709,29 @@ struct drm_bridge_funcs {
+ 				     const struct drm_display_mode *mode,
+ 				     unsigned long long tmds_rate);
+ 
++	/**
++	 * @hdmi_frl_rate_valid:
++	 *
++	 * Check whether a particular FRL data rate (given in bps) is
++	 * supported by the driver by using a FRL link rate that doesn't
++	 * exceed the maximum advertised by the sink (also given in bps).
++	 *
++	 * This callback is optional and should only be implemented by the
++	 * bridges that take part in the HDMI connector implementation and
++	 * need to advertise FRL support.  Bridges that implement it shall
++	 * set the DRM_BRIDGE_OP_HDMI flag in their &drm_bridge->ops.
++	 *
++	 * Returns:
++	 *
++	 * Either &drm_mode_status.MODE_OK or one of the failure reasons
++	 * in &enum drm_mode_status.
++	 */
++	enum drm_mode_status
++	(*hdmi_frl_rate_valid)(const struct drm_bridge *bridge,
++			       const struct drm_display_mode *mode,
++			       unsigned long long frl_data_rate,
++			       unsigned long long frl_max_link_rate);
++
+ 	/**
+ 	 * @hdmi_clear_avi_infoframe:
+ 	 *
+-- 
+2.53.0
+

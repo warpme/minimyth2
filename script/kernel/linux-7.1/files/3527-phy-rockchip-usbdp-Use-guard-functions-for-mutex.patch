@@ -1,0 +1,191 @@
+From 3c4143eb002d7aca797341f985401c4530cc73c8 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Fri, 24 Apr 2026 13:43:09 +0200
+Subject: [PATCH 050/159] phy: rockchip: usbdp: Use guard functions for mutex
+
+Convert the driver to use guard functions for mutex handling as
+a small cleanup. There is a small functional change in the DP PHY
+power up function, which no longer sleeps if the internal powerup
+code returns an error. This is not a problem as the sleep is only
+relevant for successful power-up.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 60 ++++++++++-------------
+ 1 file changed, 27 insertions(+), 33 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index 17637d92cf9..f318b04c097 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -10,6 +10,7 @@
+ #include <dt-bindings/phy/phy.h>
+ #include <linux/bitfield.h>
+ #include <linux/bits.h>
++#include <linux/cleanup.h>
+ #include <linux/clk.h>
+ #include <linux/delay.h>
+ #include <linux/gpio.h>
+@@ -654,14 +655,15 @@ static int rk_udphy_orien_sw_set(struct typec_switch_dev *sw,
+ 	struct rk_udphy *udphy = typec_switch_get_drvdata(sw);
+ 	bool flipped = orien == TYPEC_ORIENTATION_REVERSE;
+ 
+-	mutex_lock(&udphy->mutex);
++	guard(mutex)(&udphy->mutex);
+ 
+ 	if (orien == TYPEC_ORIENTATION_NONE) {
+ 		gpiod_set_value_cansleep(udphy->sbu1_dc_gpio, 0);
+ 		gpiod_set_value_cansleep(udphy->sbu2_dc_gpio, 0);
+ 		/* unattached */
+ 		rk_udphy_usb_bvalid_enable(udphy, false);
+-		goto unlock_ret;
++
++		return 0;
+ 	}
+ 
+ 	if (udphy->flip != flipped)
+@@ -671,8 +673,6 @@ static int rk_udphy_orien_sw_set(struct typec_switch_dev *sw,
+ 	rk_udphy_set_typec_default_mapping(udphy);
+ 	rk_udphy_usb_bvalid_enable(udphy, true);
+ 
+-unlock_ret:
+-	mutex_unlock(&udphy->mutex);
+ 	return 0;
+ }
+ 
+@@ -1044,12 +1044,10 @@ static int rk_udphy_dp_phy_init(struct phy *phy)
+ {
+ 	struct rk_udphy *udphy = phy_get_drvdata(phy);
+ 
+-	mutex_lock(&udphy->mutex);
++	guard(mutex)(&udphy->mutex);
+ 
+ 	udphy->dp_in_use = true;
+ 
+-	mutex_unlock(&udphy->mutex);
+-
+ 	return 0;
+ }
+ 
+@@ -1057,9 +1055,10 @@ static int rk_udphy_dp_phy_exit(struct phy *phy)
+ {
+ 	struct rk_udphy *udphy = phy_get_drvdata(phy);
+ 
+-	mutex_lock(&udphy->mutex);
++	guard(mutex)(&udphy->mutex);
++
+ 	udphy->dp_in_use = false;
+-	mutex_unlock(&udphy->mutex);
++
+ 	return 0;
+ }
+ 
+@@ -1068,26 +1067,25 @@ static int rk_udphy_dp_phy_power_on(struct phy *phy)
+ 	struct rk_udphy *udphy = phy_get_drvdata(phy);
+ 	int ret;
+ 
+-	mutex_lock(&udphy->mutex);
++	scoped_guard(mutex, &udphy->mutex) {
++		phy_set_bus_width(phy, udphy->dp_lanes);
+ 
+-	phy_set_bus_width(phy, udphy->dp_lanes);
+-
+-	ret = rk_udphy_power_on(udphy, UDPHY_MODE_DP);
+-	if (ret)
+-		goto unlock;
++		ret = rk_udphy_power_on(udphy, UDPHY_MODE_DP);
++		if (ret)
++			return ret;
+ 
+-	rk_udphy_dp_lane_enable(udphy, udphy->dp_lanes);
++		rk_udphy_dp_lane_enable(udphy, udphy->dp_lanes);
+ 
+-	rk_udphy_dp_lane_select(udphy);
++		rk_udphy_dp_lane_select(udphy);
++	}
+ 
+-unlock:
+-	mutex_unlock(&udphy->mutex);
+ 	/*
+ 	 * If data send by aux channel too fast after phy power on,
+ 	 * the aux may be not ready which will cause aux error. Adding
+ 	 * delay to avoid this issue.
+ 	 */
+ 	usleep_range(10000, 11000);
++
+ 	return ret;
+ }
+ 
+@@ -1095,10 +1093,10 @@ static int rk_udphy_dp_phy_power_off(struct phy *phy)
+ {
+ 	struct rk_udphy *udphy = phy_get_drvdata(phy);
+ 
+-	mutex_lock(&udphy->mutex);
++	guard(mutex)(&udphy->mutex);
++
+ 	rk_udphy_dp_lane_enable(udphy, 0);
+ 	rk_udphy_power_off(udphy, UDPHY_MODE_DP);
+-	mutex_unlock(&udphy->mutex);
+ 
+ 	return 0;
+ }
+@@ -1302,19 +1300,18 @@ static const struct phy_ops rk_udphy_dp_phy_ops = {
+ static int rk_udphy_usb3_phy_init(struct phy *phy)
+ {
+ 	struct rk_udphy *udphy = phy_get_drvdata(phy);
+-	int ret = 0;
++	int ret;
++
++	guard(mutex)(&udphy->mutex);
+ 
+-	mutex_lock(&udphy->mutex);
+ 	/* DP only or high-speed, disable U3 port */
+ 	if (!(udphy->mode & UDPHY_MODE_USB) || udphy->hs) {
+ 		rk_udphy_u3_port_disable(udphy, true);
+-		goto unlock;
++		return 0;
+ 	}
+ 
+ 	ret = rk_udphy_power_on(udphy, UDPHY_MODE_USB);
+ 
+-unlock:
+-	mutex_unlock(&udphy->mutex);
+ 	return ret;
+ }
+ 
+@@ -1322,15 +1319,14 @@ static int rk_udphy_usb3_phy_exit(struct phy *phy)
+ {
+ 	struct rk_udphy *udphy = phy_get_drvdata(phy);
+ 
+-	mutex_lock(&udphy->mutex);
++	guard(mutex)(&udphy->mutex);
++
+ 	/* DP only or high-speed */
+ 	if (!(udphy->mode & UDPHY_MODE_USB) || udphy->hs)
+-		goto unlock;
++		return 0;
+ 
+ 	rk_udphy_power_off(udphy, UDPHY_MODE_USB);
+ 
+-unlock:
+-	mutex_unlock(&udphy->mutex);
+ 	return 0;
+ }
+ 
+@@ -1345,12 +1341,10 @@ static int rk_udphy_typec_mux_set(struct typec_mux_dev *mux,
+ {
+ 	struct rk_udphy *udphy = typec_mux_get_drvdata(mux);
+ 
+-	mutex_lock(&udphy->mutex);
++	guard(mutex)(&udphy->mutex);
+ 
+ 	rk_udphy_set_typec_state(udphy, state->mode);
+ 
+-	mutex_unlock(&udphy->mutex);
+-
+ 	return 0;
+ }
+ 
+-- 
+2.53.0
+

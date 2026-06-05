@@ -1,0 +1,57 @@
+From: iuncuim <iuncuim@gmail.com>
+Date: Sun, 6 Jul 2025 06:21:13 +0300
+Subject: [PATCH] Update sun55i-a527-cubie-a5e.dts, sun55i-h728-x96qpro+.dts,
+ and 3 more files...
+
+Signed-off-by: Mikhail Kalashnikov <iuncuim@gmail.com>
+---
+ drivers/regulator/axp20x-regulator.c          | 26 +++++++++++++++++++
+ 5 files changed, 38 insertions(+)
+
+diff --git a/drivers/regulator/axp20x-regulator.c b/drivers/regulator/axp20x-regulator.c
+index da891415e..a71b787a9 100644
+--- a/drivers/regulator/axp20x-regulator.c
++++ b/drivers/regulator/axp20x-regulator.c
+@@ -1481,6 +1481,23 @@ static int axp20x_set_dcdc_workmode(struct regulator_dev *rdev, int id, u32 work
+ 	return regmap_update_bits(rdev->regmap, reg, mask, workmode);
+ }
+ 
++static int axp20x_force_polyphase_setup(struct axp20x_dev *axp20x, int id)
++{
++	switch (axp20x->variant) {
++	case AXP323_ID:
++		switch (id) {
++		case AXP313A_DCDC2:
++			regmap_write(axp20x->regmap, AXP323_DCDC_MODE_CTRL2, BIT(1));
++		}
++		break;
++	default:
++		/* should not happen */
++		WARN_ON(1);
++		return -EINVAL;
++	}
++	return 0;
++}
++
+ /*
+  * This function checks whether a regulator is part of a poly-phase
+  * output setup based on the registers settings. Returns true if it is.
+@@ -1704,6 +1721,15 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 					rdev->desc->name);
+ 		}
+ 
++		/*
++		 * Currently only the AXP323 needs to force dual phase setup.
++		 */
++		if (of_property_read_bool(rdev->dev.of_node,
++					   "x-powers,force-polyfase-mode"))
++			if (axp20x_force_polyphase_setup(axp20x, i))
++				dev_err(&pdev->dev, "Failed to set polifase mode on %s\n",
++					rdev->desc->name);
++
+ 		/*
+ 		 * Save AXP22X DCDC1 / DCDC5 / AXP15060 ALDO1 regulator names for later.
+ 		 */
+-- 
+2.50.0
+

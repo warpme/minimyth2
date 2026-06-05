@@ -1,0 +1,118 @@
+From e063eccf6159bc191f53c8109eff2c3af2c4d6ac Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 31 Mar 2026 17:52:43 +0300
+Subject: [PATCH 141/159] drm/rockchip: dw_hdmi_qp: Consolidate link config
+ into dedicated struct
+
+Abstract link configuration state into a dedicated dw_hdmi_qp_link_cfg
+struct by moving tmds_char_rate out of the main driver data struct into
+link_cfg, while also storing the configured PHY bit depth there.
+
+Eventually expose it to the bridge layer via a new .get_link_cfg() PHY
+operation.
+
+This refactoring is needed to give the bridge core a clean, extensible
+interface to query the active link parameters, a prerequisite for adding
+HDMI 2.1 FRL fields (rate, lane count, etc.) to the same structure
+without further scattering state across the driver.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c | 18 +++++++++++++++---
+ include/drm/bridge/dw_hdmi_qp.h                |  6 ++++++
+ 2 files changed, 21 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index d6338195a5b..b0a95ea7117 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -96,11 +96,11 @@ struct rockchip_hdmi_qp {
+ 	struct drm_connector *connector;
+ 	struct dw_hdmi_qp *hdmi;
+ 	struct phy *phy;
++	struct dw_hdmi_qp_link_cfg link_cfg;
+ 	struct gpio_desc *frl_enable_gpio;
+ 	struct delayed_work hpd_work;
+ 	int port_id;
+ 	const struct rockchip_hdmi_qp_ctrl_ops *ctrl_ops;
+-	unsigned long long tmds_char_rate;
+ };
+ 
+ struct rockchip_hdmi_qp_ctrl_ops {
+@@ -139,10 +139,11 @@ dw_hdmi_qp_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
+ {
+ 	struct rockchip_hdmi_qp *hdmi = to_rockchip_hdmi_qp(encoder);
+ 	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc_state);
++	struct dw_hdmi_qp_link_cfg *lcfg = &hdmi->link_cfg;
+ 	union phy_configure_opts phy_cfg = {};
+ 	int ret;
+ 
+-	if (hdmi->tmds_char_rate == conn_state->hdmi.tmds_char_rate &&
++	if (lcfg->tmds_char_rate == conn_state->hdmi.tmds_char_rate &&
+ 	    s->output_bpc == conn_state->hdmi.output_bpc)
+ 		return 0;
+ 
+@@ -151,7 +152,8 @@ dw_hdmi_qp_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
+ 
+ 	ret = phy_configure(hdmi->phy, &phy_cfg);
+ 	if (!ret) {
+-		hdmi->tmds_char_rate = conn_state->hdmi.tmds_char_rate;
++		hdmi->link_cfg.tmds_char_rate = conn_state->hdmi.tmds_char_rate;
++		hdmi->link_cfg.bpc = phy_cfg.hdmi.bpc;
+ 		s->output_mode = ROCKCHIP_OUT_MODE_AAAA;
+ 		s->output_type = DRM_MODE_CONNECTOR_HDMIA;
+ 		s->output_bpc = conn_state->hdmi.output_bpc;
+@@ -210,11 +212,20 @@ static void dw_hdmi_qp_rk3588_setup_hpd(struct dw_hdmi_qp *dw_hdmi, void *data)
+ 	regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
+ }
+ 
++static const struct dw_hdmi_qp_link_cfg *
++dw_hdmi_qp_rk3588_get_link_cfg(struct dw_hdmi_qp *dw_hdmi, void *data)
++{
++	struct rockchip_hdmi_qp *hdmi = (struct rockchip_hdmi_qp *)data;
++
++	return &hdmi->link_cfg;
++}
++
+ static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
+ 	.init		= dw_hdmi_qp_rk3588_phy_init,
+ 	.disable	= dw_hdmi_qp_rk3588_phy_disable,
+ 	.read_hpd	= dw_hdmi_qp_rk3588_read_hpd,
+ 	.setup_hpd	= dw_hdmi_qp_rk3588_setup_hpd,
++	.get_link_cfg	= dw_hdmi_qp_rk3588_get_link_cfg,
+ };
+ 
+ static enum drm_connector_status
+@@ -246,6 +257,7 @@ static const struct dw_hdmi_qp_phy_ops rk3576_hdmi_phy_ops = {
+ 	.disable	= dw_hdmi_qp_rk3588_phy_disable,
+ 	.read_hpd	= dw_hdmi_qp_rk3576_read_hpd,
+ 	.setup_hpd	= dw_hdmi_qp_rk3576_setup_hpd,
++	.get_link_cfg	= dw_hdmi_qp_rk3588_get_link_cfg,
+ };
+ 
+ static void dw_hdmi_qp_rk3588_hpd_work(struct work_struct *work)
+diff --git a/include/drm/bridge/dw_hdmi_qp.h b/include/drm/bridge/dw_hdmi_qp.h
+index 6ea9c561cfe..55532b7d045 100644
+--- a/include/drm/bridge/dw_hdmi_qp.h
++++ b/include/drm/bridge/dw_hdmi_qp.h
+@@ -12,11 +12,17 @@ struct drm_encoder;
+ struct dw_hdmi_qp;
+ struct platform_device;
+ 
++struct dw_hdmi_qp_link_cfg {
++	unsigned long long tmds_char_rate;
++	unsigned int bpc;
++};
++
+ struct dw_hdmi_qp_phy_ops {
+ 	int (*init)(struct dw_hdmi_qp *hdmi, void *data);
+ 	void (*disable)(struct dw_hdmi_qp *hdmi, void *data);
+ 	enum drm_connector_status (*read_hpd)(struct dw_hdmi_qp *hdmi, void *data);
+ 	void (*setup_hpd)(struct dw_hdmi_qp *hdmi, void *data);
++	const struct dw_hdmi_qp_link_cfg *(*get_link_cfg)(struct dw_hdmi_qp *hdmi, void *data);
+ };
+ 
+ struct dw_hdmi_qp_plat_data {
+-- 
+2.53.0
+

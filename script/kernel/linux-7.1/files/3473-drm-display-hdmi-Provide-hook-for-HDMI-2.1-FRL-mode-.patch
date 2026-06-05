@@ -1,0 +1,115 @@
+From a13c998e8fae85f09afc159f61120df7cc54ec2d Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 25 Mar 2026 01:34:26 +0200
+Subject: [PATCH 138/159] drm/display: hdmi: Provide hook for HDMI 2.1 FRL mode
+ validation
+
+HDMI 2.1 sinks that support Fixed Rate Link (FRL) can accept pixel
+clocks that exceed their maximum TMDS character rate.  The existing
+hdmi_clock_valid() helper unconditionally rejects any mode whose clock
+surpasses max_tmds_clock, making it impossible to validate modes that
+would be transported over FRL.
+
+Add the .frl_rate_valid() hook to struct drm_connector_hdmi_funcs,
+mirroring the existing .tmds_char_rate_valid() pattern.  The callback
+receives both the required data rate and the sink's maximum link rate
+(both in bps) and returns a drm_mode_status value.  Implementing the hook
+is mandatory for drivers that wish to expose FRL-capable modes.
+
+Extend hdmi_clock_valid() to fall through to an FRL validation path when
+the TMDS clock limit is exceeded:
+
+1. Verify the sink advertises FRL capability via max_frl_rate_per_lane
+   and max_lanes fields parsed from the HF-VSDB in the sink EDID.
+
+2. Require the driver to implement the new .frl_rate_valid() callback;
+   otherwise reject the mode, since FRL link management is
+   driver-specific.
+
+3. Compute the required FRL bandwidth using 16b/18b encoding and compare
+   it against the sink's maximum FRL link capacity.  Reject the mode if
+   the required bandwidth exceeds what the sink can handle.
+
+4. Delegate the final validation to the driver's .frl_rate_valid()
+   callback, which can apply hardware-specific constraints on the
+   achievable FRL lane/rate configuration.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../gpu/drm/display/drm_hdmi_state_helper.c   | 26 +++++++++++++++++--
+ include/drm/drm_connector.h                   | 22 ++++++++++++++++
+ 2 files changed, 46 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/display/drm_hdmi_state_helper.c b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+index 9f3b696acee..208180ccffd 100644
+--- a/drivers/gpu/drm/display/drm_hdmi_state_helper.c
++++ b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+@@ -555,8 +555,30 @@ hdmi_clock_valid(const struct drm_connector *connector,
+ 	const struct drm_connector_hdmi_funcs *funcs = connector->hdmi.funcs;
+ 	const struct drm_display_info *info = &connector->display_info;
+ 
+-	if (info->max_tmds_clock && clock > info->max_tmds_clock * 1000)
+-		return MODE_CLOCK_HIGH;
++	if (info->max_tmds_clock && clock > info->max_tmds_clock * 1000) {
++		unsigned long long req_frl_bw, max_frl_bw;
++
++		/* Check if FRL is supported by the sink */
++		if (!info->hdmi.max_frl_rate_per_lane || !info->hdmi.max_lanes)
++			return MODE_CLOCK_HIGH;
++
++		/* Mandate further (i.e. driver) FRL checks */
++		if (!funcs || !funcs->frl_rate_valid)
++			return MODE_CLOCK_HIGH;
++
++		/*
++		 * Check required FRL bandwidth assuming 16b/18b encoding:
++		 * bw (bps) = clock (Hz) * 3 (channels) * 8 (bit) * 18 / 16
++		 */
++		req_frl_bw = clock * 27;
++		max_frl_bw = info->hdmi.max_frl_rate_per_lane *
++			     info->hdmi.max_lanes * 1000000000ULL;
++
++		if (req_frl_bw > max_frl_bw)
++			return MODE_CLOCK_HIGH;
++
++		return funcs->frl_rate_valid(connector, mode, req_frl_bw, max_frl_bw);
++	}
+ 
+ 	if (funcs && funcs->tmds_char_rate_valid) {
+ 		enum drm_mode_status status;
+diff --git a/include/drm/drm_connector.h b/include/drm/drm_connector.h
+index f83f28cae20..9605896287f 100644
+--- a/include/drm/drm_connector.h
++++ b/include/drm/drm_connector.h
+@@ -1343,6 +1343,28 @@ struct drm_connector_hdmi_funcs {
+ 				const struct drm_display_mode *mode,
+ 				unsigned long long tmds_rate);
+ 
++	/**
++	 * @frl_rate_valid:
++	 *
++	 * This callback is invoked at atomic_check time to figure out
++	 * whether a particular FRL data rate (given in bps) is supported
++	 * by the driver by using a FRL link rate that doesn't exceed the
++	 * maximum advertised by the sink (also expressed in bps).
++	 *
++	 * The @frl_rate_valid callback is only mandatory when drivers
++	 * need to advertise FRL support.
++	 *
++	 * Returns:
++	 *
++	 * Either &drm_mode_status.MODE_OK or one of the failure reasons
++	 * in &enum drm_mode_status.
++	 */
++	enum drm_mode_status
++	(*frl_rate_valid)(const struct drm_connector *connector,
++			  const struct drm_display_mode *mode,
++			  unsigned long long frl_data_rate,
++			  unsigned long long frl_max_link_rate);
++
+ 	/**
+ 	 * @read_edid:
+ 	 *
+-- 
+2.53.0
+

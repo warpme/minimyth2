@@ -1,0 +1,119 @@
+From 0825b88dc129ad6206ff330f4bc74d00b49fce28 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 7 Apr 2026 00:33:45 +0300
+Subject: [PATCH 147/159] drm/rockchip: dw_hdmi_qp: Wire up TxFFE level
+ adjustment
+
+Provide the .set_ffe_level() PHY callback for the Rockchip platform glue
+driver, enabling the bridge's FLT state machine to request FFE level
+adjustments from the PHY during FRL link training.
+
+The callback delegates to phy_configure() with the requested FFE level,
+using a dedicated flag (set_ffe_level) to distinguish it from a regular
+rate reconfiguration.  A max_ffe_level field is added to the per-SoC
+config table (defaulting to level 3 in auto mode) and propagated into
+link_cfg at bind time, so the bridge knows the upper bound to advertise
+to the sink.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../gpu/drm/rockchip/dw_hdmi_qp-rockchip.c    | 41 +++++++++++++++++++
+ 1 file changed, 41 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index a5f135ceee8..863e9238f23 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -306,6 +306,26 @@ static int dw_hdmi_qp_rk3588_set_frl_rate(struct dw_hdmi_qp *dw_hdmi, void *data
+ 	return ret;
+ }
+ 
++static int dw_hdmi_qp_rk3588_set_ffe_level(struct dw_hdmi_qp *dw_hdmi, void *data,
++					   u8 ffe_level)
++{
++	struct rockchip_hdmi_qp *hdmi = (struct rockchip_hdmi_qp *)data;
++	union phy_configure_opts phy_cfg = {};
++	int ret;
++
++	if (!hdmi->link_cfg.frl_enabled)
++		return -EINVAL;
++
++	phy_cfg.hdmi.frl.ffe_level = ffe_level;
++	phy_cfg.hdmi.frl.set_ffe_level = true;
++
++	ret = phy_configure(hdmi->phy, &phy_cfg);
++	if (ret)
++		dev_err(hdmi->dev, "Failed to set PHY FFE level: %d\n", ret);
++
++	return ret;
++}
++
+ static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
+ 	.init		= dw_hdmi_qp_rk3588_phy_init,
+ 	.disable	= dw_hdmi_qp_rk3588_phy_disable,
+@@ -313,6 +333,7 @@ static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
+ 	.setup_hpd	= dw_hdmi_qp_rk3588_setup_hpd,
+ 	.get_link_cfg	= dw_hdmi_qp_rk3588_get_link_cfg,
+ 	.set_frl_rate	= dw_hdmi_qp_rk3588_set_frl_rate,
++	.set_ffe_level	= dw_hdmi_qp_rk3588_set_ffe_level,
+ };
+ 
+ static enum drm_connector_status
+@@ -346,6 +367,7 @@ static const struct dw_hdmi_qp_phy_ops rk3576_hdmi_phy_ops = {
+ 	.setup_hpd	= dw_hdmi_qp_rk3576_setup_hpd,
+ 	.get_link_cfg	= dw_hdmi_qp_rk3588_get_link_cfg,
+ 	.set_frl_rate	= dw_hdmi_qp_rk3588_set_frl_rate,
++	.set_ffe_level	= dw_hdmi_qp_rk3588_set_ffe_level,
+ };
+ 
+ static void dw_hdmi_qp_rk3588_hpd_work(struct work_struct *work)
+@@ -530,6 +552,14 @@ static const struct rockchip_hdmi_qp_ctrl_ops rk3588_hdmi_ctrl_ops = {
+ 	.hardirq_callback	= dw_hdmi_qp_rk3588_hardirq,
+ };
+ 
++enum rockchip_hdmi_qp_ffe_cfg {
++	FFE_LEVEL_AUTO = 0,
++	FFE_LEVEL_0,
++	FFE_LEVEL_1,
++	FFE_LEVEL_2,
++	FFE_LEVEL_3,
++};
++
+ struct rockchip_hdmi_qp_cfg {
+ 	unsigned int num_ports;
+ 	unsigned int port_ids[MAX_HDMI_PORT_NUM];
+@@ -539,6 +569,7 @@ struct rockchip_hdmi_qp_cfg {
+ 	u8 max_frl_lanes;
+ 	u8 min_frl_rate_per_lane;
+ 	u8 min_frl_lanes;
++	enum rockchip_hdmi_qp_ffe_cfg max_ffe;
+ };
+ 
+ static const struct rockchip_hdmi_qp_cfg rk3576_hdmi_cfg = {
+@@ -575,6 +606,14 @@ static const struct of_device_id dw_hdmi_qp_rockchip_dt_ids[] = {
+ };
+ MODULE_DEVICE_TABLE(of, dw_hdmi_qp_rockchip_dt_ids);
+ 
++static u8 dw_hdmi_qp_rockchip_ffe_cfg_to_level(enum rockchip_hdmi_qp_ffe_cfg ffe)
++{
++	if (ffe == FFE_LEVEL_AUTO)
++		ffe = FFE_LEVEL_3;
++
++	return ffe - 1;
++}
++
+ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 				    void *data)
+ {
+@@ -694,6 +733,8 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 	    lcfg->min_frl_lanes < HDMI21_MIN_FRL_LANE_NUM)
+ 		return dev_err_probe(hdmi->dev, -EINVAL, "Invalid FRL config\n");
+ 
++	lcfg->max_ffe_level = dw_hdmi_qp_rockchip_ffe_cfg_to_level(cfg->max_ffe);
++
+ 	cfg->ctrl_ops->io_init(hdmi);
+ 
+ 	INIT_DELAYED_WORK(&hdmi->hpd_work, dw_hdmi_qp_rk3588_hpd_work);
+-- 
+2.53.0
+

@@ -1,0 +1,59 @@
+From 2e4358080732302f4539687577e18e28ecd8e9fa Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Mon, 20 Apr 2026 23:55:39 +0300
+Subject: [PATCH 133/159] drm/rockchip: dw_hdmi_qp: Register HPD IRQ after
+ connector setup
+
+Move devm_request_threaded_irq() to the end of bind(), after
+drm_bridge_connector_init() and drm_connector_attach_encoder(), to
+ensure all DRM resources are ready before HPD interrupts can fire.
+
+While at it, add error handling for drm_connector_attach_encoder().
+
+Tested-by: Diederik de Haas <diederik@cknow-tech.com>
+Tested-by: Maud Spierings <maud_spierings@hotmail.com>
+Reviewed-by: Heiko Stuebner <heiko@sntech.de>
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index 618d2aaa5c7..fbbe26f8730 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -577,14 +577,6 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 	if (irq < 0)
+ 		return irq;
+ 
+-	ret = devm_request_threaded_irq(dev, irq,
+-					cfg->ctrl_ops->hardirq_callback,
+-					cfg->ctrl_ops->irq_callback,
+-					IRQF_SHARED, "dw-hdmi-qp-hpd",
+-					hdmi);
+-	if (ret)
+-		return ret;
+-
+ 	drm_encoder_helper_add(encoder, &dw_hdmi_qp_rockchip_encoder_helper_funcs);
+ 	ret = drmm_encoder_init(drm, encoder, NULL, DRM_MODE_ENCODER_TMDS, NULL);
+ 	if (ret)
+@@ -602,7 +594,15 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 		return dev_err_probe(dev, PTR_ERR(connector),
+ 				     "Failed to init bridge connector\n");
+ 
+-	return drm_connector_attach_encoder(connector, encoder);
++	ret = drm_connector_attach_encoder(connector, encoder);
++	if (ret)
++		return dev_err_probe(dev, ret, "Failed to attach connector\n");
++
++	return devm_request_threaded_irq(dev, irq,
++					 cfg->ctrl_ops->hardirq_callback,
++					 cfg->ctrl_ops->irq_callback,
++					 IRQF_SHARED, "dw-hdmi-qp-hpd",
++					 hdmi);
+ }
+ 
+ static void dw_hdmi_qp_rockchip_unbind(struct device *dev,
+-- 
+2.53.0
+

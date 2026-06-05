@@ -1,0 +1,61 @@
+From 85477f126d03406387287e3f6500b9fbc2d40ad4 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 18 Mar 2026 01:17:57 +0200
+Subject: [PATCH 121/159] phy: hdmi: Add optional FRL TxFFE config options
+
+During HDMI 2.1 FRL link training, the source and sink can negotiate a
+Transmitter Feed-Forward Equalization (TxFFE) level to improve the
+signal quality.  Starting from zero, the source may increment the TxFFE
+level up to a maximum agreed during the LTS3 stage if the sink keeps
+reporting FLT failures.  TxFFE adjustment is optional and only attempted
+when both the source and the connected sink support it.
+
+Since the existing HDMI PHY configuration API covers the FRL rate/lane
+selection only, provide the following fields to the frl sub-struct of
+phy_configure_opts_hdmi:
+
+* ffe_level: the TxFFE level to apply, only meaningful when
+  set_ffe_level is set.
+
+* set_ffe_level: a 1-bit flag that changes the semantics of the
+  phy_configure() call, i.e. when set, the PHY driver must apply the new
+  ffe_level and ignore the other frl related fields.
+
+The flag-based approach reflects an important invariant in the link
+training process: whenever the FRL rate or lane count changes, the TxFFE
+level must be reset to zero.  A separate phy_configure() call with
+set_ffe_level can only follow after the rate has been established,
+making the two operations deliberately distinct.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ include/linux/phy/phy-hdmi.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/include/linux/phy/phy-hdmi.h b/include/linux/phy/phy-hdmi.h
+index d4cf4430ee8..1d4b6247507 100644
+--- a/include/linux/phy/phy-hdmi.h
++++ b/include/linux/phy/phy-hdmi.h
+@@ -19,6 +19,10 @@ enum phy_hdmi_mode {
+  * @tmds_char_rate: HDMI TMDS Character Rate in Hertz.
+  * @frl.rate_per_lane: HDMI FRL Rate per Lane in Gbps.
+  * @frl.lanes: HDMI FRL lanes count.
++ * @frl.ffe_level: Transmitter Feed Forward Equalizer Level.
++ *	Optional, only meaningful when set_ffe_level flag is on.
++ * @frl.set_ffe_level: Flag indicating whether or not to reconfigure ffe_level.
++ *	All the other struct fields must be ignored when this is used.
+  *
+  * This structure is used to represent the configuration state of a HDMI phy.
+  */
+@@ -29,6 +33,8 @@ struct phy_configure_opts_hdmi {
+ 		struct {
+ 			u8 rate_per_lane;
+ 			u8 lanes;
++			u8 ffe_level;
++			u8 set_ffe_level : 1;
+ 		} frl;
+ 	};
+ };
+-- 
+2.53.0
+

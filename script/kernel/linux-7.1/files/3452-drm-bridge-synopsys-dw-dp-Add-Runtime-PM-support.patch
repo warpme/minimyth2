@@ -1,0 +1,96 @@
+From 9d19bb75b57ff40e68ce6cb1a7e1a819bc0d72ec Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 19 Mar 2026 16:40:50 +0100
+Subject: [PATCH 108/159] drm/bridge: synopsys: dw-dp: Add Runtime PM support
+
+Add runtime PM stubs to the Synopsys DesignWare DisplayPort bridge
+driver. Support is not enabled automatically and must be hooked up
+in the vendor specific glue code.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 27 +++++++++++++++++++++++++
+ include/drm/bridge/dw_dp.h              |  3 +++
+ 2 files changed, 30 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 7ade88f7446..b0ab2b3d478 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -1465,6 +1465,8 @@ static ssize_t dw_dp_aux_transfer(struct drm_dp_aux *aux,
+ 	if (WARN_ON(msg->size > 16))
+ 		return -E2BIG;
+ 
++	ACQUIRE(pm_runtime_active_auto, pm)(dp->dev);
++
+ 	switch (msg->request & ~DP_AUX_I2C_MOT) {
+ 	case DP_AUX_NATIVE_WRITE:
+ 	case DP_AUX_I2C_WRITE:
+@@ -1655,6 +1657,8 @@ static void dw_dp_bridge_atomic_enable(struct drm_bridge *bridge,
+ 	struct drm_connector_state *conn_state;
+ 	int ret;
+ 
++	pm_runtime_get_sync(dp->dev);
++
+ 	connector = drm_atomic_get_new_connector_for_encoder(state, bridge->encoder);
+ 	if (!connector) {
+ 		dev_err(dp->dev, "failed to get connector\n");
+@@ -1709,6 +1713,7 @@ static void dw_dp_bridge_atomic_disable(struct drm_bridge *bridge,
+ 	dw_dp_link_disable(dp);
+ 	bitmap_zero(dp->sdp_reg_bank, SDP_REG_BANK_SIZE);
+ 	dw_dp_reset(dp);
++	pm_runtime_put_autosuspend(dp->dev);
+ }
+ 
+ static bool dw_dp_hpd_detect_link(struct dw_dp *dp, struct drm_connector *connector)
+@@ -1729,6 +1734,8 @@ static enum drm_connector_status dw_dp_bridge_detect(struct drm_bridge *bridge,
+ {
+ 	struct dw_dp *dp = bridge_to_dp(bridge);
+ 
++	ACQUIRE(pm_runtime_active_auto, pm)(dp->dev);
++
+ 	if (!dw_dp_hpd_detect(dp))
+ 		return connector_status_disconnected;
+ 
+@@ -2153,6 +2160,26 @@ void dw_dp_unbind(struct dw_dp *dp)
+ }
+ EXPORT_SYMBOL_GPL(dw_dp_unbind);
+ 
++int dw_dp_runtime_suspend(struct dw_dp *dp)
++{
++	clk_disable_unprepare(dp->aux_clk);
++	clk_disable_unprepare(dp->apb_clk);
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(dw_dp_runtime_suspend);
++
++int dw_dp_runtime_resume(struct dw_dp *dp)
++{
++	clk_prepare_enable(dp->apb_clk);
++	clk_prepare_enable(dp->aux_clk);
++
++	dw_dp_init_hw(dp);
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(dw_dp_runtime_resume);
++
+ MODULE_AUTHOR("Andy Yan <andyshrk@163.com>");
+ MODULE_DESCRIPTION("DW DP Core Library");
+ MODULE_LICENSE("GPL");
+diff --git a/include/drm/bridge/dw_dp.h b/include/drm/bridge/dw_dp.h
+index 2127afa26b2..3037e029086 100644
+--- a/include/drm/bridge/dw_dp.h
++++ b/include/drm/bridge/dw_dp.h
+@@ -28,4 +28,7 @@ struct dw_dp_plat_data {
+ struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
+ 			 const struct dw_dp_plat_data *plat_data);
+ void dw_dp_unbind(struct dw_dp *dp);
++
++int dw_dp_runtime_suspend(struct dw_dp *dp);
++int dw_dp_runtime_resume(struct dw_dp *dp);
+ #endif /* __DW_DP__ */
+-- 
+2.53.0
+

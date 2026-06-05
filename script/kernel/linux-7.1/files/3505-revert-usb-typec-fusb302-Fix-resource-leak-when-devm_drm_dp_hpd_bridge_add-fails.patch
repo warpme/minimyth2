@@ -1,0 +1,65 @@
+
+this reverts https://github.com/torvalds/linux/commit/ca927fc45e4906bdab42426da044fba4d3584f34
+
+usb: typec: fusb302: Fix resource leak when devm_drm_dp_hpd_bridge_add() fails
+
+If devm_drm_dp_hpd_bridge_add() fails during fusb302_probe(), the original
+code returned directly without cleaning up the resources.
+
+Move bridge registration before the IRQ is requested and route bridge
+registration failures through the existing TCPM unregister and fwnode
+cleanup path.
+
+Fixes: 5d79c52 ("usb: typec: fusb302: add DRM DP HPD bridge support")
+Signed-off-by: Felix Gu <ustc.gu@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.1-rc6/drivers/usb/typec/tcpm/fusb302.c linux-7.1-rc6/drivers/usb/typec/tcpm/fusb302.c
+--- linux-7.1-rc6/drivers/usb/typec/tcpm/fusb302.c	2026-06-01 00:14:24.000000000 +0200
++++ linux-7.1-rc6/drivers/usb/typec/tcpm/fusb302.c	2026-06-03 18:38:15.868577558 +0200
+@@ -1751,22 +1751,19 @@
+ 
+ 	bridge_dev = devm_drm_dp_hpd_bridge_alloc(chip->dev, to_of_node(chip->tcpc_dev.fwnode));
+ 	if (IS_ERR(bridge_dev)) {
+-		ret = dev_err_probe(chip->dev, PTR_ERR(bridge_dev),
+-				    "failed to alloc bridge\n");
+-		goto fwnode_put;
++		ret = PTR_ERR(bridge_dev);
++		dev_err_probe(chip->dev, ret, "failed to alloc bridge\n");
++		goto destroy_workqueue;
+ 	}
+ 
+ 	chip->tcpm_port = tcpm_register_port(&client->dev, &chip->tcpc_dev);
+ 	if (IS_ERR(chip->tcpm_port)) {
++		fwnode_handle_put(chip->tcpc_dev.fwnode);
+ 		ret = dev_err_probe(dev, PTR_ERR(chip->tcpm_port),
+ 				    "cannot register tcpm port\n");
+-		goto fwnode_put;
++		goto destroy_workqueue;
+ 	}
+ 
+-	ret = devm_drm_dp_hpd_bridge_add(chip->dev, bridge_dev);
+-	if (ret)
+-		goto tcpm_unregister_port;
+-
+ 	ret = request_threaded_irq(chip->gpio_int_n_irq, NULL, fusb302_irq_intn,
+ 				   IRQF_ONESHOT | IRQF_TRIGGER_LOW,
+ 				   "fsc_interrupt_int_n", chip);
+@@ -1777,11 +1774,14 @@
+ 	enable_irq_wake(chip->gpio_int_n_irq);
+ 	i2c_set_clientdata(client, chip);
+ 
+-	return 0;
++	ret = devm_drm_dp_hpd_bridge_add(chip->dev, bridge_dev);
++	if (ret)
++		return ret;
++
++	return ret;
+ 
+ tcpm_unregister_port:
+ 	tcpm_unregister_port(chip->tcpm_port);
+-fwnode_put:
+ 	fwnode_handle_put(chip->tcpc_dev.fwnode);
+ destroy_workqueue:
+ 	fusb302_debugfs_exit(chip);

@@ -1,0 +1,123 @@
+From ec413ff687f5987f17cafd74f04a501f85ba8c31 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 24 Mar 2026 18:16:31 +0100
+Subject: [PATCH 089/159] usb: typec: tcpm: log when VDM AMS state machine is
+ cancelled
+
+Since commit 0bc3ee92880d ("usb: typec: tcpm: Properly interrupt VDM
+AMS") the VDM AMS state machine is cancelled when a non-VDM message
+arrives. Apparently Dell U2725QE displays potentially interrupt the
+discover identity AMS to try a power role swap:
+
+[    4.341899] AMS POWER_NEGOTIATION finished
+[    4.341906] cc:=4
+[    4.353165] AMS DISCOVER_IDENTITY start
+[    4.353187] PD TX, header: 0x176f
+[    4.365820] PD TX complete, status: 0
+[    4.365885] PD RX, header: 0x24a [1]
+[    4.365899] AMS DISCOVER_IDENTITY finished
+[    4.365903] cc:=4
+[    4.376612] PD TX, header: 0x964
+[    4.481320] PD RX, header: 0x444f [1]
+[    4.481353] PD RX, header: 0x64a [1]
+[    4.481374] PD TX, header: 0x964
+[    4.492423] PD TX complete, status: 0
+
+At this point the log stops without the discover identity being
+completed successfully.
+
+Apparently what happens is:
+1. TCPM negotiated power as PD source
+2. TCPM continues with identity discovery
+3. Display asks for a power swap
+4. TCPM stops state machine for identity discovery
+5. TCPM rejects the power swap
+6. Display sends identity discovery response
+7. Display sends the power swap request once more
+
+Note, that this does not always happen. There is a race condition and
+sometimes the power swap request arrives before TCPM switches into the
+DISCOVER_IDENTITY phase, which avoids the AMS interruption and then
+things work as expected.
+
+I tried adding logic to restart the discover identity state machine in
+this case, which should be fine according to the specification as far
+as I can tell. Unfortunately it does not help with the Dell U2725QE:
+
+Once it runs into the above issue, the display seems to have messed up
+its internal message buffer resulting in the display sending answers to
+the previous message instead of the current one. Obviously no sensible
+PD communication is sensible at this point.
+
+Improve the situation a bit by at least giving a decent log entry.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/typec/tcpm/tcpm.c | 30 +++++++++++++++---------------
+ 1 file changed, 15 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/usb/typec/tcpm/tcpm.c b/drivers/usb/typec/tcpm/tcpm.c
+index a33cfb35bf3..d1577d46f7b 100644
+--- a/drivers/usb/typec/tcpm/tcpm.c
++++ b/drivers/usb/typec/tcpm/tcpm.c
+@@ -1668,6 +1668,15 @@ static bool tcpm_ams_interruptible(struct tcpm_port *port)
+ 	return true;
+ }
+ 
++static void tcpm_vdm_handle_ams_interruption(struct tcpm_port *port)
++{
++	tcpm_log(port, "VDM AMS state machine got interrupted");
++
++	port->vdm_state = VDM_STATE_ERR_BUSY;
++	tcpm_ams_finish(port);
++	mod_vdm_delayed_work(port, 0);
++}
++
+ static int tcpm_ams_start(struct tcpm_port *port, enum tcpm_ams ams)
+ {
+ 	int ret = 0;
+@@ -3360,11 +3369,8 @@ static void tcpm_pd_data_request(struct tcpm_port *port,
+ 	bool frs_enable;
+ 	int ret;
+ 
+-	if (tcpm_vdm_ams(port) && type != PD_DATA_VENDOR_DEF) {
+-		port->vdm_state = VDM_STATE_ERR_BUSY;
+-		tcpm_ams_finish(port);
+-		mod_vdm_delayed_work(port, 0);
+-	}
++	if (tcpm_vdm_ams(port) && type != PD_DATA_VENDOR_DEF)
++		tcpm_vdm_handle_ams_interruption(port);
+ 
+ 	switch (type) {
+ 	case PD_DATA_SOURCE_CAP:
+@@ -3561,11 +3567,8 @@ static void tcpm_pd_ctrl_request(struct tcpm_port *port,
+ 	 * Stop VDM state machine if interrupted by other Messages while NOT_SUPP is allowed in
+ 	 * VDM AMS if waiting for VDM responses and will be handled later.
+ 	 */
+-	if (tcpm_vdm_ams(port) && type != PD_CTRL_NOT_SUPP && type != PD_CTRL_GOOD_CRC) {
+-		port->vdm_state = VDM_STATE_ERR_BUSY;
+-		tcpm_ams_finish(port);
+-		mod_vdm_delayed_work(port, 0);
+-	}
++	if (tcpm_vdm_ams(port) && type != PD_CTRL_NOT_SUPP && type != PD_CTRL_GOOD_CRC)
++		tcpm_vdm_handle_ams_interruption(port);
+ 
+ 	switch (type) {
+ 	case PD_CTRL_GOOD_CRC:
+@@ -3883,11 +3886,8 @@ static void tcpm_pd_ext_msg_request(struct tcpm_port *port,
+ 	unsigned int data_size = pd_ext_header_data_size_le(msg->ext_msg.header);
+ 
+ 	/* stopping VDM state machine if interrupted by other Messages */
+-	if (tcpm_vdm_ams(port)) {
+-		port->vdm_state = VDM_STATE_ERR_BUSY;
+-		tcpm_ams_finish(port);
+-		mod_vdm_delayed_work(port, 0);
+-	}
++	if (tcpm_vdm_ams(port))
++		tcpm_vdm_handle_ams_interruption(port);
+ 
+ 	if (!(le16_to_cpu(msg->ext_msg.header) & PD_EXT_HDR_CHUNKED)) {
+ 		tcpm_pd_handle_msg(port, PD_MSG_CTRL_NOT_SUPP, NONE_AMS);
+-- 
+2.53.0
+

@@ -1,0 +1,324 @@
+From 5833a7a4090fe0b3b1d0763ee13a9fdb30b5fbdd Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 7 Apr 2026 00:31:24 +0300
+Subject: [PATCH 146/159] drm/rockchip: dw_hdmi_qp: Wire up FRL operating mode
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Enable HDMI 2.1 FRL mode in the Rockchip platform glue driver for the
+DesignWare HDMI QP controller:
+
+- Switch PHY mode selection to use phy_set_mode_ext() with
+  PHY_HDMI_MODE_FRL or PHY_HDMI_MODE_TMDS depending on whether the
+  required data rate exceeds HDMI 2.0's TMDS ceiling or the sink's own
+  max TMDS clock
+
+- Negotiate the FRL rate/lane count by capping the sink's advertised
+  capabilities against the hardware limits, and pass the result to the
+  PHY via phy_configure()
+
+- Drive the frl_enable GPIO and set the HDMI 2.1 mode bit in the
+  relevant GRF SoC control registers to reflect the active link mode
+
+- Implement .set_frl_rate() to allow the bridge's FLT state machine to
+  reconfigure the PHY to a lower FRL rate during training fallback
+
+- Populate and validate the FRL rate/lane bounds in link_cfg at bind
+  time, with per-SoC overrides in the config table (RK3588 is capped at
+  10 Gbps/lane × 4 lanes due to a known flicker issue at higher rates)
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../gpu/drm/rockchip/dw_hdmi_qp-rockchip.c    | 150 ++++++++++++++++--
+ 1 file changed, 136 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index b0a95ea7117..a5f135ceee8 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -1,7 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0-or-later
+ /*
+  * Copyright (c) 2021-2022 Rockchip Electronics Co., Ltd.
+- * Copyright (c) 2024 Collabora Ltd.
++ * Copyright (c) 2024-2026 Collabora Ltd.
+  *
+  * Author: Algea Cao <algea.cao@rock-chips.com>
+  * Author: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+@@ -63,13 +63,18 @@
+ #define RK3588_HDMI0_HPD_INT_CLR	BIT(12)
+ #define RK3588_HDMI1_HPD_INT_MSK	BIT(15)
+ #define RK3588_HDMI1_HPD_INT_CLR	BIT(14)
++
+ #define RK3588_GRF_SOC_CON7		0x031c
+ #define RK3588_HPD_HDMI0_IO_EN_MASK	BIT(12)
+ #define RK3588_HPD_HDMI1_IO_EN_MASK	BIT(13)
+ #define RK3588_GRF_SOC_STATUS1		0x0384
+ #define RK3588_HDMI0_LEVEL_INT		BIT(16)
+ #define RK3588_HDMI1_LEVEL_INT		BIT(24)
++
+ #define RK3588_GRF_VO1_CON3		0x000c
++#define RK3588_GRF_VO1_CON4		0x0010
++#define RK3588_HDMI21_MASK		BIT(0)
++
+ #define RK3588_GRF_VO1_CON6		0x0018
+ #define RK3588_COLOR_DEPTH_MASK		GENMASK(7, 4)
+ #define RK3588_8BPC			0x0
+@@ -81,12 +86,19 @@
+ #define RK3588_SDAIN_MASK		BIT(10)
+ #define RK3588_MODE_MASK		BIT(11)
+ #define RK3588_I2S_SEL_MASK		BIT(13)
++
++#define RK3588_GRF_VO1_CON7		0x001c
+ #define RK3588_GRF_VO1_CON9		0x0024
+ #define RK3588_HDMI0_GRANT_SEL		BIT(10)
+ #define RK3588_HDMI1_GRANT_SEL		BIT(12)
+ 
+ #define HOTPLUG_DEBOUNCE_MS		150
+ #define MAX_HDMI_PORT_NUM		2
++#define HDMI20_MAX_TMDS_RATE		600000000
++#define HDMI21_MAX_FRL_LANE_RATE	12
++#define HDMI21_MAX_FRL_LANE_NUM		4
++#define HDMI21_MIN_FRL_LANE_RATE	3
++#define HDMI21_MIN_FRL_LANE_NUM		3
+ 
+ struct rockchip_hdmi_qp {
+ 	struct device *dev;
+@@ -120,16 +132,24 @@ static struct rockchip_hdmi_qp *to_rockchip_hdmi_qp(struct drm_encoder *encoder)
+ static void dw_hdmi_qp_rockchip_encoder_enable(struct drm_encoder *encoder)
+ {
+ 	struct rockchip_hdmi_qp *hdmi = to_rockchip_hdmi_qp(encoder);
++	const struct dw_hdmi_qp_link_cfg *lcfg = &hdmi->link_cfg;
+ 	struct drm_crtc *crtc = encoder->crtc;
++	struct rockchip_crtc_state *rks;
+ 
+-	/* Unconditionally switch to TMDS as FRL is not yet supported */
+-	gpiod_set_value_cansleep(hdmi->frl_enable_gpio, 0);
++	gpiod_set_value_cansleep(hdmi->frl_enable_gpio, lcfg->frl_enabled);
+ 
+ 	if (!crtc || !crtc->state)
+ 		return;
+ 
++	rks = to_rockchip_crtc_state(crtc->state);
++
+ 	if (hdmi->ctrl_ops->enc_init)
+-		hdmi->ctrl_ops->enc_init(hdmi, to_rockchip_crtc_state(crtc->state));
++		hdmi->ctrl_ops->enc_init(hdmi, rks);
++
++	dev_dbg(hdmi->dev, "%s port=%d tmds=%llu frl=%ux%u bpc=%u/%u\n",
++		__func__, hdmi->port_id, lcfg->tmds_char_rate,
++		lcfg->frl_rate_per_lane, lcfg->frl_lanes,
++		rks->output_bpc, lcfg->bpc);
+ }
+ 
+ static int
+@@ -137,31 +157,72 @@ dw_hdmi_qp_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
+ 					 struct drm_crtc_state *crtc_state,
+ 					 struct drm_connector_state *conn_state)
+ {
+-	struct rockchip_hdmi_qp *hdmi = to_rockchip_hdmi_qp(encoder);
++	const struct drm_display_info *info = &conn_state->connector->display_info;
+ 	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc_state);
++	struct rockchip_hdmi_qp *hdmi = to_rockchip_hdmi_qp(encoder);
+ 	struct dw_hdmi_qp_link_cfg *lcfg = &hdmi->link_cfg;
+ 	union phy_configure_opts phy_cfg = {};
++	enum phy_hdmi_mode mode;
+ 	int ret;
+ 
+ 	if (lcfg->tmds_char_rate == conn_state->hdmi.tmds_char_rate &&
+ 	    s->output_bpc == conn_state->hdmi.output_bpc)
+ 		return 0;
+ 
+-	phy_cfg.hdmi.tmds_char_rate = conn_state->hdmi.tmds_char_rate;
+ 	phy_cfg.hdmi.bpc = conn_state->hdmi.output_bpc;
+ 
+-	ret = phy_configure(hdmi->phy, &phy_cfg);
+-	if (!ret) {
+-		hdmi->link_cfg.tmds_char_rate = conn_state->hdmi.tmds_char_rate;
+-		hdmi->link_cfg.bpc = phy_cfg.hdmi.bpc;
+-		s->output_mode = ROCKCHIP_OUT_MODE_AAAA;
+-		s->output_type = DRM_MODE_CONNECTOR_HDMIA;
+-		s->output_bpc = conn_state->hdmi.output_bpc;
++	if (conn_state->hdmi.tmds_char_rate > HDMI20_MAX_TMDS_RATE ||
++	    (info->max_tmds_clock &&
++	     conn_state->hdmi.tmds_char_rate > info->max_tmds_clock * 1000)) {
++		mode = PHY_HDMI_MODE_FRL;
++
++		if (info->hdmi.max_frl_rate_per_lane > lcfg->max_frl_rate_per_lane)
++			phy_cfg.hdmi.frl.rate_per_lane = lcfg->max_frl_rate_per_lane;
++		else
++			phy_cfg.hdmi.frl.rate_per_lane = info->hdmi.max_frl_rate_per_lane;
++
++		if (info->hdmi.max_lanes > lcfg->max_frl_lanes)
++			phy_cfg.hdmi.frl.lanes = lcfg->max_frl_lanes;
++		else
++			phy_cfg.hdmi.frl.lanes = info->hdmi.max_lanes;
+ 	} else {
++		mode = PHY_HDMI_MODE_TMDS;
++
++		phy_cfg.hdmi.tmds_char_rate = conn_state->hdmi.tmds_char_rate;
++	}
++
++	ret = phy_set_mode_ext(hdmi->phy, PHY_MODE_HDMI, mode);
++	if (ret) {
++		dev_err(hdmi->dev, "Failed to switch phy mode: %d\n", ret);
++		return ret;
++	}
++
++	ret = phy_configure(hdmi->phy, &phy_cfg);
++	if (ret) {
+ 		dev_err(hdmi->dev, "Failed to configure phy: %d\n", ret);
++		return ret;
+ 	}
+ 
+-	return ret;
++	lcfg->tmds_char_rate = conn_state->hdmi.tmds_char_rate;
++
++	if (mode == PHY_HDMI_MODE_FRL) {
++		lcfg->frl_enabled = true;
++		lcfg->frl_rate_per_lane = phy_cfg.hdmi.frl.rate_per_lane;
++		lcfg->frl_lanes = phy_cfg.hdmi.frl.lanes;
++	} else {
++		lcfg->frl_enabled = false;
++		lcfg->frl_rate_per_lane = 0;
++		lcfg->frl_lanes = 0;
++	}
++
++	lcfg->bpc = phy_cfg.hdmi.bpc;
++
++	s->output_mode = ROCKCHIP_OUT_MODE_AAAA;
++	s->output_type = DRM_MODE_CONNECTOR_HDMIA;
++	s->output_bpc = conn_state->hdmi.output_bpc;
++	s->frl_enabled = lcfg->frl_enabled;
++
++	return 0;
+ }
+ 
+ static const struct
+@@ -220,12 +281,38 @@ dw_hdmi_qp_rk3588_get_link_cfg(struct dw_hdmi_qp *dw_hdmi, void *data)
+ 	return &hdmi->link_cfg;
+ }
+ 
++static int dw_hdmi_qp_rk3588_set_frl_rate(struct dw_hdmi_qp *dw_hdmi, void *data,
++					  u8 rate_per_lane, u8 lanes)
++{
++	struct rockchip_hdmi_qp *hdmi = (struct rockchip_hdmi_qp *)data;
++	union phy_configure_opts phy_cfg = {};
++	int ret;
++
++	if (!hdmi->link_cfg.frl_enabled || !rate_per_lane || !lanes)
++		return -EINVAL;
++
++	phy_cfg.hdmi.frl.rate_per_lane = rate_per_lane;
++	phy_cfg.hdmi.frl.lanes = lanes;
++	phy_cfg.hdmi.bpc = hdmi->link_cfg.bpc;
++
++	ret = phy_configure(hdmi->phy, &phy_cfg);
++	if (ret) {
++		dev_err(hdmi->dev, "Failed to set PHY FRL rate: %d\n", ret);
++	} else {
++		hdmi->link_cfg.frl_rate_per_lane = rate_per_lane;
++		hdmi->link_cfg.frl_lanes = lanes;
++	}
++
++	return ret;
++}
++
+ static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
+ 	.init		= dw_hdmi_qp_rk3588_phy_init,
+ 	.disable	= dw_hdmi_qp_rk3588_phy_disable,
+ 	.read_hpd	= dw_hdmi_qp_rk3588_read_hpd,
+ 	.setup_hpd	= dw_hdmi_qp_rk3588_setup_hpd,
+ 	.get_link_cfg	= dw_hdmi_qp_rk3588_get_link_cfg,
++	.set_frl_rate	= dw_hdmi_qp_rk3588_set_frl_rate,
+ };
+ 
+ static enum drm_connector_status
+@@ -258,6 +345,7 @@ static const struct dw_hdmi_qp_phy_ops rk3576_hdmi_phy_ops = {
+ 	.read_hpd	= dw_hdmi_qp_rk3576_read_hpd,
+ 	.setup_hpd	= dw_hdmi_qp_rk3576_setup_hpd,
+ 	.get_link_cfg	= dw_hdmi_qp_rk3588_get_link_cfg,
++	.set_frl_rate	= dw_hdmi_qp_rk3588_set_frl_rate,
+ };
+ 
+ static void dw_hdmi_qp_rk3588_hpd_work(struct work_struct *work)
+@@ -397,6 +485,9 @@ static void dw_hdmi_qp_rk3576_enc_init(struct rockchip_hdmi_qp *hdmi,
+ {
+ 	u32 val;
+ 
++	val = FIELD_PREP_WM16(RK3576_HDMI_FRL_MOD, hdmi->link_cfg.frl_enabled);
++	regmap_write(hdmi->vo_regmap, RK3576_VO0_GRF_SOC_CON1, val);
++
+ 	if (state->output_bpc == 10)
+ 		val = FIELD_PREP_WM16(RK3576_COLOR_DEPTH_MASK, RK3576_10BPC);
+ 	else
+@@ -410,6 +501,11 @@ static void dw_hdmi_qp_rk3588_enc_init(struct rockchip_hdmi_qp *hdmi,
+ {
+ 	u32 val;
+ 
++	val = FIELD_PREP_WM16(RK3588_HDMI21_MASK, hdmi->link_cfg.frl_enabled);
++	regmap_write(hdmi->vo_regmap,
++		     hdmi->port_id ? RK3588_GRF_VO1_CON7 : RK3588_GRF_VO1_CON4,
++		     val);
++
+ 	if (state->output_bpc == 10)
+ 		val = FIELD_PREP_WM16(RK3588_COLOR_DEPTH_MASK, RK3588_10BPC);
+ 	else
+@@ -439,6 +535,10 @@ struct rockchip_hdmi_qp_cfg {
+ 	unsigned int port_ids[MAX_HDMI_PORT_NUM];
+ 	const struct rockchip_hdmi_qp_ctrl_ops *ctrl_ops;
+ 	const struct dw_hdmi_qp_phy_ops *phy_ops;
++	u8 max_frl_rate_per_lane;
++	u8 max_frl_lanes;
++	u8 min_frl_rate_per_lane;
++	u8 min_frl_lanes;
+ };
+ 
+ static const struct rockchip_hdmi_qp_cfg rk3576_hdmi_cfg = {
+@@ -458,6 +558,9 @@ static const struct rockchip_hdmi_qp_cfg rk3588_hdmi_cfg = {
+ 	},
+ 	.ctrl_ops = &rk3588_hdmi_ctrl_ops,
+ 	.phy_ops = &rk3588_hdmi_phy_ops,
++	/* FIXME: Intermittent screen flicker if rate exceeds 40 Gbps */
++	.max_frl_rate_per_lane = 10,
++	.max_frl_lanes = 4,
+ };
+ 
+ static const struct of_device_id dw_hdmi_qp_rockchip_dt_ids[] = {
+@@ -478,6 +581,7 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct dw_hdmi_qp_plat_data plat_data = {};
+ 	const struct rockchip_hdmi_qp_cfg *cfg;
++	struct dw_hdmi_qp_link_cfg *lcfg;
+ 	struct drm_device *drm = data;
+ 	struct drm_encoder *encoder;
+ 	struct rockchip_hdmi_qp *hdmi;
+@@ -572,6 +676,24 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 	if (IS_ERR(hdmi->phy))
+ 		return dev_err_probe(dev, PTR_ERR(hdmi->phy), "Failed to get phy\n");
+ 
++	lcfg = &hdmi->link_cfg;
++	lcfg->max_frl_rate_per_lane = cfg->max_frl_rate_per_lane ?: HDMI21_MAX_FRL_LANE_RATE;
++	lcfg->max_frl_lanes = cfg->max_frl_lanes ?: HDMI21_MAX_FRL_LANE_NUM;
++	lcfg->min_frl_rate_per_lane = cfg->min_frl_rate_per_lane ?: HDMI21_MIN_FRL_LANE_RATE;
++	lcfg->min_frl_lanes = cfg->min_frl_lanes ?: HDMI21_MIN_FRL_LANE_NUM;
++
++	if (lcfg->max_frl_rate_per_lane < lcfg->min_frl_rate_per_lane ||
++	    lcfg->max_frl_lanes < lcfg->min_frl_lanes ||
++	    lcfg->max_frl_rate_per_lane > HDMI21_MAX_FRL_LANE_RATE ||
++	    lcfg->max_frl_rate_per_lane < HDMI21_MIN_FRL_LANE_RATE ||
++	    lcfg->max_frl_lanes > HDMI21_MAX_FRL_LANE_NUM ||
++	    lcfg->max_frl_lanes < HDMI21_MIN_FRL_LANE_NUM ||
++	    lcfg->min_frl_rate_per_lane > HDMI21_MAX_FRL_LANE_RATE ||
++	    lcfg->min_frl_rate_per_lane < HDMI21_MIN_FRL_LANE_RATE ||
++	    lcfg->min_frl_lanes > HDMI21_MAX_FRL_LANE_NUM ||
++	    lcfg->min_frl_lanes < HDMI21_MIN_FRL_LANE_NUM)
++		return dev_err_probe(hdmi->dev, -EINVAL, "Invalid FRL config\n");
++
+ 	cfg->ctrl_ops->io_init(hdmi);
+ 
+ 	INIT_DELAYED_WORK(&hdmi->hpd_work, dw_hdmi_qp_rk3588_hpd_work);
+-- 
+2.53.0
+

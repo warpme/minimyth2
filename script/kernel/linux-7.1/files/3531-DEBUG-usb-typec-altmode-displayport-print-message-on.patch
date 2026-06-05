@@ -1,0 +1,42 @@
+From 914d5ba8990c0791af2dd9a7a61b571592666e43 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 17 Mar 2026 15:43:25 +0100
+Subject: [PATCH 101/159] [DEBUG] usb: typec: altmode/displayport: print
+ message on probe error
+
+Print an error message when the DisplayPort AltMode driver probe failed
+due to incorrect pin assignment or wrong data-role to ease debugging
+issues.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/typec/altmodes/displayport.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/usb/typec/altmodes/displayport.c b/drivers/usb/typec/altmodes/displayport.c
+index 35d9c308699..ae2d3d8c415 100644
+--- a/drivers/usb/typec/altmodes/displayport.c
++++ b/drivers/usb/typec/altmodes/displayport.c
+@@ -764,8 +764,10 @@ int dp_altmode_probe(struct typec_altmode *alt)
+ 	struct dp_altmode *dp;
+ 
+ 	/* Port can only be DFP_U. */
+-	if (typec_altmode_get_data_role(alt) != TYPEC_HOST)
++	if (typec_altmode_get_data_role(alt) != TYPEC_HOST) {
++		dev_err(alt->dev.parent->parent, "Cannot probe DP AltMode as data-role is not HOST\n");
+ 		return -EPROTO;
++	}
+ 
+ 	/* Make sure we have compatible pin configurations */
+ 	if (!(DP_CAP_PIN_ASSIGN_DFP_D(port->vdo) &
+@@ -773,6 +775,7 @@ int dp_altmode_probe(struct typec_altmode *alt)
+ 	    !(DP_CAP_PIN_ASSIGN_UFP_D(port->vdo) &
+ 	      DP_CAP_PIN_ASSIGN_DFP_D(alt->vdo))) {
+ 		typec_altmode_put_plug(plug);
++		dev_err(alt->dev.parent->parent, "Cannot probe DP AltMode due to incorrect pin assignment\n");
+ 		return -ENODEV;
+ 	}
+ 
+-- 
+2.53.0
+

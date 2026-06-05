@@ -1,0 +1,63 @@
+From 01a1a5020aa00455f7793bce41188cc1a091c537 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Fri, 24 Apr 2026 11:25:21 +0200
+Subject: [PATCH 047/159] phy: rockchip: usbdp: Rename mode_change to
+ phy_needs_reinit
+
+Right now the mode_change property is set whenever the mode changes
+between USB-only, DP-only and USB-DP. It is needed, because on any
+mode change the PHY needs to be re-initialized. Apparently at least
+DP also requires a re-init when the cable orientation is changed,
+which is currently not being done (except when the orientation switch
+also involves a mode change). Prepare for this by renaming mode_change
+to phy_needs_reinit.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index 3f1233f5068..694832cc161 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -172,7 +172,7 @@ struct rk_udphy {
+ 
+ 	/* PHY status management */
+ 	bool flip;
+-	bool mode_change;
++	bool phy_needs_reinit;
+ 	u8 mode;
+ 	u8 status;
+ 
+@@ -582,7 +582,7 @@ static void rk_udphy_mode_set(struct rk_udphy *udphy, u8 mode)
+ 	if (udphy->mode == mode)
+ 		return;
+ 
+-	udphy->mode_change = true;
++	udphy->phy_needs_reinit = true;
+ 	udphy->mode = mode;
+ }
+ 
+@@ -970,15 +970,15 @@ static int rk_udphy_power_on(struct rk_udphy *udphy, u8 mode)
+ 	}
+ 
+ 	if (udphy->status == UDPHY_MODE_NONE) {
+-		udphy->mode_change = false;
++		udphy->phy_needs_reinit = false;
+ 		ret = rk_udphy_setup(udphy);
+ 		if (ret)
+ 			return ret;
+ 
+ 		if (udphy->mode & UDPHY_MODE_USB)
+ 			rk_udphy_u3_port_disable(udphy, false);
+-	} else if (udphy->mode_change) {
+-		udphy->mode_change = false;
++	} else if (udphy->phy_needs_reinit) {
++		udphy->phy_needs_reinit = false;
+ 		if (udphy->mode == UDPHY_MODE_DP)
+ 			rk_udphy_u3_port_disable(udphy, true);
+ 
+-- 
+2.53.0
+

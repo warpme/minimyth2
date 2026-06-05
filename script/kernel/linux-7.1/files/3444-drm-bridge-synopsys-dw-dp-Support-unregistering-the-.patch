@@ -1,0 +1,52 @@
+From 916d18d1902aecc762438272d4bbbe03a27f1d8f Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 27 Mar 2026 02:55:07 +0200
+Subject: [PATCH 098/159] drm/bridge: synopsys: dw-dp: Support unregistering
+ the AUX channel
+
+The DisplayPort AUX channel gets initialized and registered during
+dw_dp_bind(), but it is never unregistered, which may lead to resource
+leaks and/or use-after-free.
+
+Add the missing dw_dp_unbind() function to allow the users of the
+library to handle the required cleanup, i.e. unregister the AUX adapter.
+
+Fixes: 86eecc3a9c2e ("drm/bridge: synopsys: Add DW DPTX Controller support library")
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Link: https://lore.kernel.org/r/20260327-drm-rk-fixes-v3-1-fd2e6900c08c@collabora.com
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 6 ++++++
+ include/drm/bridge/dw_dp.h              | 1 +
+ 2 files changed, 7 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 45b37885d71..164da0dfee9 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -2097,6 +2097,12 @@ struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
+ }
+ EXPORT_SYMBOL_GPL(dw_dp_bind);
+ 
++void dw_dp_unbind(struct dw_dp *dp)
++{
++	drm_dp_aux_unregister(&dp->aux);
++}
++EXPORT_SYMBOL_GPL(dw_dp_unbind);
++
+ MODULE_AUTHOR("Andy Yan <andyshrk@163.com>");
+ MODULE_DESCRIPTION("DW DP Core Library");
+ MODULE_LICENSE("GPL");
+diff --git a/include/drm/bridge/dw_dp.h b/include/drm/bridge/dw_dp.h
+index 25363541e69..22105c3e8e4 100644
+--- a/include/drm/bridge/dw_dp.h
++++ b/include/drm/bridge/dw_dp.h
+@@ -24,4 +24,5 @@ struct dw_dp_plat_data {
+ 
+ struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
+ 			 const struct dw_dp_plat_data *plat_data);
++void dw_dp_unbind(struct dw_dp *dp);
+ #endif /* __DW_DP__ */
+-- 
+2.53.0
+

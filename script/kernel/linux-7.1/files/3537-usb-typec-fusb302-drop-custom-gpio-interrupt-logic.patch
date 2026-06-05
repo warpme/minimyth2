@@ -1,0 +1,121 @@
+From 719d2e8f7e60fb1897dd0ac31921a07eb4292ada Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 21 Apr 2026 18:17:02 +0200
+Subject: [PATCH 120/159] usb: typec: fusb302: drop custom gpio interrupt logic
+
+When the driver was upstreamed it contained the logic to fetch a
+"fcs,int_n" GPIO from device-tree, convert it into an interrupt
+and use it. This was never part of the binding and there was only
+a single upstream user, which got converted to follow the proper
+bindings in 2020. Drop the custom logic and only allow the properly
+documented ABI.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/typec/tcpm/fusb302.c | 41 ++++++++------------------------
+ 1 file changed, 10 insertions(+), 31 deletions(-)
+
+diff --git a/drivers/usb/typec/tcpm/fusb302.c b/drivers/usb/typec/tcpm/fusb302.c
+index f1de6d9cff1..5a166caff54 100644
+--- a/drivers/usb/typec/tcpm/fusb302.c
++++ b/drivers/usb/typec/tcpm/fusb302.c
+@@ -11,7 +11,6 @@
+ #include <linux/devm-helpers.h>
+ #include <linux/errno.h>
+ #include <linux/extcon.h>
+-#include <linux/gpio/consumer.h>
+ #include <linux/i2c.h>
+ #include <linux/interrupt.h>
+ #include <linux/kernel.h>
+@@ -85,7 +84,7 @@ struct fusb302_chip {
+ 	struct work_struct irq_work;
+ 	bool irq_suspended;
+ 	bool irq_while_suspended;
+-	int gpio_int_n_irq;
++	int irq;
+ 	struct extcon_dev *extcon;
+ 
+ 	struct workqueue_struct *wq;
+@@ -1496,7 +1495,7 @@ static irqreturn_t fusb302_irq_intn(int irq, void *dev_id)
+ 	unsigned long flags;
+ 
+ 	/* Disable our level triggered IRQ until our irq_work has cleared it */
+-	disable_irq_nosync(chip->gpio_int_n_irq);
++	disable_irq_nosync(chip->irq);
+ 
+ 	spin_lock_irqsave(&chip->irq_lock, flags);
+ 	if (chip->irq_suspended)
+@@ -1640,24 +1639,7 @@ static void fusb302_irq_work(struct work_struct *work)
+ 	}
+ done:
+ 	mutex_unlock(&chip->lock);
+-	enable_irq(chip->gpio_int_n_irq);
+-}
+-
+-static int fusb302_init_irq(struct fusb302_chip *chip)
+-{
+-	struct device *dev = chip->dev;
+-	struct gpio_desc *int_gpio;
+-	int ret = 0;
+-
+-	int_gpio = devm_gpiod_get(dev, "fcs,int_n", GPIOD_IN);
+-	if (IS_ERR(int_gpio))
+-		return dev_err_probe(dev, PTR_ERR(int_gpio), "failed to request interrupt GPIO\n");
+-
+-	ret = gpiod_to_irq(int_gpio);
+-	if (ret < 0)
+-		return dev_err_probe(dev, ret, "cannot request IRQ for GPIO\n");
+-
+-	return ret;
++	enable_irq(chip->irq);
+ }
+ 
+ #define PDO_FIXED_FLAGS \
+@@ -1752,13 +1734,10 @@ static int fusb302_probe(struct i2c_client *client)
+ 	if (ret < 0)
+ 		return ret;
+ 
+-	if (client->irq)
+-		chip->gpio_int_n_irq = client->irq;
+-	else
+-		chip->gpio_int_n_irq = fusb302_init_irq(chip);
+-
+-	if (chip->gpio_int_n_irq < 0)
+-		return chip->gpio_int_n_irq;
++	chip->irq = client->irq;
++	if (!chip->irq)
++		return dev_err_probe(chip->dev, -ENXIO,
++				     "missing interrupt\n");
+ 
+ 	chip->tcpc_dev.fwnode = fusb302_fwnode_get(dev);
+ 	if (IS_ERR(chip->tcpc_dev.fwnode)) {
+@@ -1789,7 +1768,7 @@ static int fusb302_probe(struct i2c_client *client)
+ 	if (ret < 0)
+ 		return ret;
+ 
+-	ret = devm_request_threaded_irq(dev, chip->gpio_int_n_irq, NULL,
++	ret = devm_request_threaded_irq(dev, chip->irq, NULL,
+ 					fusb302_irq_intn,
+ 					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
+ 					"fsc_interrupt_int_n", chip);
+@@ -1802,7 +1781,7 @@ static int fusb302_probe(struct i2c_client *client)
+ 	if (ret)
+ 		return ret;
+ 
+-	enable_irq_wake(chip->gpio_int_n_irq);
++	enable_irq_wake(chip->irq);
+ 
+ 	return ret;
+ }
+@@ -1811,7 +1790,7 @@ static void fusb302_remove(struct i2c_client *client)
+ {
+ 	struct fusb302_chip *chip = i2c_get_clientdata(client);
+ 
+-	disable_irq_wake(chip->gpio_int_n_irq);
++	disable_irq_wake(chip->irq);
+ }
+ 
+ static int fusb302_pm_suspend(struct device *dev)
+-- 
+2.53.0
+

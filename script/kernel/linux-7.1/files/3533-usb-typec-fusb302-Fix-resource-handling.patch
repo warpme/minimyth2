@@ -1,0 +1,220 @@
+From 1370d3c88df6b7f16af50598d37469ca0687b83b Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 21 Apr 2026 17:41:17 +0200
+Subject: [PATCH 116/159] usb: typec: fusb302: Fix resource handling
+
+The driver's probe routine is currently mixing registration calls for
+device managed resources with unmananged ones. This results in issues
+such as resource leaks or use-after-free. Fix this up by fully
+converting the driver to device managed resources.
+
+Resource acquisition has been reordered a bit, so that the work is
+initialized after the TCPM port is registered as the work uses the
+TCPM devices.
+
+Fixes: 5d79c525405d ("usb: typec: fusb302: add DRM DP HPD bridge support")
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/typec/tcpm/fusb302.c | 108 +++++++++++++++++--------------
+ 1 file changed, 60 insertions(+), 48 deletions(-)
+
+diff --git a/drivers/usb/typec/tcpm/fusb302.c b/drivers/usb/typec/tcpm/fusb302.c
+index 2b69d38501c..69b1af1358d 100644
+--- a/drivers/usb/typec/tcpm/fusb302.c
++++ b/drivers/usb/typec/tcpm/fusb302.c
+@@ -8,6 +8,7 @@
+ #include <drm/bridge/aux-bridge.h>
+ #include <linux/debugfs.h>
+ #include <linux/delay.h>
++#include <linux/devm-helpers.h>
+ #include <linux/errno.h>
+ #include <linux/extcon.h>
+ #include <linux/gpio/consumer.h>
+@@ -212,20 +213,28 @@ static int fusb302_debug_show(struct seq_file *s, void *v)
+ }
+ DEFINE_SHOW_ATTRIBUTE(fusb302_debug);
+ 
+-static void fusb302_debugfs_init(struct fusb302_chip *chip)
++static void fusb302_debugfs_exit(void *data)
++{
++	struct fusb302_chip *chip = data;
++
++	debugfs_remove(chip->dentry);
++}
++
++static int fusb302_debugfs_init(struct fusb302_chip *chip)
+ {
+ 	char name[NAME_MAX];
++	int ret;
++
++	ret = devm_mutex_init(chip->dev, &chip->logbuffer_lock);
++	if (ret < 0)
++		return ret;
+ 
+-	mutex_init(&chip->logbuffer_lock);
+ 	snprintf(name, NAME_MAX, "fusb302-%s", dev_name(chip->dev));
+ 	chip->dentry = debugfs_create_dir(name, usb_debug_root);
+ 	debugfs_create_file("log", S_IFREG | 0444, chip->dentry, chip,
+ 			    &fusb302_debug_fops);
+-}
+ 
+-static void fusb302_debugfs_exit(struct fusb302_chip *chip)
+-{
+-	debugfs_remove(chip->dentry);
++	return devm_add_action_or_reset(chip->dev, fusb302_debugfs_exit, chip);
+ }
+ 
+ #else
+@@ -233,7 +242,6 @@ static void fusb302_debugfs_exit(struct fusb302_chip *chip)
+ static void fusb302_log(const struct fusb302_chip *chip,
+ 			const char *fmt, ...) { }
+ static void fusb302_debugfs_init(const struct fusb302_chip *chip) { }
+-static void fusb302_debugfs_exit(const struct fusb302_chip *chip) { }
+ 
+ #endif
+ 
+@@ -1688,6 +1696,13 @@ static struct fwnode_handle *fusb302_fwnode_get(struct device *dev)
+ 	return fwnode;
+ }
+ 
++static void fusb302_fwnode_put(void *data)
++{
++	struct fusb302_chip *chip = data;
++
++	fwnode_handle_put(chip->tcpc_dev.fwnode);
++}
++
+ static int fusb302_probe(struct i2c_client *client)
+ {
+ 	struct fusb302_chip *chip;
+@@ -1708,7 +1723,10 @@ static int fusb302_probe(struct i2c_client *client)
+ 
+ 	chip->i2c_client = client;
+ 	chip->dev = &client->dev;
+-	mutex_init(&chip->lock);
++
++	ret = devm_mutex_init(dev, &chip->lock);
++	if (ret < 0)
++		return ret;
+ 
+ 	/*
+ 	 * Devicetree platforms should get extcon via phandle (not yet
+@@ -1727,67 +1745,68 @@ static int fusb302_probe(struct i2c_client *client)
+ 	if (IS_ERR(chip->vbus))
+ 		return PTR_ERR(chip->vbus);
+ 
+-	chip->wq = create_singlethread_workqueue(dev_name(chip->dev));
++	chip->wq = devm_alloc_ordered_workqueue(dev, dev_name(dev), 0);
+ 	if (!chip->wq)
+ 		return -ENOMEM;
+ 
+ 	spin_lock_init(&chip->irq_lock);
+-	INIT_WORK(&chip->irq_work, fusb302_irq_work);
+-	INIT_DELAYED_WORK(&chip->bc_lvl_handler, fusb302_bc_lvl_handler_work);
+ 	init_tcpc_dev(&chip->tcpc_dev);
+-	fusb302_debugfs_init(chip);
++
++	ret = fusb302_debugfs_init(chip);
++	if (ret < 0)
++		return ret;
+ 
+ 	if (client->irq) {
+ 		chip->gpio_int_n_irq = client->irq;
+ 	} else {
+ 		ret = init_gpio(chip);
+ 		if (ret < 0)
+-			goto destroy_workqueue;
++			return ret;
+ 	}
+ 
+ 	chip->tcpc_dev.fwnode = fusb302_fwnode_get(dev);
+ 	if (IS_ERR(chip->tcpc_dev.fwnode)) {
+ 		ret = PTR_ERR(chip->tcpc_dev.fwnode);
+-		goto destroy_workqueue;
++		return ret;
+ 	}
+ 
++	ret = devm_add_action_or_reset(dev, fusb302_fwnode_put, chip);
++	if (ret < 0)
++		return ret;
++
+ 	bridge_dev = devm_drm_dp_hpd_bridge_alloc(chip->dev, to_of_node(chip->tcpc_dev.fwnode));
+-	if (IS_ERR(bridge_dev)) {
+-		ret = PTR_ERR(bridge_dev);
+-		dev_err_probe(chip->dev, ret, "failed to alloc bridge\n");
+-		goto destroy_workqueue;
+-	}
++	if (IS_ERR(bridge_dev))
++		return dev_err_probe(chip->dev, PTR_ERR(bridge_dev),
++				     "failed to alloc bridge\n");
+ 
+-	chip->tcpm_port = tcpm_register_port(&client->dev, &chip->tcpc_dev);
+-	if (IS_ERR(chip->tcpm_port)) {
+-		fwnode_handle_put(chip->tcpc_dev.fwnode);
+-		ret = dev_err_probe(dev, PTR_ERR(chip->tcpm_port),
++	chip->tcpm_port = devm_tcpm_register_port(&client->dev, &chip->tcpc_dev);
++	if (IS_ERR(chip->tcpm_port))
++		return dev_err_probe(dev, PTR_ERR(chip->tcpm_port),
+ 				    "cannot register tcpm port\n");
+-		goto destroy_workqueue;
+-	}
+ 
+-	ret = request_threaded_irq(chip->gpio_int_n_irq, NULL, fusb302_irq_intn,
+-				   IRQF_ONESHOT | IRQF_TRIGGER_LOW,
+-				   "fsc_interrupt_int_n", chip);
+-	if (ret < 0) {
+-		dev_err(dev, "cannot request IRQ for GPIO Int_N, ret=%d", ret);
+-		goto tcpm_unregister_port;
+-	}
+-	enable_irq_wake(chip->gpio_int_n_irq);
++	ret = devm_delayed_work_autocancel(dev, &chip->bc_lvl_handler,
++					   fusb302_bc_lvl_handler_work);
++	if (ret < 0)
++		return ret;
++
++	ret = devm_work_autocancel(dev, &chip->irq_work, fusb302_irq_work);
++	if (ret < 0)
++		return ret;
++
++	ret = devm_request_threaded_irq(dev, chip->gpio_int_n_irq, NULL,
++					fusb302_irq_intn,
++					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
++					"fsc_interrupt_int_n", chip);
++	if (ret < 0)
++		return dev_err_probe(dev, ret, "failed to request IRQ");
++
+ 	i2c_set_clientdata(client, chip);
+ 
+ 	ret = devm_drm_dp_hpd_bridge_add(chip->dev, bridge_dev);
+ 	if (ret)
+ 		return ret;
+ 
+-	return ret;
+-
+-tcpm_unregister_port:
+-	tcpm_unregister_port(chip->tcpm_port);
+-	fwnode_handle_put(chip->tcpc_dev.fwnode);
+-destroy_workqueue:
+-	fusb302_debugfs_exit(chip);
+-	destroy_workqueue(chip->wq);
++	enable_irq_wake(chip->gpio_int_n_irq);
+ 
+ 	return ret;
+ }
+@@ -1797,13 +1816,6 @@ static void fusb302_remove(struct i2c_client *client)
+ 	struct fusb302_chip *chip = i2c_get_clientdata(client);
+ 
+ 	disable_irq_wake(chip->gpio_int_n_irq);
+-	free_irq(chip->gpio_int_n_irq, chip);
+-	cancel_work_sync(&chip->irq_work);
+-	cancel_delayed_work_sync(&chip->bc_lvl_handler);
+-	tcpm_unregister_port(chip->tcpm_port);
+-	fwnode_handle_put(chip->tcpc_dev.fwnode);
+-	destroy_workqueue(chip->wq);
+-	fusb302_debugfs_exit(chip);
+ }
+ 
+ static int fusb302_pm_suspend(struct device *dev)
+-- 
+2.53.0
+

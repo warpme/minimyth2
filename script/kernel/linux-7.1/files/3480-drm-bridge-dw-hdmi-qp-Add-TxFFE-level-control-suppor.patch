@@ -1,0 +1,121 @@
+From f452e471b05d82a773a48b3d4125baf857649b7c Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 7 Apr 2026 13:28:59 +0300
+Subject: [PATCH 145/159] drm/bridge: dw-hdmi-qp: Add TxFFE level control
+ support
+
+Extend the FRL link training state machine to handle sink-requested
+Transmitter Feed-Forward Equalization (TxFFE) level increases.
+
+During LTS3, a sink can signal that it needs a higher FFE level on the
+transmitter to improve signal integrity at a given FRL rate, instead of
+immediately requesting a rate downgrade.  Handle this by incrementally
+stepping up the FFE level (up to the hardware maximum) via a new
+optional .set_ffe_level() PHY callback.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 34 +++++++++++++++-----
+ include/drm/bridge/dw_hdmi_qp.h              |  2 ++
+ 2 files changed, 28 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 9e4cf46c214..5582b661a10 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -899,12 +899,13 @@ static int dw_hdmi_qp_frl_lts2(struct dw_hdmi_qp *hdmi)
+ 
+ 		if (val & SCDC_FLT_READY) {
+ 			link_cfg = hdmi->phy.ops->get_link_cfg(hdmi, hdmi->phy.data);
++			val = hdmi->phy.ops->set_ffe_level ? link_cfg->max_ffe_level : 0;
+ 
+-			dev_dbg(hdmi->dev, "lts2: set rate=%ux%u\n",
+-				link_cfg->frl_rate_per_lane, link_cfg->frl_lanes);
++			dev_dbg(hdmi->dev, "lts2: set rate=%ux%u maxffe=%u\n",
++				link_cfg->frl_rate_per_lane, link_cfg->frl_lanes, val);
+ 
+ 			ret = drm_scdc_set_frl(hdmi->curr_conn, link_cfg->frl_rate_per_lane,
+-					       link_cfg->frl_lanes, 0);
++					       link_cfg->frl_lanes, val);
+ 			if (ret)
+ 				ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_CONFIG_0, 0);
+ 			else
+@@ -930,7 +931,7 @@ static int dw_hdmi_qp_frl_lts2(struct dw_hdmi_qp *hdmi)
+  */
+ static int dw_hdmi_qp_frl_lts3(struct dw_hdmi_qp *hdmi)
+ {
+-	u8 val;
++	u8 val, ffe_lv = 0;
+ 	int i, ret;
+ 
+ 	/* Set 2s timeout */
+@@ -1003,8 +1004,22 @@ static int dw_hdmi_qp_frl_lts3(struct dw_hdmi_qp *hdmi)
+ 			}
+ 
+ 			if (ln0 == 0xe || ln1 == 0xe || ln2 == 0xe || ln3 == 0xe) {
+-				dev_err(hdmi->dev, "lts3: ffe level update not expected\n");
+-				return LTSL;
++				if (!hdmi->phy.ops->set_ffe_level) {
++					dev_err(hdmi->dev, "lts3: ffe level update not expected\n");
++					return LTSL;
++				}
++
++				if (ffe_lv >= 3) {
++					dev_err(hdmi->dev, "lts3: ffe level limit reached\n");
++					return LTSL;
++				}
++
++				ffe_lv++;
++				dev_dbg(hdmi->dev, "lts3: ffe level up %d\n", ffe_lv);
++
++				ret = hdmi->phy.ops->set_ffe_level(hdmi, hdmi->phy.data, ffe_lv);
++				if (ret)
++					return LTSL;
+ 			} else {
+ 				flt_cfg = (ln3 << 16) | (ln2 << 12) | (ln1 << 8) |
+ 					  (ln0 << 4) | 0xf;
+@@ -1036,7 +1051,7 @@ static int dw_hdmi_qp_frl_lts3(struct dw_hdmi_qp *hdmi)
+ static int dw_hdmi_qp_frl_lts4(struct dw_hdmi_qp *hdmi)
+ {
+ 	const struct dw_hdmi_qp_link_cfg *link_cfg;
+-	u8 try_rate_per_lane, try_lanes;
++	u8 try_rate_per_lane, try_lanes, max_ffe_level;
+ 	int ret;
+ 
+ 	link_cfg = hdmi->phy.ops->get_link_cfg(hdmi, hdmi->phy.data);
+@@ -1077,8 +1092,11 @@ static int dw_hdmi_qp_frl_lts4(struct dw_hdmi_qp *hdmi)
+ 	/* Enable phy */
+ 	hdmi->phy.ops->init(hdmi, hdmi->phy.data);
+ 
++	max_ffe_level = hdmi->phy.ops->set_ffe_level ? link_cfg->max_ffe_level : 0;
++
+ 	/* Set new rate */
+-	ret = drm_scdc_set_frl(hdmi->curr_conn, try_rate_per_lane, try_lanes, 0);
++	ret = drm_scdc_set_frl(hdmi->curr_conn, try_rate_per_lane, try_lanes,
++			       max_ffe_level);
+ 	if (ret)
+ 		ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0,
+ 				      SCDC_FLT_UPDATE);
+diff --git a/include/drm/bridge/dw_hdmi_qp.h b/include/drm/bridge/dw_hdmi_qp.h
+index ea3c6c9fdd5..0d5f09ccb95 100644
+--- a/include/drm/bridge/dw_hdmi_qp.h
++++ b/include/drm/bridge/dw_hdmi_qp.h
+@@ -23,6 +23,7 @@ struct dw_hdmi_qp_link_cfg {
+ 	u8 max_frl_lanes;
+ 	u8 min_frl_rate_per_lane;
+ 	u8 min_frl_lanes;
++	u8 max_ffe_level;
+ 	unsigned int bpc;
+ };
+ 
+@@ -33,6 +34,7 @@ struct dw_hdmi_qp_phy_ops {
+ 	void (*setup_hpd)(struct dw_hdmi_qp *hdmi, void *data);
+ 	const struct dw_hdmi_qp_link_cfg *(*get_link_cfg)(struct dw_hdmi_qp *hdmi, void *data);
+ 	int (*set_frl_rate)(struct dw_hdmi_qp *hdmi, void *data, u8 rate_per_lane, u8 lanes);
++	int (*set_ffe_level)(struct dw_hdmi_qp *hdmi, void *data, u8 ffe_level);
+ };
+ 
+ struct dw_hdmi_qp_plat_data {
+-- 
+2.53.0
+

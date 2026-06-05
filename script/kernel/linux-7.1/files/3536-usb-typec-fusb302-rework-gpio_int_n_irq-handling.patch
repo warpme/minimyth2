@@ -1,0 +1,51 @@
+From 0065180fecde31bdf0f42804412cf4685e063993 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 21 Apr 2026 18:10:26 +0200
+Subject: [PATCH 119/159] usb: typec: fusb302: rework gpio_int_n_irq handling
+
+Improve the code readability, so that one does not need to jump
+into fusb302_init_irq() to understand that chip->gpio_int_n_irq
+is guranteed to be initialized.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/typec/tcpm/fusb302.c | 15 +++++++--------
+ 1 file changed, 7 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/usb/typec/tcpm/fusb302.c b/drivers/usb/typec/tcpm/fusb302.c
+index 6334d5e3fd8..f1de6d9cff1 100644
+--- a/drivers/usb/typec/tcpm/fusb302.c
++++ b/drivers/usb/typec/tcpm/fusb302.c
+@@ -1657,8 +1657,7 @@ static int fusb302_init_irq(struct fusb302_chip *chip)
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "cannot request IRQ for GPIO\n");
+ 
+-	chip->gpio_int_n_irq = ret;
+-	return 0;
++	return ret;
+ }
+ 
+ #define PDO_FIXED_FLAGS \
+@@ -1753,13 +1752,13 @@ static int fusb302_probe(struct i2c_client *client)
+ 	if (ret < 0)
+ 		return ret;
+ 
+-	if (client->irq) {
++	if (client->irq)
+ 		chip->gpio_int_n_irq = client->irq;
+-	} else {
+-		ret = fusb302_init_irq(chip);
+-		if (ret < 0)
+-			return ret;
+-	}
++	else
++		chip->gpio_int_n_irq = fusb302_init_irq(chip);
++
++	if (chip->gpio_int_n_irq < 0)
++		return chip->gpio_int_n_irq;
+ 
+ 	chip->tcpc_dev.fwnode = fusb302_fwnode_get(dev);
+ 	if (IS_ERR(chip->tcpc_dev.fwnode)) {
+-- 
+2.53.0
+

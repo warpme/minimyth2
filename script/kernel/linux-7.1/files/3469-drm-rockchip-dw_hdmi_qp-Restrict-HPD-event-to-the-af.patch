@@ -1,0 +1,95 @@
+From 39298bc263395ea679e66bb5361c3d29681169e9 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Mon, 20 Apr 2026 22:42:12 +0300
+Subject: [PATCH 134/159] drm/rockchip: dw_hdmi_qp: Restrict HPD event to the
+ affected connector
+
+Switch from drm_helper_hpd_irq_event(), which polls all connectors, to
+drm_connector_helper_hpd_irq_event(), which runs the detect cycle only
+on the affected connector.
+
+This avoids unnecessary work and redundant detect calls on unrelated
+connectors.
+
+Tested-by: Diederik de Haas <diederik@cknow-tech.com>
+Tested-by: Maud Spierings <maud_spierings@hotmail.com>
+Reviewed-by: Heiko Stuebner <heiko@sntech.de>
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../gpu/drm/rockchip/dw_hdmi_qp-rockchip.c    | 21 ++++++++++---------
+ 1 file changed, 11 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index fbbe26f8730..d6338195a5b 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -93,6 +93,7 @@ struct rockchip_hdmi_qp {
+ 	struct regmap *regmap;
+ 	struct regmap *vo_regmap;
+ 	struct rockchip_encoder encoder;
++	struct drm_connector *connector;
+ 	struct dw_hdmi_qp *hdmi;
+ 	struct phy *phy;
+ 	struct gpio_desc *frl_enable_gpio;
+@@ -252,11 +253,10 @@ static void dw_hdmi_qp_rk3588_hpd_work(struct work_struct *work)
+ 	struct rockchip_hdmi_qp *hdmi = container_of(work,
+ 						     struct rockchip_hdmi_qp,
+ 						     hpd_work.work);
+-	struct drm_device *drm = hdmi->encoder.encoder.dev;
+ 	bool changed;
+ 
+-	if (drm) {
+-		changed = drm_helper_hpd_irq_event(drm);
++	if (hdmi->connector) {
++		changed = drm_connector_helper_hpd_irq_event(hdmi->connector);
+ 		if (changed)
+ 			dev_dbg(hdmi->dev, "connector status changed\n");
+ 	}
+@@ -467,7 +467,6 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 	struct dw_hdmi_qp_plat_data plat_data = {};
+ 	const struct rockchip_hdmi_qp_cfg *cfg;
+ 	struct drm_device *drm = data;
+-	struct drm_connector *connector;
+ 	struct drm_encoder *encoder;
+ 	struct rockchip_hdmi_qp *hdmi;
+ 	struct resource *res;
+@@ -589,12 +588,12 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 		return dev_err_probe(dev, PTR_ERR(hdmi->hdmi),
+ 				     "Failed to bind dw-hdmi-qp\n");
+ 
+-	connector = drm_bridge_connector_init(drm, encoder);
+-	if (IS_ERR(connector))
+-		return dev_err_probe(dev, PTR_ERR(connector),
++	hdmi->connector = drm_bridge_connector_init(drm, encoder);
++	if (IS_ERR(hdmi->connector))
++		return dev_err_probe(dev, PTR_ERR(hdmi->connector),
+ 				     "Failed to init bridge connector\n");
+ 
+-	ret = drm_connector_attach_encoder(connector, encoder);
++	ret = drm_connector_attach_encoder(hdmi->connector, encoder);
+ 	if (ret)
+ 		return dev_err_probe(dev, ret, "Failed to attach connector\n");
+ 
+@@ -612,6 +611,8 @@ static void dw_hdmi_qp_rockchip_unbind(struct device *dev,
+ 	struct rockchip_hdmi_qp *hdmi = dev_get_drvdata(dev);
+ 
+ 	cancel_delayed_work_sync(&hdmi->hpd_work);
++
++	hdmi->connector = NULL;
+ }
+ 
+ static const struct component_ops dw_hdmi_qp_rockchip_ops = {
+@@ -646,8 +647,8 @@ static int __maybe_unused dw_hdmi_qp_rockchip_resume(struct device *dev)
+ 
+ 	dw_hdmi_qp_resume(dev, hdmi->hdmi);
+ 
+-	if (hdmi->encoder.encoder.dev)
+-		drm_helper_hpd_irq_event(hdmi->encoder.encoder.dev);
++	if (hdmi->connector)
++		drm_connector_helper_hpd_irq_event(hdmi->connector);
+ 
+ 	return 0;
+ }
+-- 
+2.53.0
+

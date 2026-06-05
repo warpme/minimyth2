@@ -1,0 +1,42 @@
+From 5f4d40a0434a13d62517f7b8368cc7f3bef4e020 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Fri, 24 Apr 2026 12:25:32 +0200
+Subject: [PATCH 048/159] phy: rockchip: usbdp: Re-init the PHY on orientation
+ change
+
+Changing the cable orientation reconfigures the lane muxing, which
+requires re-initializing the PHY. Without this DP functionality
+breaks, if the cable is re-plugged with swapped orientation.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index 694832cc161..80fe5993c6c 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -624,6 +624,7 @@ static int rk_udphy_orien_sw_set(struct typec_switch_dev *sw,
+ 				 enum typec_orientation orien)
+ {
+ 	struct rk_udphy *udphy = typec_switch_get_drvdata(sw);
++	bool flipped = orien == TYPEC_ORIENTATION_REVERSE;
+ 
+ 	mutex_lock(&udphy->mutex);
+ 
+@@ -635,7 +636,10 @@ static int rk_udphy_orien_sw_set(struct typec_switch_dev *sw,
+ 		goto unlock_ret;
+ 	}
+ 
+-	udphy->flip = orien == TYPEC_ORIENTATION_REVERSE;
++	if (udphy->flip != flipped)
++		udphy->phy_needs_reinit = true;
++
++	udphy->flip = flipped;
+ 	rk_udphy_set_typec_default_mapping(udphy);
+ 	rk_udphy_usb_bvalid_enable(udphy, true);
+ 
+-- 
+2.53.0
+

@@ -1,0 +1,48 @@
+From 85f84c31a86addd6605aa30d4b8f7d0f035df60f Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 21 Apr 2026 14:08:12 +0300
+Subject: [PATCH 130/159] drm/bridge: dw-hdmi-qp: Rate limit i2c read error
+ messages
+
+During EDID reads, repeated i2c errors can flood the kernel log:
+
+[   25.361716] dwhdmiqp-rockchip fde80000.hdmi: i2c read error
+[   25.363376] dwhdmiqp-rockchip fde80000.hdmi: i2c read error
+...
+[   25.368671] dwhdmiqp-rockchip fde80000.hdmi: i2c read error
+[   25.369440] dwhdmiqp-rockchip fde80000.hdmi: failed to get edid
+
+Switch to dev_err_ratelimited() in dw_hdmi_qp_i2c_read() to reduce log
+spam while still reporting the condition.
+
+Reviewed-by: Heiko Stuebner <heiko@sntech.de>
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index c482a8e7da2..36fbd3831bc 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -573,7 +573,7 @@ static int dw_hdmi_qp_i2c_read(struct dw_hdmi_qp *hdmi,
+ 				dev_dbg_ratelimited(hdmi->dev,
+ 						    "i2c read timed out\n");
+ 			else
+-				dev_err(hdmi->dev, "i2c read timed out\n");
++				dev_err_ratelimited(hdmi->dev, "i2c read timed out\n");
+ 			dw_hdmi_qp_write(hdmi, 0x01, I2CM_CONTROL0);
+ 			return -EAGAIN;
+ 		}
+@@ -584,7 +584,7 @@ static int dw_hdmi_qp_i2c_read(struct dw_hdmi_qp *hdmi,
+ 				dev_dbg_ratelimited(hdmi->dev,
+ 						    "i2c read error\n");
+ 			else
+-				dev_err(hdmi->dev, "i2c read error\n");
++				dev_err_ratelimited(hdmi->dev, "i2c read error\n");
+ 			dw_hdmi_qp_write(hdmi, 0x01, I2CM_CONTROL0);
+ 			return -EIO;
+ 		}
+-- 
+2.53.0
+

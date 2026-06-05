@@ -1,0 +1,68 @@
+From 83c1d2e96ace5454d7a600b4457c0e3cff366ae1 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 21 Apr 2026 16:23:15 +0200
+Subject: [PATCH 115/159] usb: typec: tcpm: add device managed port
+ registration
+
+A few drivers would benefit from having device managed TCPM
+port registration, so that their probe routine does not mix
+device managed and non-device managed calls.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/typec/tcpm/tcpm.c | 24 ++++++++++++++++++++++++
+ include/linux/usb/tcpm.h      |  3 +++
+ 2 files changed, 27 insertions(+)
+
+diff --git a/drivers/usb/typec/tcpm/tcpm.c b/drivers/usb/typec/tcpm/tcpm.c
+index d1577d46f7b..edd3610aa12 100644
+--- a/drivers/usb/typec/tcpm/tcpm.c
++++ b/drivers/usb/typec/tcpm/tcpm.c
+@@ -8648,6 +8648,30 @@ void tcpm_unregister_port(struct tcpm_port *port)
+ }
+ EXPORT_SYMBOL_GPL(tcpm_unregister_port);
+ 
++static void devm_tcpm_unregister_port(void *data)
++{
++	struct tcpm_port *port = data;
++	tcpm_unregister_port(port);
++}
++
++struct tcpm_port *devm_tcpm_register_port(struct device *dev,
++					  struct tcpc_dev *tcpc)
++{
++	struct tcpm_port *result;
++	int ret;
++
++	result = tcpm_register_port(dev, tcpc);
++	if (IS_ERR(result))
++		return result;
++
++	ret = devm_add_action_or_reset(dev, devm_tcpm_unregister_port, result);
++	if (ret  < 0)
++		return ERR_PTR(ret);
++
++	return result;
++}
++EXPORT_SYMBOL_GPL(devm_tcpm_register_port);
++
+ MODULE_AUTHOR("Guenter Roeck <groeck@chromium.org>");
+ MODULE_DESCRIPTION("USB Type-C Port Manager");
+ MODULE_LICENSE("GPL");
+diff --git a/include/linux/usb/tcpm.h b/include/linux/usb/tcpm.h
+index 93079450bba..fc60980f9f4 100644
+--- a/include/linux/usb/tcpm.h
++++ b/include/linux/usb/tcpm.h
+@@ -177,6 +177,9 @@ struct tcpm_port;
+ struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc);
+ void tcpm_unregister_port(struct tcpm_port *port);
+ 
++struct tcpm_port *devm_tcpm_register_port(struct device *dev,
++					  struct tcpc_dev *tcpc);
++
+ void tcpm_vbus_change(struct tcpm_port *port);
+ void tcpm_cc_change(struct tcpm_port *port);
+ void tcpm_sink_frs(struct tcpm_port *port);
+-- 
+2.53.0
+

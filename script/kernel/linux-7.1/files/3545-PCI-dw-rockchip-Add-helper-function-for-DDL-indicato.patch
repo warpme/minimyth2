@@ -1,0 +1,58 @@
+From 3993daab6c289aa20ed64fa9d7cb9e9a435da275 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Mon, 20 Oct 2025 20:30:11 +0200
+Subject: [PATCH 031/159] PCI: dw-rockchip: Add helper function for DDL
+ indicator
+
+Remove code duplication and improve readability by introducing a new
+function to setup the DLL indicator.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/pci/controller/dwc/pcie-dw-rockchip.c | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/pci/controller/dwc/pcie-dw-rockchip.c b/drivers/pci/controller/dwc/pcie-dw-rockchip.c
+index 8d6f05d04d8..4be536681e2 100644
+--- a/drivers/pci/controller/dwc/pcie-dw-rockchip.c
++++ b/drivers/pci/controller/dwc/pcie-dw-rockchip.c
+@@ -677,6 +677,16 @@ static void rockchip_pcie_set_controller_mode(struct rockchip_pcie *rockchip, u3
+ 	rockchip_pcie_writel_apb(rockchip, PCIE_CLIENT_SET_MODE(mode), PCIE_CLIENT_GENERAL_CON);
+ }
+ 
++static void rockchip_pcie_unmask_dll_indicator(struct rockchip_pcie *rockchip)
++{
++	u32 val;
++
++	/* unmask DLL up/down indicator and hot reset/link-down reset */
++	val = FIELD_PREP_WM16(PCIE_RDLH_LINK_UP_CHGED, 0) |
++	      FIELD_PREP_WM16(PCIE_LINK_REQ_RST_NOT_INT, 0);
++	rockchip_pcie_writel_apb(rockchip, val, PCIE_CLIENT_INTR_MASK_MISC);
++}
++
+ static int rockchip_pcie_configure_rc(struct rockchip_pcie *rockchip)
+ {
+ 	struct dw_pcie_rp *pp;
+@@ -698,7 +708,6 @@ static int rockchip_pcie_configure_ep(struct platform_device *pdev,
+ {
+ 	struct device *dev = &pdev->dev;
+ 	int irq, ret;
+-	u32 val;
+ 
+ 	if (!IS_ENABLED(CONFIG_PCIE_ROCKCHIP_DW_EP))
+ 		return -ENODEV;
+@@ -738,10 +747,7 @@ static int rockchip_pcie_configure_ep(struct platform_device *pdev,
+ 
+ 	pci_epc_init_notify(rockchip->pci.ep.epc);
+ 
+-	/* unmask DLL up/down indicator and hot reset/link-down reset */
+-	val = FIELD_PREP_WM16(PCIE_RDLH_LINK_UP_CHGED, 0) |
+-	      FIELD_PREP_WM16(PCIE_LINK_REQ_RST_NOT_INT, 0);
+-	rockchip_pcie_writel_apb(rockchip, val, PCIE_CLIENT_INTR_MASK_MISC);
++	rockchip_pcie_unmask_dll_indicator(rockchip);
+ 
+ 	return ret;
+ }
+-- 
+2.53.0
+

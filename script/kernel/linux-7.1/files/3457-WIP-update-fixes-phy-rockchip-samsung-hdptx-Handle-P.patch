@@ -1,0 +1,55 @@
+From 5cf5a0a505e318f9c32c64691592163100aa4bad Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 10 Apr 2026 04:19:28 +0300
+Subject: [PATCH 123/159] [WIP-update-fixes] phy: rockchip: samsung-hdptx:
+ Handle PHY config after module reload
+
+The pll_config_dirty mechanism introduced in commit e63ea089a8ab ("phy:
+rockchip: samsung-hdptx: Handle uncommitted PHY config changes")
+invalidates the clock rate in determine_rate() by resetting req->rate to
+zero, ensuring CCF will invoke set_rate() to program pending PLL
+configuration changes into hardware.
+
+However, after a module reload cycle the PHY PLL clock gets
+re-registered with CCF, which causes the framework's cached rate to also
+be zero.  Setting req->rate to zero then has no effect, since CCF sees
+no difference between the requested and current rates and skips calling
+set_rate(), leaving the PLL unconfigured.
+
+Address this by first computing the actual target rate from the HDMI
+link configuration, and only then invalidating it when it matches the
+CCF cached rate.
+
+Fixes: e63ea089a8ab ("phy: rockchip: samsung-hdptx: Handle uncommitted PHY config changes")
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+index 64787d47025..7e7e51f8e7e 100644
+--- a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
++++ b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+@@ -2387,14 +2387,16 @@ static int rk_hdptx_phy_clk_determine_rate(struct clk_hw *hw,
+ 	 * to ensure rk_hdptx_phy_clk_set_rate() will be always invoked.
+ 	 * Otherwise, restrict the rate according to the PHY link setup.
+ 	 */
+-	if (hdptx->pll_config_dirty)
+-		req->rate = 0;
+-	else if (hdptx->hdmi_cfg.mode == PHY_HDMI_MODE_FRL)
++
++	if (hdptx->hdmi_cfg.mode == PHY_HDMI_MODE_FRL)
+ 		req->rate = hdptx->hdmi_cfg.rate;
+ 	else
+ 		req->rate = DIV_ROUND_CLOSEST_ULL(hdptx->hdmi_cfg.rate * 8,
+ 						  hdptx->hdmi_cfg.bpc);
+ 
++	if (hdptx->pll_config_dirty && req->rate == clk_hw_get_rate(hw))
++		req->rate = 0;
++
+ 	return 0;
+ }
+ 
+-- 
+2.53.0
+
