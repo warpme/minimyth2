@@ -370,10 +370,10 @@ PATCHFILES += 3481-drm-rockchip-dw_hdmi_qp-Wire-up-FRL-operating-mode.patch
 PATCHFILES += 3482-drm-rockchip-dw_hdmi_qp-Wire-up-TxFFE-level-adjustme.patch
 PATCHFILES += 3483-drm-rockchip-Select-SND_SOC_HDMI_CODEC-for-ROCKCHIP_.patch
 PATCHFILES += 3484-drm-rockchip-Select-SND_SOC_HDMI_CODEC-for-ROCKCHIP_.patch
-
 # misc usbc/usbdp fixes
+# revert this to make apply 3510..3537 without errors
 PATCHFILES += 3505-revert-usb-typec-fusb302-Fix-resource-leak-when-devm_drm_dp_hpd_bridge_add-fails.patch
-
+# fixes from collabora rockchip-devel branch
 PATCHFILES += 3510-DEBUG-usb-typec-tcpm-also-log-to-dmesg.patch
 PATCHFILES += 3511-DEBUG-usb-typec-fusb302-also-log-to-dmesg.patch
 PATCHFILES += 3512-phy-rockchip-inno-usb2-add-soft-vbusvalid-control.patch
@@ -401,25 +401,6 @@ PATCHFILES += 3534-usb-typec-fusb302-rename-init_gpio-into-fusb302_init.patch
 PATCHFILES += 3535-usb-typec-fusb302-move-gpio_int_n-into-function-loca.patch
 PATCHFILES += 3536-usb-typec-fusb302-rework-gpio_int_n_irq-handling.patch
 PATCHFILES += 3537-usb-typec-fusb302-drop-custom-gpio-interrupt-logic.patch
-
-ifeq (0,1)
-# PCI fixes
-PATCHFILES += 3540-PCI-dw-rockchip-Fix-LTSSM-set-functions.patch
-PATCHFILES += 3541-PCI-dw-rockchip-Restore-vpcie3v3-regulator-handle.patch
-PATCHFILES += 3542-PCI-dw-rockchip-Move-devm_phy_get-out-of-phy_init.patch
-PATCHFILES += 3543-PCI-dw-rockchip-Add-helper-function-for-enhanced-LTS.patch
-PATCHFILES += 3544-PCI-dw-rockchip-Add-helper-function-for-controller-m.patch
-PATCHFILES += 3545-PCI-dw-rockchip-Add-helper-function-for-DDL-indicato.patch
-PATCHFILES += 3546-PCI-dw-rockchip-Add-pme_turn_off-support.patch
-PATCHFILES += 3547-PCI-dw-rockchip-Add-system-PM-support.patch
-PATCHFILES += 3548-RFC-PCI-dw-rockchip-port-some-suspend-code-from-vend.patch
-PATCHFILES += 3549-PCI-dw-rockchip-Add-phy_calibrate-to-check-PHY-lock-.patch
-PATCHFILES += 3550-phy-rockchip-snps-pcie3-Add-phy_calibrate-support.patch
-PATCHFILES += 3551-phy-rockchip-snps-pcie3-Increase-sram-init-timeout.patch
-PATCHFILES += 3552-phy-rockchip-snps-pcie3-Check-more-sram-init-status-.patch
-PATCHFILES += 3553-phy-rockchip-snps-pcie3-Only-check-PHY1-status-when-.patch
-endif
-
 # misc additions
 PATCHFILES += 3560-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
 PATCHFILES += 3561-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
