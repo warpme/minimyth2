@@ -43,7 +43,6 @@ PATCHFILES += linux-7.1-perl.patch.gar
 PATCHFILES += linux-7.1-defaults.patch
 
 ifeq (1,1)
-
 PATCHFILES += 0001-net-brcm80211-brcmfmac-pcie-stop-loading-txcap_blob-fw.patch
 
 PATCHFILES += 0108-drivers-led-add-openvfd-g6de4e217b.patch
@@ -403,6 +402,7 @@ PATCHFILES += 3535-usb-typec-fusb302-move-gpio_int_n-into-function-loca.patch
 PATCHFILES += 3536-usb-typec-fusb302-rework-gpio_int_n_irq-handling.patch
 PATCHFILES += 3537-usb-typec-fusb302-drop-custom-gpio-interrupt-logic.patch
 
+ifeq (0,1)
 # PCI fixes
 PATCHFILES += 3540-PCI-dw-rockchip-Fix-LTSSM-set-functions.patch
 PATCHFILES += 3541-PCI-dw-rockchip-Restore-vpcie3v3-regulator-handle.patch
@@ -418,6 +418,7 @@ PATCHFILES += 3550-phy-rockchip-snps-pcie3-Add-phy_calibrate-support.patch
 PATCHFILES += 3551-phy-rockchip-snps-pcie3-Increase-sram-init-timeout.patch
 PATCHFILES += 3552-phy-rockchip-snps-pcie3-Check-more-sram-init-status-.patch
 PATCHFILES += 3553-phy-rockchip-snps-pcie3-Only-check-PHY1-status-when-.patch
+endif
 
 # misc additions
 PATCHFILES += 3560-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
