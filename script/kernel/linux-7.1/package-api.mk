@@ -17,7 +17,7 @@ endif
 #-------------------------------------------
 
 #--Use this for RC mainline kernel----------
-ifeq (1,1)
+ifeq (0,1)
 LINUX_MAJOR_VERSION = 7
 LINUX_MINOR_VERSION = 1
 LINUX_TEENY_VERSION = 
@@ -26,12 +26,12 @@ endif
 #-------------------------------------------
 
 #--Use this for RC git hash snapshot of mainline kernel----------
-ifeq (0,1)
+ifeq (1,1)
 LINUX_MAJOR_VERSION = 7
 LINUX_MINOR_VERSION = 1
 LINUX_TEENY_VERSION = 
-GITHASH             = f338e77383789c0cae23ca3d48adcc5e9e137e3c
-LINUX_EXTRA_VERSION = -rc4
+GITHASH             = 4549871118cf616eecdd2d939f78e3b9e1dddc48
+LINUX_EXTRA_VERSION = -rc7
 endif
 #-------------------------------------------
 

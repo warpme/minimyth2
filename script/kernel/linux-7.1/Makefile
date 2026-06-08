@@ -1,5 +1,5 @@
 
-ifeq (1,1)
+ifeq (0,1)
 #--Use this for SCM mainline official x.y.z kernel --------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
@@ -24,7 +24,7 @@ WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 #--Use this for github given commit kernel -------------------
 MASTER_SITES       += https://github.com/torvalds/linux/archive/
 DISTFILES           = $(GITHASH).zip $(CONFIGFILE)
@@ -343,7 +343,7 @@ PATCHFILES += 3454-drm-bridge-synopsys-dw-dp-Add-audio-support.patch
 PATCHFILES += 3455-phy-hdmi-Add-optional-FRL-TxFFE-config-options.patch
 PATCHFILES += 3456-phy-rockchip-samsung-hdptx-Add-support-for-FRL-TxFFE.patch
 PATCHFILES += 3457-WIP-update-fixes-phy-rockchip-samsung-hdptx-Handle-P.patch
-PATCHFILES += 3458-DEBUG-drm-rockchip-vop2-Log-DCLK-setup.patch
+# PATCHFILES += 3458-DEBUG-drm-rockchip-vop2-Log-DCLK-setup.patch
 PATCHFILES += 3459-drm-bridge-Remove-redundant-error-check-in-drm_bridg.patch
 PATCHFILES += 3460-drm-bridge-Add-detect_ctx-hook-and-drm_bridge_detect.patch
 PATCHFILES += 3461-drm-bridge-connector-Use-cached-connector-status-in-.patch
@@ -401,6 +401,7 @@ PATCHFILES += 3534-usb-typec-fusb302-rename-init_gpio-into-fusb302_init.patch
 PATCHFILES += 3535-usb-typec-fusb302-move-gpio_int_n-into-function-loca.patch
 PATCHFILES += 3536-usb-typec-fusb302-rework-gpio_int_n_irq-handling.patch
 PATCHFILES += 3537-usb-typec-fusb302-drop-custom-gpio-interrupt-logic.patch
+PATCHFILES += 3538-usb-typec-tcpm-Fix-VDM-type-for-Enter-Mode-commands.patch
 # misc additions
 PATCHFILES += 3560-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
 PATCHFILES += 3561-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
