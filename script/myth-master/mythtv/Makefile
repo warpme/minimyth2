@@ -11,6 +11,9 @@ DISTFILES    = $(MYTHTV_GIT_HASH).zip
 include ../../minimyth.conf.mk
 
 PATCHFILES  =
+
+PATCHFILES += 0000-revert-21372c20d98bd1.patch
+
 PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
 PATCHFILES += 0000-cmake-stop-checking-libx264.patch
 PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch

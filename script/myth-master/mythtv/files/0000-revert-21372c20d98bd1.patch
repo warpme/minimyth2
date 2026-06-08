@@ -1,0 +1,689 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/AirPlay/mythairplayserver.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/AirPlay/mythairplayserver.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/AirPlay/mythairplayserver.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/AirPlay/mythairplayserver.cpp	2026-06-07 13:16:27.102367301 +0200
+@@ -3,7 +3,6 @@
+ // race on startup?
+ // http date format and locale
+ 
+-#include <algorithm>
+ #include <chrono>
+ #include <vector>
+ 
+@@ -210,8 +209,6 @@
+     return hash.result().toHex();
+ }
+ 
+-using RequestQuery = QPair<QByteArray, QByteArray>;
+-
+ class APHTTPRequest
+ {
+   public:
+@@ -236,8 +233,8 @@
+ 
+     QByteArray GetQueryValue(const QByteArray& key)
+     {
+-        auto query = std::ranges::find(std::as_const(m_queries), key,
+-                                       &RequestQuery::first);
++        auto samekey = [key](const auto& query) { return query.first == key; };;
++        auto query = std::find_if(m_queries.cbegin(), m_queries.cend(), samekey);
+         return (query != m_queries.cend()) ? query->second : "";
+     }
+ 
+@@ -345,7 +342,7 @@
+     QByteArray m_data;
+     QByteArray m_method;
+     QByteArray m_uri;
+-    QList<RequestQuery> m_queries;
++    QList<QPair<QByteArray, QByteArray> > m_queries;
+     QMap<QByteArray,QByteArray> m_headers;
+     QByteArray m_body;
+     int        m_size            {0};
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/captions/cc608decoder.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/captions/cc608decoder.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/captions/cc608decoder.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/captions/cc608decoder.cpp	2026-06-07 13:16:27.102706441 +0200
+@@ -1062,7 +1062,7 @@
+             return true;
+ 
+         // check if the string contains any bogus characters
+-        return std::ranges::all_of(std::as_const(newStr),
++        return std::all_of(newStr.cbegin(), newStr.cend(),
+                            [](auto ch){ return ch.toLatin1() >= 0x20; } );
+     }
+     return false;
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelgroup.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelgroup.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelgroup.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelgroup.cpp	2026-06-07 13:16:27.102803641 +0200
+@@ -345,7 +345,7 @@
+     if (grpid == -1)
+       return sorted[0].m_grpId;
+ 
+-    auto it = std::ranges::find(sorted, grpid, &ChannelGroupItem::m_grpId);
++    auto it = std::find(sorted.cbegin(), sorted.cend(), grpid);
+ 
+     // If grpid is not in the list, return -1 for "All Channels"
+     if (it == sorted.end())
+@@ -362,7 +362,7 @@
+ 
+ bool ChannelGroup::InChannelGroupList(const ChannelGroupList &groupList, int grpid)
+ {
+-    auto it = std::ranges::find(groupList, grpid, &ChannelGroupItem::m_grpId);
++    auto it = std::find(groupList.cbegin(), groupList.cend(), grpid);
+     return it != groupList.end();
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/channelimporter.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/channelimporter.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/channelimporter.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/channelimporter.cpp	2026-06-07 13:16:27.102922162 +0200
+@@ -7,9 +7,9 @@
+  */
+ 
+ // C++ includes
+-#include <algorithm>
+ #include <iostream>
+ #include <utility>
++#include <algorithm>
+ 
+ // Qt includes
+ #include <QTextStream>
+@@ -255,7 +255,7 @@
+     if (m_doDelete)
+     {
+         ScanDTVTransportList trans = transports;
+-        std::ranges::copy(db_trans, std::back_inserter(trans));
++        std::copy(db_trans.cbegin(), db_trans.cend(), std::back_inserter(trans));
+         uint deleted_count = DeleteChannels(trans);
+         if (deleted_count)
+             transports = trans;
+@@ -1695,7 +1695,7 @@
+         }
+     };
+     ScanDTVTransportList transports(transports_in);
+-    std::ranges::sort(transports, less_than_key());
++    std::sort(transports.begin(), transports.end(), less_than_key());
+ 
+     QString msg;
+ 
+@@ -1734,7 +1734,7 @@
+         }
+     };
+     ScanDTVTransportList transports(transports_in);
+-    std::ranges::sort(transports, less_than_key());
++    std::sort(transports.begin(), transports.end(), less_than_key());
+ 
+     auto fmt_trans = [](const QString& msg, const auto & transport)
+         { return msg + FormatTransport(transport) + "\n"; };
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/externrecscanner.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/externrecscanner.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/externrecscanner.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/externrecscanner.cpp	2026-06-07 13:16:27.103030702 +0200
+@@ -1,7 +1,6 @@
+ // -*- Mode: c++ -*-
+ 
+ // Std C headers
+-#include <algorithm>
+ #include <cmath>
+ #include <unistd.h>
+ #include <utility>
+@@ -191,7 +190,7 @@
+ 
+         SetNumChannelsInserted(cnt);
+ 
+-        Iold = std::ranges::find(existing, chanid);
++        Iold = std::find(existing.begin(), existing.end(), chanid);
+         if (Iold != existing.end())
+         {
+             existing.erase(Iold);
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/iptvchannelfetcher.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/iptvchannelfetcher.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/iptvchannelfetcher.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelscan/iptvchannelfetcher.cpp	2026-06-07 13:16:27.103089742 +0200
+@@ -1,7 +1,6 @@
+ // -*- Mode: c++ -*-
+ 
+ // Std C headers
+-#include <algorithm>
+ #include <cmath>
+ #include <unistd.h>
+ #include <utility>
+@@ -212,7 +211,7 @@
+             {
+                 acno[i] = it;
+             }
+-            std::ranges::sort(acno,
++            std::sort(acno.begin(), acno.end(),
+                 [] (fbox_chan_map_t::const_iterator s1, fbox_chan_map_t::const_iterator s2) -> bool
+                 {
+                     return s1.key().toInt() < s2.key().toInt();
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelutil.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelutil.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelutil.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/channelutil.cpp	2026-06-07 13:16:27.103195202 +0200
+@@ -878,7 +878,7 @@
+         if ((pid >= 0) && (tid >= 0))
+             pid_cache.emplace_back(pid, tid);
+     }
+-    std::ranges::stable_sort(pid_cache, lt_pidcache);
++    stable_sort(pid_cache.begin(), pid_cache.end(), lt_pidcache);
+ 
+     return true;
+ }
+@@ -916,7 +916,7 @@
+     pid_cache_t old_cache;
+     GetCachedPids(chanid, old_cache);
+     pid_cache_t pid_cache = _pid_cache;
+-    std::ranges::stable_sort(pid_cache, lt_pidcache);
++    stable_sort(pid_cache.begin(), pid_cache.end(), lt_pidcache);
+ 
+     /// insert
+     query.prepare(
+@@ -2343,9 +2343,9 @@
+ {
+     bool cs = order.toLower() == "callsign";
+     if (cs)
+-        std::ranges::stable_sort(list, lt_callsign);
++        stable_sort(list.begin(), list.end(), lt_callsign);
+     else /* if (sortorder == "channum") */
+-        std::ranges::stable_sort(list, lt_smart);
++        stable_sort(list.begin(), list.end(), lt_smart);
+ 
+     if (eliminate_duplicates && !list.empty())
+     {
+@@ -2404,8 +2404,7 @@
+         {
+             if (it != l.begin())
+                 return --it;
+-            it = std::ranges::find(l, l.rbegin()->m_chanId,
+-                                   &ChannelInfo::m_chanId);
++            it = find(l.begin(), l.end(), l.rbegin()->m_chanId);
+             if (it == l.end())
+                 return --it;
+             return it;
+@@ -2432,7 +2431,7 @@
+     if (sorted.empty())
+         return 0; // no channels..
+ 
+-    auto it = std::ranges::find(sorted, old_chanid, &ChannelInfo::m_chanId);
++    auto it = find(sorted.cbegin(), sorted.cend(), old_chanid);
+     if (it == sorted.end())
+         it = sorted.begin(); // not in list, pretend we are on first channel
+ 
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/diseqc.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/diseqc.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/diseqc.cpp	2026-06-07 13:16:54.352560670 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/diseqc.cpp	2026-06-07 13:16:27.103358092 +0200
+@@ -5,7 +5,6 @@
+  */
+ 
+ // Std C headers
+-#include <algorithm>
+ #include <cstring>
+ #include <cmath>
+ #include <thread>
+@@ -705,7 +704,7 @@
+     mcmd.msg_len = data.size() + 3;
+ 
+     if (!data.empty())
+-        std::ranges::copy(data, mcmd.msg + 3);
++        std::copy(data.cbegin(), data.cend(), mcmd.msg + 3);
+ 
+     // diagnostic
+     QString cmdstr;
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/dtvconfparserhelpers.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/dtvconfparserhelpers.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/dtvconfparserhelpers.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/dtvconfparserhelpers.cpp	2026-06-07 13:16:27.103470102 +0200
+@@ -1,7 +1,6 @@
+ 
+ #include <QMutex>
+ #include <QMap>
+-#include <algorithm>
+ 
+ #include "libmythbase/mythlogging.h"
+ #include "dtvconfparserhelpers.h"
+@@ -9,8 +8,10 @@
+ bool DTVParamHelper::ParseParam(const QString &symbol, int &value,
+                                 const DTVParamHelperVec &table)
+ {
+-    auto it = std::ranges::find(table, symbol, &DTVParamHelperStruct::symbol);
+-    if (it == table.end())
++    auto it = std::find_if(table.cbegin(), table.cend(),
++                           [symbol](const auto& item) -> bool
++                               {return item.symbol == symbol;});
++    if (it == table.cend())
+         return false;
+ 
+     value = it->value;
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/DVD/mythdvdbuffer.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/DVD/mythdvdbuffer.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/DVD/mythdvdbuffer.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/DVD/mythdvdbuffer.cpp	2026-06-07 13:16:27.102556071 +0200
+@@ -376,7 +376,7 @@
+     if (!m_chapterMap.contains(m_title))
+         return;
+     const QList<std::chrono::seconds>& chapters = m_chapterMap.value(m_title);
+-    std::ranges::copy(std::as_const(chapters), std::back_inserter(Times));
++    std::copy(chapters.cbegin(), chapters.cend(), std::back_inserter(Times));
+ }
+ 
+ static constexpr mpeg::chrono::pts HALFSECOND { 45000_pts };
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/io/httplivestreambuffer.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/io/httplivestreambuffer.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/io/httplivestreambuffer.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/io/httplivestreambuffer.cpp	2026-06-07 13:16:27.103577402 +0200
+@@ -390,7 +390,7 @@
+         }
+         else
+         {
+-            std::ranges::copy(std::as_const(IV), iv.begin());
++            std::copy(IV.cbegin(), IV.cend(), iv.begin());
+         }
+ 
+         int aeslen = m_data.size() & ~0xf;
+@@ -901,7 +901,7 @@
+ #endif
+         QByteArray ba = QByteArray(padding, 0x0);
+         ba.append(QByteArray::fromHex(QByteArray(line.toLatin1().constData() + 2)));
+-        std::ranges::copy(std::as_const(ba), m_aesIv.begin());
++        std::copy(ba.cbegin(), ba.cend(), m_aesIv.begin());
+         m_ivloaded = true;
+         return true;
+     }
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/io/mythfilebuffer.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/io/mythfilebuffer.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/io/mythfilebuffer.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/io/mythfilebuffer.cpp	2026-06-07 13:16:27.103703612 +0200
+@@ -1,4 +1,3 @@
+-#include <algorithm>
+ #include <thread>
+ 
+ // QT
+@@ -129,9 +128,10 @@
+ 
+ static bool IsSubtitlePossible(const QString &Extension)
+ {
+-    return std::ranges::any_of(std::as_const(kSubExtNoCheck),
++    auto it = std::find_if(kSubExtNoCheck.cbegin(), kSubExtNoCheck.cend(),
+                            [Extension] (const QString& ext) -> bool
+                                {return ext.contains(Extension);});
++    return (it != nullptr);
+ }
+ 
+ static QString LocalSubtitleFilename(QFileInfo &FileInfo)
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/jitterometer.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/jitterometer.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/jitterometer.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/jitterometer.cpp	2026-06-07 13:16:27.103759212 +0200
+@@ -4,7 +4,6 @@
+ #include "jitterometer.h"
+ 
+ // Std
+-#include <algorithm>
+ #include <array>
+ #include <cmath>
+ #include <cstdlib>
+@@ -184,7 +183,7 @@
+                 float total = load + stats[3] - m_lastStats[ptr + 3];
+                 if (total > 0)
+                     result += QString("%1% ").arg(load / total * 100, 0, 'f', 0);
+-                std::ranges::copy(stats, &m_lastStats[ptr]);
++                std::copy(stats.cbegin(), stats.cend(), &m_lastStats[ptr]);
+             }
+             line = m_cpuStat->readLine(256);
+             cores++;
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mheg/dsmcc.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mheg/dsmcc.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mheg/dsmcc.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mheg/dsmcc.cpp	2026-06-07 13:16:27.103810312 +0200
+@@ -2,7 +2,6 @@
+  *  Copyright (C) David C.J. Matthews 2005, 2006
+  *     Derived from libdsmcc by Richard Palmer
+  */
+-#include <algorithm>
+ #include <cstdint>
+ 
+ #include "libmythbase/mythlogging.h"
+@@ -43,8 +42,10 @@
+  */
+ ObjCarousel *Dsmcc::GetCarouselById(unsigned int carouselId)
+ {
+-    auto it = std::ranges::find(m_carousels, carouselId, &ObjCarousel::m_id);
+-    if (it != m_carousels.end())
++    auto it = std::find_if(m_carousels.cbegin(), m_carousels.cend(),
++                           [carouselId](ObjCarousel const * const car) -> bool
++                               { return car->m_id == carouselId; });
++    if (it != m_carousels.cend())
+         return *it;
+     return nullptr;
+ }
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mheg/netstream.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mheg/netstream.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mheg/netstream.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mheg/netstream.cpp	2026-06-07 13:16:27.103877832 +0200
+@@ -925,7 +925,7 @@
+ bool NAMThread::isAvailable()
+ {
+     auto interfaces = QNetworkInterface::allInterfaces();
+-    return std::ranges::any_of(interfaces,
++    return std::any_of(interfaces.begin(), interfaces.end(),
+ 		       [](const QNetworkInterface& iface)
+ 			   {
+                                auto f = iface.flags();
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mythframe.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mythframe.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mythframe.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mythframe.cpp	2026-06-07 13:16:27.103945632 +0200
+@@ -1,10 +1,6 @@
+-// C++ headers
+-#include <algorithm>
+-
+ // MythTV
+ #include "libmythbase/mythlogging.h"
+ #include "mythframe.h"
+-
+ #include "mythvideoprofile.h"
+ 
+ // FFmpeg - for av_malloc/av_free
+@@ -66,7 +62,7 @@
+         return;
+     }
+ 
+-    if (std::ranges::any_of(std::as_const(m_priv), [](const uint8_t* P) { return P != nullptr; }))
++    if (std::any_of(m_priv.cbegin(), m_priv.cend(), [](const uint8_t* P) { return P != nullptr; }))
+     {
+         LOG(VB_GENERAL, LOG_ERR, LOC + "Priv buffers are set (hardware frame?). Ignoring Init");
+         return;
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mythtvactionutils.h mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mythtvactionutils.h
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mythtvactionutils.h	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/mythtvactionutils.h	2026-06-07 13:16:27.103987662 +0200
+@@ -1,9 +1,6 @@
+ #ifndef MYTHTVACTIONUTILS_H
+ #define MYTHTVACTIONUTILS_H
+ 
+-// C++ headers
+-#include <algorithm>
+-
+ // MythTV
+ #include "tv_actions.h"
+ #include "videoouttypes.h"
+@@ -15,7 +12,7 @@
+ 
+ inline bool IsActionable(const QStringList& Action, const QStringList& Actions)
+ {
+-    return std::ranges::any_of(std::as_const(Action),
++    return std::any_of(Action.cbegin(), Action.cend(),
+                        [&](const QString& A) { return Actions.contains(A); });
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/opengl/mythopenglvideo.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/opengl/mythopenglvideo.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/opengl/mythopenglvideo.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/opengl/mythopenglvideo.cpp	2026-06-07 13:16:27.104054892 +0200
+@@ -1,5 +1,4 @@
+ // std
+-#include <algorithm>
+ #include <utility>
+ 
+ // Qt
+@@ -1062,7 +1061,7 @@
+         }
+     }
+ 
+-    std::ranges::transform(Current, std::back_inserter(Textures),
++    std::transform(Current.cbegin(), Current.cend(), std::back_inserter(Textures),
+                    [](MythVideoTextureOpenGL* Tex) { return reinterpret_cast<MythGLTexture*>(Tex); });
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/osd.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/osd.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/osd.cpp	2026-06-07 13:16:55.189737219 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/osd.cpp	2026-06-07 13:16:27.104136332 +0200
+@@ -1,5 +1,4 @@
+-// C++ headers
+-#include <algorithm>
++// Qt
+ #include <utility>
+ 
+ // libmythbase
+@@ -89,7 +88,7 @@
+         return;
+     }
+ 
+-    Visible = std::ranges::any_of(std::as_const(m_children),
++    Visible = std::any_of(m_children.cbegin(), m_children.cend(),
+                 [](MythScreenType* child) { return child->IsVisible(); });
+ }
+ 
+@@ -752,7 +751,7 @@
+ void OSD::ShowDialog(const MythOSDDialogData& Data)
+ {
+     DialogShow(Data.m_dialogName, Data.m_message, Data.m_timeout);
+-    std::ranges::for_each(Data.m_buttons,
++    std::for_each(Data.m_buttons.cbegin(), Data.m_buttons.cend(),
+         [this](const MythOSDDialogData::MythOSDDialogButton& B) {
+             DialogAddButton(B.m_text, B.m_data, B.m_menu, B.m_current); });
+     DialogBack(Data.m_back.m_text, Data.m_back.m_data, Data.m_back.m_exit);
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/programdata.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/programdata.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/programdata.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/programdata.cpp	2026-06-07 13:16:27.104228902 +0200
+@@ -1457,7 +1457,7 @@
+     bool ok = true;
+     auto cleardata = [&](uint chanid)
+         { ok &= ClearDataByChannel(chanid, from, to, use_channel_time_offset); };
+-    std::ranges::for_each(chanids, cleardata);
++    std::for_each(chanids.cbegin(), chanids.cend(), cleardata);
+     return ok;
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/signalmonitorvalue.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/signalmonitorvalue.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/signalmonitorvalue.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/signalmonitorvalue.cpp	2026-06-07 13:16:27.104323852 +0200
+@@ -176,7 +176,7 @@
+ bool SignalMonitorValue::AllGood(const SignalMonitorList& slist)
+ {
+     auto isgood = [](const auto & smv){ return smv.IsGood(); };
+-    bool good = std::ranges::all_of(slist, isgood);
++    bool good = std::all_of(slist.cbegin(), slist.cend(), isgood);
+ #if DEBUG_SIGNAL_MONITOR_VALUE
+     if (!good)
+     {
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/sourceutil.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/sourceutil.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/sourceutil.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/sourceutil.cpp	2026-06-07 13:16:27.104372592 +0200
+@@ -1,8 +1,5 @@
+ // -*- Mode: c++ -*-
+ 
+-// C++ headers
+-#include <algorithm>
+-
+ // Qt Headers
+ #include <QRegularExpression>
+ 
+@@ -312,7 +309,7 @@
+ {
+     QStringList types = get_inputtypes(sourceid);
+     auto isencoder = [](const auto & type){ return CardUtil::IsEncoder(type); };
+-    bool encoder = std::ranges::all_of(std::as_const(types), isencoder);
++    bool encoder = std::all_of(types.cbegin(), types.cend(), isencoder);
+ 
+     // Source is connected, go by input types for type determination
+     if (!types.empty())
+@@ -348,7 +345,7 @@
+     if (types.empty())
+         return true;
+     auto unscannable = [](const auto & type) { return CardUtil::IsUnscanable(type); };
+-    return std::ranges::all_of(std::as_const(types), unscannable);
++    return std::all_of(types.cbegin(), types.cend(), unscannable);
+ }
+ 
+ bool SourceUtil::IsCableCardPresent(uint sourceid)
+@@ -357,7 +354,7 @@
+     auto ccpresent = [](uint input)
+         { return CardUtil::IsCableCardPresent(input, CardUtil::GetRawInputType(input)) ||
+                  CardUtil::GetRawInputType(input) == "HDHOMERUN"; };
+-    return std::ranges::any_of(std::as_const(inputs), ccpresent);
++    return std::any_of(inputs.cbegin(), inputs.cend(), ccpresent);
+ }
+ 
+ bool SourceUtil::IsAnySourceScanable(void)
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/test/test_frequencies/test_frequencies.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/test/test_frequencies/test_frequencies.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/test/test_frequencies/test_frequencies.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/test/test_frequencies/test_frequencies.cpp	2026-06-07 13:16:27.104426422 +0200
+@@ -17,7 +17,6 @@
+  *   along with this program; if not, write to the Free Software
+  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+  */
+-#include <algorithm>
+ #include <iostream>
+ #include <string>
+ #include "test_frequencies.h"
+@@ -42,7 +41,9 @@
+     QFETCH(bool, expected);
+ 
+     std::string country2 = country.toStdString();
+-    auto it = std::ranges::find(gChanLists, country2, &CHANLISTS::name);
++    auto it = std::find_if(gChanLists.cbegin(),gChanLists.cend(),
++                           [country2] (const CHANLISTS &chanlist) -> bool
++                               { return country2 == chanlist.name; });
+     QCOMPARE(it != gChanLists.end(), expected);
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tvbrowsehelper.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tvbrowsehelper.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tvbrowsehelper.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tvbrowsehelper.cpp	2026-06-07 13:16:27.105101253 +0200
+@@ -1,6 +1,3 @@
+-// C++ headers
+-#include <algorithm>
+-
+ // Qt
+ #include <QCoreApplication>
+ 
+@@ -218,7 +215,7 @@
+     {
+         auto samesourceid = [&Channum, &PrefSourceid](const ChannelInfo& Chan)
+             { return Chan.m_sourceId == PrefSourceid && Chan.m_chanNum == Channum; };
+-        auto chan = std::ranges::find_if(std::as_const(m_dbAllChannels), samesourceid);
++        auto chan = std::find_if(m_dbAllChannels.cbegin(), m_dbAllChannels.cend(), samesourceid);
+         if (chan != m_dbAllChannels.cend())
+             return chan->m_chanId;
+     }
+@@ -227,15 +224,15 @@
+     {
+         auto prefcardid = [&Channum, &PrefCardid](const ChannelInfo& Chan)
+             { return Chan.GetInputIds().contains(PrefCardid) && Chan.m_chanNum == Channum; };
+-        auto chan = std::ranges::find_if(std::as_const(m_dbAllChannels), prefcardid);
++        auto chan = std::find_if(m_dbAllChannels.cbegin(), m_dbAllChannels.cend(), prefcardid);
+         if (chan != m_dbAllChannels.cend())
+             return chan->m_chanId;
+     }
+ 
+     if (m_dbBrowseAllTuners)
+     {
+-        auto chan = std::ranges::find(std::as_const(m_dbAllChannels), Channum,
+-                                      &ChannelInfo::m_chanNum);
++        auto channelmatch = [&Channum](const ChannelInfo& Chan) { return Chan.m_chanNum == Channum; };
++        auto chan = std::find_if(m_dbAllChannels.cbegin(), m_dbAllChannels.cend(), channelmatch);
+         if (chan != m_dbAllChannels.cend())
+             return chan->m_chanId;
+     }
+@@ -504,7 +501,7 @@
+             if (!chanids.empty())
+             {
+                 auto tunable = [](uint chanid) { return TV::IsTunable(chanid); };
+-                auto it = std::ranges::find_if(std::as_const(chanids), tunable);
++                auto it = std::find_if(chanids.cbegin(), chanids.cend(), tunable);
+                 if (it != chanids.cend())
+                 {
+                     infoMap["chanid"] = QString::number(*it);
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tv_play.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tv_play.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tv_play.cpp	2026-06-07 13:16:54.653544664 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tv_play.cpp	2026-06-07 13:16:27.104774112 +0200
+@@ -1725,12 +1725,8 @@
+ 
+             for (uint grp : input_grps)
+             {
+-#ifdef __cpp_lib_ranges_contains
+-                if (std::ranges::contains(busy_input_grps, grp))
+-#else
+-                if (std::ranges::find(busy_input_grps,
++                if (find(busy_input_grps.begin(), busy_input_grps.end(),
+                          grp) !=  busy_input_grps.end())
+-#endif
+                 {
+                     (*it).m_isInSameInputGroup = true;
+                     break;
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tvremoteutil.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tvremoteutil.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tvremoteutil.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/tvremoteutil.cpp	2026-06-07 13:16:27.105161893 +0200
+@@ -1,4 +1,3 @@
+-#include <algorithm>
+ #include <chrono> // for milliseconds
+ #include <thread> // for sleep_for
+ 
+@@ -236,7 +235,7 @@
+         RemoteRequestFreeInputInfo(excluded_input);
+ 
+     std::vector<uint> inputids;
+-    std::ranges::transform(inputs, std::back_inserter(inputids),
++    std::transform(inputs.cbegin(), inputs.cend(), std::back_inserter(inputids),
+                    [](const auto & input){ return input.m_inputId; } );
+ 
+     LOG(VB_CHANNEL, LOG_INFO,
+@@ -254,7 +253,7 @@
+         RemoteRequestFreeInputInfo(excluded_input);
+ 
+     std::vector<uint> inputids;
+-    std::ranges::transform(inputs, std::back_inserter(inputids),
++    std::transform(inputs.cbegin(), inputs.cend(), std::back_inserter(inputids),
+                    [](const auto & input){ return input.m_inputId; } );
+ 
+     LOG(VB_CHANNEL, LOG_INFO,
+@@ -275,12 +274,8 @@
+     for (const auto & recorder : std::as_const(qualifiedRecorders))
+     {
+         uint inputid = recorder.toUInt();
+-#ifdef __cpp_lib_ranges_contains
+-        if (std::ranges::contains(inputs, inputid, &InputInfo::m_inputId))
+-#else
+         auto sameinput = [inputid](const auto & input){ return input.m_inputId == inputid; };
+-        if (std::ranges::any_of(inputs, sameinput))
+-#endif
++        if (std::any_of(inputs.cbegin(), inputs.cend(), sameinput))
+         {
+             LOG(VB_CHANNEL, LOG_INFO,
+                 QString("RemoteRequestFreeRecorderFromList got input %1")
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/videosource.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/videosource.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/videosource.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/videosource.cpp	2026-06-07 13:16:27.105393553 +0200
+@@ -1210,12 +1210,7 @@
+ 
+         // Add current if needed
+         if (!current.isEmpty() &&
+-#ifdef __cpp_lib_ranges_contains
+-            !std::ranges::contains(sdevs, current)
+-#else
+-            (std::ranges::find(sdevs, current) == sdevs.end())
+-#endif
+-            )
++            (std::find(sdevs.begin(), sdevs.end(), current) == sdevs.end()))
+         {
+             // QList doesn't always play well with std::ranges
+             // NOLINTNEXTLINE(modernize-use-ranges)
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/visualisations/goom/goom_core.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/visualisations/goom/goom_core.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/visualisations/goom/goom_core.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/visualisations/goom/goom_core.cpp	2026-06-07 13:16:27.105561753 +0200
+@@ -412,7 +412,7 @@
+                             { return (s_rndn >= state.m_rangeMin) &&
+                                      (s_rndn <= state.m_rangeMax); };
+                         const auto *it =
+-                            std::ranges::find_if(std::as_const(kStates), goodstate);
++                            std::find_if(kStates.cbegin(), kStates.cend(), goodstate);
+                         if (it != kStates.cend())
+                             curGState = &(*it);
+ 
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/visualisations/videovisualspectrum.cpp mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/visualisations/videovisualspectrum.cpp
+--- mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/visualisations/videovisualspectrum.cpp	2026-06-06 18:22:12.000000000 +0200
++++ mythtv-2ca1ccdf453ea57452979d631bdb40ad477b0b2e/mythtv/libs/libmythtv/visualisations/videovisualspectrum.cpp	2026-06-07 13:16:27.105628553 +0200
+@@ -116,7 +116,7 @@
+ 
+ void VideoVisualSpectrum::prepare()
+ {
+-    std::ranges::fill(m_magnitudes, 0.0);
++    std::fill(m_magnitudes.begin(), m_magnitudes.end(), 0.0);
+     VideoVisual::prepare();
+ }
+ 
+@@ -148,7 +148,7 @@
+     m_scale.setMax(192, m_area.width() / m_barWidth);
+ 
+     m_magnitudes.resize(m_scale.range() * 2);
+-    std::ranges::fill(m_magnitudes, 0.0);
++    std::fill(m_magnitudes.begin(), m_magnitudes.end(), 0.0);
+     InitialisePriv();
+     return true;
+ }
