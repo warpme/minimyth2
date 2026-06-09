@@ -11,9 +11,6 @@ DISTFILES    = $(MYTHTV_GIT_HASH).zip
 include ../../minimyth.conf.mk
 
 PATCHFILES  =
-
-PATCHFILES += 0000-revert-21372c20d98bd1.patch
-
 PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
 PATCHFILES += 0000-cmake-stop-checking-libx264.patch
 PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
@@ -276,9 +273,7 @@ CONFIGURE_ARGS = \
 	--host-ldflags="$(build_LDFLAGS)" \
 	--extra-cflags="$(CFLAGS)" \
 	--extra-cxxflags="$(CXXFLAGS)" \
-	$(if $(filter qt6,$(mm_QT_VERSION)), \
-		--extra-ldflags="$(LDFLAGS) -Wl$(comma)-rpath-link$(comma)$(DESTDIR)$(qt6libdir)", \
-		--extra-ldflags="$(LDFLAGS)") \
+	--extra-ldflags="$(LDFLAGS)" \
 	--enable-symbol-visibility \
 	--arch=$(GARCH_FAMILY) \
 	--disable-altivec \
@@ -469,6 +464,13 @@ pre-configure:
 	@echo 'BRANCH="$(MYTHTV_GARVERSION_SHORT)"' > $(WORKSRC)/mythtv/DESCRIBE
 	@echo 'SOURCE_VERSION="$(MYTHTV_GIT_VERSION)"' >> $(WORKSRC)/mythtv/DESCRIBE
 	@cd $(WORKSRC)/mythtv; ./version.sh ./
+	@# solution of chicken-and-egg problem of distro ffmpeg which is mythffmpeg.
+	@# libQt6WebEngineCore.so.6 also uses mythffmpeg. mythtv build needs libavcodec at linking
+	@# stage, but mythffmpeg liba are not there yet. As workarround: install mainline ffmpeg
+	@# libs before building mythv and replace them to mythffmpeg after myth install (in
+	@# post-install rule)
+	@ echo "installing ffmpeg8.1 as libQt6WebEngineCore.so.6 needs it at myth linking stage ..."
+	@$(MAKE) -C ../../lib/ffmpeg8.1 reinstall
 	@$(MAKECOOKIE)
 
 post-configure:
@@ -483,6 +485,7 @@ pre-install: post-configure
 post-install:
 	@$(MAKE) -C ../mythplugins install
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
+	@$(MAKE) -C ../../lib/ffmpeg reinstall
 	@$(MAKECOOKIE)
 
 clean-all:
