@@ -1,5 +1,5 @@
 
-ifeq (0,1)
+ifeq (1,1)
 #--Use this for SCM mainline official x.y.z kernel --------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
@@ -24,7 +24,7 @@ WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 #--Use this for github given commit kernel -------------------
 MASTER_SITES       += https://github.com/torvalds/linux/archive/
 DISTFILES           = $(GITHASH).zip $(CONFIGFILE)
@@ -423,6 +423,9 @@ PATCHFILES += 3607-arm64-dtsi-rk3588s-increas-vop-clk.patch
 PATCHFILES += 3608-arm64-dtsi-rk3588-enable-dp0-dp1-audio-support.patch
 # PATCHFILES += 3609-arm64-dtsi-rockchip-disable-vpu121.patch
 PATCHFILES += 3610-arm64-dtsi-rockchip-rk3576-enable-dwc3simple-for-usb-boot.patch
+PATCHFILES += 3611-arm64-dtsi-rk3588-add-av1-iommu-nodes.patch
+PATCHFILES += 3612-arm64-dtsi-rk3576-add-DP-sound-nodes.patch
+
 # rk35xx board dts additions
 PATCHFILES += 3700-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
 PATCHFILES += 3701-arm64-dts-rockchip-add-dts-for-x96-x6.patch
@@ -452,6 +455,13 @@ PATCHFILES += 3724-arm64-dts-rockchip-rk3588-rock5b-t-wip-typec-dp-support.patch
 PATCHFILES += 3725-arm64-dts-add-nanopi-m5-dts-improvements.patch
 PATCHFILES += 3726-arm64-dts-rock4d-improvements.patch
 PATCHFILES += 3727-arm64-dts-add-rk3576-nanopi-r76s-dt.patch
+PATCHFILES += 3728-arm64-dts-rk3576-boards-add-frl-enable-gpios.patch
+PATCHFILES += 3729-arm64-dts-rk3588-boards-add-frl-enable-gpios.patch
+PATCHFILES += 3730-arm64-dts-rk3588s-boards-add-frl-enable-gpios.patch
+PATCHFILES += 3731-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-NanoPC-T6.patch
+PATCHFILES += 3732-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-Radxa-ROCK-5b5t.patch
+PATCHFILES += 3733-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-Radxa-ROCK-5-itx.patch
+PATCHFILES += 3738-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-orangepi-5-plus.patch
 endif
 #------------------------------------------------------------
 
