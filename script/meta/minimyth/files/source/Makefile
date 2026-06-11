@@ -1159,23 +1159,28 @@ install: build
 				rm -rf   $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)            ; \
 				rm -rf   $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)             ; \
 				                                                                        \
-				echo '  copying kernel & boot files'                                  ; \
 				mkdir -p $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)            ; \
+				mkdir -p $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)             ; \
+				                                                                        \
+				echo '  copying rootfs'                                               ; \
+				tar -I $(lbzip2) -xf $(top_build)/stage/rootfs.tar.bz2 -C               \
+				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)                    ; \
+				                                                                        \
+				echo '  copying kernel & boot files'                                  ; \
 				if [  $(mm_GARCH_FAMILY) = arm ] ; then                                 \
 				        cp -a  $(top_build)/stage/boot                                  \
-				          $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/          ; \
+				               $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/     ; \
+				        ln -srf $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/boot \
+				                $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs/rootfs-ro/ ; \
 				elif [  $(mm_GARCH_FAMILY) = arm64 ] ; then                             \
 				        cp -a  $(top_build)/stage/boot                                  \
-				          $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/          ; \
+				               $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/    ;  \
+				        ln -srf $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/boot \
+				                $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs/rootfs-ro/ ; \
 				else                                                                    \
 				        cp -a  $(top_build)/stage/kernel                                \
 				          $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/kernel    ; \
 				fi                                                                    ; \
-				                                                                        \
-				echo '  copying rootfs'                                               ; \
-				mkdir -p $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)             ; \
-				tar -I $(lbzip2) -xf $(top_build)/stage/rootfs.tar.bz2 -C               \
-				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)                    ; \
 				                                                                        \
 				echo '  copying extras'                                               ; \
 				mkdir -p $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras      ; \
