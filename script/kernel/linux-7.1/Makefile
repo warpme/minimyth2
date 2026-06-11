@@ -412,6 +412,7 @@ PATCHFILES += 3565-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 PATCHFILES += 3566-media-v4l2-core-Initialize-h264-frame_mbs_only_flag-as-1.patch
 PATCHFILES += 3567-media-verisilicon-AV1-Restore-IOMMU-context-before-d.patch
 PATCHFILES += 3568-mfd-khadas-mcu-add-edge2-support.patch
+PATCHFILES += 3569-media-rkvdec-prime-VDPU383-deblock-warmup-rk3576.patch
 # rk35xx dtsi additions
 PATCHFILES += 3600-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 3601-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
