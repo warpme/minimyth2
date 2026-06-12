@@ -364,6 +364,10 @@ ifneq (,$(filter board-qcs6490.dragon_q6a,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-qcs6490.dragon_q6a
 endif
 
+ifneq (,$(filter board-sc8280.dragon_q8b,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-sc8280.dragon_q8b
+endif
+
 clean-custom: clean-bootloader cookieclean downloadclean
 
 clean-bootloader: cookieclean downloadclean
