@@ -76,6 +76,7 @@ DISTFILES    = \
 	board-sm1.tanix_tx5_plus.conf \
 	board-sm1.tanix_tx5_plus.wks \
 	board-qcs6490.dragon_q6a.conf \
+	board-sc8280.dragon_q8b.conf \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
