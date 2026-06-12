@@ -487,6 +487,7 @@ mm-all:
 		   [ ! "$${board}" = "board-a311d2.vim4"          ] && \
 		   [ ! "$${board}" = "board-g12a.radxa_zero"      ] && \
 		   [ ! "$${board}" = "board-qcs6490.dragon_q6a"   ] && \
+		   [ ! "$${board}" = "board-sc8280.dragon_q8b"    ] && \
 		   [ ! "$${board}" = "board-x86pc.bios"           ] && \
 		   [ ! "$${board}" = "board-x86pc.bios_efi64"     ] && \
 		   [ ! "$${board}" = "board-x86pc.efi64"          ] ; then \
