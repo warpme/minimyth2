@@ -1,6 +1,6 @@
 
 GARNAME      = acpid
-GARVERSION   = 2.0.32
+GARVERSION   = 2.0.34
 CATEGORIES   = system
 MASTER_SITES = http://downloads.sourceforge.net/project/acpid2/
 DISTFILES    = $(DISTNAME).tar.xz
