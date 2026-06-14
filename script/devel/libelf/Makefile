@@ -26,8 +26,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-CFLAGS   += -Wno-all
-LDFLAGS  += -Wno-all
+CFLAGS   += -Wno-all -Wno-null-dereference
+LDFLAGS  += -Wno-all -Wno-null-dereference
 
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
