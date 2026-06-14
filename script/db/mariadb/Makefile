@@ -1,10 +1,10 @@
 
 GARNAME      = mariadb
-GARVERSION   = 11.7.2
+GARVERSION   = 12.3.2
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = fix_fompile_without_server_feature.patch mariadb-build-with-cmake-4.0.patch
+PATCHFILES   = fix-missing-includes-in-plugin-auth_ed25519.patch
 LICENSE      = GPL
 
 DEPENDS = \
