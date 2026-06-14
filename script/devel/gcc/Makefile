@@ -1,15 +1,13 @@
 
 GARNAME       = gcc
 GARVERSION    = $(GCC_VERSION)
-GITHASH       = 03032026-283f85bc232
+GITHASH       = 13062026-1997e95e4e8
 CATEGORIES    = devel
 MASTER_SITES  = git://gcc.gnu.org/git/gcc.git/
 # MASTER_SITES += https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)/
-# MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/releases/$(DISTNAME)/
-# MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/prerelease-$(GCC_VERSION)/
-# MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/snapshots/$(GCC_VERSION)/
 DISTFILES     = $(DISTNAME).tar.bz2
 PATCHFILES    = $(DISTNAME)-disable_multilib_i386_linux64.patch
+PATCHFILES   += $(DISTNAME)-disable-USE_LD_AS_NEEDED_LDSCRIPT-feature.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 PATCHFILES   += $(DISTNAME)-perl.patch.gar
 PATCHFILES   += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
@@ -75,7 +73,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--with-isl-lib=$(DESTDIR)$(libdir) \
 	--with-libelf-include=$(DESTDIR)$(includedir) \
 	--with-libelf-lib=$(DESTDIR)$(libdir) \
-	--with-sysroot=$($(CROSSIMG)_DESTDIR)
+	--with-sysroot=$($(CROSSIMG)_DESTDIR) \
 
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
