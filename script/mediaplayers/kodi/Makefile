@@ -46,7 +46,7 @@ DEPENDS = \
 	lib/libcrossguid \
 	lib/exiv2 \
 	lib/flatbuffers \
-	lib/ffmpeg8.0-mythtv \
+	lib/ffmpeg \
 	lib/libfmt \
 	lib/fontconfig \
 	lib/freetype \
