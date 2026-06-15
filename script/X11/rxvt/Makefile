@@ -26,6 +26,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+CXXFLAGS += -std=c++17
+
 post-install:
 	@ln -srf $(DESTDIR)$(bindir)/urxvt $(DESTDIR)$(bindir)/rxvt
 	$(MAKECOOKIE)
