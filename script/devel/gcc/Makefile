@@ -1,13 +1,11 @@
 
 GARNAME       = gcc
 GARVERSION    = $(GCC_VERSION)
-GITHASH       = 13062026-1997e95e4e8
+GITHASH       = 16062026-10962b0810b
 CATEGORIES    = devel
 MASTER_SITES  = git://gcc.gnu.org/git/gcc.git/
-# MASTER_SITES += https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)/
 DISTFILES     = $(DISTNAME).tar.bz2
 PATCHFILES    = $(DISTNAME)-disable_multilib_i386_linux64.patch
-PATCHFILES   += $(DISTNAME)-disable-USE_LD_AS_NEEDED_LDSCRIPT-feature.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 PATCHFILES   += $(DISTNAME)-perl.patch.gar
 PATCHFILES   += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
@@ -55,6 +53,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--disable-libquadmath-support \
 	--disable-libada \
 	--disable-libssp \
+	--disable-libsanitizer \
 	--enable-lto \
 	--disable-multilib \
 	--enable-nls \
@@ -130,7 +129,7 @@ post-install:
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ranlib),ln -sf $(GARTARGET)-gcc-ranlib $(DESTDIR)$(bindir)/$(GARTARGET)-ranlib) ; \
 	)
 	@# Cross gcc.
-	@# Test install with: make install DESTIMG=build CROSSIMG=main
+	@# To test build or install: make build[install] DESTIMG=build CROSSIMG=main
 	@$(if $(filter-out $(DESTIMG),$(CROSSIMG)), \
 		echo "cross-gcc libs install dirs:" ; \
 		echo "                CROSS_GCC_LIBDIR=[$(CROSS_GCC_LIBDIR)]" ; \
@@ -144,6 +143,9 @@ post-install:
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ranlib),ln -sf $(GARTARGET)-gcc-ranlib $(DESTDIR)$(bindir)/$(GARTARGET)-ranlib) ; \
 		if [ -e $(CROSS_GCC_LIBDIR)/libgomp.so ]   ; then cp -af $(CROSS_GCC_LIBDIR)/libgomp.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/   ; fi ; \
 		if [ -e $(CROSS_GCC_LIBDIR)/libatomic.so ] ; then cp -af $(CROSS_GCC_LIBDIR)/libatomic.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/ ; fi ; \
+		echo "hack hack: adding libgcc_s_asneeded.s[a] to make old libtool happy with gcc16 ..." ; \
+		echo "INPUT ( AS_NEEDED ( -lgcc_s ) )" > $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/libgcc_s_asneeded.so ; \
+		echo "INPUT ( AS_NEEDED ( -lgcc_s ) )" > $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/libgcc_s_asneeded.a ; \
 	)
 	@mkdir -p $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)
 	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc.a         ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
