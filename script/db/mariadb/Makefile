@@ -1,10 +1,13 @@
 
 GARNAME      = mariadb
-GARVERSION   = 12.3.2
+GARVERSION   = 11.7.2
 CATEGORIES   = db
-MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
+MASTER_SITES = https://dlm.mariadb.com/4181709/MariaDB/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = fix-missing-includes-in-plugin-auth_ed25519.patch
+PATCHFILES   = fix_fompile_without_server_feature.patch \
+               mariadb-build-with-cmake-4.0.patch \
+               fix-host_tools-compile-under-gcc16.patch \
+
 LICENSE      = GPL
 
 DEPENDS = \
@@ -69,11 +72,12 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DCMAKE_C_FLAGS='-fpermissive' \
     -DCMAKE_CXX_FLAGS='-fpermissive' \
     -Wno-dev \
+    -DHAVE_SYSTEM_LIBFMT_EXITCODE=1 \
 
 include ../../gar.mk
 
 pre-configure:
-	@#hack to build host tools on Fedora systems
+	@echo "hack on math-vector.h to build host tools on Fedora systems"
 	@mkdir -p $(WORKSRC)/sql/bits
 	@$(if $(wildcard /usr/include/bits/math-vector.h), ln -srf /usr/include/bits/math-vector.h $(WORKSRC)/sql/bits/ )
 	@$(if $(wildcard $(DESTDIR)$(includedir)/math-x.h), ln -srf $(DESTDIR)$(includedir)/math-x.h $(DESTDIR)$(includedir)/math.h )
@@ -112,17 +116,22 @@ post-install:
 	@$(MAKECOOKIE)
 
 clean-all:
+	@rm -rf $(DESTDIR)$(bindir)/aria*
+	@rm -rf $(DESTDIR)$(bindir)/galera*
+	@rm -rf $(DESTDIR)$(bindir)/mariadbackup
 	@rm -rf $(DESTDIR)$(bindir)/mariadb*
+	@rm -rf $(DESTDIR)$(bindir)/myisam*
 	@rm -rf $(DESTDIR)$(bindir)/mysql*
 	@rm -rf $(DESTDIR)$(bindir)/msql2mysql
-	@rm -rf $(DESTDIR)$(bindir)/wsrep_sst_mysqldump
-	@rm -rf $(DESTDIR)$(bindir)/wsrep_sst_mariabackup
+	@rm -rf $(DESTDIR)$(bindir)/wsrep_sst*
 	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libmariadb.pc
 	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/mariadb.pc
 	@rm -rf $(DESTDIR)$(libdir)/mysql*
 	@rm -rf $(DESTDIR)$(libdir)/libmysql*
 	@rm -rf $(DESTDIR)$(libdir)/libmariadb*
 	@rm -rf $(DESTDIR)$(datadir)/mysql*
+	@rm -rf $(DESTDIR)$(datadir)/myisam*
+	@rm -rf $(DESTDIR)$(datadir)/wsrep_sst*
 	@rm -rf $(DESTDIR)$(datadir)/aclocal/mysql.m4
 	@rm -rf $(DESTDIR)$(prefix)/bin-config/*mysql_config
 	@rm -rf $(DESTDIR)$(prefix)/mysql-test*
