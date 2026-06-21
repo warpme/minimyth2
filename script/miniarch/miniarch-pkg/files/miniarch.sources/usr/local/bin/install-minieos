@@ -1,5 +1,4 @@
-#!/bin/bash
-
+#!/bin/sh
 #
 # Code based on excellent work of https://github.com/endeavouros-arm/install-script
 #
@@ -7,13 +6,16 @@
 #
 # History:
 # v1.0: initial ver.
-# v1.1: 
+# v1.1:
 #   -new: added multiarch support;
 #   -fix: delete old keyring when new is avaliable
 #   -change: rename script to install-minieos; change working dir to .minieos-install
+# v2.0:
+#   -various cleanups
+#   -added multi-desktop install
 
 
-ver="1.4"
+ver="2.0"
 
 . /etc/minieos.conf
 
@@ -66,13 +68,31 @@ show_pacman_run_error() {
        echo " "
 }
 
-disable_all_de() {
-    systemctl disable lightdm.service sddm.service gdm.service eos-lxdm-gtk3.service sddm.service 2>/dev/null
+stop_and_disable_all_de() {
+    systemctl disable lightdm.service sddm.service gdm.service eos-lxdm-gtk3.service 2>/dev/null
+    systemctl isolate multi-user.target 2>/dev/null
+}
+
+enable_and_defer_start_de() {
+    systemctl enable $1 2>/dev/null
+    rm -f $SERVICE_TO_START_DE 2>/dev/null
+    touch $SERVICE_TO_START_DE
+    echo $1 > $SERVICE_TO_START_DE
+}
+
+start_de() {
+    service=$(cat $SERVICE_TO_START_DE)
+    if [ x$service = "x" ] ; then
+        error "No stored systemd service to start DE ..."
+    else
+        log "kicking systemctl start $service ..."
+        systemctl start $service 2>/dev/null
+    fi
 }
 
 switch_pacman_trust_all() {
     if [ ! -e /etc/pacman.conf.before-eos-install ] ; then
-        msg "changing pacman.conf to TrustAll"
+        log "changing pacman.conf to TrustAll"
         cp -f /etc/pacman.conf /etc/pacman.conf.before-eos-install
         sed -e 's/^\s*SigLevel.*/SigLevel = Never/g' -i /etc/pacman.conf
     fi
@@ -80,7 +100,7 @@ switch_pacman_trust_all() {
 
 restore_pacman_trust() {
     if [ -e /etc/pacman.conf.before-eos-install ] ; then
-        msg "restoring pacman.conf to original trust"
+        log "restoring pacman.conf to original trust"
         cp -f /etc/pacman.conf.before-eos-install /etc/pacman.conf
         rm -f /etc/pacman.conf.before-eos-install
     fi
@@ -128,7 +148,7 @@ run_unattended_pacman_on_filelist() {
 
 generate_timezone_list() {
     input=$1
-    msg "setting timezone to $input"
+    msg "Setting timezone to $input ..."
     if [[ -d $input ]]; then
         for i in "$input"/*; do
             generate_timezone_list $i
@@ -142,24 +162,22 @@ generate_timezone_list() {
 
 find_mirrorlist() {
     if [ ! -e ./endeavouros-mirrorlist ] ; then
-        msg "downloading endeavouros-mirrorlist"
+        msg "Downloading EndeavourOS-mirrorlist ..."
         ${wget_cmd} https://raw.githubusercontent.com/endeavouros-team/PKGBUILDS/master/endeavouros-mirrorlist/endeavouros-mirrorlist
         if [ ! -e ./endeavouros-mirrorlist ] ; then
-            msg "ERROR: can't download endeavouros-mirrorlist file ... Exiting!"
-            exit 1
+            error "ERROR: can't download EndeavourOS-mirrorlist file ..."
         fi
     else
-        msg "reuse already downloaded endeavouros-mirrorlist"
+        msg "Reusing already downloaded EndeavourOS-mirrorlist ..."
     fi
 
-    msg "installing endeavouros-mirrorlist"
     cp -f endeavouros-mirrorlist /etc/pacman.d/
 
     if [ x$(grep -c "^\[endeavouros\]" /etc/pacman.conf) = "x0" ] ; then
-        msg "dding endeavouros-mirrorlist to pacman repos"
+        msg "Adding EndeavourOS-mirrorlist to pacman repos ..."
         printf "\n[endeavouros]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/endeavouros-mirrorlist\n\n" >> /etc/pacman.conf
     else
-        msg "endeavouros-mirrorlist already in pacman repos"
+        msg "EndeavourOS-mirrorlist already in pacman repos ..."
     fi
 }
 
@@ -169,30 +187,27 @@ find_keyring() {
 
     rm -f keys
 
-    msg "find current endeavouros-keyring"
+    msg "Finding EndeavourOS-keyring ..."
     curl https://github.com/endeavouros-team/repo/tree/master/endeavouros/$ARCH 2>${log_file} | grep endeavouros-keyring | sed s'/^.*endeavouros-keyring/endeavouros-keyring/'g | sed s'/pkg.tar.zst.*/pkg.tar.zst/'g | tail -1 > keys
     if [ x$(grep -c "pkg.tar" keys) = "x0" ] ; then
-        msg "ERROR: can't determine current endeavouros-keyring package from https://github.com/endeavouros-team/repo/tree/master/endeavouros/$ARCH URL ... Exiting!"
-        exit 1
+        error "ERROR: can't determine current endeavouros-keyring package from https://github.com/endeavouros-team/repo/tree/master/endeavouros/$ARCH URL ..."
     fi
 
     read -d $'\04' currentkeyring < "keys"
 
     if [ -e $currentkeyring ] ; then
-        msg "reusing existing $currentkeyring"
-        msg "installing endeavouros-keyring"
+        msg "Installing existing $currentkeyring ..."
         pacman --noconfirm --needed -U $currentkeyring
     else
-        msg "downloading endeavouros-keyring"
+        msg "Downloading EndeavourOS-keyring ..."
         rm -f endeavouros-keyring-*-any.pkg.*
         ${wget_cmd} https://github.com/endeavouros-team/repo/raw/master/endeavouros/$ARCH/$currentkeyring 2>&1 >${log_file}
 
         if [ -e endeavouros-keyring-*-any.pkg.* ] ; then
-            msg "installing endeavouros-keyring"
+            msg "Installing downloaded $currentkeyring ..."
             pacman --noconfirm --needed -U $currentkeyring
         else
-            msg "ERROR: can't download $currentkeyring from https://github.com/endeavouros-team/repo/raw/master/endeavouros URL ... Exiting!"
-            exit 1
+            error "ERROR: can't download $currentkeyring from https://github.com/endeavouros-team/repo/raw/master/endeavouros URL ..."
         fi
     fi
 
@@ -217,7 +232,7 @@ fixup_pkg_list() {
 
 base_addons() {
     if [ ! -e $BASE_ADDONS_DONE_FLAG ] ; then
-        msg "installing EndeavourOS Base Addons"
+        msg "Installing EndeavourOS base addons ..."
         eos-packagelist "Desktop-Base + Common packages" "Firefox and language package" > base-addons
         fixup_pkg_list base-addons BASE_ADDONS_REMOVE_LIST BASE_ADDONS_ADD_LIST
         run_unattended_pacman_on_filelist base-addons
@@ -227,60 +242,47 @@ base_addons() {
         sleep 5
         touch $BASE_ADDONS_DONE_FLAG
     else
-        echo "using previosly installed EndeavourOS Base Addons."
-        echo "if you want to reinstall Base Addons, do rf -f $BASE_ADDONS_DONE_FLAG and rerun"
+        msg "Using previosly installed EndeavourOS base addons ..."
+        echo "(if you want to reinstall Base Addons, do rf -f $BASE_ADDONS_DONE_FLAG and rerun)"
     fi
 }
 
 set_time_zone() {
-    msg "setting Time Zone"
+    msg "Setting time zone ..."
     ln -sf $TIMEZONEPATH /etc/localtime
 }
 
 enable_ntp() {
-    msg "enabling NTP"
+    msg "Syncing time with NTP ..."
     timedatectl set-ntp true
     timedatectl timesync-status
     sleep 1
 }
 
 set_locale() {
-    msg "etting Locale"
+    msg "Setting locale ..."
     sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
     locale-gen
     printf "\nLANG=en_US.UTF-8\n\n" > /etc/locale.conf
 }
 
 set_hostname() {
-    msg "setting hostname"
+    msg "Setting hostname ..."
     printf "\n$HOSTNAME\n\n" > /etc/hostname
 }
 
 config_etc_hosts() {
-    msg "configuring /etc/hosts"
+    msg "Updating /etc/hosts file ..."
     printf "\n127.0.0.1\tlocalhost\n" > /etc/hosts
     printf "::1\t\tlocalhost\n" >> /etc/hosts
     printf "127.0.1.1\t$HOSTNAME.localdomain\t$HOSTNAME\n\n" >> /etc/hosts
 }
 
 create_alias() {
-    msg "creating ll alias"
+    msg "Creating some useful aliases ..."
     printf "\nalias ll='ls -l --color=auto'\n" >> /etc/bash.bashrc
     printf "alias la='ls -al --color=auto'\n" >> /etc/bash.bashrc
     printf "alias lb='lsblk -o NAME,FSTYPE,FSSIZE,LABEL,MOUNTPOINT'\n\n" >> /etc/bash.bashrc
-}
-
-clean_up() {
-    # rebranding to EndeavourOS
-    sed -i 's/Arch/EndeavourOS/' /etc/issue
-    sed -i 's/Arch/EndeavourOS/' /etc/arch-release
-}
-
-completed_notification() {
-    msg "Installation is complete!"
-    msg " "
-    msg "Enjoy EndeavourOS ARM based MiniEOS on MiniArch :-)"
-    msg " "
 }
 
 precheck_setup() {
@@ -289,7 +291,7 @@ precheck_setup() {
         local script_directory
         local whiptail_installed
 
-        msg "Starting precheck_setup ...."
+        msg "Starting precheck_setup ..."
         # check where script is installed
         script_directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" #for mc syntax highligtning"
         if [[ "$script_directory" == "/home/alarm/"* ]]; then
@@ -299,8 +301,7 @@ precheck_setup() {
               \n\nPlease move it to the root user's home directory and rerun the script." 10 80
               exit 1
            else
-              msg "ERROR: Cannot Continue. This script is in the alarm user's home folder which will be removed. Please move it to the root user's home directory and rerun the script."
-              exit 1
+              error "ERROR: Cannot Continue. This script is in the alarm user's home folder which will be removed. Please move it to the root user's home directory and rerun the script."
            fi
         fi
 
@@ -312,16 +313,14 @@ precheck_setup() {
               whiptail --title "Error - Cannot Continue" --msgbox "Please run this script with sudo or as root" 8 47
               exit 1
            else
-              msg "ERROR:  Cannot Continue. Please run this script with sudo or as root."
-              exit 1
+              error "ERROR:  Cannot Continue. Please run this script with sudo or as root."
            fi
         fi
 
-        msg "---- checking Internet connection ----"
+        echo "------ checking Internet connection ------"
         ping -c 3 endeavouros.com -W 5
         if [ "$?" != "0" ] ; then
-           msg "ERROR: No Internet Connection was detected\nFix your Internet Connectin and try again"
-           exit 1
+           error "ERROR: No Internet Connection was detected\nFix your Internet Connectin and try again"
         fi
         echo "------------------------------------------"
 
@@ -329,12 +328,12 @@ precheck_setup() {
 
         run_unattended_pacman git libnewt wget python3 python-yaml sudo
 
-        msg "precheck_setup ended ok ...."
+        log "precheck_setup ended ok"
         touch $PRECHECK_SETUP_DONE_FLAG
 
     else
-        echo "using previosly done precheck setup"
-        echo "if you want to redo pre-check setup, do rf -f $PRECHECK_SETUP_DONE_FLAG and rerun"
+        msg "Reusing previous run of precheck_setup ..."
+        echo "(if you want to redo pre-check setup, do rm -f $PRECHECK_SETUP_DONE_FLAG and rerun script)"
     fi
 }
 
@@ -368,34 +367,35 @@ user_input() {
                 fi
             done
         else
-            echo "using previosly done initial user inputs"
-            echo "if you want to redo initial user inputs, do rf -f $INITIAL_SETUP_DONE_FLAG and rerun"
+            msg "Reusing previous run of initial user inputs ..."
+            echo "(if you want to redo initial user inputs, do rm -f $INITIAL_SETUP_DONE_FLAG and rerun script)"
         fi
 
+
         DENAME=$(whiptail --nocancel --title "MiniEOS Setup - Desktop Selection" --menu --notags "\n                          Choose which Desktop Environment to install\n\n" 22 100 15 \
+            "1" "Multi-desktop(Gnome/KDE/XFCE/etc)" \
+            "2" "KDE Plasma only" \
+            "3" "Gnome only" \
+            "4" "XFCE4 only" \
+            "5" "Cinnamon only" \
+            "6" "GOSMIC only" \
+            "7" "Budgie only" \
+            "8" "LXQT only" \
+            "9" "i3 wm only" \
             "0" "No Desktop Environment" \
-            "1" "XFCE4" \
-            "2" "KDE Plasma" \
-            "3" "Gnome" \
-            "4" "Mate" \
-            "5" "Cinnamon" \
-            "6" "Budgie" \
-            "7" "LXQT" \
-            "8" "LXDE" \
-            "9" "i3 wm for x11" \
         3>&2 2>&1 1>&3)
 
         case $DENAME in
-            0) DENAME="none" ;;
-            1) DENAME="xfce4" ;;
+            1) DENAME="multi" ;;
             2) DENAME="kde" ;;
             3) DENAME="gnome" ;;
-            4) DENAME="mate" ;;
+            4) DENAME="xfce4" ;;
             5) DENAME="cinnamon" ;;
-            6) DENAME="budgie" ;;
-            7) DENAME="lxqt" ;;
-            8) DENAME="lxde" ;;
+            6) DENAME="cosmic" ;;
+            7) DENAME="budgie" ;;
+            8) DENAME="lxqt" ;;
             9) DENAME="i3wm" ;;
+            0) DENAME="none" ;;
         esac
 
         if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
@@ -417,86 +417,93 @@ user_input() {
     DENAME=install_$DENAME
 }
 
-install_xfce4() {
-    msg "installing XFCE4"
-    eos-packagelist "XFCE4-Desktop" > xfce4
-    fixup_pkg_list xfce4 XFCE4_REMOVE_LISTXFCE4_ADD_LIST
-    run_unattended_pacman_on_filelist xfce4
-    disable_all_de
-    systemctl enable lightdm.service
+install_de() {
+
+# List of avaliable desktops from:
+# eos-packagelist --list
+# ver from 21.06.2026 gives:
+# KDE-Desktop
+# GNOME-Desktop
+# XFCE4-Desktop
+# Cinnamon-Desktop
+# COSMIC-Desktop
+# Budgie-Desktop
+# LXQT-Desktop
+# i3-Window-Manager
+#
+# with above script can be called like:
+# install_de KDE|GNOME|XFCE4|Cinnamon|COSMIC|Budgie|LXQT
+
+    msg "Installing $1 desktop enviroment packages ..."
+    log "calling install_de() for $1 ..."
+    log "getting PKG list for $1-Desktop ..."
+    eos-packagelist "$1-Desktop" > $1.pkg_list
+    log "fixing-up $1.pkg_list with  $1_REMOVE_LIST $1_ADD_LIST ..."
+    fixup_pkg_list $1.pkg_list $1_REMOVE_LIST $1_ADD_LIST
+    log "installing $1.pkg_list ..."
+    run_unattended_pacman_on_filelist $1.pkg_list
+    log "stoping and disabling all and current DE ..."
+    stop_and_disable_all_de
+    log "install_de() done!"
 }
 
-install_mate() {
-    msg "installing Mate"
-    eos-packagelist "MATE-Desktop" > mate
-    fixup_pkg_list mate MATE_REMOVE_LIST MATE_ADD_LIST
-    run_unattended_pacman_on_filelist mate
-    disable_all_de
-    systemctl enable lightdm.service
+install_multi() {
+    msg "Installing Multi-Desktop packages ..."
+    install_de KDE
+    install_de GNOME
+    install_de XFCE4
+    install_de Cinnamon
+    # install_de COSMIC commented as not works (yet) in multi DE mode ...
+    install_de Budgie
+    install_de LXQT
+    run_unattended_pacman sddm
+    enable_and_defer_start_de sddm.service
 }
 
 install_kde() {
-    msg "installing KDE Plasma"
-    eos-packagelist "KDE-Desktop" > plasma
-    fixup_pkg_list plasma PLASMA_REMOVE_LIST PLASMA_ADD_LIST
-    run_unattended_pacman_on_filelist plasma
-    disable_all_de
-    systemctl enable sddm.service
+    install_de KDE
+    run_unattended_pacman sddm
+    enable_and_defer_start_de sddm.service
 }
 
 install_gnome() {
-    msg "installing Gnome"
-    eos-packagelist "GNOME-Desktop" > gnome
-    fixup_pkg_list gnome GNOME_REMOVE_LIST GNOME_ADD_LIST
-    run_unattended_pacman_on_filelist gnome
-    disable_all_de
-    systemctl enable gdm.service
+    install_de GNOME
+    enable_and_defer_start_de gdm.service
+}
+
+install_xfce4() {
+    install_de XFCE4
+    enable_and_defer_start_de lightdm.service
 }
 
 install_cinnamon() {
-    msg "installing Cinnamon"
-    eos-packagelist "Cinnamon-Desktop" > cinnamon
-    fixup_pkg_list cinnamon CINNAMON_REMOVE_LIST CINNAMON_ADD_LIST
-    run_unattended_pacman_on_filelist cinnamon
-    disable_all_de
-    systemctl enable lightdm.service
+    install_de Cinnamon
+    enable_and_defer_start_de lightdm.service
+}
+
+install_cosmic() {
+    install_de COSMIC
+    enable_and_defer_start_de lightdm.service
 }
 
 install_budgie() {
-    msg "nstalling Budgie-Desktop"
-    eos-packagelist "Budgie-Desktop" > budgie
-    fixup_pkg_list budgie BUDGIE_REMOVE_LIST BUDGIE_ADD_LIST
-    run_unattended_pacman_on_filelist budgie
-    disable_all_de
-    systemctl enable lightdm.service
-}
-
-install_lxde() {
-    msg "nstalling LXDE"
-    eos-packagelist "LXDE-Desktop" > lxde
-    fixup_pkg_list lxde LXDE_REMOVE_LIST LXDE_ADD_LIST
-    run_unattended_pacman_on_filelist lxde
-    # systemctl enable lightdm.service
-    disable_all_de
-    systemctl enable eos-lxdm-gtk3.service
+    install_de Budgie
+    enable_and_defer_start_de lightdm.service
 }
 
 install_lxqt() {
-    msg "installing LXQT"
-    eos-packagelist "LXQT-Desktop" > lxqt
-    fixup_pkg_list lxqt LXQT_REMOVE_LIST LXQT_ADD_LIST
-    run_unattended_pacman_on_filelist lxqt
-    disable_all_de
-    systemctl enable sddm.service
+    run_unattended_pacman sddm
+    install_de LXQT
+    enable_and_defer_start_de sddm.service
 }
 
 install_i3wm() {
-    msg "Installing i3-wm"
+    msg "Installing i3-Window-Manager desktop enviroment packages ..."
     eos-packagelist "i3-Window-Manager" > i3
     fixup_pkg_list i3 i3_REMOVE_LIST i3_ADD_LIST
     run_unattended_pacman_on_filelist i3
-    disable_all_de
-    systemctl enable lightdm.service
+    stop_and_disable_all_de
+    enable_and_defer_start_de lightdm.service
 }
 
 desktop_setup() {
@@ -504,7 +511,9 @@ desktop_setup() {
         $DENAME
     fi
 
-    printf "alarm  ALL=(ALL:ALL) ALL" >> /etc/sudoers
+    if [ ! -f /etc/sudoers.d/alarm ] ; then
+        echo "alarm  ALL=(ALL:ALL) ALL" > /etc/sudoers.d/alarm
+    fi
 
     FILENAME="/etc/lightdm/lightdm.conf"
     if [ -f $FILENAME ] ; then
@@ -513,15 +522,15 @@ desktop_setup() {
 }
 
 rebrand_os() {
-    msg "Rebranding to EndeavourOS"
+    msg "Rebranding to EndeavourOS ..."
     sed -i 's/Arch/EndeavourOS/' /etc/issue
     sed -i 's/Arch/EndeavourOS/' /etc/arch-release
 
     rm -f /usr/lib/os-release
 
     cat <<EOF > /usr/lib/os-release
-NAME=EndeavourOS
-PRETTY_NAME=EndeavourOS
+NAME=MiniEOS
+PRETTY_NAME=MiniEOS
 ID=endeavouros
 ID_LIKE=arch
 BUILD_ID=rolling
@@ -539,7 +548,7 @@ EOF
 cat <<EOF > /etc/lsb-release
 DISTRIB_ID="EndeavourOS ARM"
 DISTRIB_RELEASE="rolling"
-DISTRIB_DESCRIPTION="EndeavourOS Linux"
+DISTRIB_DESCRIPTION="MiniEOS Linux"
 DISTRIB_CODENAME=rolling
 EOF
 }
@@ -558,9 +567,13 @@ Main() {
     FULLNAME=""
     DENAME=""
 
-    msg " "
-    msg "--- MiniEOS on MiniArch installer v$ver (c)Piotr Oniszczuk ---"
-    msg " "
+    echo " "
+    echo " ---------------------------------------------------------------------"
+    echo "|                                                                     |"
+    echo "|        MiniEOS on MiniArch installer v$ver (c)Piotr Oniszczuk        |"
+    echo "|                                                                     |"
+    echo " ---------------------------------------------------------------------"
+    echo " "
 
     precheck_setup
     user_input
@@ -568,9 +581,8 @@ Main() {
     find_keyring
     switch_pacman_trust_all
     run_unattended_pacman eos-rankmirrors
-    msg "Start ranking EOS mirrors"
+    msg "Start ranking EndeavourOS mirrors ..."
     eos-rankmirrors --show-orig-list="no"
-    msg "End ranking EOS mirrors"
     base_addons
     if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
         set_time_zone
@@ -585,8 +597,34 @@ Main() {
     desktop_setup
     restore_pacman_trust
     sync
-    completed_notification
-    read -n1 x
+
+    echo " "
+    echo " "
+    echo " "
+    echo " "
+    echo " ---------------------------------------------------------------------"
+    echo "|                                                                     |"
+    echo "|    It looks You successfuly installed MiniEOS on MiniArch :-)       |"
+    echo "|                                                                     |"
+    echo "|    Now You can press any key to start GUI where You can launch      |"
+    echo "|    desktop enviroment of your choice (DE list is at top left corner)|"
+    echo "|    Alternativelly, You can pres Ctrl-C to exit to console ...       |"
+    echo "|                                                                     |"
+    echo "|    (initial DE user is: 'alarm' with password 'alarm'               |"
+    echo "|                                                                     |"
+    echo "|    Happy desktoping!                                                |"
+    echo "|                                                                     |"
+    echo "|    BTW: if You are happy with MiniEOS - consider pls to go to       |"
+    echo "|    https://github.com/warpme/minimyth2 and donate for further work! |"
+    echo " ---------------------------------------------------------------------"
+    echo " "
+    echo " "
+    echo " "
+    echo " "
+    echo "press any key to go ... "
+
+    read sel
+    start_de
     exit
 }
 
