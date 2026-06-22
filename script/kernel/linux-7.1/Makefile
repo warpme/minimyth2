@@ -504,6 +504,7 @@ PATCHFILES += 4500-arm64-2712dtsi-add-uart-mmc2-pins-ths-sensor.patch
 PATCHFILES += 4501-arm64-2712dtsi-add-gpu-rpivid.patch
 PATCHFILES += 4502-arm64-2712dtsi-add-dma32-dma40-for-audio.patch
 PATCHFILES += 4503-arm64-2712dtsi-add-thermal-zones.patch
+PATCHFILES += 4504-arm64-2712dtsi-incr-cma-to-384M.patch
 # bcm2712 board dts additions
 PATCHFILES += 4505-arm64-rpi-5-b-switch-to-downstream-dts.patch
 endif
