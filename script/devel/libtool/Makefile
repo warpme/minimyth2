@@ -10,7 +10,7 @@ PATCHFILES  += $(DISTNAME)-use_ld.patch
 PATCHFILES  += $(DISTNAME)-armv7h-nopic.patch
 PATCHFILES  += $(DISTNAME)-trailingslash.patch
 PATCHFILES  += $(DISTNAME)-fixinstall.patch
-PATCHFILES  += $(DISTNAME)-fix-building-with-automake1.16.patch
+PATCHFILES  += $(DISTNAME)-fix-building-with-automake1.18.patch
 PATCHFILES  += $(DISTNAME)-stop-building-doc.patch
 LICENSE      = GPL2
 
