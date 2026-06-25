@@ -1,9 +1,10 @@
-GARNAME = libffi
-GARVERSION = 3.2.1
-CATEGORIES = lib
-MASTER_SITES = ftp://sourceware.org/pub/$(GARNAME)/
-DISTFILES  = $(DISTNAME).tar.gz
-LICENSE = MIT
+
+GARNAME      = libffi
+GARVERSION   = 3.6.0
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/libffi/libffi/releases/download/v$(GARVERSION)/
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = MIT
 
 DESCRIPTION = 
 define BLURB
