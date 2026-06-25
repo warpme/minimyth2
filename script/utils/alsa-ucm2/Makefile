@@ -1,7 +1,7 @@
 
 GARNAME      = alsa-ucm-conf
-# git@8.05.2026
-GARVERSION   = e8737afe38dc6e87578cb28256427ee53a183f53
+# git@12.06.2026
+GARVERSION   = 7e08d4e6b0c75bfee72abbc0b3ac7c7b6e6abec1
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/alsa-project/alsa-ucm-conf/archive/
 DISTFILES    = $(GARVERSION).zip
