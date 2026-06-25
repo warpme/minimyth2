@@ -1,8 +1,8 @@
 
 GARNAME      = glib
-GARVERSION   = 2.72.3
+GARVERSION   = 2.88.1
 CATEGORIES   = gtk
-MASTER_SITES = https://ftp.gnome.org/pub/gnome/sources/glib/2.72/
+MASTER_SITES = https://ftp.gnome.org/pub/gnome/sources/glib/2.88/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-hack-to-pass-frexpl-check-on-arm64.patch
 LICENSE      = LGPL2
@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c lib/libffi lib/pcre devel/zlib gtk/gtk-doc utils/util-linux lib/libiconv
+DEPENDS    = lang/c lib/libffi lib/pcre devel/zlib gtk/gtk-doc utils/util-linux lib/libiconv lib/pcre2
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
@@ -21,7 +21,6 @@ MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 	-D gtk_doc="false" \
 	-D tests="false" \
-	-D iconv="external" \
 
 include ../../gar.mk
 
