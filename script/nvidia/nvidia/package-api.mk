@@ -12,7 +12,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c kernel/kernel xorg/xorg
-BUILDDEPS = utils/module-init-tools
+BUILDDEPS = utils/kmod
 
 DISTFILE = NVIDIA-Linux-$(NVIDIA_SUPER_VERSION)-$(NVIDIA_VERSION)
 
