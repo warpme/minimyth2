@@ -6,10 +6,10 @@ MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = \
 	$(DISTNAME)-perl.patch.gar \
-	$(DISTNAME)-hack-to-fix-compilation.patch
-LICENSE = GPL3
+	$(DISTNAME)-hack-to-fix-compilation.patch \
+	$(DISTNAME)-non_interactive.patch \
 
-#	$(DISTNAME)-non_interactive.patch \
+LICENSE = GPL3
 
 DESCRIPTION = 
 define BLURB
