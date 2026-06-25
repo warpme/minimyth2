@@ -228,7 +228,7 @@ BUILDDEPS = \
 	devel/fakeroot \
 	utils/file \
 	utils/findutils \
-	utils/module-init-tools \
+	utils/kmod \
 	utils/squashfs \
 	utils/tar \
 	utils/lbzip2 \
