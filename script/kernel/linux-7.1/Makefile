@@ -680,7 +680,7 @@ menuconfig: configure
 	 echo "edited .config saved as $(CONFIGFILE) in package/files dir ... "; \
 	 cp -f $(WORKSRC)/.config $(CONFIGFILE).after.menuconfig; \
 	 echo "edited .config saved as $(CONFIGFILE).after.menuconfig in package dir ... "; \
-	 echo -n "Done! Press <Enter> to exit ... "; read
+	 $(MAKE) diffconfig
 
 defconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) savedefconfig
@@ -691,7 +691,9 @@ defconfig: configure
 diffconfig: configure
 	@cd $(WORKSRC); \
 	 if [ -e .config.old ]; then \
+	   echo "---- changes in .config by last menuconfig run BEGIN ---- "; \
 	   $(PYTHON3) scripts/diffconfig .config.old .config > ../../../$(CONFIGFILE).diff; cat ../../../$(CONFIGFILE).diff; \
+	   echo "---- changes in .config by last menuconfig run END ------ "; \
 	 else \
 	   echo -n "No old .config found to compare. Run first 'make menuconfig' or 'make mergeconfig' ... "; \
 	 fi; \
