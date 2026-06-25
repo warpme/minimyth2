@@ -1,13 +1,15 @@
 
 GARNAME      = gettext
-GARVERSION   = 0.24
+GARVERSION   = 1.0
 CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = \
-	$(DISTNAME)-non_interactive.patch \
-	$(DISTNAME)-perl.patch.gar
+	$(DISTNAME)-perl.patch.gar \
+	$(DISTNAME)-hack-to-fix-compilation.patch
 LICENSE = GPL3
+
+#	$(DISTNAME)-non_interactive.patch \
 
 DESCRIPTION = 
 define BLURB
@@ -25,6 +27,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--disable-rpath \
 	--disable-openmp \
+	--disable-man \
 	--with-gnu-ld
 
 include ../../gar.mk
