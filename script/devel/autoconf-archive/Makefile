@@ -1,6 +1,6 @@
 
 GARNAME      = autoconf-archive
-GARVERSION   = 2019.01.06
+GARVERSION   = 2024.10.16
 CATEGORIES   = devel
 MASTER_SITES = https://ftpmirror.gnu.org/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.xz
