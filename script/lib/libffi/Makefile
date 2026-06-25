@@ -33,9 +33,9 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@if [ -e $(DESTDIR)/usr/lib64/libffi.so.6 ] ; then    \
-	 rm $(DESTDIR)$(libdir)/libffi.so.6 ; \
-	 ln -sr $(DESTDIR)/usr/lib64/libffi.so.6 $(DESTDIR)$(libdir)/libffi.so.6 ; \
+	@if [ -e $(DESTDIR)/usr/lib64/libffi.so.8 ] ; then    \
+	 rm -f $(DESTDIR)$(libdir)/libffi.so.8 ; \
+	 ln -sr $(DESTDIR)/usr/lib64/libffi.so.8 $(DESTDIR)$(libdir)/libffi.so.8 ; \
 	 fi
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
 	@#rm -f $(DESTDIR)$(libdir64)/$(GARNAME).la
