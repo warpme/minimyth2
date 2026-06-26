@@ -1,5 +1,6 @@
+
 GARNAME      = rpcsvc-proto
-GARVERSION   = 1.4.2
+GARVERSION   = 1.4.4
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/thkukuk/rpcsvc-proto/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
