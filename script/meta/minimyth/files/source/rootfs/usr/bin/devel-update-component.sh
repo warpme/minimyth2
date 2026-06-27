@@ -7,8 +7,8 @@
 # it replaces old files on target with new files from devel. machine.
 #
 # Example:
-# devel. machine at @MM_HOME@ has mirror of target root file system
-# at <@MM_HOME@>/main
+# devel. machine at /home/piotro/minimyth2-aarch64-next has mirror of target root file system
+# at </home/piotro/minimyth2-aarch64-next>/main
 #
 # To configure:
 #
@@ -17,7 +17,7 @@
 #---rsync snippet start----
 #
 #[devel-updates]
-#    path = @MM_HOME@
+#    path = /home/piotro/minimyth2-aarch64-next
 #    use chroot = true
 #    read only = true
 #
@@ -39,18 +39,25 @@
 # Script uses 2 types of list to define content to synchonize:
 #
 # <directory_list>
-# This is white space separated list of tuples <src_dir/>:<dest_dir>
+# directory_list format: '<src_path>/<dest_dir>:<dest_path>/<dest_dir>'
+# e.g: 'lib/modules:rootfs/rootfs-ro/lib/modules boot/dtbs:boot/dtbs'
+# (NOTE: src and dest dirs MUST end WITHOUT '/')
+# This is white space separated list of tuples <src_dir>:<dest_dir>
 # Script will compare ALL contents on <dest_dir> with content of <src_dir> and if <src_dir>
 # has file(s) with different checksums - file(s) from <dest_dir> will be replaced with file(s)
 # from <src_dir> Files existing at <dst_dir> but not existing in <src_dir> will be deleted
 # from <dst_dir>
 #
 # <files_list>
-# This is white space sepatated list of tuples <src_file>:<dest_file[dir/]>
+# file_list format: <src_dir>/<file>:<dest_dir>
+# e.g.'boot/Image:boot'
+# (NOTE: dest dir MUST end WITHOUT '/')
+# This is white space sepatated list of tuples <src_dir>/<src_file>:<dest_file>
 # Script will compare content of <dest_file> with <src_file> and if there is difference
 # in checksums - <dest_file> will be replaced with <src_file> file.
 # If second tuple member is <dst_dir> - script checks file at destination
-# identified by source filename from <src_file>.
+# identified by source filename from <src_file>
+
 
 
 # -------config area begin ---------------------------------------------------
@@ -68,174 +75,218 @@ log_file="/var/log/online-update.log"
 persist_store_pref="/initrd/rootfs-ro"
 
 # ---- MythTV dir/files ---
-component_1="MythTV"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
-directory_list1="/usr/lib/mythtv/plugins/:/usr/lib/mythtv/plugins"
-# file_list format: <src_path>/<files>:<dest_path>/
+component_1="MythTV in image"
+
+directory_list1=" \
+usr/lib/mythtv/plugins:usr/lib/mythtv/plugins"
+
 file_list1=" \
-/usr/lib/libmyth*.so*:/usr/lib/ \
-/usr/bin/mythfrontend:/usr/bin/ \
-/usr/bin/mythffmpeg:/usr/bin/ \
-/usr/bin/mythffplay:/usr/bin/ \
-"
+usr/lib/libmyth*.so*:usr/lib \
+usr/bin/mythfrontend:usr/bin \
+usr/bin/mythffmpeg:usr/bin \
+usr/bin/mythffplay:usr/bin"
+
 epilog_cmd1="mm_manage restart_mythfrontend"
 #--------------------------
 
+# ---- MythTV dir/files ---
+component_11="MythTV in NFS rootfs"
+
+directory_list11=" \
+usr/lib/mythtv/plugins:rootfs/rootfs-ro/usr/lib/mythtv/plugins"
+
+file_list11=" \
+usr/lib/libmyth*.so*:rootfs/rootfs-ro/usr/lib \
+usr/bin/mythfrontend:rootfs/rootfs-ro/usr/bin \
+usr/bin/mythffmpeg:rootfs/rootfs-ro/usr/bin \
+usr/bin/mythffplay:rootfs/rootfs-ro/usr/bin"
+
+epilog_cmd11="sync"
+#--------------------------
+
 # ---- Mesa dir/files ---
-component_2="Mesa"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
-directory_list2="/usr/lib/dri/:/usr/lib/dri"
-# file_list format: <src_path>/<files>:<dest_path>/
+component_2="Mesa in image"
+
+directory_list2=" \
+usr/lib/dri:usr/lib/dri"
+
 file_list2=" \
-/usr/lib/libEGL.so*:/usr/lib/ \
-/usr/lib/libGL.so*:/usr/lib/ \
-/usr/lib/libgbm.so*:/usr/lib/ \
-/usr/lib/libGLESv2.so*:/usr/lib/ \
-/usr/lib/libGLESv1_CM.so*:/usr/lib/ \
-/usr/lib/gbm/dri_gbm*:/usr/lib/gbm/ \
-/usr/lib/libglapi.so*:/usr/lib/ \
-/usr/lib/libgallium*:/usr/lib/ \
-/usr/lib/libvdpau_r*:/usr/lib/ \
-/usr/lib/radeonsi_drv_video.so*:/usr/lib/ \
-/usr/lib/r600_drv_video.so*:/usr/lib/ \
-"
+usr/lib/libEGL.so*:usr/lib \
+usr/lib/libGL.so*:usr/lib \
+usr/lib/libgbm.so*:usr/lib \
+usr/lib/libGLESv2.so*:usr/lib \
+usr/lib/libGLESv1_CM.so*:usr/lib \
+usr/lib/gbm/dri_gbm*:usr/lib/gbm \
+usr/lib/libglapi.so*:usr/lib \
+usr/lib/libgallium*:usr/lib \
+usr/lib/libvdpau_r*:usr/lib \
+usr/lib/radeonsi_drv_video.so*:usr/lib \
+usr/lib/r600_drv_video.so*:usr/lib"
+
 epilog_cmd2="sync"
 #--------------------------
 
+# ---- Mesa dir/files ---
+component_21="Mesa in NFS rootfs"
+
+directory_list21=" \
+usr/lib/dri:rootfs/rootfs-ro/usr/lib/dri"
+
+file_list21=" \
+usr/lib/libEGL.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libGL.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libgbm.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libGLESv2.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libGLESv1_CM.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/gbm/dri_gbm*:rootfs/rootfs-ro/usr/lib/gbm \
+usr/lib/libglapi.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libgallium*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libvdpau_r*:rootfs/rootfs-ro/usr/lib \
+usr/lib/radeonsi_drv_video.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/r600_drv_video.so*:rootfs/rootfs-ro/usr/lib"
+
+epilog_cmd21="sync"
+#--------------------------
+
 # ---- Kernel dir/files ---
-component_3="Linux kernel"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+component_3="Linux kernel in image"
+
 directory_list3="
-/boot/dtbs/:/boot/dtbs \
-/lib/modules/:/initrd/rootfs-ro/lib/modules \
-"
-# file_list format: <src_path>/<files>:<dest_path>/
-file_list3="/boot/*Image:/boot/"
+boot/dtbs:boot/dtbs \
+lib/modules:initrd/rootfs-ro/lib/modules"
+
+file_list3="boot/*Image:/boot"
+
 epilog_cmd3="sync"
+#--------------------------
+
+# ---- Kernel dir/files ---
+component_31="Linux kernel in NFS"
+
+directory_list31="
+boot/dtbs:boot/dtbs \
+lib/modules:rootfs/lib/modules"
+
+file_list31="boot/Image:boot"
+
+epilog_cmd31="sync"
 #--------------------------
 
 # ---- FFmpeg dir/files ---
 component_4="FFmpeg"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+
 directory_list4=""
-# file_list format: <src_path>/<files>:<dest_path>/
+
 file_list4=" \
-/usr/lib/libswscale.so*:/usr/lib/ \
-/usr/lib/libswresample.so*:/usr/lib/ \
-/usr/lib/libpostproc.so*:/usr/lib/ \
-/usr/lib/libavutil.so*:/usr/lib/ \
-/usr/lib/libavcodec.so*:/usr/lib/ \
-/usr/lib/libavformat.so*:/usr/lib/ \
-/usr/lib/libavfilter.so*:/usr/lib/ \
-/usr/lib/libavdevice.so*:/usr/lib/ \
-/usr/bin/ffprobe:/usr/bin/ \
-/usr/bin/ffplay:/usr/bin/ \
-/usr/bin/ffmpeg:/usr/bin/ \
-"
+usr/lib/libswscale.so*:usr/lib \
+usr/lib/libswresample.so*:usr/lib \
+usr/lib/libpostproc.so*:usr/lib \
+usr/lib/libavutil.so*:usr/lib \
+usr/lib/libavcodec.so*:usr/lib \
+usr/lib/libavformat.so*:usr/lib \
+usr/lib/libavfilter.so*:usr/lib \
+usr/lib/libavdevice.so*:usr/lib \
+usr/bin/ffprobe:usr/bin \
+usr/bin/ffplay:usr/bin \
+usr/bin/ffmpeg:usr/bin"
+
 epilog_cmd4="sync"
 #--------------------------
 
 # --- gstreamer lib/bin files ---
 component_5="Gstreamer"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list5=" \
-/usr/lib/gstreamer-1.0/:/usr/lib/gstreamer-1.0 \
-"
-# file_list format: <src_path>/<files>:<dest_path>/
+usr/lib/gstreamer-1.0:usr/lib/gstreamer-1.0"
+
 file_list5="
-/usr/lib/libgst*.so*:/usr/lib/ \
-/usr/bin/gst-*:/usr/bin/ \
-"
+usr/lib/libgst*.so*:usr/lib \
+usr/bin/gst-*:usr/bin"
+
 epilog_cmd5="sync"
 #--------------------------
 
 # --- kodi lib/bin files ---
 component_6="Kodi"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+
 directory_list6=" \
-/usr/lib/kodi/:/usr/lib/kodi \
-/usr/share/kodi/:/usr/share/kodi \
-"
-# file_list format: <src_path>/<files>:<dest_path>/
+usr/lib/kodi:usr/lib/kodi \
+usr/share/kodi:usr/share/kodi"
+
 file_list6="
-/usr/bin/kodi*:/usr/bin/ \
-"
+usr/bin/kodi*:usr/bin"
+
 epilog_cmd6="sync"
 #--------------------------
 
 # --- qt5 lib/bin files ---
 component_7="Qt5"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+
 directory_list7=" \
-/usr/lib/qt5/bin/:/usr/lib/qt5/bin \
-/usr/lib/qt5/lib/:/usr/lib/qt5/lib \
-/usr/lib/qt5/plugins/:/usr/lib/qt5/plugins \
-"
-# file_list format: <src_path>/<files>:<dest_path>/
+usr/lib/qt5/bin:usr/lib/qt5/bin \
+usr/lib/qt5/lib:usr/lib/qt5/lib \
+usr/lib/qt5/plugins:usr/lib/qt5/plugins"
+
 file_list7=""
 epilog_cmd7="sync"
 #--------------------------
 
 # --- qt6 lib/bin files ---
 component_8="Qt6"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+
 directory_list8=" \
-/usr/lib/qt6/bin/:/usr/lib/qt6/bin \
-/usr/lib/qt6/lib/:/usr/lib/qt6/lib \
-/usr/lib/qt6/plugins/:/usr/lib/qt6/plugins \
-"
-# file_list format: <src_path>/<files>:<dest_path>/
+usr/lib/qt6/bin:usr/lib/qt6/bin \
+usr/lib/qt6/lib:usr/lib/qt6/lib \
+usr/lib/qt6/plugins:usr/lib/qt6/plugins"
+
 file_list8=""
+
 epilog_cmd8="sync"
 #--------------------------
 
 # --- pjsip lib/bin files ---
 component_9="pjsip"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+
 directory_list9=""
-# file_list format: <src_path>/<files>:<dest_path>/
+
 file_list9=" \
-/usr/lib/libpj*.so.*:/usr/lib \
-/usr/lib/python3.8/site-packages/*pjsua*:/usr/lib/python3.8/site-packages \
-/usr/bin/sip-daemon.py:/usr/bin \
+usr/lib/libpj*.so.*:usr/lib \
+usr/lib/python3.8/site-packages/*pjsua*:usr/lib/python3.8/site-packages \
+usr/bin/sip-daemon.py:usr/bin \
 "
 epilog_cmd9="sync"
 #--------------------------
 
 # --- pjsip lib/bin files ---
 component_0="Weston10"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+
 directory_list0=" \
-/usr/lib/weston/:/usr/lib/weston \
-/usr/lib/libweston-10/:/usr/lib/libweston-10 \
-/usr/share/weston/:/usr/share/weston \
-/usr/share/wayland-sessions/:/usr/share/wayland-sessions \
-/usr/share/libweston-10/:/usr/share/libweston-10 \
-"
-# file_list format: <src_path>/<files>:<dest_path>/
+usr/lib/weston:usr/lib/weston \
+usr/lib/libweston-10:usr/lib/libweston-10 \
+usr/share/weston:usr/share/weston \
+usr/share/wayland-sessions:usr/share/wayland-sessions \
+usr/share/libweston-10:usr/share/libweston-10"
+
 file_list0=" \
-/usr/libexec/weston*:/usr/libexec \
-/usr/lib/libweston*.so.*:/usr/lib \
-/usr/bin/weston*:/usr/bin \
-/usr/bin/wcap-decode:/usr/bin \
+usr/libexec/weston*:usr/libexec \
+usr/lib/libweston*.so.*:usr/lib \
+usr/bin/weston*:usr/bin \
+usr/bin/wcap-decode:usr/bin \
 "
 epilog_cmd0="sync"
 #--------------------------
 
 # --- qt6 lib/bin files ---
 component_z="All libs & bins"
-# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_listz=" \
-/lib/:/lib \
-/lib64/:/lib64 \
-/bin/:/bin \
-/sbin/:/sbin \
-/usr/lib/:/usr/lib \
-/usr/bin/:/usr/bin \
-/usr/sbin/:/usr/sbin \
-/usr/share/:/usr/share \
-"
-# file_list format: <src_path>/<files>:<dest_path>/
+lib:lib \
+lib64:lib64 \
+bin:bin \
+sbin:sbin \
+usr/lib:usr/lib \
+usr/bin:usr/bin \
+usr/sbin:usr/sbin \
+usr/share:usr/share"
+
 file_listz=""
 epilog_cmdz="sync"
 #--------------------------
@@ -266,7 +317,7 @@ epilog_cmdz="sync"
 
 
 
-ver="v1.4 by (c)Piotr Oniszczuk"
+ver="v2.0 by (c)Piotr Oniszczuk"
 
 clear
 
@@ -297,17 +348,20 @@ if [ x${selection} = "x" ] ; then
     echo " "
     echo "Please choose component to update by pressing key [0..z]"
     echo " "
-    echo "  (1) for "${component_1}
-    echo "  (2) for "${component_2}
-    echo "  (3) for "${component_3}
-    echo "  (4) for "${component_4}
-    echo "  (5) for "${component_5}
-    echo "  (6) for "${component_6}
-    echo "  (7) for "${component_7}
-    echo "  (8) for "${component_8}
-    echo "  (9) for "${component_9}
-    echo "  (0) for "${component_0}
-    echo "  (z) for "${component_z}
+    echo "  (1)  for "${component_1}
+    echo "  (11) for "${component_11}
+    echo "  (2)  for "${component_2}
+    echo "  (21) for "${component_21}
+    echo "  (3)  for "${component_3}
+    echo "  (31) for "${component_31}
+    echo "  (4)  for "${component_4}
+    echo "  (5)  for "${component_5}
+    echo "  (6)  for "${component_6}
+    echo "  (7)  for "${component_7}
+    echo "  (8)  for "${component_8}
+    echo "  (9)  for "${component_9}
+    echo "  (0)  for "${component_0}
+    echo "  (z)  for "${component_z}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -324,15 +378,30 @@ case "${selection}" in
         file_list=${file_list1}
         epilog_cmd="${epilog_cmd1}" ;;
 
+    11) echo "Updating ${component_11} ..."
+        directory_list=${directory_list11}
+        file_list=${file_list11}
+        epilog_cmd="${epilog_cmd11}" ;;
+
     2)  echo "Updating ${component_2} ..."
         directory_list=${directory_list2}
         file_list=${file_list2}
         epilog_cmd="${epilog_cmd2}" ;;
 
+    21) echo "Updating ${component_21} ..."
+        directory_list=${directory_list21}
+        file_list=${file_list21}
+        epilog_cmd="${epilog_cmd21}" ;;
+
     3)  echo "Updating ${component_3} ..."
         directory_list=${directory_list3}
         file_list=${file_list3}
         epilog_cmd="${epilog_cmd3}" ;;
+
+    31) echo "Updating ${component_31} ..."
+        directory_list=${directory_list31}
+        file_list=${file_list31}
+        epilog_cmd="${epilog_cmd31}" ;;
 
     4)  echo "Updating ${component_4} ..."
         directory_list=${directory_list4}
@@ -456,12 +525,7 @@ if [ "x${directory_list}" != "x" ] ; then
         src_dir=`echo ${tuple} | cut -d":" -f1`
         dst_dir=`echo ${tuple} | cut -d":" -f2`
 
-        # use ls to check dir(s) existance as src_dir may contain wildcards...
-        if ls ${src_dir} > /dev/null 2>&1 ; then
-            run_rsync "${src_rsync_module}${src_dir}" "${dest_prefix}${dst_dir}" "${dry_run}"
-        else
-            echo "no [$src_dir] dir on destination!. Skipping ..."
-        fi
+        run_rsync "${src_rsync_module}/${src_dir}/" "${dest_prefix}${dst_dir}" "${dry_run}"
 
     done
 
@@ -478,12 +542,7 @@ if [ "x${file_list}" != "x" ] ; then
         src_file=`echo ${tuple} | cut -d":" -f1`
         dst_file=`echo ${tuple} | cut -d":" -f2`
 
-        # use ls to check file(s) existance as src_file may contain wildcards...
-        if ls ${src_file} > /dev/null 2>&1 ; then
-            run_rsync "${src_rsync_module}${src_file}" "${dest_prefix}${dst_file}" "${dry_run}"
-        else
-            echo "no [${src_file}] file on destination!. Skipping ..."
-        fi
+        run_rsync "${src_rsync_module}/${src_file}" "${dest_prefix}${dst_file}/" "${dry_run}"
 
     done
 

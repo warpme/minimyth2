@@ -10,7 +10,7 @@ mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
 
 # Config area end
 #--------------------------------------------------------------------------------------
-ver="1.0"
+ver="2.0"
 
 
 
@@ -53,6 +53,13 @@ if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
     exit 1
 fi
 
+mm_NFS_ROOT=`grep "^mm_NFS_ROOT" ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
+mm_GARCH_FAMILY=`grep "^mm_GARCH" ${mm_conf_file} | sed -e 's/.*\?=*\s//' -e 's/armv7/arm/' -e 's/armv8/arm64/'  -e 's/x86-64/x86_64/'`
+mm_VERSION=`grep "^mm_VERSION" ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
+mm_MYTH_VERSION=`grep "^mm_MYTH_VERSION" ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
+nfs_top_dir=$(eval echo "${mm_NFS_ROOT}nfs-${mm_GARCH_FAMILY}-minimyth2-${mm_MYTH_VERSION}-${mm_VERSION}")
+nfs_devel_script="rootfs/usr/bin/devel-update-component.sh"
+
 selection=$1
 
 if [ x${selection} = "x" ] ; then
@@ -78,6 +85,9 @@ if [ x${selection} = "x" ] ; then
     echo "  (o) Install On-Line update files"
     echo "  (s) Install SDcard/USBkey files"
     echo "  (g) Upload SD card images to GitHub release"
+    echo "  (11) Update mythtv in NFS rootfs"
+    echo "  (21) Update mesa in NFS rootfs"
+    echo "  (31) Update kernel in NFS rootfs"
     echo " "
     echo "or press Enter to exit..."
     echo
@@ -184,6 +194,36 @@ case "${selection}" in
                 ./upload-images-to-github-release.sh ;;
             *)  exit 1 ;;
         esac
+        ;;
+
+    11) echo "changing working dir to: [${nfs_top_dir}]"
+        cd ${nfs_top_dir}
+        echo "running: /${nfs_devel_script} 11"
+        echo " "
+        echo "  Updating mythtv on NFS rootfs content requires root priviliges."
+        echo "  Please provide root password..."
+        echo " "
+        sudo chroot ${nfs_top_dir}; sudo ${nfs_devel_script} 11
+        ;;
+
+    21) echo "changing working dir to: [${nfs_top_dir}]"
+        cd ${nfs_top_dir}
+        echo "running: /${nfs_devel_script} 21"
+        echo " "
+        echo "  Updating mesa on NFS rootfs content requires root priviliges."
+        echo "  Please provide root password..."
+        echo " "
+        sudo chroot ${nfs_top_dir}; sudo ${nfs_devel_script} 21
+        ;;
+
+    31) echo "changing working dir to: [${nfs_top_dir}]"
+        cd ${nfs_top_dir}
+        echo "running: /${nfs_devel_script} 31"
+        echo " "
+        echo "  Updating kernel on NFS rootfs content requires root priviliges."
+        echo "  Please provide root password..."
+        echo " "
+        sudo chroot ${nfs_top_dir}; sudo ${nfs_devel_script} 31
         ;;
 
     *)
