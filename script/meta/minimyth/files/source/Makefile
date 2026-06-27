@@ -1170,13 +1170,9 @@ install: build
 				if [  $(mm_GARCH_FAMILY) = arm ] ; then                                 \
 				        cp -a  $(top_build)/stage/boot                                  \
 				               $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/     ; \
-				        ln -srf $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/boot \
-				                $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs/rootfs-ro/ ; \
 				elif [  $(mm_GARCH_FAMILY) = arm64 ] ; then                             \
 				        cp -a  $(top_build)/stage/boot                                  \
 				               $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/    ;  \
-				        ln -srf $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/boot \
-				                $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs/rootfs-ro/ ; \
 				else                                                                    \
 				        cp -a  $(top_build)/stage/kernel                                \
 				          $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/kernel    ; \
