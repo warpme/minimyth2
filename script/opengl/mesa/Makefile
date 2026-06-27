@@ -1,18 +1,12 @@
 
 GARNAME      = mesa
 
-# 26.0.4 GA
-# GARVERSION   = d9e5e36b1925d0a75f582b06075e374ab93abadc
-# 26.0.3 GA
-# GARVERSION   = 3f173c02d169ccc38c88fea9d58ce46ee1cf8d55
-# 26.0.2 GA
-# GARVERSION   = efd5b779da45f81d56753ae52527600670245364
-# 26.0.1 GA
-# GARVERSION   = bf5998be6ec465f5200a7a9303eb73cdae918142
-# 26.0.0 GA
-# GARVERSION   = c10cba7efaa003e11c5c832bb2347e55c619ae7a
+# 26.1.3 GA
+GARVERSION   = 6984e91b5fe1d1c204e54954a4282fcdc0c44b78
+# 26.0.8 GA
+# GARVERSION   = 60e95b787857afbc9a00b693b91c0d9c8923a430
 # 25.3.6 GA
-GARVERSION   = 06f9e28304d5d3f109c33535c1c25b9df5769af2
+# GARVERSION   = 06f9e28304d5d3f109c33535c1c25b9df5769af2
 
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -107,7 +101,7 @@ MESON_CONFIGURE_ARGS = \
 	-D gles1=enabled \
 	-D gles2=enabled \
 	-D glvnd=disabled \
-	-D b_lto=true \
+	-D b_lto=false \
 	-D b_ndebug=true \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 	-D platforms=x11,wayland \
