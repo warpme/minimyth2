@@ -1,12 +1,10 @@
 
 GARNAME      = python-certifi
-GARVERSION   = 2021.10.8
+GARVERSION   = 2026.06.17
 CATEGORIES   = python
-MASTER_SITES = https://files.pythonhosted.org/packages/6c/ae/d26450834f0acc9e3d1f74508da6df1551ceab6c2ce0766a593362d6d57f/
-DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+MASTER_SITES = https://github.com/certifi/python-certifi/archive/refs/tags/
+DISTFILES    = $(GARVERSION).tar.gz
 LICENSE      = 
-
-WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
 CONFIGURE_ARGS =
 BUILD_ARGS     =
