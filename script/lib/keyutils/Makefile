@@ -4,13 +4,13 @@ GARVERSION   = 1.6.3
 CATEGORIES   = lib
 MASTER_SITES = https://git.kernel.org/pub/scm/linux/kernel/git/dhowells/keyutils.git/snapshot/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = fix-install-so-symlink.patch
 LICENSE      = GPL
 
 DEPENDS = lang/c
 
-CONFIGURE_SCRIPTS = 
-BUILD_SCRIPTS     = custom
-INSTALL_SCRIPTS   = custom
+BUILD_SCRIPTS   = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS = $(WORKSRC)/Makefile
 
 include ../../gar.mk
 
@@ -19,14 +19,9 @@ BUILD_ARGS   = \
 	CXX="$(CXX)" \
 	CPPFLAGS="$(CPPFLAGS)" \
 	CFLAGS="$(CFLAGS) $(LDFLAGS)" \
-	CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)"
+	CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)" \
 
-build-custom:
-	@echo "Building..."
-	@$(MAKE) -C $(WORKSRC) $(BUILD_ARGS)
-	@$(MAKECOOKIE)
-
-install-custom:
-	@echo "Installing..."
-	@$(MAKE) -C $(WORKSRC) DESTDIR="$(DESTDIR)" SBINDIR='/usr/bin' BINDIR='/usr/bin' LIBDIR='/usr/lib' USRLIBDIR='/usr/lib' install
-	@$(MAKECOOKIE)
+INSTALL_ARGS = \
+	DESTDIR="$(DESTDIR)" \
+	LIBDIR="$(libdir)" \
+	USRLIBDIR="$(libdir)" \
