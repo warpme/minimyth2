@@ -1,10 +1,10 @@
 
 GARNAME      = libblockdev
-GARVERSION   = 2.27
+GARVERSION   = 3.5.0
 CATEGORIES   = lib
-MASTER_SITES = https://github.com/rhinstaller/libblockdev/archive/
-DISTFILES    = $(GARVERSION)-1.tar.gz
-WORKSRC      = $(WORKDIR)/$(DISTNAME)-1
+MASTER_SITES = https://github.com/storaged-project/libblockdev/archive/refs/tags/
+DISTFILES    = $(GARVERSION).tar.gz
+WORKSRC      = $(WORKDIR)/$(DISTNAME)
 LICENSE      = LGPL2
 
 DESCRIPTION =
@@ -17,8 +17,11 @@ DEPENDS = \
 	disk/gptfdisk \
 	utils/kmod \
 	lib/libbytesize \
+	lib/libnvme \
 	disk/cryptsetup \
 	disk/parted \
+	lib/keyutils \
+	gtk/json-glib \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -59,10 +62,12 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libbd_loop.la
 	@rm -f $(DESTDIR)$(libdir)/libbd_utils.la
 	@rm -f $(DESTDIR)$(libdir)/libblockdev.la
-	@rm -f $(DESTDIR)$(libdir)/libbd_part_err.la
 	@rm -f $(DESTDIR)$(libdir)/libbd_part.la
 	@rm -f $(DESTDIR)$(libdir)/libbd_swap.la
 	@rm -f $(DESTDIR)$(libdir)/libbd_mdraid.la
+	@rm -f $(DESTDIR)$(libdir)/libbd_nvme.la
 	@rm -f $(DESTDIR)$(libdir)/libbd_fs.la
 	@rm -f $(DESTDIR)$(libdir)/libbd_crypto.la
+	@rm -f $(DESTDIR)$(libdir)/libbd_smart.la
+	@rm -f $(DESTDIR)$(libdir)/libbd_smartmontools.la
 	@$(MAKECOOKIE)
