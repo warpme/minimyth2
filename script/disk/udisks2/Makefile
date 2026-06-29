@@ -1,12 +1,11 @@
 
 GARNAME      = udisks
-GARVERSION   = 2.9.4
+GARVERSION   = 2.11.1
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/storaged-project/udisks/archive/
 DISTFILES    = udisks-$(GARVERSION).tar.gz org.freedesktop.UDisks2.conf
 WORKSRC      = $(WORKDIR)/udisks-$(DISTNAME)
 PATCHFILES   = \
-	$(DISTNAME)-disable-gobject-introspection.patch \
 	$(DISTNAME)-remove-intl-and-gtk-doc.patch \
 
 LICENSE = GPL2
@@ -38,6 +37,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-lsm \
 	--disable-bcache \
 	--disable-vdo \
+	--disable-nvme \
 
 include ../../gar.mk
 
