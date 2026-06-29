@@ -89,5 +89,6 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/mod_vhostdb.la
 	@rm -f $(DESTDIR)$(libdir)/mod_webdav.la
 	@rm -f $(DESTDIR)$(libdir)/mod_wstunnel.la
+	@rm -f $(DESTDIR)$(libdir)/mod_h2.la
 	@$(MAKECOOKIE)
 
