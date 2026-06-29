@@ -14,9 +14,16 @@ INSTALL_SCRIPTS   = custom
 
 include ../../gar.mk
 
+BUILD_ARGS   = \
+	CC="$(CC)" \
+	CXX="$(CXX)" \
+	CPPFLAGS="$(CPPFLAGS)" \
+	CFLAGS="$(CFLAGS) $(LDFLAGS)" \
+	CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)"
+
 build-custom:
 	@echo "Building..."
-	@$(MAKE) -C $(WORKSRC)
+	@$(MAKE) -C $(WORKSRC) $(BUILD_ARGS)
 	@$(MAKECOOKIE)
 
 install-custom:
