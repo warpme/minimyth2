@@ -17,7 +17,7 @@ include ../../gar.mk
 BUILD_ARGS   = \
 	CC="$(CC)" \
 	CXX="$(CXX)" \
-	CPPFLAGS="$(CPPFLAGS)" \
+	CPPFLAGS="$(CPPFLAGS) -I$(shell pwd)/$(WORKSRC)" \
 	CFLAGS="$(CFLAGS) $(LDFLAGS)" \
 	CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)" \
 
