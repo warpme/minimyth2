@@ -1,7 +1,7 @@
 
 GARNAME      = radxa-firmware
-# git@9.05.2026
-GARVERSION   = 87e80641c48cdd9e11d575fbea20e708fe40830c
+# git@01.07.2026
+GARVERSION   = 6a9efd21ebd78d4dd73939fd3b6a7ff3ef8801ca
 CATEGORIES   = firmware
 MASTER_SITES = https://github.com/radxa-pkg/radxa-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
