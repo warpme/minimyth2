@@ -35,6 +35,7 @@ DEPENDS = \
 	firmware/aml-vdec-firmware \
 	firmware/ap6359sa-firmware \
 	firmware/ap6275p-firmware \
+	firmware/sc8280-firmware \
 
 include ../../gar.mk
 
