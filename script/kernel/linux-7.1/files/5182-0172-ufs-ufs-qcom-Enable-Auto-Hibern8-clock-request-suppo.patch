@@ -1,0 +1,76 @@
+From 5b502b9a6a61b2ef630b5b5bd5886d89f7ad7798 Mon Sep 17 00:00:00 2001
+From: Palash Kambar <palash.kambar@oss.qualcomm.com>
+Date: Thu, 23 Apr 2026 15:50:23 +0530
+Subject: [PATCH 172/309] ufs: ufs-qcom: Enable Auto Hibern8 clock request
+ support
+
+On platforms that support Auto Hibern8 (AH8), the UFS controller can
+autonomously de-assert clk_req signals to the Global Clock Controller
+when entering the Hibern8 state. This allows Global Clock Controller
+(GCC) to gate unused clocks, improving power efficiency.
+
+Enable the Clock Request feature by setting the UFS_HW_CLK_CTRL_EN
+bit in the UFS_AH8_CFG register, as recommended in the Hardware
+Programming Guidelines.
+
+Reviewed-by: Manivannan Sadhasivam <mani@kernel.org>
+Signed-off-by: Palash Kambar <palash.kambar@oss.qualcomm.com>
+Reviewed-by: Bart Van Assche <bvanassche@acm.org>
+---
+ drivers/ufs/host/ufs-qcom.c | 10 ++++++++++
+ drivers/ufs/host/ufs-qcom.h | 11 +++++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/drivers/ufs/host/ufs-qcom.c b/drivers/ufs/host/ufs-qcom.c
+index 375fd24ba..931a51a06 100644
+--- a/drivers/ufs/host/ufs-qcom.c
++++ b/drivers/ufs/host/ufs-qcom.c
+@@ -705,6 +705,13 @@ static int ufs_qcom_cfg_timers(struct ufs_hba *hba, bool is_pre_scale_up, unsign
+ 	return 0;
+ }
+ 
++static void ufs_qcom_link_startup_post_change(struct ufs_hba *hba)
++{
++	if (ufshcd_is_auto_hibern8_supported(hba))
++		ufshcd_rmwl(hba, UFS_HW_CLK_CTRL_EN, UFS_HW_CLK_CTRL_EN,
++			    UFS_AH8_CFG);
++}
++
+ static int ufs_qcom_link_startup_notify(struct ufs_hba *hba,
+ 					enum ufs_notify_change_status status)
+ {
+@@ -730,6 +737,9 @@ static int ufs_qcom_link_startup_notify(struct ufs_hba *hba,
+ 		 */
+ 		err = ufshcd_disable_host_tx_lcc(hba);
+ 
++		break;
++	case POST_CHANGE:
++		ufs_qcom_link_startup_post_change(hba);
+ 		break;
+ 	default:
+ 		break;
+diff --git a/drivers/ufs/host/ufs-qcom.h b/drivers/ufs/host/ufs-qcom.h
+index 1111ab34d..adc44bdd1 100644
+--- a/drivers/ufs/host/ufs-qcom.h
++++ b/drivers/ufs/host/ufs-qcom.h
+@@ -228,6 +228,17 @@ enum {
+  */
+ #define NUM_TX_R1W1 13
+ 
++/* bit definitions for UFS_AH8_CFG register */
++#define CC_UFS_SYS_CLK_REQ_EN          BIT(2)
++#define CC_UFS_ICE_CORE_CLK_REQ_EN     BIT(3)
++#define CC_UFS_UNIPRO_CORE_CLK_REQ_EN  BIT(4)
++#define CC_UFS_AUXCLK_REQ_EN           BIT(5)
++
++#define UFS_HW_CLK_CTRL_EN	(CC_UFS_SYS_CLK_REQ_EN |\
++				CC_UFS_ICE_CORE_CLK_REQ_EN |\
++				CC_UFS_UNIPRO_CORE_CLK_REQ_EN |\
++				CC_UFS_AUXCLK_REQ_EN)
++
+ static inline void
+ ufs_qcom_get_controller_revision(struct ufs_hba *hba,
+ 				 u8 *major, u16 *minor, u16 *step)
+-- 
+2.53.0
+

@@ -1,0 +1,53 @@
+From 710c95516b6e6ce26b22b60fc51cd7792d8885d4 Mon Sep 17 00:00:00 2001
+From: Jessica Zhang <jesszhan0024@gmail.com>
+Date: Sat, 14 Mar 2026 03:09:08 +0200
+Subject: [PATCH 080/309] drm/msm/dp: Move link training to atomic_enable()
+
+Currently, the DP link training is being done during HPD. Move
+link training to atomic_enable() in accordance with the atomic_enable()
+documentation.
+
+Link disabling is already done in atomic_post_disable() (as part of the
+dp_ctrl_off_link_stream() helper).
+
+Finally, call the plug/unplug handlers directly in hpd_notify() instead
+of queueing them in the event thread so that they aren't preempted by
+other events.
+
+Signed-off-by: Jessica Zhang <jessica.zhang@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+---
+ drivers/gpu/drm/msm/dp/dp_display.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index 406309b23..436487421 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -437,11 +437,6 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
+ 	msm_dp_link_psm_config(dp->link, &dp->panel->link_info, false);
+ 
+ 	msm_dp_link_reset_phy_params_vx_px(dp->link);
+-	rc = msm_dp_ctrl_on_link(dp->ctrl);
+-	if (rc) {
+-		DRM_ERROR("failed to complete DP link training\n");
+-		goto end;
+-	}
+ 
+ 	msm_dp_add_event(dp, EV_USER_NOTIFICATION, true, 0);
+ 
+@@ -1743,6 +1738,11 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 		force_link_train = true;
+ 	}
+ 
++	rc = msm_dp_ctrl_on_link(msm_dp_display->ctrl);
++	if (rc)
++		DRM_ERROR("Failed link training (rc=%d)\n", rc);
++	// TODO: schedule drm_connector_set_link_status_property()
++
+ 	msm_dp_display_enable(msm_dp_display, force_link_train);
+ 
+ 	rc = msm_dp_display_post_enable(dp);
+-- 
+2.53.0
+

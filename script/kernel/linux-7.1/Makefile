@@ -512,15 +512,109 @@ endif
 
 ifeq (1,1)
 #-- Qualcomm patches -----------------------------------
-# qcs6490 drivers additions
-PATCHFILES += 5020-firmware-qcom-scm-Allow-QSEECOM-for-Radxa-Dragon-Q6A.patch
-PATCHFILES += 5021-ASoC-dt-bindings-google-sc7280-herobrine-Add-Radxa-Dragon-Q6A-sound-card.patch
-PATCHFILES += 5023-clk-qcom-gcc-sc7280-switch-GP-clocks-to-clk_rcg2_gp_ops.patch
-PATCHFILES += 5024-drm-display-add-hw_params-callback-function-to-drm_c.patch
+# qcs6490/sc8280xp additions
+# toshiba tc956x a.k.a. qps615 driver
+PATCHFILES += 5051-net-pcs-pcs-xpcs-regmap-support-XPCS-memory-mapped-M.patch
+PATCHFILES += 5052-net-pcs-pcs-xpcs-select-operating-mode-for-10G-baseR.patch
+PATCHFILES += 5053-net-pcs-pcs-xpcs-Preserve-BMCR_ANENBLE-during-link-u.patch
+PATCHFILES += 5054-net-stmmac-dma-create-a-separate-dma_device-pointer.patch
+PATCHFILES += 5055-net-stmmac-dwxgmac2-Add-multi-MSI-interrupt-mode.patch
+PATCHFILES += 5056-net-stmmac-dwxgmac2-Add-XGMAC-3.01a-support.patch
+PATCHFILES += 5057-net-stmmac-dwxgmac2-export-symbols-for-XGMAC-3.01a-D.patch
+PATCHFILES += 5058-dt-bindings-net-toshiba-tc965x-dwmac-add-TC956x-Ethe.patch
+PATCHFILES += 5059-gpio-tc956x-add-TC956x-QPS615-support.patch
+PATCHFILES += 5060-net-stmmac-tc956x-add-TC956x-QPS615-support.patch
+PATCHFILES += 5061-misc-tc956x_pci-add-TC956x-QPS615-support.patch
+# clk patches
+PATCHFILES += 5070-0016-clk-qcom-gcc-sc7280-Allow-PCIe_0-GDSC-to-enter-reten.patch
+PATCHFILES += 5071-0017-clk-qcom-gcc-sc7280-Add-missing-GDSC-flags.patch
+PATCHFILES += 5072-0018-clk-qcom-gcc-sc7280-Add-runtime-PM.patch
+PATCHFILES += 5073-0050-clk-qcom-clk-rcg2-fix-clk_rcg2_calc_mnd-producing-wr.patch
+PATCHFILES += 5074-0051-clk-qcom-clk-rcg2-use-64-bit-arithmetic-in-set_duty_.patch
+PATCHFILES += 5075-0052-clk-qcom-clk-branch-calculate-timeout-based-on-clock.patch
+PATCHFILES += 5076-0053-clk-qcom-clk-rcg2-calculate-timeout-based-on-clock-f.patch
+PATCHFILES += 5077-0054-clk-qcom-clk-rcg2-fix-set_duty_cycle-integer-overflo.patch
+PATCHFILES += 5078-0055-clk-qcom-gcc-sc7280-switch-GP-clocks-to-clk_rcg2_gp_.patch
+# remoteproc patches
+PATCHFILES += 5085-0003-remoteproc-core-Attach-rproc-asynchronously-in-rproc.patch
+PATCHFILES += 5086-0004-remoteproc-qcom-Check-glink-edge-in-glink_subdev_sto.patch
+PATCHFILES += 5087-0006-remoteproc-qcom-pas-Add-late-attach-support-for-subs.patch
+PATCHFILES += 5088-0276-remoteproc-qcom_q6v5_pas-attach-to-preloaded-firmwar.patch
+# firmware patches
+PATCHFILES += 5100-0008-dt-bindings-firmware-qcom-scm-Add-qcom-shm-bridge-vm.patch
+PATCHFILES += 5101-0009-wip-firmware-qcom-tzmem-Use-self-owner-bits-when-run.patch
+PATCHFILES += 5102-0027-firmware-qcom-scm-Allow-QSEECOM-for-Radxa-Dragon-Q6A.patch
+PATCHFILES += 5103-0033-firmware-qcom-scm-Add-SCM-storage-interface-support.patch
+PATCHFILES += 5104-0061-firmware-qcom-scm-Add-Radxa-Dragon-Q8B-to-SCM-storag.patch
+PATCHFILES += 5105-0062-firmware-qcom-scm-Allow-QSEECOM-for-Radxa-Dragon-Q8B.patch
+PATCHFILES += 5106-0014-soc-qcom-geni-se-Add-MODULE_FIRMWARE-macro.patch
+PATCHFILES += 5107-0235-firmware-qcom-scm-Allow-QSEECOM-for-Radxa-CM-Q64.patch
+# phy patches
+PATCHFILES += 5115-0012-phy-qcom-qmp-ufs-Fix-HS-G4-PHY-init-table-for-sc7280.patch
+PATCHFILES += 5116-0088-phy-qcom-qmp-combo-Move-pipe_clk-on-off-to-common.patch
+# drm patches
+PATCHFILES += 5120-0020-drm-panel-Add-support-for-Orise-Tech-OTA7290B-DSI-Pa.patch
+PATCHFILES += 5121-0032-drm-msm-dp-Delay-applying-clock-defaults-until-PHY-i.patch
+PATCHFILES += 5122-0042-drm-msm-dp-Use-compatible-table-to-filter-out-certai.patch
+PATCHFILES += 5123-0060-drm-msm-dpu-Reduce-clk_inefficiency_factor-to-100-on.patch
+PATCHFILES += 5124-0066-drm-bridge-simple-add-the-Chrontel-CH7218A-DP-to-HDM.patch
+PATCHFILES += 5125-0077-drm-msm-dp-fix-HPD-state-status-bit-shift-value.patch
+PATCHFILES += 5126-0078-drm-msm-dp-Fix-the-ISR_-enum-values.patch
+PATCHFILES += 5127-0079-drm-msm-dp-Read-DPCD-and-sink-count-in-bridge-detect.patch
+PATCHFILES += 5128-0080-drm-msm-dp-Move-link-training-to-atomic_enable.patch
+PATCHFILES += 5129-0081-drm-msm-dp-Drop-EV_USER_NOTIFICATION.patch
+PATCHFILES += 5130-0082-drm-msm-dp-drop-event-data.patch
+PATCHFILES += 5131-0087-drm-msm-dp-add-DisplayPort-CEC-Tunneling-over-AUX-su.patch
+PATCHFILES += 5132-0140-drm-msm-dp-Do-not-fail-audio-prepare-when-DP-is-inac.patch
+PATCHFILES += 5133-0141-fixup-drm-msm-dp-Add-DisplayPort-CEC-tunneling-over-.patch
+PATCHFILES += 5134-0142-drm-msm-dp-Keep-branch-sink-count-in-sync.patch
+PATCHFILES += 5135-0143-drm-msm-dpu-Reassert-core-clock-rate-on-runtime-resu.patch
+PATCHFILES += 5136-0144-drm-msm-dpu-Clear-stale-DSC-resources-during-modeset.patch
+PATCHFILES += 5137-0145-drm-msm-dp-Fix-parity-calculation-for-multi-byte-pay.patch
+PATCHFILES += 5138-0179-drm-msm-dp-add-missing-drm_edid_connector_update-bef.patch
+PATCHFILES += 5139-0232-drm-msm-dsi-enable-continuous-clock-for-SC7280-DSI-P.patch
+PATCHFILES += 5140-0233-drm-bridge-tc358762-switch-from-sync-pulse-to-burst-.patch
+PATCHFILES += 5141-0275-drm-msm-dpu-cap-DSPP-reservations-by-hardware-count.patch
+PATCHFILES += 5142-0309-wip-drm-msm-dpu-Prevent-unnecessary-hardware-block-m.patch
+PATCHFILES += 5143-0249-drm-edid-add-device-tree-quirk-flags-supports.patch
+# network misc patches
+PATCHFILES += 5150-0069-net-phy-qca808x-add-DT-configurable-LED-preset-modes.patch
+PATCHFILES += 5151-0108-net-phy-qcom-qca808x-add-Wake-on-LAN-support.patch
+PATCHFILES += 5152-0119-net-stmmac-tc956x-Add-shutdown-callback-to-suspend-t.patch
+PATCHFILES += 5153-0166-net-stmmac-dwmac-tc956x-Read-MAC-address-from-firmwa.patch
+PATCHFILES += 5154-0038-r8169-Remove-the-check-of-a-register-to-enable-ASPM-.patch
+# pci patches
+PATCHFILES += 5160-0065-PCI-pwrctrl-tc9563-Make-error-teardown-safe.patch
+PATCHFILES += 5161-0115-PCI-qcom-Restrict-PERST-parsing-to-PCI-bridge-nodes.patch
+PATCHFILES += 5162-0120-PCI-of-Avoid-config-reads-for-disabled-bridge-nodes.patch
+PATCHFILES += 5163-0123-PCI-pwrctrl-tc9563-Add-AXI-half-frequency-support.patch
+PATCHFILES += 5164-0163-PCI-qcom-Override-NO_SNOOP-attribute-for-SC8280XP-pl.patch
+# various drivers patches
+PATCHFILES += 5170-0031-driver-core-platform-Add-option-to-skip-delay-applyi.patch
+PATCHFILES += 5171-0034-mtd-devices-Add-Qualcomm-SCM-storage-driver.patch
+PATCHFILES += 5172-0035-spi-geni-qcom-Implement-max_transfer_size-for-GPI-DM.patch
+PATCHFILES += 5173-0057-pwm-clk-pwm-add-GPIO-and-pinctrl-support-for-constan.patch
+PATCHFILES += 5174-0067-review-later-drm-bridge-simple-bridge-keep-powered-d.patch
+PATCHFILES += 5175-0072-ACPI-platform_profile-Make-legacy-sysfs-optional.patch
+PATCHFILES += 5176-0073-platform_profile-Move-core-out-of-ACPI.patch
+PATCHFILES += 5177-0075-platform-arm64-Add-Radxa-SVC-GLINK-driver.patch
+PATCHFILES += 5178-0112-interconnect-qcom-sc8280xp-Enable-QoS-configuration.patch
+PATCHFILES += 5179-0114-of-property-Create-devlink-between-PCI-Host-bridge-a.patch
+PATCHFILES += 5180-0118-iommu-arm-smmu-qcom-Ensure-smmu-is-powered-up-in-set.patch
+PATCHFILES += 5181-0171-ufs-core-Configure-only-active-lanes-during-link.patch
+PATCHFILES += 5182-0172-ufs-ufs-qcom-Enable-Auto-Hibern8-clock-request-suppo.patch
+PATCHFILES += 5183-0178-dmaengine-qcom-gpi-set-DMA_PRIVATE-capability.patch
+PATCHFILES += 5184-0224-media-uapi-Add-MEDIA_BUS_FMT_SENSOR_DATA-media-bus-f.patch
+PATCHFILES += 5185-0231-iio-adc-qcom-spmi-adc5-add-ADC7-GPIO1-GPIO4.patch
+PATCHFILES += 5186-0245-usb-typec-tcpm-support-skipping-VSafe0V-check.patch
+PATCHFILES += 5187-0268-ufs-qcom-add-PA_TACTIVATE-quirk-for-Kioxia-THGJFGT1E.patch
+PATCHFILES += 5188-0308-HACK-disable-fake-battery-device-on-pmic-glink.patch
 # dtsi additions
 PATCHFILES += 5220-arm64-dtsi-qcom-kodiak-Add-I2C-aliases-for-CCI.patch
 PATCHFILES += 5221-arm64-dtsi-qcom-kodiak-Mark-secondary-USB-controller-as-wakeup-source.patch
 PATCHFILES += 5222-arm64-dtsi-qcom-sc7280-Fix-PDC-reg-size-to-single-APSS-DRV-region.patch
+# sc8280 dtsi additions
+PATCHFILES += 5250-arm64-dtsi-qcom-sc8280xp-improvements-for-dragon-q8b.patch
 # board dts additions
 PATCHFILES += 5300-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Enable-UFS-controller.patch
 PATCHFILES += 5301-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Enable-USB-3.0-and-HDMI-ports.patch
@@ -533,8 +627,11 @@ PATCHFILES += 5307-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-add-LPASS-CPU-audio-v
 PATCHFILES += 5308-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-change-led-fn.patch
 PATCHFILES += 5309-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-finetune-display-pipeline.patch
 PATCHFILES += 5310-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-add-missing-pcie-regulators-disable-eud.patch
+# sc8280 boards dts additions
+PATCHFILES += 5350-arm64-dts-qcom-sc8280xp-add-dragon-q8b.patch
 endif
 #------------------------------------------------------------
+
 
 endif
 
@@ -548,6 +645,7 @@ BUILDDEPS = \
 	utils/bc \
 	utils/kmod \
 	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/u-boot.tools) \
+	lib/libzstd \
 
 DEPENDS = \
 	kernel-headers/linux-headers \
