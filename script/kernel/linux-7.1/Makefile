@@ -43,8 +43,8 @@ PATCHFILES += linux-7.1-perl.patch.gar
 PATCHFILES += linux-7.1-defaults.patch
 
 ifeq (1,1)
-PATCHFILES += 0001-net-brcm80211-brcmfmac-pcie-stop-loading-txcap_blob-fw.patch
 
+PATCHFILES += 0001-net-brcm80211-brcmfmac-pcie-stop-loading-txcap_blob-fw.patch
 PATCHFILES += 0108-drivers-led-add-openvfd-g6de4e217b.patch
 PATCHFILES += 0109-block-add-led-showing-block-activity.patch
 
@@ -802,8 +802,6 @@ mergeconfig: configure
 	 cd $(WORKSRC); \
 	 if [ -e ../../../config.fragment ]; then \
 	   cp -f .config config.old; scripts/kconfig/merge_config.sh .config ../../../config.fragment; \
-	   cp -f ./files/$(CONFIGFILE) $(CONFIGFILE).before.mergeconfig; \
-	   echo "merged .config saved as $(CONFIGFILE) in package/files dir ... "; \
 	   cp -f .config ../../../$(CONFIGFILE).after.mergeconfig; \
 	    echo "merged config saved in: tree root as .config and also as $(CONFIGFILE).after.mergeconfig in package dir ... "; \
 	 else \
