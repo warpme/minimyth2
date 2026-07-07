@@ -272,15 +272,16 @@ PATCHFILES += 2729-drm-sun4i-sun55i_de-bypass-the-VSU-for-unscaled-laye.patch
 PATCHFILES += 2730-drm-sun4i-sun8i_hdmi_phy-demote-Inno-PHY-register-du.patch
 PATCHFILES += 2731-clk-sunxi-ng-sun55i-a523-add-the-IOMMU-bus-reset.patch
 PATCHFILES += 2732-iommu-sun50i-add-support-for-the-A523-sun55i.patch
-
+# cedrus
+PATCHFILES += 2733-media-cedrus-add-A523-sun55i-variant.patch
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
+PATCHFILES += 2803-arm64-dtsi-allwinner-a523-add-the-HDMI-display-pipeli.patch
 # PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
-PATCHFILES += 2805-arm64-dtsi-allwinner-a523-add-the-HDMI-display-pipeli.patch
-PATCHFILES += 2803-arm64-dtsi-allwinner-a523-add-the-IOMMU-nodes.patch
-
+PATCHFILES += 2805-arm64-dtsi-allwinner-a523-add-the-IOMMU-nodes.patch
+PATCHFILES += 2806-arm64-dtsi-allwinner-a523-add-Cedrus-nodes.patch
 # a523 board dts additions
 PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch

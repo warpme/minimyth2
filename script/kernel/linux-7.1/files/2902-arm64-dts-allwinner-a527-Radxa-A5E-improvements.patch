@@ -5,9 +5,9 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts linux-6.19/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts
---- linux-6.19/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts	2026-02-08 22:03:27.000000000 +0100
-+++ linux-6.19/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts	2026-02-09 12:49:10.251461124 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.1.3/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts linux-7.1.3/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts
+--- linux-7.1.3/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts	2026-07-04 13:45:09.000000000 +0200
++++ linux-7.1.3/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts	2026-07-07 19:17:24.087896548 +0200
 @@ -1,18 +1,21 @@
  // SPDX-License-Identifier: (GPL-2.0-only OR MIT)
 -// Copyright (C) 2025 Arm Ltd.
@@ -32,7 +32,42 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/
  		ethernet0 = &gmac0;
  		ethernet1 = &gmac1;
  		serial0 = &uart0;
-@@ -25,18 +28,16 @@
+@@ -22,21 +25,51 @@
+ 		stdout-path = "serial0:115200n8";
+ 	};
+ 
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		/*
++		 * The display engine's layer DMA master has a limited fetch
++		 * aperture and can only reach low DRAM (it reads the RCQ pool at
++		 * ~0x43000000 but not 0x4b100000). The kernel's default CMA is
++		 * high (~0xf0000000), so scanout fetches zeros (black). Pin CMA
++		 * just above the kernel image (ends ~0x42c70000) and the RCQ
++		 * pool (~0x43000000), below the dtb (~0x49ff6000).
++		 */
++		linux,cma {
++			compatible = "shared-dma-pool";
++			reusable;
++			size = <0x0 0x10000000>;
++			linux,cma-default;
++		};
++	};
++
++	hdmi-connector {
++		compatible = "hdmi-connector";
++		type = "a";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
  	leds {
  		compatible = "gpio-leds";
  
@@ -56,7 +91,29 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/
  		};
  	};
  
-@@ -64,6 +65,24 @@
+@@ -46,6 +79,21 @@
+ 			      <&axp717_adc 4>; /* pmic_temp */
+ 	};
+ 
++	reg_3v3_wifi: 3v3-wifi {
++		compatible = "regulator-fixed";
++		regulator-name = "3v3-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&r_pio 0 7 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++	};
++
++	wifi_pwrseq: wifi-pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		reset-gpios = <&r_pio 1 1 GPIO_ACTIVE_LOW>;
++		post-power-on-delay-ms = <200>;
++	};
++
+ 	reg_vcc5v: vcc5v {
+ 		/* board wide 5V supply from the USB-C connector */
+ 		compatible = "regulator-fixed";
+@@ -64,6 +112,24 @@
  		gpio = <&r_pio 0 8 GPIO_ACTIVE_HIGH>;	/* PL8 */
  		enable-active-high;
  	};
@@ -81,63 +138,33 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/
  };
  
  &ehci0 {
-@@ -85,22 +104,23 @@
+@@ -128,6 +194,25 @@
  	status = "okay";
  };
  
-+&gpu {
-+	mali-supply = <&reg_dcdc2>;
-+	status = "okay";
-+};
-+
- &gmac1 {
- 	phy-mode = "rgmii-id";
- 	phy-handle = <&ext_rgmii1_phy>;
--	phy-supply = <&reg_cldo4>;
-+	phy-supply = <&reg_cldo3>;
- 
- 	tx-internal-delay-ps = <300>;
- 	rx-internal-delay-ps = <400>;
-+	use-25m-clk;
- 
- 	status = "okay";
- };
- 
--&gpu {
--	mali-supply = <&reg_dcdc2>;
--	status = "okay";
--};
--
- &mdio0 {
- 	ext_rgmii0_phy: ethernet-phy@1 {
- 		compatible = "ethernet-phy-ieee802.3-c22";
-@@ -128,6 +148,25 @@
- 	status = "okay";
- };
- 
-+&mmc1_pins {
-+	drive-strength = <40>;
-+};
-+
 +&mmc1 {
-+	//reducing due sdio instability with higher clocks
-+	max-frequency = <10000000>;
 +	bus-width = <4>;
++	max-frequency = <40000000>;
++	mmc-pwrseq = <&wifi_pwrseq>;
 +	non-removable;
-+	sd-uhs-sdr104;
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc1_pins>;
 +	vmmc-supply = <&reg_3v3_wifi>;
 +	vqmmc-supply = <&reg_bldo1>;
 +	status = "okay";
 +
-+	wlan: wifi@1 {
++	wifi@1 {
 +		reg = <1>;
++		interrupt-parent = <&r_pio>;
++		interrupts = <1 0 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-names = "host-wake";
 +	};
 +};
 +
  &ohci0 {
  	status = "okay";
  };
-@@ -207,6 +246,7 @@
+@@ -207,6 +292,7 @@
  			};
  
  			reg_aldo2: aldo2 {
@@ -145,7 +172,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/
  				regulator-min-microvolt = <1800000>;
  				regulator-max-microvolt = <1800000>;
  				regulator-name = "vcc-pe";
-@@ -228,6 +268,7 @@
+@@ -228,6 +314,7 @@
  			};
  
  			reg_bldo1: bldo1 {
@@ -153,7 +180,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/
  				regulator-min-microvolt = <1800000>;
  				regulator-max-microvolt = <1800000>;
  				regulator-name = "vcc-pg-iowifi";
-@@ -241,6 +282,7 @@
+@@ -241,6 +328,7 @@
  			};
  
  			reg_bldo3: bldo3 {
@@ -161,19 +188,32 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/
  				regulator-min-microvolt = <3300000>;
  				regulator-max-microvolt = <3300000>;
  				regulator-name = "vcc-mipi-cam";
-@@ -251,9 +293,10 @@
+@@ -251,9 +339,10 @@
  			};
  
  			reg_cldo1: cldo1 {
-+				regulator-always-on;
- 				regulator-min-microvolt = <1800000>;
- 				regulator-max-microvolt = <1800000>;
+-				regulator-min-microvolt = <1800000>;
+-				regulator-max-microvolt = <1800000>;
 -				regulator-name = "vcc-pc-and-their-dog";
++				regulator-always-on;
++				regulator-min-microvolt = <1900000>;
++				regulator-max-microvolt = <1900000>;
 +				regulator-name = "vcc-pc";
  			};
  
  			reg_cldo2: cldo2 {
-@@ -323,6 +365,9 @@
+@@ -263,8 +352,8 @@
+ 			reg_cldo3: cldo3 {
+ 				/* IO, USB-2, 3V3, card, NAND, sensor, PI */
+ 				regulator-always-on;
+-				regulator-min-microvolt = <3300000>;
+-				regulator-max-microvolt = <3300000>;
++				regulator-min-microvolt = <3400000>;
++				regulator-max-microvolt = <3400000>;
+ 				regulator-name = "vcc-io-mmc-spi-ana";
+ 			};
+ 
+@@ -323,6 +412,9 @@
  			};
  
  			/* DCDC2 is polyphased with DCDC1 */
@@ -183,7 +223,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/
  
  			/* RISC-V management core supply */
  			reg_dcdc3_323: dcdc3 {
-@@ -381,3 +426,9 @@
+@@ -381,3 +473,23 @@
  	usb1_vbus-supply = <&reg_usb_vbus>;
  	status = "okay";
  };
@@ -191,6 +231,20 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/
 +&gpu {
 +	mali-supply = <&reg_dcdc2>;
 +	status = "okay";
++};
++
++&de {
++	status = "okay";
++};
++
++&hdmi {
++	status = "okay";
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
 +};
 +
 --
