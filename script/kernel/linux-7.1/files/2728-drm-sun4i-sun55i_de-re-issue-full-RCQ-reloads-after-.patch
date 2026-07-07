@@ -1,0 +1,82 @@
+From 526e03efd77ebc07f26877a9cd5b58eced1092fb Mon Sep 17 00:00:00 2001
+From: Justin Suess <utilityemal77@gmail.com>
+Date: Sat, 4 Jul 2026 16:17:07 -0400
+Subject: [PATCH 08/14] drm/sun4i: sun55i_de: re-issue full RCQ reloads after a
+ modeset
+
+A single full-reload RCQ load does not reliably latch every DE33 block:
+live-verified, the first apply after boot lands nothing, while a repeat
+apply of the same list lands everything. Track a small retry budget that
+mode_set arms and have the blanking-gated arm path re-issue the still
+fully-dirty list on consecutive vblanks until the budget drains. The
+shadow is idempotent - re-applying it is harmless - and the arms land in
+blanking like any other, so the datapath converges to the staged config
+within a few frames even when an individual load is dropped.
+---
+ drivers/gpu/drm/sun4i/sun55i_de.c | 16 ++++++++++++++++
+ drivers/gpu/drm/sun4i/sun55i_de.h |  8 ++++++++
+ 2 files changed, 24 insertions(+)
+
+diff --git a/drivers/gpu/drm/sun4i/sun55i_de.c b/drivers/gpu/drm/sun4i/sun55i_de.c
+index 3aec2cd2d300..5f26c1d7b10d 100644
+--- a/drivers/gpu/drm/sun4i/sun55i_de.c
++++ b/drivers/gpu/drm/sun4i/sun55i_de.c
+@@ -499,6 +499,7 @@ void sun55i_de_mode_set(struct sun8i_mixer *mixer,
+ 	 */
+ 	hrtimer_cancel(&de->arm_timer);
+ 	de->armed_once = false;	/* re-stage the whole datapath for the new mode */
++	de->full_arms_left = 4;	/* re-issue the full reload on the next vblanks */
+ 	vbp = mode->crtc_vtotal - mode->crtc_vsync_end;
+ 	de->line_total = vtotal ? vtotal : 1;
+ 	de->arm_target = vbp + (vtotal * 3) / 100;
+@@ -827,6 +828,7 @@ void sun55i_de_commit(struct sun8i_mixer *mixer)
+ 	 */
+ 	for (i = 0; i < SUN55I_DE_BLK_NUM; i++) {
+ 		bool dirty = !flip_min || !de->armed_once ||
++			     de->full_arms_left > 0 ||
+ 			     i == SUN55I_DE_BLK_OVL_LAY0 ||
+ 			     i == SUN55I_DE_BLK_OVL_PARA;
+ 
+@@ -871,6 +873,20 @@ static void sun55i_de_do_arm(struct sun55i_de *de)
+ 
+ 	de->arm_pending = false;
+ 	de->armed_once = true;
++
++	/*
++	 * Post-modeset full reloads: one load does not reliably latch every
++	 * block, so keep re-arming the (still fully-dirty) list on subsequent
++	 * vblanks until the retry budget drains. The shadow is idempotent -
++	 * re-applying it is harmless - and the arms land in blanking like any
++	 * other, so the datapath converges to the staged config within a few
++	 * frames even when an individual load is dropped.
++	 */
++	if (de->full_arms_left) {
++		de->full_arms_left--;
++		if (de->full_arms_left)
++			de->arm_pending = true;
++	}
+ 	de->arm_seq++;
+ 	regmap_write(de->mixer->top_regs, SUN55I_MIXER_RCQ_CTL, 1);
+ 
+diff --git a/drivers/gpu/drm/sun4i/sun55i_de.h b/drivers/gpu/drm/sun4i/sun55i_de.h
+index 7ee4f0f78df1..4917531eb253 100644
+--- a/drivers/gpu/drm/sun4i/sun55i_de.h
++++ b/drivers/gpu/drm/sun4i/sun55i_de.h
+@@ -116,6 +116,14 @@ struct sun55i_de {
+ 	struct hrtimer			arm_timer;	/* fires in next blanking */
+ 	bool				arm_pending;	/* RCQ staged, not armed */
+ 	bool				armed_once;	/* datapath fully loaded once */
++	/*
++	 * Full-reload arms left to issue after a modeset. A single full-reload
++	 * RCQ load does not reliably latch every block (live-verified: the
++	 * first apply after boot lands nothing; a repeat apply of the same
++	 * list lands everything), so the first arms after a mode_set re-issue
++	 * the full-dirty list on consecutive vblanks until this drains.
++	 */
++	unsigned int			full_arms_left;
+ 	u32				line_total;	/* TCON line counter modulus */
+ 	u32				arm_target;	/* safe arm line (vendor calc) */
+ 	u32				ns_per_line;	/* counter-tick period (ns) */
+-- 
+2.54.0
+

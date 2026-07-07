@@ -1,0 +1,53 @@
+From f427506becff95be16d7dd1920dc3033217102f0 Mon Sep 17 00:00:00 2001
+From: Justin Suess <utilityemal77@gmail.com>
+Date: Mon, 29 Jun 2026 17:34:30 -0400
+Subject: [PATCH 02/14] clk: sunxi-ng: sun55i-a523: keep the IOMMU clock always
+ on
+
+The IOMMU sits in the memory fabric between the display/video masters and
+DRAM. Even when it is not used for translation (the DE uses raw physical
+addresses in mainline), master traffic still passes through it, so its
+functional clock must stay on or DE fetches come back corrupted.
+
+Nothing claims the clock yet, so clk_disable_unused() gates it at boot and
+display fetches return garbage unless clk_ignore_unused is passed on the
+cmdline. Mark it CLK_IS_CRITICAL as a stop-gap until an IOMMU driver
+manages it.
+
+This is a hack, but it works for now (alternative is cmd boot option
+clk_ignore unused)
+---
+ drivers/clk/sunxi-ng/ccu-sun55i-a523.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun55i-a523.c b/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
+index 7997a26645de..26e35caae7a0 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
++++ b/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
+@@ -584,13 +584,22 @@ static const struct clk_parent_data iommu_parents[] = {
+ 	{ .fw_name = "hosc" },
+ };
+ 
++/*
++ * The IOMMU sits in the memory fabric between the display/video masters and
++ * DRAM. Even when it is not used for translation (the DE uses raw physical
++ * addresses in mainline), the master traffic still passes through it, so its
++ * functional clock must stay on or DE fetches come back corrupted. Nothing
++ * claims it yet, so mark it critical to keep clk_disable_unused() from gating
++ * it (otherwise boards need clk_ignore_unused on the cmdline). Proper fix is
++ * to manage it from an IOMMU driver.
++ */
+ static SUNXI_CCU_MP_DATA_WITH_MUX_GATE_FEAT(iommu_clk, "iommu", iommu_parents,
+ 					    0x7b0,
+ 					    0, 5,	/* M */
+ 					    0, 0,	/* no P */
+ 					    24, 3,	/* mux */
+ 					    BIT(31),	/* gate */
+-					    CLK_SET_RATE_PARENT,
++					    CLK_SET_RATE_PARENT | CLK_IS_CRITICAL,
+ 					    CCU_FEATURE_UPDATE_BIT);
+ 
+ static SUNXI_CCU_GATE_HWS(bus_iommu_clk, "bus-iommu", apb0_hws, 0x7bc,
+-- 
+2.54.0
+

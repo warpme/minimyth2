@@ -1,0 +1,83 @@
+From 3e89e4505d2075d138963f88ff11aa1f7cd1140f Mon Sep 17 00:00:00 2001
+From: Justin Suess <utilityemal77@gmail.com>
+Date: Mon, 29 Jun 2026 17:34:09 -0400
+Subject: [PATCH 01/14] clk: sunxi-ng: sun55i-a523: add HDMI TMDS clock
+
+The A523/H728 HDMI controller needs the main TMDS ("mod") clock that the
+dw-hdmi driver programs to the pixel clock. Register 0xb00 follows the
+H616 layout (hdmi-24M@0xb04 and bus-hdmi@0xb1c are byte-identical to the
+H616), sourced from the four video PLLs via a M divider + mux + gate.
+
+Add the hdmi clock, export it as CLK_HDMI and bump the clock count.
+---
+ drivers/clk/sunxi-ng/ccu-sun55i-a523.c      | 21 ++++++++++++++++++++-
+ include/dt-bindings/clock/sun55i-a523-ccu.h |  1 +
+ 2 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun55i-a523.c b/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
+index 20dad06b37ca..7997a26645de 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
++++ b/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
+@@ -898,6 +898,23 @@ static SUNXI_CCU_GATE_HWS(bus_display1_top_clk, "bus-display1-top", ahb_hws,
+ 
+ static SUNXI_CCU_GATE_DATA(hdmi_24M_clk, "hdmi-24M", osc24M, 0xb04, BIT(31), 0);
+ 
++/*
++ * Main HDMI TMDS ("mod") clock. Register 0xb00 follows the H616 layout
++ * (hdmi-24M@0xb04 and bus-hdmi@0xb1c are byte-identical to H616), sourced
++ * from the video PLLs; the dw-hdmi driver sets it to the pixel clock.
++ */
++static const struct clk_hw *hdmi_tmds_parents[] = {
++	&pll_video0_4x_clk.common.hw,
++	&pll_video1_4x_clk.common.hw,
++	&pll_video2_4x_clk.common.hw,
++	&pll_video3_4x_clk.common.hw,
++};
++static SUNXI_CCU_M_HW_WITH_MUX_GATE(hdmi_clk, "hdmi", hdmi_tmds_parents, 0xb00,
++				    0, 4,	/* M */
++				    24, 2,	/* mux */
++				    BIT(31),	/* gate */
++				    CLK_SET_RATE_PARENT);
++
+ static SUNXI_CCU_GATE_HWS_WITH_PREDIV(hdmi_cec_32k_clk, "hdmi-cec-32k",
+ 				      pll_periph0_2x_hws,
+ 				      0xb10, BIT(30), 36621, 0);
+@@ -1314,6 +1331,7 @@ static struct ccu_common *sun55i_a523_ccu_clks[] = {
+ 	&bus_display0_top_clk.common,
+ 	&bus_display1_top_clk.common,
+ 	&hdmi_24M_clk.common,
++	&hdmi_clk.common,
+ 	&hdmi_cec_32k_clk.common,
+ 	&hdmi_cec_clk.common,
+ 	&bus_hdmi_clk.common,
+@@ -1497,6 +1515,7 @@ static struct clk_hw_onecell_data sun55i_a523_hw_clks = {
+ 		[CLK_BUS_DISPLAY0_TOP]	= &bus_display0_top_clk.common.hw,
+ 		[CLK_BUS_DISPLAY1_TOP]	= &bus_display1_top_clk.common.hw,
+ 		[CLK_HDMI_24M]		= &hdmi_24M_clk.common.hw,
++		[CLK_HDMI]		= &hdmi_clk.common.hw,
+ 		[CLK_HDMI_CEC_32K]	= &hdmi_cec_32k_clk.common.hw,
+ 		[CLK_HDMI_CEC]		= &hdmi_cec_clk.common.hw,
+ 		[CLK_BUS_HDMI]		= &bus_hdmi_clk.common.hw,
+@@ -1539,7 +1558,7 @@ static struct clk_hw_onecell_data sun55i_a523_hw_clks = {
+ 		[CLK_FANOUT2]		= &fanout2_clk.common.hw,
+ 		[CLK_NPU]		= &npu_clk.common.hw,
+ 	},
+-	.num	= CLK_NPU + 1,
++	.num	= CLK_HDMI + 1,
+ };
+ 
+ static struct ccu_reset_map sun55i_a523_ccu_resets[] = {
+diff --git a/include/dt-bindings/clock/sun55i-a523-ccu.h b/include/dt-bindings/clock/sun55i-a523-ccu.h
+index 54808fcfd556..dfab3175774d 100644
+--- a/include/dt-bindings/clock/sun55i-a523-ccu.h
++++ b/include/dt-bindings/clock/sun55i-a523-ccu.h
+@@ -186,5 +186,6 @@
+ #define CLK_FANOUT1		177
+ #define CLK_FANOUT2		178
+ #define CLK_NPU			179
++#define CLK_HDMI		180
+ 
+ #endif /* _DT_BINDINGS_CLK_SUN55I_A523_CCU_H_ */
+-- 
+2.54.0
+

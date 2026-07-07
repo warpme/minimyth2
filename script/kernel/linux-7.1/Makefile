@@ -187,7 +187,7 @@ PATCHFILES += 2017-drm-sun4i-Add-support-for-DE33-CSC.patch
 PATCHFILES += 2018-drm-sun4i-vi_layer-Limit-formats-for-DE33.patch
 PATCHFILES += 2019-clk-sunxi-ng-de2-Export-register-regmap-for-DE33.patch
 PATCHFILES += 2020-drm-sun4i-Add-planes-driver.patch
-PATCHFILES += 2021-drm-sun4i-switch-DE33-to-new-bindings.patch
+# breaks a523 hdmi enablement PATCHFILES += 2021-drm-sun4i-switch-DE33-to-new-bindings.patch
 PATCHFILES += 2024-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
 PATCHFILES += 2025-asoc-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 2026-media-cedrus-Don-t-CPU-map-source-buffers.patch
@@ -216,7 +216,7 @@ PATCHFILES += 2402-media-cedrus-add-H616-variant.patch
 PATCHFILES += 2403-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 PATCHFILES += 2404-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 2405-drm-sun4i-Add-H616-TCON-TV-support.patch
-PATCHFILES += 2406-srm-sun4i-Add-support-for-H616-HDMI-PHY.patch
+# provided by 2724 PATCHFILES += 2406-srm-sun4i-Add-support-for-H616-HDMI-PHY.patch
 PATCHFILES += 2407-drm-sun4i-Add-compatible-for-H616-display-engine.patch
 PATCHFILES += 2409-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 PATCHFILES += 2410-sound-soc-sunxi-add-codec-driver-for-h616.patch
@@ -260,14 +260,33 @@ PATCHFILES += 2701-regulator-axp20x-force-polyphase-setup-for-axp323.patch
 PATCHFILES += 2702-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
 PATCHFILES += 2703-add-initial-cpufreq-support.patch
 PATCHFILES += 2704-net-drivers-stmmac-add-25M-phy-clock-support.patch
+PATCHFILES += 2705-clk-sunxi-ng-ccu-sun55i-make-mmc-high-speed-working.patch
+# add hdmi
+PATCHFILES += 2721-clk-sunxi-ng-sun55i-a523-add-HDMI-TMDS-clock.patch
+PATCHFILES += 2722-clk-sunxi-ng-sun55i-a523-keep-the-IOMMU-clock-always.patch
+PATCHFILES += 2723-drm-sun4i-add-the-sun55i-A523-v35x-DE33-display-engi.patch
+PATCHFILES += 2724-drm-sun4i-sun8i_hdmi_phy-add-H616-and-A523-HDMI-PHY-.patch
+PATCHFILES += 2727-drm-sun4i-sun55i_de-fix-HDMI-page-flip-tearing-with-.patch
+PATCHFILES += 2728-drm-sun4i-sun55i_de-re-issue-full-RCQ-reloads-after-.patch
+PATCHFILES += 2729-drm-sun4i-sun55i_de-bypass-the-VSU-for-unscaled-laye.patch
+PATCHFILES += 2730-drm-sun4i-sun8i_hdmi_phy-demote-Inno-PHY-register-du.patch
+PATCHFILES += 2731-clk-sunxi-ng-sun55i-a523-add-the-IOMMU-bus-reset.patch
+PATCHFILES += 2732-iommu-sun50i-add-support-for-the-A523-sun55i.patch
+
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
+# PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
+PATCHFILES += 2805-arm64-dtsi-allwinner-a523-add-the-HDMI-display-pipeli.patch
+PATCHFILES += 2803-arm64-dtsi-allwinner-a523-add-the-IOMMU-nodes.patch
+
 # a523 board dts additions
 PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch
 PATCHFILES += 2902-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch
+PATCHFILES += 2903-arm64-dts-allwinner-a523-enable-hdmi.patch
+# PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
 #------------------------------------------------------------
 endif
 
