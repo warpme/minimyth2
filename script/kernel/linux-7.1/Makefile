@@ -548,6 +548,7 @@ PATCHFILES += 5058-dt-bindings-net-toshiba-tc965x-dwmac-add-TC956x-Ethe.patch
 PATCHFILES += 5059-gpio-tc956x-add-TC956x-QPS615-support.patch
 PATCHFILES += 5060-net-stmmac-tc956x-add-TC956x-QPS615-support.patch
 PATCHFILES += 5061-misc-tc956x_pci-add-TC956x-QPS615-support.patch
+PATCHFILES += 5062-net-stmmac-tc956x-fix-with-7.1kernel-compability.patch
 # clk patches
 PATCHFILES += 5070-0016-clk-qcom-gcc-sc7280-Allow-PCIe_0-GDSC-to-enter-reten.patch
 PATCHFILES += 5071-0017-clk-qcom-gcc-sc7280-Add-missing-GDSC-flags.patch
