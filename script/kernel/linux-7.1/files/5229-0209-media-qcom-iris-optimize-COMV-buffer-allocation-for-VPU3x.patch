@@ -1,0 +1,181 @@
+From e374baab379268fae1d556be1349a6cdc018b772 Mon Sep 17 00:00:00 2001
+From: Vishnu Reddy <busanna.reddy@oss.qualcomm.com>
+Date: Thu, 14 May 2026 00:28:22 +0530
+Subject: [PATCH 209/309] media: iris: optimize COMV buffer allocation for
+ VPU3x and VPU4x
+
+The existing iris_vpu_dec_comv_size() used VIDEO_MAX_FRAME (32) as
+num_comv count unconditionally when calculating the co-located motion
+vector (COMV) buffer size. This resulted in an oversized COMV buffer
+allocation throughout decode session, wasting memory regardless of
+actual number of buffers required.
+
+For VPU3x and VPU4x platforms, introduce iris_vpu3x_4x_dec_comv_size() to
+replace iris_vpu_dec_comv_size(). These derive num_comv dynamically, it
+uses inst->fw_min_count once the firmware has reported its buffer
+requirements, and fallback to output count during initialization before
+firmware has communicated its requirements. This aligns the COMV buffer
+size to the actual count needed rather than always allocating with fixed
+VIDEO_MAX_FRAME value.
+
+Additionally, during iris_vdec_inst_init(), fw_min_count was initialized
+to MIN_BUFFERS instead of 0. This masked the fallback logic and caused the
+COMV size calculation to use MIN_BUFFERS even before firmware had reported
+its actual requirements. Fix this by initializing fw_min_count to 0.
+
+During testing of 1080p AVC, it reduces the COMV buffer size from 32.89MB
+to 6.16MB per decode session, significantly reducing memory consumption.
+
+Reviewed-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Signed-off-by: Vishnu Reddy <busanna.reddy@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ .../qcom/iris/iris_hfi_gen2_command.c         | 15 +++----------
+ .../platform/qcom/iris/iris_platform_common.h |  1 -
+ .../qcom/iris/iris_platform_qcs8300.h         |  1 -
+ .../platform/qcom/iris/iris_platform_sm8550.h |  1 -
+ drivers/media/platform/qcom/iris/iris_vdec.c  |  3 ++-
+ .../platform/qcom/iris/iris_vpu_buffer.c      | 22 +++++++++++++++++--
+ 6 files changed, 25 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
+index c90b22a75..7ac69af63 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
+@@ -10,7 +10,6 @@
+ 
+ #define UNSPECIFIED_COLOR_FORMAT 5
+ #define NUM_SYS_INIT_PACKETS 8
+-#define NUM_COMV_AV1 18
+ 
+ #define SYS_INIT_PKT_SIZE (sizeof(struct iris_hfi_header) + \
+ 	NUM_SYS_INIT_PACKETS * (sizeof(struct iris_hfi_packet) + sizeof(u32)))
+@@ -1207,18 +1206,10 @@ static u32 iris_hfi_gen2_buf_type_from_driver(u32 domain, enum iris_buffer_type
+ 
+ static int iris_hfi_gen2_set_num_comv(struct iris_inst *inst)
+ {
+-	struct platform_inst_caps *caps;
+-	struct iris_core *core = inst->core;
+-	u32 num_comv;
+-
+-	caps = core->iris_platform_data->inst_caps;
++	u32 num_comv = inst->buffers[BUF_OUTPUT].min_count;
+ 
+-	/*
+-	 * AV1 needs more comv buffers than other codecs.
+-	 * Update accordingly.
+-	 */
+-	num_comv = (inst->codec == V4L2_PIX_FMT_AV1) ?
+-				NUM_COMV_AV1 : caps->num_comv;
++	if (inst->fw_min_count)
++		num_comv = inst->fw_min_count;
+ 
+ 	return iris_hfi_gen2_session_set_property(inst,
+ 						  HFI_PROP_COMV_BUFFER_COUNT,
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
+index 7ca37ca2d..c522dd0a5 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_common.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
+@@ -96,7 +96,6 @@ struct platform_inst_caps {
+ 	u32 mb_cycles_vpp;
+ 	u32 mb_cycles_fw;
+ 	u32 mb_cycles_fw_vpp;
+-	u32 num_comv;
+ 	u32 max_frame_rate;
+ 	u32 max_operating_rate;
+ };
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_qcs8300.h b/drivers/media/platform/qcom/iris/iris_platform_qcs8300.h
+index 61025f1e9..3cfecae80 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_qcs8300.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_qcs8300.h
+@@ -15,7 +15,6 @@ static struct platform_inst_caps platform_inst_cap_qcs8300 = {
+ 	.mb_cycles_vpp = 200,
+ 	.mb_cycles_fw = 326389,
+ 	.mb_cycles_fw_vpp = 44156,
+-	.num_comv = 0,
+ 	.max_frame_rate = MAXIMUM_FPS,
+ 	.max_operating_rate = MAXIMUM_FPS,
+ };
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_sm8550.h b/drivers/media/platform/qcom/iris/iris_platform_sm8550.h
+index a9d9709c2..3c9dae995 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_sm8550.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_sm8550.h
+@@ -23,7 +23,6 @@ static struct platform_inst_caps platform_inst_cap_sm8550 = {
+ 	.mb_cycles_vpp = 200,
+ 	.mb_cycles_fw = 489583,
+ 	.mb_cycles_fw_vpp = 66234,
+-	.num_comv = 0,
+ 	.max_frame_rate = MAXIMUM_FPS,
+ 	.max_operating_rate = MAXIMUM_FPS,
+ };
+diff --git a/drivers/media/platform/qcom/iris/iris_vdec.c b/drivers/media/platform/qcom/iris/iris_vdec.c
+index 7a3fd6a2f..a0bcbeb42 100644
+--- a/drivers/media/platform/qcom/iris/iris_vdec.c
++++ b/drivers/media/platform/qcom/iris/iris_vdec.c
+@@ -24,7 +24,7 @@ int iris_vdec_inst_init(struct iris_inst *inst)
+ 	inst->fmt_src = kzalloc_obj(*inst->fmt_src);
+ 	inst->fmt_dst = kzalloc_obj(*inst->fmt_dst);
+ 
+-	inst->fw_min_count = MIN_BUFFERS;
++	inst->fw_min_count = 0;
+ 
+ 	f = inst->fmt_src;
+ 	f->type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+@@ -253,6 +253,7 @@ int iris_vdec_s_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 		/* Update capture format based on new ip w/h */
+ 		output_fmt->fmt.pix_mp.width = ALIGN(f->fmt.pix_mp.width, 128);
+ 		output_fmt->fmt.pix_mp.height = ALIGN(f->fmt.pix_mp.height, 32);
++		inst->buffers[BUF_OUTPUT].min_count = iris_vpu_buf_count(inst, BUF_OUTPUT);
+ 		inst->buffers[BUF_OUTPUT].size = iris_get_buffer_size(inst, BUF_OUTPUT);
+ 
+ 		inst->crop.left = 0;
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_buffer.c b/drivers/media/platform/qcom/iris/iris_vpu_buffer.c
+index f55db869f..fb6f10164 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_buffer.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu_buffer.c
+@@ -731,6 +731,24 @@ static u32 iris_vpu_dec_comv_size(struct iris_inst *inst)
+ 	u32 height = f->fmt.pix_mp.height;
+ 	u32 width = f->fmt.pix_mp.width;
+ 
++	if (inst->codec == V4L2_PIX_FMT_H264)
++		return hfi_buffer_comv_h264d(width, height, num_comv);
++	else if (inst->codec == V4L2_PIX_FMT_HEVC)
++		return hfi_buffer_comv_h265d(width, height, num_comv);
++
++	return 0;
++}
++
++static u32 iris_vpu3x_4x_dec_comv_size(struct iris_inst *inst)
++{
++	u32 num_comv = inst->buffers[BUF_OUTPUT].min_count;
++	struct v4l2_format *f = inst->fmt_src;
++	u32 height = f->fmt.pix_mp.height;
++	u32 width = f->fmt.pix_mp.width;
++
++	if (inst->fw_min_count)
++		num_comv = inst->fw_min_count;
++
+ 	if (inst->codec == V4L2_PIX_FMT_H264)
+ 		return hfi_buffer_comv_h264d(width, height, num_comv);
+ 	else if (inst->codec == V4L2_PIX_FMT_HEVC)
+@@ -2066,7 +2084,7 @@ u32 iris_vpu_buf_size(struct iris_inst *inst, enum iris_buffer_type buffer_type)
+ 
+ 	static const struct iris_vpu_buf_type_handle dec_internal_buf_type_handle[] = {
+ 		{BUF_BIN,         iris_vpu_dec_bin_size             },
+-		{BUF_COMV,        iris_vpu_dec_comv_size            },
++		{BUF_COMV,        iris_vpu3x_4x_dec_comv_size       },
+ 		{BUF_NON_COMV,    iris_vpu_dec_non_comv_size        },
+ 		{BUF_LINE,        iris_vpu_dec_line_size            },
+ 		{BUF_PERSIST,     iris_vpu_dec_persist_size         },
+@@ -2139,7 +2157,7 @@ u32 iris_vpu4x_buf_size(struct iris_inst *inst, enum iris_buffer_type buffer_typ
+ 
+ 	static const struct iris_vpu_buf_type_handle dec_internal_buf_type_handle[] = {
+ 		{BUF_BIN,         iris_vpu_dec_bin_size         },
+-		{BUF_COMV,        iris_vpu_dec_comv_size        },
++		{BUF_COMV,        iris_vpu3x_4x_dec_comv_size   },
+ 		{BUF_NON_COMV,    iris_vpu_dec_non_comv_size    },
+ 		{BUF_LINE,        iris_vpu4x_dec_line_size      },
+ 		{BUF_PERSIST,     iris_vpu4x_dec_persist_size   },
+-- 
+2.53.0
+

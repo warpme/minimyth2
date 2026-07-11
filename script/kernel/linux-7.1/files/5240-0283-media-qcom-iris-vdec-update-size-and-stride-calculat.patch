@@ -1,0 +1,88 @@
+From b27b7b56b6ae5fb2b18d7387f6af3dd9e70241a0 Mon Sep 17 00:00:00 2001
+From: Neil Armstrong <neil.armstrong@linaro.org>
+Date: Tue, 2 Jun 2026 10:39:19 +0200
+Subject: [PATCH 283/309] media: qcom: iris: vdec: update size and stride
+ calculations for 10bit formats
+
+Update the gen2 response and vdec s_fmt code to take in account
+the P010 and QC010 when calculating the width, height and stride.
+
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Tested-by: Wangao Wang <wangao.wang@oss.qualcomm.com>
+Signed-off-by: Neil Armstrong <neil.armstrong@linaro.org>
+---
+ .../qcom/iris/iris_hfi_gen2_response.c        | 21 +++++++++++++---
+ drivers/media/platform/qcom/iris/iris_vdec.c  | 24 ++++++++++++++++---
+ 2 files changed, 39 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
+index c350d2312..aca90aab8 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
+@@ -542,9 +542,24 @@ static void iris_hfi_gen2_read_input_subcr_params(struct iris_inst *inst)
+ 	pixmp_ip->width = width;
+ 	pixmp_ip->height = height;
+ 
+-	pixmp_op->width = ALIGN(width, 128);
+-	pixmp_op->height = ALIGN(height, 32);
+-	pixmp_op->plane_fmt[0].bytesperline = ALIGN(width, 128);
++	switch (pixmp_op->pixelformat) {
++	case V4L2_PIX_FMT_P010:
++		pixmp_op->width = ALIGN(width, 128);
++		pixmp_op->height = ALIGN(height, 32);
++		pixmp_op->plane_fmt[0].bytesperline = ALIGN(width * 2, 256);
++		break;
++	case V4L2_PIX_FMT_QC10C:
++		pixmp_op->width = roundup(width, 192);
++		pixmp_op->height = ALIGN(height, 16);
++		pixmp_op->plane_fmt[0].bytesperline = ALIGN(pixmp_op->width * 4 / 3, 256);
++		break;
++	case V4L2_PIX_FMT_NV12:
++	case V4L2_PIX_FMT_QC08C:
++		pixmp_op->width = ALIGN(width, 128);
++		pixmp_op->height = ALIGN(height, 32);
++		pixmp_op->plane_fmt[0].bytesperline = pixmp_op->width;
++		break;
++	}
+ 	pixmp_op->plane_fmt[0].sizeimage = iris_get_buffer_size(inst, BUF_OUTPUT);
+ 
+ 	matrix_coeff = subsc_params.color_info & 0xFF;
+diff --git a/drivers/media/platform/qcom/iris/iris_vdec.c b/drivers/media/platform/qcom/iris/iris_vdec.c
+index 75736c67b..1afa87620 100644
+--- a/drivers/media/platform/qcom/iris/iris_vdec.c
++++ b/drivers/media/platform/qcom/iris/iris_vdec.c
+@@ -257,10 +257,28 @@ int iris_vdec_s_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 		fmt = inst->fmt_dst;
+ 		fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+ 		fmt->fmt.pix_mp.pixelformat = f->fmt.pix_mp.pixelformat;
+-		fmt->fmt.pix_mp.width = ALIGN(f->fmt.pix_mp.width, 128);
+-		fmt->fmt.pix_mp.height = ALIGN(f->fmt.pix_mp.height, 32);
+ 		fmt->fmt.pix_mp.num_planes = 1;
+-		fmt->fmt.pix_mp.plane_fmt[0].bytesperline = ALIGN(f->fmt.pix_mp.width, 128);
++		switch (f->fmt.pix_mp.pixelformat) {
++		case V4L2_PIX_FMT_P010:
++			fmt->fmt.pix_mp.width = ALIGN(f->fmt.pix_mp.width, 128);
++			fmt->fmt.pix_mp.height = ALIGN(f->fmt.pix_mp.height, 32);
++			fmt->fmt.pix_mp.plane_fmt[0].bytesperline =
++				ALIGN(f->fmt.pix_mp.width * 2, 256);
++			break;
++		case V4L2_PIX_FMT_QC10C:
++			fmt->fmt.pix_mp.width = roundup(f->fmt.pix_mp.width, 192);
++			fmt->fmt.pix_mp.height = ALIGN(f->fmt.pix_mp.height, 16);
++			fmt->fmt.pix_mp.plane_fmt[0].bytesperline =
++				ALIGN(f->fmt.pix_mp.width * 4 / 3, 256);
++			break;
++		case V4L2_PIX_FMT_NV12:
++		case V4L2_PIX_FMT_QC08C:
++			fmt->fmt.pix_mp.width = ALIGN(f->fmt.pix_mp.width, 128);
++			fmt->fmt.pix_mp.height = ALIGN(f->fmt.pix_mp.height, 32);
++			fmt->fmt.pix_mp.plane_fmt[0].bytesperline =
++				ALIGN(f->fmt.pix_mp.width, 128);
++			break;
++		}
+ 		fmt->fmt.pix_mp.plane_fmt[0].sizeimage = iris_get_buffer_size(inst, BUF_OUTPUT);
+ 		inst->buffers[BUF_OUTPUT].min_count = iris_vpu_buf_count(inst, BUF_OUTPUT);
+ 		inst->buffers[BUF_OUTPUT].size = fmt->fmt.pix_mp.plane_fmt[0].sizeimage;
+-- 
+2.53.0
+

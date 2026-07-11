@@ -1,0 +1,106 @@
+From 764b9bb72ea9c8934a633ad389873fc03c9b7a20 Mon Sep 17 00:00:00 2001
+From: Xilin Wu <sophon@radxa.com>
+Date: Wed, 3 Jun 2026 23:55:10 +0800
+Subject: [PATCH 218/309] media: iris: Add SC8280XP platform data
+
+Add platform data for the Iris VPU on SC8280XP and hook up the
+qcom,sc8280xp-iris compatible.
+
+SC8280XP uses the VPU2 programming model, but can run the newer HFI Gen2
+firmware.  Describe both the legacy Gen1 firmware and the Gen2 firmware
+so the driver can select the available firmware at runtime.
+
+Set up the SC8280XP clocks, resets, power domains, bandwidth tables,
+format list, capabilities and DMA address limit needed by the Iris driver.
+
+Signed-off-by: Xilin Wu <sophon@radxa.com>
+---
+ .../platform/qcom/iris/iris_platform_common.h |  1 +
+ .../platform/qcom/iris/iris_platform_vpu2.c   | 36 +++++++++++++++++++
+ drivers/media/platform/qcom/iris/iris_probe.c |  4 +++
+ 3 files changed, 41 insertions(+)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
+index 88a200baa..0135d76a7 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_common.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
+@@ -54,6 +54,7 @@ extern const struct iris_firmware_data iris_hfi_gen2_data;
+ 
+ extern const struct iris_platform_data qcs8300_data;
+ extern const struct iris_platform_data sc7280_data;
++extern const struct iris_platform_data sc8280xp_data;
+ extern const struct iris_platform_data sm8250_data;
+ extern const struct iris_platform_data sm8550_data;
+ extern const struct iris_platform_data sm8650_data;
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_vpu2.c b/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
+index 4a020300b..fafb333d4 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
+@@ -34,6 +34,12 @@ static const struct iris_firmware_desc iris_vpu20_p4_gen1_desc = {
+ 	.fwname = "qcom/vpu/vpu20_p4.mbn",
+ };
+ 
++static const struct iris_firmware_desc iris_vpu20_p4_gen2_s6_desc = {
++	.firmware_data = &iris_hfi_gen2_data,
++	.get_vpu_buffer_size = iris_vpu33_buf_size,
++	.fwname = "qcom/vpu/vpu20_p4_gen2_s6.mbn",
++};
++
+ static struct iris_fmt iris_fmts_vpu2_dec[] = {
+ 	[IRIS_FMT_H264] = {
+ 		.pixfmt = V4L2_PIX_FMT_H264,
+@@ -109,6 +115,36 @@ const struct iris_platform_data sc7280_data = {
+ 	.max_core_mbps = 4096 * 2176 / 256 * 60,
+ };
+ 
++const struct iris_platform_data sc8280xp_data = {
++	.firmware_desc_gen1 = &iris_vpu20_p4_gen1_desc,
++	.firmware_desc_gen2 = &iris_vpu20_p4_gen2_s6_desc,
++	.vpu_ops = &iris_vpu2_ops,
++	.icc_tbl = iris_icc_info_vpu2,
++	.icc_tbl_size = ARRAY_SIZE(iris_icc_info_vpu2),
++	.clk_rst_tbl = iris_clk_reset_table_vpu2,
++	.clk_rst_tbl_size = ARRAY_SIZE(iris_clk_reset_table_vpu2),
++	.bw_tbl_dec = sm8250_bw_table_dec,
++	.bw_tbl_dec_size = ARRAY_SIZE(sm8250_bw_table_dec),
++	.pmdomain_tbl = iris_pmdomain_table_vpu2,
++	.pmdomain_tbl_size = ARRAY_SIZE(iris_pmdomain_table_vpu2),
++	.opp_pd_tbl = sm8250_opp_pd_table,
++	.opp_pd_tbl_size = ARRAY_SIZE(sm8250_opp_pd_table),
++	.clk_tbl = sm8250_clk_table,
++	.clk_tbl_size = ARRAY_SIZE(sm8250_clk_table),
++	.opp_clk_tbl = sm8250_opp_clk_table,
++	/* Upper bound of DMA address range */
++	.dma_mask = 0xe0000000 - 1,
++	.inst_iris_fmts = iris_fmts_vpu2_dec,
++	.inst_iris_fmts_size = ARRAY_SIZE(iris_fmts_vpu2_dec),
++	.inst_caps = &platform_inst_cap_vpu2,
++	.tz_cp_config_data = tz_cp_config_vpu2,
++	.tz_cp_config_data_size = ARRAY_SIZE(tz_cp_config_vpu2),
++	.num_vpp_pipe = 4,
++	.max_session_count = 16,
++	.max_core_mbpf = NUM_MBS_8K,
++	.max_core_mbps = ((7680 * 4320) / 256) * 60,
++};
++
+ const struct iris_platform_data sm8250_data = {
+ 	.firmware_desc_gen1 = &iris_vpu20_p4_gen1_desc,
+ 	.vpu_ops = &iris_vpu2_ops,
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index 7fe31136d..2358c5500 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -364,6 +364,10 @@ static const struct of_device_id iris_dt_match[] = {
+ 		.compatible = "qcom,sc7280-venus",
+ 		.data = &sc7280_data,
+ 	},
++	{
++		.compatible = "qcom,sc8280xp-iris",
++		.data = &sc8280xp_data,
++	},
+ 	{
+ 		.compatible = "qcom,sm8250-venus",
+ 		.data = &sm8250_data,
+-- 
+2.53.0
+

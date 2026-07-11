@@ -1,0 +1,184 @@
+From 60b252e0ab4bf8eee6678c009065e0829f664904 Mon Sep 17 00:00:00 2001
+From: Wangao Wang <wangao.wang@oss.qualcomm.com>
+Date: Tue, 12 May 2026 16:55:10 +0800
+Subject: [PATCH 202/309] media: qcom: iris: Add intra refresh support for gen1
+ encoder
+
+Add support for intra refresh configuration on gen1 encoder by enabling
+V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD and
+V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD_TYPE controls.
+
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Tested-by: Neil Armstrong <neil.armstrong@linaro.org> # on SM8650-HDK
+Signed-off-by: Wangao Wang <wangao.wang@oss.qualcomm.com>
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ drivers/media/platform/qcom/iris/iris_ctrls.c | 39 ++++++++++++++++++-
+ drivers/media/platform/qcom/iris/iris_ctrls.h |  3 +-
+ .../media/platform/qcom/iris/iris_hfi_gen1.c  | 19 +++++++++
+ .../qcom/iris/iris_hfi_gen1_command.c         |  8 ++++
+ .../qcom/iris/iris_hfi_gen1_defines.h         | 13 +++++++
+ .../media/platform/qcom/iris/iris_hfi_gen2.c  |  2 +-
+ 6 files changed, 81 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_ctrls.c b/drivers/media/platform/qcom/iris/iris_ctrls.c
+index ef7adac37..287cfc532 100644
+--- a/drivers/media/platform/qcom/iris/iris_ctrls.c
++++ b/drivers/media/platform/qcom/iris/iris_ctrls.c
+@@ -970,7 +970,44 @@ int iris_set_flip(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ 					     &hfi_val, sizeof(u32));
+ }
+ 
+-int iris_set_ir_period(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
++int iris_set_ir_period_gen1(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
++{
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
++	struct v4l2_pix_format_mplane *fmt = &inst->fmt_dst->fmt.pix_mp;
++	u32 codec_align = inst->codec == V4L2_PIX_FMT_HEVC ? 32 : 16;
++	u32 ir_period = inst->fw_caps[cap_id].value;
++	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
++	struct hfi_intra_refresh hfi_val;
++
++	if (!ir_period)
++		return -EINVAL;
++
++	if (inst->fw_caps[IR_TYPE].value ==
++			V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD_TYPE_RANDOM) {
++		hfi_val.mode = HFI_INTRA_REFRESH_RANDOM;
++	} else if (inst->fw_caps[IR_TYPE].value ==
++			V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD_TYPE_CYCLIC) {
++		hfi_val.mode = HFI_INTRA_REFRESH_CYCLIC;
++	} else {
++		return -EINVAL;
++	}
++
++	/*
++	 * Calculate the number of macroblocks in a frame,
++	 * then determine how many macroblocks need to be
++	 * refreshed within one ir_period.
++	 */
++	hfi_val.mbs = (fmt->width / codec_align) * (fmt->height / codec_align);
++	hfi_val.mbs /= ir_period;
++
++	return hfi_ops->session_set_property(inst, hfi_id,
++					     HFI_HOST_FLAGS_NONE,
++					     iris_get_port_info(inst, cap_id),
++					     HFI_PAYLOAD_STRUCTURE,
++					     &hfi_val, sizeof(hfi_val));
++}
++
++int iris_set_ir_period_gen2(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+ 	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	struct vb2_queue *q = v4l2_m2m_get_dst_vq(inst->m2m_ctx);
+diff --git a/drivers/media/platform/qcom/iris/iris_ctrls.h b/drivers/media/platform/qcom/iris/iris_ctrls.h
+index 951880357..a0d5338bd 100644
+--- a/drivers/media/platform/qcom/iris/iris_ctrls.h
++++ b/drivers/media/platform/qcom/iris/iris_ctrls.h
+@@ -34,7 +34,8 @@ int iris_set_frame_qp(struct iris_inst *inst, enum platform_inst_fw_cap_type cap
+ int iris_set_qp_range(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id);
+ int iris_set_rotation(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id);
+ int iris_set_flip(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id);
+-int iris_set_ir_period(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id);
++int iris_set_ir_period_gen1(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id);
++int iris_set_ir_period_gen2(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id);
+ int iris_set_properties(struct iris_inst *inst, u32 plane);
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1.c
+index 60f51a1ba..9344d2004 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1.c
+@@ -224,6 +224,25 @@ static const struct platform_inst_fw_cap inst_fw_cap_sm8250_enc[] = {
+ 		.flags = CAP_FLAG_OUTPUT_PORT,
+ 		.set = iris_set_qp_range,
+ 	},
++	{
++		.cap_id = IR_TYPE,
++		.min = V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD_TYPE_RANDOM,
++		.max = V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD_TYPE_CYCLIC,
++		.step_or_mask = BIT(V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD_TYPE_RANDOM) |
++			BIT(V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD_TYPE_CYCLIC),
++		.value = V4L2_CID_MPEG_VIDEO_INTRA_REFRESH_PERIOD_TYPE_RANDOM,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++	},
++	{
++		.cap_id = IR_PERIOD,
++		.min = 0,
++		.max = ((4096 * 2304) >> 8),
++		.step_or_mask = 1,
++		.value = 0,
++		.hfi_id = HFI_PROPERTY_PARAM_VENC_INTRA_REFRESH,
++		.flags = CAP_FLAG_OUTPUT_PORT,
++		.set = iris_set_ir_period_gen1,
++	},
+ };
+ 
+ static const u32 sm8250_vdec_input_config_param_default[] = {
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index 833738626..051ba0d15 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -687,6 +687,14 @@ iris_hfi_gen1_packet_session_set_property(struct hfi_session_set_property_pkt *p
+ 		packet->shdr.hdr.size += sizeof(u32) + sizeof(*plane_actual_info);
+ 		break;
+ 	}
++	case HFI_PROPERTY_PARAM_VENC_INTRA_REFRESH: {
++		struct hfi_intra_refresh *in = pdata, *intra_refresh = prop_data;
++
++		intra_refresh->mode = in->mode;
++		intra_refresh->mbs = in->mbs;
++		packet->shdr.hdr.size += sizeof(u32) + sizeof(*intra_refresh);
++		break;
++	}
+ 	default:
+ 		return -EINVAL;
+ 	}
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_defines.h b/drivers/media/platform/qcom/iris/iris_hfi_gen1_defines.h
+index 42226ccee..04c79ee04 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_defines.h
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_defines.h
+@@ -139,6 +139,14 @@
+ #define HFI_PROPERTY_PARAM_VENC_H264_DEBLOCK_CONTROL		0x2005003
+ #define HFI_PROPERTY_PARAM_VENC_RATE_CONTROL			0x2005004
+ #define HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2		0x2005009
++
++#define HFI_INTRA_REFRESH_NONE			0x1
++#define HFI_INTRA_REFRESH_CYCLIC		0x2
++#define HFI_INTRA_REFRESH_ADAPTIVE		0x3
++#define HFI_INTRA_REFRESH_CYCLIC_ADAPTIVE	0x4
++#define HFI_INTRA_REFRESH_RANDOM		0x5
++
++#define HFI_PROPERTY_PARAM_VENC_INTRA_REFRESH			0x200500d
+ #define HFI_PROPERTY_PARAM_VENC_MAX_NUM_B_FRAMES		0x2005020
+ #define HFI_PROPERTY_CONFIG_VENC_TARGET_BITRATE			0x2006001
+ #define HFI_PROPERTY_CONFIG_VENC_SYNC_FRAME_SEQUENCE_HEADER	0x2006008
+@@ -447,6 +455,11 @@ struct hfi_framerate {
+ 	u32 framerate;
+ };
+ 
++struct hfi_intra_refresh {
++	u32 mode;
++	u32 mbs;
++};
++
+ struct hfi_event_data {
+ 	u32 error;
+ 	u32 height;
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2.c b/drivers/media/platform/qcom/iris/iris_hfi_gen2.c
+index ce8490d64..401519fef 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2.c
+@@ -713,7 +713,7 @@ static const struct platform_inst_fw_cap inst_fw_cap_sm8550_enc[] = {
+ 		.value = 0,
+ 		.flags = CAP_FLAG_OUTPUT_PORT |
+ 			CAP_FLAG_DYNAMIC_ALLOWED,
+-		.set = iris_set_ir_period,
++		.set = iris_set_ir_period_gen2,
+ 	},
+ };
+ 
+-- 
+2.53.0
+

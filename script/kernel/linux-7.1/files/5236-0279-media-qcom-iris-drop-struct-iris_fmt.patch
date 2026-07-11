@@ -1,0 +1,494 @@
+From a7af21cbb9e66d0b021f3efd60bb9a66df05fb1c Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Fri, 29 May 2026 17:26:11 +0300
+Subject: [PATCH 279/309] media: iris: drop struct iris_fmt
+
+The struct iris_fmt unites pixfmt with the plane type, however the type
+from the struct is not actually used. Drop the struct completely and use
+u32 pixfmt in all the callsites.
+
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ .../media/platform/qcom/iris/iris_instance.h  |  5 -
+ .../platform/qcom/iris/iris_platform_common.h |  2 +-
+ .../platform/qcom/iris/iris_platform_vpu2.c   | 17 +---
+ .../platform/qcom/iris/iris_platform_vpu3x.c  | 22 +----
+ drivers/media/platform/qcom/iris/iris_vdec.c  | 78 +++++++--------
+ drivers/media/platform/qcom/iris/iris_venc.c  | 96 ++++++++-----------
+ 6 files changed, 80 insertions(+), 140 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index 1d8a22ea4..c54d8ec85 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -29,11 +29,6 @@ enum iris_fmt_type_cap {
+ 	IRIS_FMT_QC08C,
+ };
+ 
+-struct iris_fmt {
+-	u32 pixfmt;
+-	u32 type;
+-};
+-
+ /**
+  * struct iris_inst - holds per video instance parameters
+  *
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
+index 0135d76a7..1cccef064 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_common.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
+@@ -308,7 +308,7 @@ struct iris_platform_data {
+ 	const char * const *controller_rst_tbl;
+ 	unsigned int controller_rst_tbl_size;
+ 	u64 dma_mask;
+-	struct iris_fmt *inst_iris_fmts;
++	const u32 *inst_iris_fmts;
+ 	u32 inst_iris_fmts_size;
+ 	struct platform_inst_caps *inst_caps;
+ 	const struct tz_cp_config *tz_cp_config_data;
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_vpu2.c b/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
+index fafb333d4..bbb55a42f 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
+@@ -40,19 +40,10 @@ static const struct iris_firmware_desc iris_vpu20_p4_gen2_s6_desc = {
+ 	.fwname = "qcom/vpu/vpu20_p4_gen2_s6.mbn",
+ };
+ 
+-static struct iris_fmt iris_fmts_vpu2_dec[] = {
+-	[IRIS_FMT_H264] = {
+-		.pixfmt = V4L2_PIX_FMT_H264,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
+-	[IRIS_FMT_HEVC] = {
+-		.pixfmt = V4L2_PIX_FMT_HEVC,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
+-	[IRIS_FMT_VP9] = {
+-		.pixfmt = V4L2_PIX_FMT_VP9,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
++static const u32 iris_fmts_vpu2_dec[] = {
++	[IRIS_FMT_H264] = V4L2_PIX_FMT_H264,
++	[IRIS_FMT_HEVC] = V4L2_PIX_FMT_HEVC,
++	[IRIS_FMT_VP9] = V4L2_PIX_FMT_VP9,
+ };
+ 
+ static struct platform_inst_caps platform_inst_cap_vpu2 = {
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_vpu3x.c b/drivers/media/platform/qcom/iris/iris_platform_vpu3x.c
+index a3428c863..74626b35d 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_vpu3x.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_vpu3x.c
+@@ -48,23 +48,11 @@ static const struct iris_firmware_desc iris_vpu35_p4_gen2_desc = {
+ 	.fwname = "qcom/vpu/vpu35_p4.mbn",
+ };
+ 
+-static struct iris_fmt iris_fmts_vpu3x_dec[] = {
+-	[IRIS_FMT_H264] = {
+-		.pixfmt = V4L2_PIX_FMT_H264,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
+-	[IRIS_FMT_HEVC] = {
+-		.pixfmt = V4L2_PIX_FMT_HEVC,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
+-	[IRIS_FMT_VP9] = {
+-		.pixfmt = V4L2_PIX_FMT_VP9,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
+-	[IRIS_FMT_AV1] = {
+-		.pixfmt = V4L2_PIX_FMT_AV1,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
++static const u32 iris_fmts_vpu3x_dec[] = {
++	[IRIS_FMT_H264] = V4L2_PIX_FMT_H264,
++	[IRIS_FMT_HEVC] = V4L2_PIX_FMT_HEVC,
++	[IRIS_FMT_VP9] = V4L2_PIX_FMT_VP9,
++	[IRIS_FMT_AV1] = V4L2_PIX_FMT_AV1,
+ };
+ 
+ static const struct icc_info iris_icc_info_vpu3x[] = {
+diff --git a/drivers/media/platform/qcom/iris/iris_vdec.c b/drivers/media/platform/qcom/iris/iris_vdec.c
+index a0bcbeb42..75736c67b 100644
+--- a/drivers/media/platform/qcom/iris/iris_vdec.c
++++ b/drivers/media/platform/qcom/iris/iris_vdec.c
+@@ -62,23 +62,16 @@ int iris_vdec_inst_init(struct iris_inst *inst)
+ 	return iris_ctrls_init(inst);
+ }
+ 
+-static const struct iris_fmt iris_vdec_formats_cap[] = {
+-	[IRIS_FMT_NV12] = {
+-		.pixfmt = V4L2_PIX_FMT_NV12,
+-		.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+-	},
+-	[IRIS_FMT_QC08C] = {
+-		.pixfmt = V4L2_PIX_FMT_QC08C,
+-		.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+-	},
++static const u32 iris_vdec_formats_cap[] = {
++	[IRIS_FMT_NV12] = V4L2_PIX_FMT_NV12,
++	[IRIS_FMT_QC08C] = V4L2_PIX_FMT_QC08C,
+ };
+ 
+-static const struct iris_fmt *
+-find_format(struct iris_inst *inst, u32 pixfmt, u32 type)
++static bool check_format(struct iris_inst *inst, u32 pixfmt, u32 type)
+ {
+-	const struct iris_fmt *fmt = NULL;
+-	unsigned int size = 0;
+-	unsigned int i;
++	unsigned int size, i;
++	const u32 *fmt;
++
+ 	switch (type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+ 		fmt = inst->core->iris_platform_data->inst_iris_fmts;
+@@ -89,25 +82,21 @@ find_format(struct iris_inst *inst, u32 pixfmt, u32 type)
+ 		size = ARRAY_SIZE(iris_vdec_formats_cap);
+ 		break;
+ 	default:
+-		return NULL;
++		return false;
+ 	}
+ 
+ 	for (i = 0; i < size; i++) {
+-		if (fmt[i].pixfmt == pixfmt)
+-			break;
++		if (fmt[i] == pixfmt)
++			return true;
+ 	}
+ 
+-	if (i == size || fmt[i].type != type)
+-		return NULL;
+-
+-	return &fmt[i];
++	return false;
+ }
+ 
+-static const struct iris_fmt *
+-find_format_by_index(struct iris_inst *inst, u32 index, u32 type)
++static u32 find_format_by_index(struct iris_inst *inst, u32 index, u32 type)
+ {
+-	const struct iris_fmt *fmt = NULL;
+-	unsigned int size = 0;
++	unsigned int size;
++	const u32 *fmt;
+ 
+ 	switch (type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+@@ -119,18 +108,18 @@ find_format_by_index(struct iris_inst *inst, u32 index, u32 type)
+ 		size = ARRAY_SIZE(iris_vdec_formats_cap);
+ 		break;
+ 	default:
+-		return NULL;
++		return 0;
+ 	}
+ 
+-	if (index >= size || fmt[index].type != type)
+-		return NULL;
++	if (index >= size)
++		return 0;
+ 
+-	return &fmt[index];
++	return fmt[index];
+ }
+ 
+ int iris_vdec_enum_fmt(struct iris_inst *inst, struct v4l2_fmtdesc *f)
+ {
+-	const struct iris_fmt *fmt;
++	u32 fmt;
+ 
+ 	switch (f->type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+@@ -138,14 +127,14 @@ int iris_vdec_enum_fmt(struct iris_inst *inst, struct v4l2_fmtdesc *f)
+ 		if (!fmt)
+ 			return -EINVAL;
+ 
+-		f->pixelformat = fmt->pixfmt;
++		f->pixelformat = fmt;
+ 		f->flags = V4L2_FMT_FLAG_COMPRESSED | V4L2_FMT_FLAG_DYN_RESOLUTION;
+ 		break;
+ 	case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:
+ 		fmt = find_format_by_index(inst, f->index, f->type);
+ 		if (!fmt)
+ 			return -EINVAL;
+-		f->pixelformat = fmt->pixfmt;
++		f->pixelformat = fmt;
+ 		break;
+ 	default:
+ 		return -EINVAL;
+@@ -158,15 +147,15 @@ int iris_vdec_try_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ {
+ 	struct v4l2_pix_format_mplane *pixmp = &f->fmt.pix_mp;
+ 	struct v4l2_m2m_ctx *m2m_ctx = inst->m2m_ctx;
+-	const struct iris_fmt *fmt;
+ 	struct v4l2_format *f_inst;
+ 	struct vb2_queue *src_q;
++	bool supported;
+ 
+ 	memset(pixmp->reserved, 0, sizeof(pixmp->reserved));
+-	fmt = find_format(inst, pixmp->pixelformat, f->type);
++	supported = check_format(inst, pixmp->pixelformat, f->type);
+ 	switch (f->type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+-		if (!fmt) {
++		if (!supported) {
+ 			f_inst = inst->fmt_src;
+ 			f->fmt.pix_mp.width = f_inst->fmt.pix_mp.width;
+ 			f->fmt.pix_mp.height = f_inst->fmt.pix_mp.height;
+@@ -174,7 +163,7 @@ int iris_vdec_try_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 		}
+ 		break;
+ 	case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:
+-		if (!fmt) {
++		if (!supported) {
+ 			f_inst = inst->fmt_dst;
+ 			f->fmt.pix_mp.pixelformat = f_inst->fmt.pix_mp.pixelformat;
+ 			f->fmt.pix_mp.width = f_inst->fmt.pix_mp.width;
+@@ -223,7 +212,7 @@ int iris_vdec_s_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 
+ 	switch (f->type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+-		if (!(find_format(inst, f->fmt.pix_mp.pixelformat, f->type)))
++		if (!check_format(inst, f->fmt.pix_mp.pixelformat, f->type))
+ 			return -EINVAL;
+ 
+ 		fmt = inst->fmt_src;
+@@ -262,7 +251,7 @@ int iris_vdec_s_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 		inst->crop.height = f->fmt.pix_mp.height;
+ 		break;
+ 	case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:
+-		if (!(find_format(inst, f->fmt.pix_mp.pixelformat, f->type)))
++		if (!check_format(inst, f->fmt.pix_mp.pixelformat, f->type))
+ 			return -EINVAL;
+ 
+ 		fmt = inst->fmt_dst;
+@@ -291,16 +280,13 @@ int iris_vdec_s_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 
+ int iris_vdec_validate_format(struct iris_inst *inst, u32 pixelformat)
+ {
+-	const struct iris_fmt *fmt = NULL;
++	bool supported;
+ 
+-	fmt = find_format(inst, pixelformat, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+-	if (!fmt) {
+-		fmt = find_format(inst, pixelformat, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+-		if (!fmt)
+-			return -EINVAL;
+-	}
++	supported = check_format(inst, pixelformat, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
++	if (!supported)
++		supported = check_format(inst, pixelformat, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+ 
+-	return 0;
++	return supported ? 0 : -EINVAL;
+ }
+ 
+ int iris_vdec_subscribe_event(struct iris_inst *inst, const struct v4l2_event_subscription *sub)
+diff --git a/drivers/media/platform/qcom/iris/iris_venc.c b/drivers/media/platform/qcom/iris/iris_venc.c
+index c11fee479..a945992f6 100644
+--- a/drivers/media/platform/qcom/iris/iris_venc.c
++++ b/drivers/media/platform/qcom/iris/iris_venc.c
+@@ -79,34 +79,21 @@ int iris_venc_inst_init(struct iris_inst *inst)
+ 	return iris_ctrls_init(inst);
+ }
+ 
+-static const struct iris_fmt iris_venc_formats_cap[] = {
+-	[IRIS_FMT_H264] = {
+-		.pixfmt = V4L2_PIX_FMT_H264,
+-		.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+-	},
+-	[IRIS_FMT_HEVC] = {
+-		.pixfmt = V4L2_PIX_FMT_HEVC,
+-		.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+-	},
++static const u32 iris_venc_formats_cap[] = {
++	[IRIS_FMT_H264] = V4L2_PIX_FMT_H264,
++	[IRIS_FMT_HEVC] = V4L2_PIX_FMT_HEVC,
+ };
+ 
+-static const struct iris_fmt iris_venc_formats_out[] = {
+-	[IRIS_FMT_NV12] = {
+-		.pixfmt = V4L2_PIX_FMT_NV12,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
+-	[IRIS_FMT_QC08C] = {
+-		.pixfmt = V4L2_PIX_FMT_QC08C,
+-		.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-	},
++static const u32 iris_venc_formats_out[] = {
++	[IRIS_FMT_NV12] = V4L2_PIX_FMT_NV12,
++	[IRIS_FMT_QC08C] = V4L2_PIX_FMT_QC08C,
+ };
+ 
+-static const struct iris_fmt *
+-find_format(struct iris_inst *inst, u32 pixfmt, u32 type)
++static bool check_format(struct iris_inst *inst, u32 pixfmt, u32 type)
+ {
+-	const struct iris_fmt *fmt = NULL;
+-	unsigned int size = 0;
+-	unsigned int i;
++	unsigned int size, i;
++	const u32 *fmt;
++
+ 	switch (type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+ 		fmt = iris_venc_formats_out;
+@@ -117,25 +104,21 @@ find_format(struct iris_inst *inst, u32 pixfmt, u32 type)
+ 		size = ARRAY_SIZE(iris_venc_formats_cap);
+ 		break;
+ 	default:
+-		return NULL;
++		return false;
+ 	}
+ 
+ 	for (i = 0; i < size; i++) {
+-		if (fmt[i].pixfmt == pixfmt)
+-			break;
++		if (fmt[i] == pixfmt)
++			return true;
+ 	}
+ 
+-	if (i == size || fmt[i].type != type)
+-		return NULL;
+-
+-	return &fmt[i];
++	return false;
+ }
+ 
+-static const struct iris_fmt *
+-find_format_by_index(struct iris_inst *inst, u32 index, u32 type)
++static u32 find_format_by_index(struct iris_inst *inst, u32 index, u32 type)
+ {
+-	const struct iris_fmt *fmt = NULL;
+-	unsigned int size = 0;
++	unsigned int size;
++	const u32 *fmt;
+ 
+ 	switch (type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+@@ -147,18 +130,18 @@ find_format_by_index(struct iris_inst *inst, u32 index, u32 type)
+ 		size = ARRAY_SIZE(iris_venc_formats_cap);
+ 		break;
+ 	default:
+-		return NULL;
++		return 0;
+ 	}
+ 
+-	if (index >= size || fmt[index].type != type)
+-		return NULL;
++	if (index >= size)
++		return 0;
+ 
+-	return &fmt[index];
++	return fmt[index];
+ }
+ 
+ int iris_venc_enum_fmt(struct iris_inst *inst, struct v4l2_fmtdesc *f)
+ {
+-	const struct iris_fmt *fmt;
++	u32 fmt;
+ 
+ 	switch (f->type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+@@ -166,14 +149,14 @@ int iris_venc_enum_fmt(struct iris_inst *inst, struct v4l2_fmtdesc *f)
+ 		if (!fmt)
+ 			return -EINVAL;
+ 
+-		f->pixelformat = fmt->pixfmt;
++		f->pixelformat = fmt;
+ 		break;
+ 	case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:
+ 		fmt = find_format_by_index(inst, f->index, f->type);
+ 		if (!fmt)
+ 			return -EINVAL;
+ 
+-		f->pixelformat = fmt->pixfmt;
++		f->pixelformat = fmt;
+ 		f->flags = V4L2_FMT_FLAG_COMPRESSED | V4L2_FMT_FLAG_ENC_CAP_FRAME_INTERVAL;
+ 		break;
+ 	default:
+@@ -186,14 +169,14 @@ int iris_venc_enum_fmt(struct iris_inst *inst, struct v4l2_fmtdesc *f)
+ int iris_venc_try_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ {
+ 	struct v4l2_pix_format_mplane *pixmp = &f->fmt.pix_mp;
+-	const struct iris_fmt *fmt;
+ 	struct v4l2_format *f_inst;
++	bool supported;
+ 
+ 	memset(pixmp->reserved, 0, sizeof(pixmp->reserved));
+-	fmt = find_format(inst, pixmp->pixelformat, f->type);
++	supported = check_format(inst, pixmp->pixelformat, f->type);
+ 	switch (f->type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+-		if (!fmt) {
++		if (!supported) {
+ 			f_inst = inst->fmt_src;
+ 			f->fmt.pix_mp.width = f_inst->fmt.pix_mp.width;
+ 			f->fmt.pix_mp.height = f_inst->fmt.pix_mp.height;
+@@ -201,7 +184,7 @@ int iris_venc_try_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 		}
+ 		break;
+ 	case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:
+-		if (!fmt) {
++		if (!supported) {
+ 			f_inst = inst->fmt_dst;
+ 			f->fmt.pix_mp.width = f_inst->fmt.pix_mp.width;
+ 			f->fmt.pix_mp.height = f_inst->fmt.pix_mp.height;
+@@ -222,17 +205,17 @@ int iris_venc_try_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 
+ static int iris_venc_s_fmt_output(struct iris_inst *inst, struct v4l2_format *f)
+ {
+-	const struct iris_fmt *venc_fmt;
+ 	struct v4l2_format *fmt;
+ 	u32 codec_align;
++	bool supported;
+ 
+ 	iris_venc_try_fmt(inst, f);
+ 
+-	venc_fmt = find_format(inst, f->fmt.pix_mp.pixelformat, f->type);
+-	if (!venc_fmt)
++	supported = check_format(inst, f->fmt.pix_mp.pixelformat, f->type);
++	if (!supported)
+ 		return -EINVAL;
+ 
+-	codec_align = venc_fmt->pixfmt == V4L2_PIX_FMT_HEVC ? 32 : 16;
++	codec_align = (f->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_HEVC) ? 32 : 16;
+ 
+ 	fmt = inst->fmt_dst;
+ 	fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+@@ -275,7 +258,7 @@ static int iris_venc_s_fmt_input(struct iris_inst *inst, struct v4l2_format *f)
+ 
+ 	iris_venc_try_fmt(inst, f);
+ 
+-	if (!(find_format(inst, f->fmt.pix_mp.pixelformat, f->type)))
++	if (!check_format(inst, f->fmt.pix_mp.pixelformat, f->type))
+ 		return -EINVAL;
+ 
+ 	fmt = inst->fmt_src;
+@@ -344,16 +327,13 @@ int iris_venc_s_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 
+ int iris_venc_validate_format(struct iris_inst *inst, u32 pixelformat)
+ {
+-	const struct iris_fmt *fmt = NULL;
++	bool supported;
+ 
+-	fmt = find_format(inst, pixelformat, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+-	if (!fmt) {
+-		fmt = find_format(inst, pixelformat, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+-		if (!fmt)
+-			return -EINVAL;
+-	}
++	supported = check_format(inst, pixelformat, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
++	if (!supported)
++		supported = check_format(inst, pixelformat, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+ 
+-	return 0;
++	return supported ? 0 : -EINVAL;
+ }
+ 
+ int iris_venc_subscribe_event(struct iris_inst *inst,
+-- 
+2.53.0
+

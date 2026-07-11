@@ -1,0 +1,144 @@
+From f39bbefa5bae52bedad607f94cc3acf5a821cbe6 Mon Sep 17 00:00:00 2001
+From: Vishnu Reddy <busanna.reddy@oss.qualcomm.com>
+Date: Wed, 1 Apr 2026 19:19:29 +0530
+Subject: [PATCH 208/309] media: iris: add FPS calculation and VPP FW overhead
+ in frequency formula
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The driver was using a fixed default FPS value when calculating the VPU
+frequency. This caused wrong frequency requests for high‑frame‑rate
+streams, for example 4K at 240 FPS. Because of this, the hardware was
+running at a lower frequency than needed.
+
+Add the FPS measurement based on the decoder input buffer arrival rate.
+The measured FPS is stored per instance and used in frequency calculation
+instead of the fixed default FPS. The value is clamped so that it does
+not exceed platform limits. Add a VPP firmware overhead when running in
+STAGE_2.
+
+Reviewed-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Signed-off-by: Vishnu Reddy <busanna.reddy@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ .../media/platform/qcom/iris/iris_instance.h  |  4 ++++
+ drivers/media/platform/qcom/iris/iris_vdec.c  | 20 +++++++++++++++++++
+ drivers/media/platform/qcom/iris/iris_vpu2.c  |  2 +-
+ .../platform/qcom/iris/iris_vpu_common.c      |  6 +++++-
+ 4 files changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index 0041b0cc4..1d8a22ea4 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -70,6 +70,8 @@ struct iris_fmt {
+  * @metadata_idx: index for metadata buffer
+  * @codec: codec type
+  * @last_buffer_dequeued: a flag to indicate that last buffer is sent by driver
++ * @last_buf_ns: start time of received input buffer for current one second FPS window
++ * @frame_counter: input buffer counter for current one second FPS window
+  * @frame_rate: frame rate of current instance
+  * @operating_rate: operating rate of current instance
+  * @hfi_rc_type: rate control type
+@@ -115,6 +117,8 @@ struct iris_inst {
+ 	u32				metadata_idx;
+ 	u32				codec;
+ 	bool				last_buffer_dequeued;
++	u64				last_buf_ns;
++	u32				frame_counter;
+ 	u32				frame_rate;
+ 	u32				operating_rate;
+ 	u32				hfi_rc_type;
+diff --git a/drivers/media/platform/qcom/iris/iris_vdec.c b/drivers/media/platform/qcom/iris/iris_vdec.c
+index dfccfb274..7a3fd6a2f 100644
+--- a/drivers/media/platform/qcom/iris/iris_vdec.c
++++ b/drivers/media/platform/qcom/iris/iris_vdec.c
+@@ -54,6 +54,7 @@ int iris_vdec_inst_init(struct iris_inst *inst)
+ 	f->fmt.pix_mp.quantization = V4L2_QUANTIZATION_DEFAULT;
+ 	inst->buffers[BUF_OUTPUT].min_count = iris_vpu_buf_count(inst, BUF_OUTPUT);
+ 	inst->buffers[BUF_OUTPUT].size = f->fmt.pix_mp.plane_fmt[0].sizeimage;
++	inst->frame_rate = MAXIMUM_FPS;
+ 
+ 	memcpy(&inst->fw_caps[0], &core->inst_fw_caps_dec[0],
+ 	       INST_FW_CAP_MAX * sizeof(struct platform_inst_fw_cap));
+@@ -363,6 +364,8 @@ int iris_vdec_streamon_input(struct iris_inst *inst)
+ 	if (ret)
+ 		return ret;
+ 
++	inst->frame_counter = 0;
++
+ 	return iris_process_streamon_input(inst);
+ }
+ 
+@@ -405,6 +408,7 @@ int iris_vdec_qbuf(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf)
+ {
+ 	struct iris_buffer *buf = to_iris_buffer(vbuf);
+ 	struct vb2_buffer *vb2 = &vbuf->vb2_buf;
++	u64 cur_buf_ns, delta_ns;
+ 	struct vb2_queue *q;
+ 	int ret;
+ 
+@@ -421,6 +425,22 @@ int iris_vdec_qbuf(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf)
+ 		return 0;
+ 	}
+ 
++	if (buf->type == BUF_INPUT) {
++		cur_buf_ns = ktime_get_ns();
++
++		if (!inst->frame_counter)
++			inst->last_buf_ns = cur_buf_ns;
++
++		inst->frame_counter++;
++		delta_ns = cur_buf_ns - inst->last_buf_ns;
++
++		if (delta_ns >= NSEC_PER_SEC) {
++			inst->frame_rate = clamp_t(u32, inst->frame_counter, DEFAULT_FPS,
++						   MAXIMUM_FPS);
++			inst->frame_counter = 0;
++		}
++	}
++
+ 	iris_scale_power(inst);
+ 
+ 	return iris_queue_buffer(inst, buf);
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu2.c b/drivers/media/platform/qcom/iris/iris_vpu2.c
+index 01ef40f38..b8714dcba 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu2.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu2.c
+@@ -18,7 +18,7 @@ static u64 iris_vpu2_calc_freq(struct iris_inst *inst, size_t data_size)
+ 	struct v4l2_format *inp_f = inst->fmt_src;
+ 	u32 mbs_per_second, mbpf, height, width;
+ 	unsigned long vpp_freq, vsp_freq;
+-	u32 fps = DEFAULT_FPS;
++	u32 fps = inst->frame_rate;
+ 
+ 	width = max(inp_f->fmt.pix_mp.width, inst->crop.width);
+ 	height = max(inp_f->fmt.pix_mp.height, inst->crop.height);
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.c b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+index 7bba3b620..ca96e9122 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+@@ -420,7 +420,7 @@ u64 iris_vpu3x_vpu4x_calculate_frequency(struct iris_inst *inst, size_t data_siz
+ 	u32 height, width, mbs_per_second, mbpf;
+ 	u64 fw_cycles, fw_vpp_cycles;
+ 	u64 vsp_cycles, vpp_cycles;
+-	u32 fps = DEFAULT_FPS;
++	u32 fps = inst->frame_rate;
+ 
+ 	width = max(inp_f->fmt.pix_mp.width, inst->crop.width);
+ 	height = max(inp_f->fmt.pix_mp.height, inst->crop.height);
+@@ -439,6 +439,10 @@ u64 iris_vpu3x_vpu4x_calculate_frequency(struct iris_inst *inst, size_t data_siz
+ 	if (inst->fw_caps[PIPE].value > 1)
+ 		vpp_cycles += div_u64(vpp_cycles * 59, 1000);
+ 
++	/* 1.05 is VPP FW overhead */
++	if (inst->fw_caps[STAGE].value == STAGE_2)
++		vpp_cycles += mult_frac(vpp_cycles, 5, 100);
++
+ 	vsp_cycles = fps * data_size * 8;
+ 	vsp_cycles = div_u64(vsp_cycles, 2);
+ 	/* VSP FW overhead 1.05 */
+-- 
+2.53.0
+

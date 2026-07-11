@@ -1,0 +1,155 @@
+From a0dc7b02a1d9aa8dbbbacca90079b3707e6d637d Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Sun, 29 Mar 2026 02:33:02 +0200
+Subject: [PATCH 190/309] media: qcom: iris: drop pas_id from the
+ iris_platform_data struct
+
+The PAS ID, the authentication service ID, used by the Iris is a
+constant and it is not expected to change anytime. Drop it from the
+platform data and use the constant instead.
+
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Reviewed-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ drivers/media/platform/qcom/iris/iris_firmware.c      | 11 ++++++-----
+ .../media/platform/qcom/iris/iris_platform_common.h   |  2 --
+ drivers/media/platform/qcom/iris/iris_platform_gen1.c |  2 --
+ drivers/media/platform/qcom/iris/iris_platform_gen2.c |  4 ----
+ 4 files changed, 6 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_firmware.c b/drivers/media/platform/qcom/iris/iris_firmware.c
+index 5f408024e..bc6c5c3e0 100644
+--- a/drivers/media/platform/qcom/iris/iris_firmware.c
++++ b/drivers/media/platform/qcom/iris/iris_firmware.c
+@@ -12,11 +12,12 @@
+ #include "iris_core.h"
+ #include "iris_firmware.h"
+ 
++#define IRIS_PAS_ID				9
++
+ #define MAX_FIRMWARE_NAME_SIZE	128
+ 
+ static int iris_load_fw_to_memory(struct iris_core *core, const char *fw_name)
+ {
+-	u32 pas_id = core->iris_platform_data->pas_id;
+ 	const struct firmware *firmware = NULL;
+ 	struct device *dev = core->dev;
+ 	struct resource res;
+@@ -53,7 +54,7 @@ static int iris_load_fw_to_memory(struct iris_core *core, const char *fw_name)
+ 	}
+ 
+ 	ret = qcom_mdt_load(dev, firmware, fw_name,
+-			    pas_id, mem_virt, mem_phys, res_size, NULL);
++			    IRIS_PAS_ID, mem_virt, mem_phys, res_size, NULL);
+ 
+ 	memunmap(mem_virt);
+ err_release_fw:
+@@ -79,7 +80,7 @@ int iris_fw_load(struct iris_core *core)
+ 		return -ENOMEM;
+ 	}
+ 
+-	ret = qcom_scm_pas_auth_and_reset(core->iris_platform_data->pas_id);
++	ret = qcom_scm_pas_auth_and_reset(IRIS_PAS_ID);
+ 	if (ret)  {
+ 		dev_err(core->dev, "auth and reset failed: %d\n", ret);
+ 		return ret;
+@@ -93,7 +94,7 @@ int iris_fw_load(struct iris_core *core)
+ 						     cp_config->cp_nonpixel_size);
+ 		if (ret) {
+ 			dev_err(core->dev, "qcom_scm_mem_protect_video_var failed: %d\n", ret);
+-			qcom_scm_pas_shutdown(core->iris_platform_data->pas_id);
++			qcom_scm_pas_shutdown(IRIS_PAS_ID);
+ 			return ret;
+ 		}
+ 	}
+@@ -103,7 +104,7 @@ int iris_fw_load(struct iris_core *core)
+ 
+ int iris_fw_unload(struct iris_core *core)
+ {
+-	return qcom_scm_pas_shutdown(core->iris_platform_data->pas_id);
++	return qcom_scm_pas_shutdown(IRIS_PAS_ID);
+ }
+ 
+ int iris_set_hw_state(struct iris_core *core, bool resume)
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
+index f42e17987..e4eefc646 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_common.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
+@@ -12,7 +12,6 @@
+ struct iris_core;
+ struct iris_inst;
+ 
+-#define IRIS_PAS_ID				9
+ #define HW_RESPONSE_TIMEOUT_VALUE               (1000) /* milliseconds */
+ #define AUTOSUSPEND_DELAY_VALUE			(HW_RESPONSE_TIMEOUT_VALUE + 500) /* milliseconds */
+ 
+@@ -226,7 +225,6 @@ struct iris_platform_data {
+ 	unsigned int controller_rst_tbl_size;
+ 	u64 dma_mask;
+ 	const char *fwname;
+-	u32 pas_id;
+ 	struct iris_fmt *inst_iris_fmts;
+ 	u32 inst_iris_fmts_size;
+ 	struct platform_inst_caps *inst_caps;
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_gen1.c b/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+index aa71f7f53..07ed572e8 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_gen1.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+@@ -360,7 +360,6 @@ const struct iris_platform_data sm8250_data = {
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+ 	.fwname = "qcom/vpu-1.0/venus.mbn",
+-	.pas_id = IRIS_PAS_ID,
+ 	.inst_iris_fmts = platform_fmts_sm8250_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(platform_fmts_sm8250_dec),
+ 	.inst_caps = &platform_inst_cap_sm8250,
+@@ -413,7 +412,6 @@ const struct iris_platform_data sc7280_data = {
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+ 	.fwname = "qcom/vpu/vpu20_p1.mbn",
+-	.pas_id = IRIS_PAS_ID,
+ 	.inst_iris_fmts = platform_fmts_sm8250_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(platform_fmts_sm8250_dec),
+ 	.inst_caps = &platform_inst_cap_sm8250,
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_gen2.c b/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+index a526b50a1..1f23ddb97 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_gen2.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+@@ -934,7 +934,6 @@ const struct iris_platform_data sm8550_data = {
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+ 	.fwname = "qcom/vpu/vpu30_p4.mbn",
+-	.pas_id = IRIS_PAS_ID,
+ 	.inst_iris_fmts = platform_fmts_sm8550_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(platform_fmts_sm8550_dec),
+ 	.inst_caps = &platform_inst_cap_sm8550,
+@@ -1038,7 +1037,6 @@ const struct iris_platform_data sm8650_data = {
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+ 	.fwname = "qcom/vpu/vpu33_p4.mbn",
+-	.pas_id = IRIS_PAS_ID,
+ 	.inst_iris_fmts = platform_fmts_sm8550_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(platform_fmts_sm8550_dec),
+ 	.inst_caps = &platform_inst_cap_sm8550,
+@@ -1133,7 +1131,6 @@ const struct iris_platform_data sm8750_data = {
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+ 	.fwname = "qcom/vpu/vpu35_p4.mbn",
+-	.pas_id = IRIS_PAS_ID,
+ 	.inst_iris_fmts = platform_fmts_sm8550_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(platform_fmts_sm8550_dec),
+ 	.inst_caps = &platform_inst_cap_sm8550,
+@@ -1232,7 +1229,6 @@ const struct iris_platform_data qcs8300_data = {
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+ 	.fwname = "qcom/vpu/vpu30_p4_s6.mbn",
+-	.pas_id = IRIS_PAS_ID,
+ 	.inst_iris_fmts = platform_fmts_sm8550_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(platform_fmts_sm8550_dec),
+ 	.inst_caps = &platform_inst_cap_qcs8300,
+-- 
+2.53.0
+

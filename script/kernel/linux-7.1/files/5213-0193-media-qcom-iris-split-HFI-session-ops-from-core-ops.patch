@@ -1,0 +1,515 @@
+From 89cdd04862a06f7ca271c581b8ff5bb32b0e925b Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Sun, 29 Mar 2026 02:33:05 +0200
+Subject: [PATCH 193/309] media: qcom: iris: split HFI session ops from core
+ ops
+
+Calling HFI instance-specific ops should not require double indirection
+through the core ops. Split instance-specific ops to a separate struct,
+keep a pointer to it in struct iris_inst and set it directly in the
+get_instance function.
+
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Reviewed-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ .../media/platform/qcom/iris/iris_buffer.c    |  4 +-
+ .../media/platform/qcom/iris/iris_common.c    |  8 ++--
+ drivers/media/platform/qcom/iris/iris_ctrls.c | 46 +++++++++----------
+ .../platform/qcom/iris/iris_hfi_common.h      |  3 ++
+ .../qcom/iris/iris_hfi_gen1_command.c         | 23 +++++++---
+ .../qcom/iris/iris_hfi_gen2_command.c         | 17 +++++--
+ .../media/platform/qcom/iris/iris_instance.h  |  4 ++
+ drivers/media/platform/qcom/iris/iris_vb2.c   |  2 +-
+ drivers/media/platform/qcom/iris/iris_vdec.c  |  6 +--
+ drivers/media/platform/qcom/iris/iris_venc.c  |  4 +-
+ drivers/media/platform/qcom/iris/iris_vidc.c  |  2 +-
+ 11 files changed, 72 insertions(+), 47 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_buffer.c b/drivers/media/platform/qcom/iris/iris_buffer.c
+index 1d53c7414..f41596b31 100644
+--- a/drivers/media/platform/qcom/iris/iris_buffer.c
++++ b/drivers/media/platform/qcom/iris/iris_buffer.c
+@@ -404,7 +404,7 @@ int iris_create_internal_buffers(struct iris_inst *inst, u32 plane)
+ 
+ int iris_queue_buffer(struct iris_inst *inst, struct iris_buffer *buf)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	int ret;
+ 
+ 	ret = hfi_ops->session_queue_buf(inst, buf);
+@@ -572,7 +572,7 @@ int iris_destroy_dequeued_internal_buffers(struct iris_inst *inst, u32 plane)
+ static int iris_release_internal_buffers(struct iris_inst *inst,
+ 					 enum iris_buffer_type buffer_type)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	struct iris_buffers *buffers = &inst->buffers[buffer_type];
+ 	struct iris_buffer *buffer, *next;
+ 	int ret;
+diff --git a/drivers/media/platform/qcom/iris/iris_common.c b/drivers/media/platform/qcom/iris/iris_common.c
+index 7f1c7fe14..25836561b 100644
+--- a/drivers/media/platform/qcom/iris/iris_common.c
++++ b/drivers/media/platform/qcom/iris/iris_common.c
+@@ -48,7 +48,7 @@ void iris_set_ts_metadata(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf)
+ 
+ int iris_process_streamon_input(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	enum iris_inst_sub_state set_sub_state = 0;
+ 	int ret;
+ 
+@@ -90,7 +90,7 @@ int iris_process_streamon_input(struct iris_inst *inst)
+ 
+ int iris_process_streamon_output(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	enum iris_inst_sub_state clear_sub_state = 0;
+ 	bool drain_active, drc_active, first_ipsc;
+ 	int ret = 0;
+@@ -189,7 +189,7 @@ static void iris_flush_deferred_buffers(struct iris_inst *inst,
+ 
+ static void iris_kill_session(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 
+ 	if (!inst->session_id)
+ 		return;
+@@ -200,7 +200,7 @@ static void iris_kill_session(struct iris_inst *inst)
+ 
+ int iris_session_streamoff(struct iris_inst *inst, u32 plane)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	enum iris_buffer_type buffer_type;
+ 	int ret;
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_ctrls.c b/drivers/media/platform/qcom/iris/iris_ctrls.c
+index 3cec95758..5a24aa869 100644
+--- a/drivers/media/platform/qcom/iris/iris_ctrls.c
++++ b/drivers/media/platform/qcom/iris/iris_ctrls.c
+@@ -399,7 +399,7 @@ static u32 iris_get_port_info(struct iris_inst *inst,
+ 
+ int iris_set_u32_enum(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 hfi_value = inst->fw_caps[cap_id].value;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 
+@@ -412,7 +412,7 @@ int iris_set_u32_enum(struct iris_inst *inst, enum platform_inst_fw_cap_type cap
+ 
+ int iris_set_u32(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 hfi_value = inst->fw_caps[cap_id].value;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 
+@@ -425,7 +425,7 @@ int iris_set_u32(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ 
+ int iris_set_stage(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	struct v4l2_format *inp_f = inst->fmt_src;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 	u32 height = inp_f->fmt.pix_mp.height;
+@@ -446,7 +446,7 @@ int iris_set_stage(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id
+ 
+ int iris_set_pipe(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 work_route = inst->fw_caps[PIPE].value;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 
+@@ -459,7 +459,7 @@ int iris_set_pipe(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ 
+ int iris_set_profile(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 hfi_id, hfi_value;
+ 
+ 	if (inst->codec == V4L2_PIX_FMT_H264) {
+@@ -479,7 +479,7 @@ int iris_set_profile(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_
+ 
+ int iris_set_level(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 hfi_id, hfi_value;
+ 
+ 	if (inst->codec == V4L2_PIX_FMT_H264) {
+@@ -499,7 +499,7 @@ int iris_set_level(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id
+ 
+ int iris_set_profile_level_gen1(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 	struct hfi_profile_level pl;
+ 
+@@ -520,7 +520,7 @@ int iris_set_profile_level_gen1(struct iris_inst *inst, enum platform_inst_fw_ca
+ 
+ int iris_set_header_mode_gen1(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 header_mode = inst->fw_caps[cap_id].value;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 	u32 hfi_val;
+@@ -539,7 +539,7 @@ int iris_set_header_mode_gen1(struct iris_inst *inst, enum platform_inst_fw_cap_
+ 
+ int iris_set_header_mode_gen2(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 prepend_sps_pps = inst->fw_caps[PREPEND_SPSPPS_TO_IDR].value;
+ 	u32 header_mode = inst->fw_caps[cap_id].value;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+@@ -561,7 +561,7 @@ int iris_set_header_mode_gen2(struct iris_inst *inst, enum platform_inst_fw_cap_
+ 
+ int iris_set_bitrate(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 entropy_mode = inst->fw_caps[ENTROPY_MODE].value;
+ 	u32 bitrate = inst->fw_caps[cap_id].value;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+@@ -586,7 +586,7 @@ int iris_set_bitrate(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_
+ 
+ int iris_set_peak_bitrate(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 rc_mode = inst->fw_caps[BITRATE_MODE].value;
+ 	u32 peak_bitrate = inst->fw_caps[cap_id].value;
+ 	u32 bitrate = inst->fw_caps[BITRATE].value;
+@@ -613,7 +613,7 @@ int iris_set_peak_bitrate(struct iris_inst *inst, enum platform_inst_fw_cap_type
+ 
+ int iris_set_bitrate_mode_gen1(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 bitrate_mode = inst->fw_caps[BITRATE_MODE].value;
+ 	u32 frame_rc = inst->fw_caps[FRAME_RC_ENABLE].value;
+ 	u32 frame_skip = inst->fw_caps[FRAME_SKIP_MODE].value;
+@@ -640,7 +640,7 @@ int iris_set_bitrate_mode_gen1(struct iris_inst *inst, enum platform_inst_fw_cap
+ 
+ int iris_set_bitrate_mode_gen2(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 bitrate_mode = inst->fw_caps[BITRATE_MODE].value;
+ 	u32 frame_rc = inst->fw_caps[FRAME_RC_ENABLE].value;
+ 	u32 frame_skip = inst->fw_caps[FRAME_SKIP_MODE].value;
+@@ -667,7 +667,7 @@ int iris_set_bitrate_mode_gen2(struct iris_inst *inst, enum platform_inst_fw_cap
+ 
+ int iris_set_entropy_mode_gen1(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 entropy_mode = inst->fw_caps[cap_id].value;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 	u32 hfi_val;
+@@ -687,7 +687,7 @@ int iris_set_entropy_mode_gen1(struct iris_inst *inst, enum platform_inst_fw_cap
+ 
+ int iris_set_entropy_mode_gen2(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 entropy_mode = inst->fw_caps[cap_id].value;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 	u32 profile;
+@@ -712,7 +712,7 @@ int iris_set_entropy_mode_gen2(struct iris_inst *inst, enum platform_inst_fw_cap
+ 
+ int iris_set_min_qp(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 i_qp_enable = 0, p_qp_enable = 0, b_qp_enable = 0;
+ 	u32 i_frame_qp = 0, p_frame_qp = 0, b_frame_qp = 0;
+ 	u32 min_qp_enable = 0, client_qp_enable = 0;
+@@ -776,7 +776,7 @@ int iris_set_min_qp(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_i
+ 
+ int iris_set_max_qp(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 i_qp_enable = 0, p_qp_enable = 0, b_qp_enable = 0;
+ 	u32 max_qp_enable = 0, client_qp_enable;
+ 	u32 i_frame_qp, p_frame_qp, b_frame_qp;
+@@ -841,7 +841,7 @@ int iris_set_max_qp(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_i
+ 
+ int iris_set_frame_qp(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 i_qp_enable = 0, p_qp_enable = 0, b_qp_enable = 0, client_qp_enable;
+ 	u32 i_frame_qp, p_frame_qp, b_frame_qp;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+@@ -902,7 +902,7 @@ int iris_set_frame_qp(struct iris_inst *inst, enum platform_inst_fw_cap_type cap
+ 
+ int iris_set_qp_range(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	struct hfi_quantization_range_v2 range;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 
+@@ -923,7 +923,7 @@ int iris_set_qp_range(struct iris_inst *inst, enum platform_inst_fw_cap_type cap
+ 
+ int iris_set_rotation(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 	u32 hfi_val;
+ 
+@@ -953,7 +953,7 @@ int iris_set_rotation(struct iris_inst *inst, enum platform_inst_fw_cap_type cap
+ 
+ int iris_set_flip(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	u32 hfi_id = inst->fw_caps[cap_id].hfi_id;
+ 	u32 hfi_val = HFI_DISABLE_FLIP;
+ 
+@@ -972,7 +972,7 @@ int iris_set_flip(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ 
+ int iris_set_ir_period(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	struct vb2_queue *q = v4l2_m2m_get_dst_vq(inst->m2m_ctx);
+ 	u32 ir_period = inst->fw_caps[cap_id].value;
+ 	u32 ir_type = 0;
+@@ -998,7 +998,7 @@ int iris_set_ir_period(struct iris_inst *inst, enum platform_inst_fw_cap_type ca
+ 
+ int iris_set_properties(struct iris_inst *inst, u32 plane)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	struct platform_inst_fw_cap *cap;
+ 	int ret;
+ 	u32 i;
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_common.h b/drivers/media/platform/qcom/iris/iris_hfi_common.h
+index 3edb5ae58..18684ada7 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_common.h
++++ b/drivers/media/platform/qcom/iris/iris_hfi_common.h
+@@ -110,6 +110,9 @@ struct iris_hfi_command_ops {
+ 	int (*sys_image_version)(struct iris_core *core);
+ 	int (*sys_interframe_powercollapse)(struct iris_core *core);
+ 	int (*sys_pc_prep)(struct iris_core *core);
++};
++
++struct iris_hfi_session_ops {
+ 	int (*session_set_config_params)(struct iris_inst *inst, u32 plane);
+ 	int (*session_set_property)(struct iris_inst *inst,
+ 				    u32 packet_type, u32 flag, u32 plane, u32 payload_type,
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index e42d17653..a28b0c7eb 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -1063,11 +1063,7 @@ static int iris_hfi_gen1_session_set_config_params(struct iris_inst *inst, u32 p
+ 	return 0;
+ }
+ 
+-static const struct iris_hfi_command_ops iris_hfi_gen1_command_ops = {
+-	.sys_init = iris_hfi_gen1_sys_init,
+-	.sys_image_version = iris_hfi_gen1_sys_image_version,
+-	.sys_interframe_powercollapse = iris_hfi_gen1_sys_interframe_powercollapse,
+-	.sys_pc_prep = iris_hfi_gen1_sys_pc_prep,
++static const struct iris_hfi_session_ops iris_hfi_gen1_session_ops = {
+ 	.session_open = iris_hfi_gen1_session_open,
+ 	.session_set_config_params = iris_hfi_gen1_session_set_config_params,
+ 	.session_set_property = iris_hfi_gen1_session_set_property,
+@@ -1080,6 +1076,13 @@ static const struct iris_hfi_command_ops iris_hfi_gen1_command_ops = {
+ 	.session_close = iris_hfi_gen1_session_close,
+ };
+ 
++static const struct iris_hfi_command_ops iris_hfi_gen1_command_ops = {
++	.sys_init = iris_hfi_gen1_sys_init,
++	.sys_image_version = iris_hfi_gen1_sys_image_version,
++	.sys_interframe_powercollapse = iris_hfi_gen1_sys_interframe_powercollapse,
++	.sys_pc_prep = iris_hfi_gen1_sys_pc_prep,
++};
++
+ void iris_hfi_gen1_command_ops_init(struct iris_core *core)
+ {
+ 	core->hfi_ops = &iris_hfi_gen1_command_ops;
+@@ -1087,5 +1090,13 @@ void iris_hfi_gen1_command_ops_init(struct iris_core *core)
+ 
+ struct iris_inst *iris_hfi_gen1_get_instance(void)
+ {
+-	return kzalloc_obj(struct iris_inst);
++	struct iris_inst *out;
++
++	out = kzalloc_obj(*out);
++	if (!out)
++		return NULL;
++
++	out->hfi_session_ops = &iris_hfi_gen1_session_ops;
++
++	return out;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
+index e4f25b7f5..ffb70fd94 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
+@@ -1300,11 +1300,7 @@ static int iris_hfi_gen2_session_release_buffer(struct iris_inst *inst, struct i
+ 					inst_hfi_gen2->packet->size);
+ }
+ 
+-static const struct iris_hfi_command_ops iris_hfi_gen2_command_ops = {
+-	.sys_init = iris_hfi_gen2_sys_init,
+-	.sys_image_version = iris_hfi_gen2_sys_image_version,
+-	.sys_interframe_powercollapse = iris_hfi_gen2_sys_interframe_powercollapse,
+-	.sys_pc_prep = iris_hfi_gen2_sys_pc_prep,
++static const struct iris_hfi_session_ops iris_hfi_gen2_session_ops = {
+ 	.session_open = iris_hfi_gen2_session_open,
+ 	.session_set_config_params = iris_hfi_gen2_session_set_config_params,
+ 	.session_set_property = iris_hfi_gen2_session_set_property,
+@@ -1319,6 +1315,13 @@ static const struct iris_hfi_command_ops iris_hfi_gen2_command_ops = {
+ 	.session_close = iris_hfi_gen2_session_close,
+ };
+ 
++static const struct iris_hfi_command_ops iris_hfi_gen2_command_ops = {
++	.sys_init = iris_hfi_gen2_sys_init,
++	.sys_image_version = iris_hfi_gen2_sys_image_version,
++	.sys_interframe_powercollapse = iris_hfi_gen2_sys_interframe_powercollapse,
++	.sys_pc_prep = iris_hfi_gen2_sys_pc_prep,
++};
++
+ void iris_hfi_gen2_command_ops_init(struct iris_core *core)
+ {
+ 	core->hfi_ops = &iris_hfi_gen2_command_ops;
+@@ -1330,6 +1333,10 @@ struct iris_inst *iris_hfi_gen2_get_instance(void)
+ 
+ 	/* The allocation is intentionally larger than struct iris_inst. */
+ 	out = kzalloc_obj(*out);
++	if (!out)
++		return NULL;
++
++	out->inst.hfi_session_ops = &iris_hfi_gen2_session_ops;
+ 
+ 	return &out->inst;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index 16965150f..352af9969 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -15,6 +15,8 @@
+ #define DEFAULT_WIDTH 320
+ #define DEFAULT_HEIGHT 240
+ 
++struct iris_hfi_session_ops;
++
+ enum iris_fmt_type_out {
+ 	IRIS_FMT_H264,
+ 	IRIS_FMT_HEVC,
+@@ -38,6 +40,7 @@ struct iris_fmt {
+  * @list: used for attach an instance to the core
+  * @core: pointer to core structure
+  * @session_id: id of current video session
++ * @hfi_session_ops: iris HFI session ops
+  * @ctx_q_lock: lock to serialize queues related ioctls
+  * @lock: lock to seralise forward and reverse threads
+  * @fh: reference of v4l2 file handler
+@@ -80,6 +83,7 @@ struct iris_inst {
+ 	struct list_head		list;
+ 	struct iris_core		*core;
+ 	u32				session_id;
++	const struct iris_hfi_session_ops	*hfi_session_ops;
+ 	struct mutex			ctx_q_lock;/* lock to serialize queues related ioctls */
+ 	struct mutex			lock; /* lock to serialize forward and reverse threads */
+ 	struct v4l2_fh			fh;
+diff --git a/drivers/media/platform/qcom/iris/iris_vb2.c b/drivers/media/platform/qcom/iris/iris_vb2.c
+index bf0b84009..a2ea2d67f 100644
+--- a/drivers/media/platform/qcom/iris/iris_vb2.c
++++ b/drivers/media/platform/qcom/iris/iris_vb2.c
+@@ -129,7 +129,7 @@ int iris_vb2_queue_setup(struct vb2_queue *q,
+ 	if (!inst->once_per_session_set) {
+ 		inst->once_per_session_set = true;
+ 
+-		ret = core->hfi_ops->session_open(inst);
++		ret = inst->hfi_session_ops->session_open(inst);
+ 		if (ret) {
+ 			ret = -EINVAL;
+ 			dev_err(core->dev, "session open failed\n");
+diff --git a/drivers/media/platform/qcom/iris/iris_vdec.c b/drivers/media/platform/qcom/iris/iris_vdec.c
+index 99d544e2a..dfccfb274 100644
+--- a/drivers/media/platform/qcom/iris/iris_vdec.c
++++ b/drivers/media/platform/qcom/iris/iris_vdec.c
+@@ -368,7 +368,7 @@ int iris_vdec_streamon_input(struct iris_inst *inst)
+ 
+ int iris_vdec_streamon_output(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	int ret;
+ 
+ 	ret = hfi_ops->session_set_config_params(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+@@ -428,7 +428,7 @@ int iris_vdec_qbuf(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf)
+ 
+ int iris_vdec_start_cmd(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	enum iris_inst_sub_state clear_sub_state = 0;
+ 	struct vb2_queue *dst_vq;
+ 	int ret;
+@@ -491,7 +491,7 @@ int iris_vdec_start_cmd(struct iris_inst *inst)
+ 
+ int iris_vdec_stop_cmd(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	int ret;
+ 
+ 	ret = hfi_ops->session_drain(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+diff --git a/drivers/media/platform/qcom/iris/iris_venc.c b/drivers/media/platform/qcom/iris/iris_venc.c
+index 4d886769d..c11fee479 100644
+--- a/drivers/media/platform/qcom/iris/iris_venc.c
++++ b/drivers/media/platform/qcom/iris/iris_venc.c
+@@ -575,7 +575,7 @@ int iris_venc_qbuf(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf)
+ 
+ int iris_venc_start_cmd(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	enum iris_inst_sub_state clear_sub_state = 0;
+ 	struct vb2_queue *dst_vq;
+ 	int ret;
+@@ -617,7 +617,7 @@ int iris_venc_start_cmd(struct iris_inst *inst)
+ 
+ int iris_venc_stop_cmd(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	int ret;
+ 
+ 	ret = hfi_ops->session_drain(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index 5eb1786b0..86002fffe 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -224,7 +224,7 @@ int iris_open(struct file *filp)
+ 
+ static void iris_session_close(struct iris_inst *inst)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = inst->core->hfi_ops;
++	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	bool wait_for_response = true;
+ 	int ret;
+ 
+-- 
+2.53.0
+

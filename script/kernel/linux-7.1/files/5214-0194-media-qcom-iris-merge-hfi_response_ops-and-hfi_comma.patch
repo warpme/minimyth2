@@ -1,0 +1,361 @@
+From 3ba7c6d06629885505b4273b6a18fd8506443be4 Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Sun, 29 Mar 2026 02:33:06 +0200
+Subject: [PATCH 194/309] media: qcom: iris: merge hfi_response_ops and
+ hfi_command_ops
+
+There is little point in having two different structures for HFI-related
+core ops. Merge both of them into the new iris_hfi_ops structure.
+
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Reviewed-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ drivers/media/platform/qcom/iris/iris_core.h         |  6 ++----
+ drivers/media/platform/qcom/iris/iris_hfi_common.c   |  6 +++---
+ drivers/media/platform/qcom/iris/iris_hfi_common.h   |  8 +++-----
+ drivers/media/platform/qcom/iris/iris_hfi_gen1.h     |  4 ++--
+ .../media/platform/qcom/iris/iris_hfi_gen1_command.c |  8 +++++---
+ .../platform/qcom/iris/iris_hfi_gen1_response.c      | 11 +----------
+ drivers/media/platform/qcom/iris/iris_hfi_gen2.h     |  4 ++--
+ .../media/platform/qcom/iris/iris_hfi_gen2_command.c |  8 +++++---
+ .../platform/qcom/iris/iris_hfi_gen2_response.c      | 11 +----------
+ .../media/platform/qcom/iris/iris_platform_common.h  |  3 +--
+ .../media/platform/qcom/iris/iris_platform_gen1.c    |  6 ++----
+ .../media/platform/qcom/iris/iris_platform_gen2.c    | 12 ++++--------
+ drivers/media/platform/qcom/iris/iris_probe.c        |  3 +--
+ drivers/media/platform/qcom/iris/iris_vpu_common.c   |  2 +-
+ 14 files changed, 33 insertions(+), 59 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index d10a03aa5..159268164 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -68,8 +68,7 @@ struct qcom_ubwc_cfg_data;
+  * @header_id: id of packet header
+  * @packet_id: id of packet
+  * @power: a structure for clock and bw information
+- * @hfi_ops: iris hfi command ops
+- * @hfi_response_ops: iris hfi response ops
++ * @hfi_sys_ops: iris HFI system ops
+  * @core_init_done: structure of signal completion for system response
+  * @intr_status: interrupt status
+  * @sys_error_handler: a delayed work for handling system fatal error
+@@ -112,8 +111,7 @@ struct iris_core {
+ 	u32					header_id;
+ 	u32					packet_id;
+ 	struct iris_core_power			power;
+-	const struct iris_hfi_command_ops	*hfi_ops;
+-	const struct iris_hfi_response_ops	*hfi_response_ops;
++	const struct iris_hfi_sys_ops		*hfi_sys_ops;
+ 	struct completion			core_init_done;
+ 	u32					intr_status;
+ 	struct delayed_work			sys_error_handler;
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_common.c b/drivers/media/platform/qcom/iris/iris_hfi_common.c
+index 621c66593..8769ec61f 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_common.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_common.c
+@@ -76,7 +76,7 @@ u32 iris_hfi_get_v4l2_matrix_coefficients(u32 hfi_coefficients)
+ 
+ int iris_hfi_core_init(struct iris_core *core)
+ {
+-	const struct iris_hfi_command_ops *hfi_ops = core->hfi_ops;
++	const struct iris_hfi_sys_ops *hfi_ops = core->hfi_sys_ops;
+ 	int ret;
+ 
+ 	ret = hfi_ops->sys_init(core);
+@@ -109,7 +109,7 @@ irqreturn_t iris_hfi_isr_handler(int irq, void *data)
+ 	iris_vpu_clear_interrupt(core);
+ 	mutex_unlock(&core->lock);
+ 
+-	core->hfi_response_ops->hfi_response_handler(core);
++	core->hfi_sys_ops->sys_hfi_response_handler(core);
+ 
+ 	if (!iris_vpu_watchdog(core, core->intr_status))
+ 		enable_irq(irq);
+@@ -144,7 +144,7 @@ int iris_hfi_pm_suspend(struct iris_core *core)
+ 
+ int iris_hfi_pm_resume(struct iris_core *core)
+ {
+-	const struct iris_hfi_command_ops *ops = core->hfi_ops;
++	const struct iris_hfi_sys_ops *ops = core->hfi_sys_ops;
+ 	int ret;
+ 
+ 	ret = iris_vpu_power_on(core);
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_common.h b/drivers/media/platform/qcom/iris/iris_hfi_common.h
+index 18684ada7..9aa84a1d8 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_common.h
++++ b/drivers/media/platform/qcom/iris/iris_hfi_common.h
+@@ -105,11 +105,13 @@ struct iris_hfi_prop_type_handle {
+ 	int (*handle)(struct iris_inst *inst, u32 plane);
+ };
+ 
+-struct iris_hfi_command_ops {
++struct iris_hfi_sys_ops {
+ 	int (*sys_init)(struct iris_core *core);
+ 	int (*sys_image_version)(struct iris_core *core);
+ 	int (*sys_interframe_powercollapse)(struct iris_core *core);
+ 	int (*sys_pc_prep)(struct iris_core *core);
++
++	void (*sys_hfi_response_handler)(struct iris_core *core);
+ };
+ 
+ struct iris_hfi_session_ops {
+@@ -129,10 +131,6 @@ struct iris_hfi_session_ops {
+ 	int (*session_close)(struct iris_inst *inst);
+ };
+ 
+-struct iris_hfi_response_ops {
+-	void (*hfi_response_handler)(struct iris_core *core);
+-};
+-
+ struct hfi_subscription_params {
+ 	u32	bitstream_resolution;
+ 	u32	crop_offsets[2];
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1.h b/drivers/media/platform/qcom/iris/iris_hfi_gen1.h
+index 19b8e9054..38e9d262d 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1.h
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1.h
+@@ -9,8 +9,8 @@
+ struct iris_core;
+ struct iris_inst;
+ 
+-void iris_hfi_gen1_command_ops_init(struct iris_core *core);
+-void iris_hfi_gen1_response_ops_init(struct iris_core *core);
++void iris_hfi_gen1_sys_ops_init(struct iris_core *core);
++void iris_hfi_gen1_response_handler(struct iris_core *core);
+ struct iris_inst *iris_hfi_gen1_get_instance(void);
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index a28b0c7eb..26b7feb05 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -1076,16 +1076,18 @@ static const struct iris_hfi_session_ops iris_hfi_gen1_session_ops = {
+ 	.session_close = iris_hfi_gen1_session_close,
+ };
+ 
+-static const struct iris_hfi_command_ops iris_hfi_gen1_command_ops = {
++static const struct iris_hfi_sys_ops iris_hfi_gen1_sys_ops = {
+ 	.sys_init = iris_hfi_gen1_sys_init,
+ 	.sys_image_version = iris_hfi_gen1_sys_image_version,
+ 	.sys_interframe_powercollapse = iris_hfi_gen1_sys_interframe_powercollapse,
+ 	.sys_pc_prep = iris_hfi_gen1_sys_pc_prep,
++
++	.sys_hfi_response_handler = iris_hfi_gen1_response_handler,
+ };
+ 
+-void iris_hfi_gen1_command_ops_init(struct iris_core *core)
++void iris_hfi_gen1_sys_ops_init(struct iris_core *core)
+ {
+-	core->hfi_ops = &iris_hfi_gen1_command_ops;
++	core->hfi_sys_ops = &iris_hfi_gen1_sys_ops;
+ }
+ 
+ struct iris_inst *iris_hfi_gen1_get_instance(void)
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+index 8e864c239..bfd7495bf 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+@@ -688,7 +688,7 @@ static void iris_hfi_gen1_flush_debug_queue(struct iris_core *core, u8 *packet)
+ 	}
+ }
+ 
+-static void iris_hfi_gen1_response_handler(struct iris_core *core)
++void iris_hfi_gen1_response_handler(struct iris_core *core)
+ {
+ 	memset(core->response_packet, 0, sizeof(struct hfi_pkt_hdr));
+ 	while (!iris_hfi_queue_msg_read(core, core->response_packet)) {
+@@ -698,12 +698,3 @@ static void iris_hfi_gen1_response_handler(struct iris_core *core)
+ 
+ 	iris_hfi_gen1_flush_debug_queue(core, core->response_packet);
+ }
+-
+-static const struct iris_hfi_response_ops iris_hfi_gen1_response_ops = {
+-	.hfi_response_handler = iris_hfi_gen1_response_handler,
+-};
+-
+-void iris_hfi_gen1_response_ops_init(struct iris_core *core)
+-{
+-	core->hfi_response_ops = &iris_hfi_gen1_response_ops;
+-}
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2.h b/drivers/media/platform/qcom/iris/iris_hfi_gen2.h
+index b9d3749a1..6cc6d9890 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2.h
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2.h
+@@ -34,8 +34,8 @@ struct iris_inst_hfi_gen2 {
+ 	struct hfi_subscription_params	dst_subcr_params;
+ };
+ 
+-void iris_hfi_gen2_command_ops_init(struct iris_core *core);
+-void iris_hfi_gen2_response_ops_init(struct iris_core *core);
++void iris_hfi_gen2_sys_ops_init(struct iris_core *core);
++void iris_hfi_gen2_response_handler(struct iris_core *core);
+ struct iris_inst *iris_hfi_gen2_get_instance(void);
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
+index ffb70fd94..0c98d680b 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2_command.c
+@@ -1315,16 +1315,18 @@ static const struct iris_hfi_session_ops iris_hfi_gen2_session_ops = {
+ 	.session_close = iris_hfi_gen2_session_close,
+ };
+ 
+-static const struct iris_hfi_command_ops iris_hfi_gen2_command_ops = {
++static const struct iris_hfi_sys_ops iris_hfi_gen2_sys_ops = {
+ 	.sys_init = iris_hfi_gen2_sys_init,
+ 	.sys_image_version = iris_hfi_gen2_sys_image_version,
+ 	.sys_interframe_powercollapse = iris_hfi_gen2_sys_interframe_powercollapse,
+ 	.sys_pc_prep = iris_hfi_gen2_sys_pc_prep,
++
++	.sys_hfi_response_handler = iris_hfi_gen2_response_handler,
+ };
+ 
+-void iris_hfi_gen2_command_ops_init(struct iris_core *core)
++void iris_hfi_gen2_sys_ops_init(struct iris_core *core)
+ {
+-	core->hfi_ops = &iris_hfi_gen2_command_ops;
++	core->hfi_sys_ops = &iris_hfi_gen2_sys_ops;
+ }
+ 
+ struct iris_inst *iris_hfi_gen2_get_instance(void)
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
+index 8e19f61bb..c350d2312 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
+@@ -977,7 +977,7 @@ static void iris_hfi_gen2_flush_debug_queue(struct iris_core *core, u8 *packet)
+ 	}
+ }
+ 
+-static void iris_hfi_gen2_response_handler(struct iris_core *core)
++void iris_hfi_gen2_response_handler(struct iris_core *core)
+ {
+ 	if (iris_vpu_watchdog(core, core->intr_status)) {
+ 		struct iris_hfi_packet pkt = {.type = HFI_SYS_ERROR_WD_TIMEOUT};
+@@ -997,12 +997,3 @@ static void iris_hfi_gen2_response_handler(struct iris_core *core)
+ 
+ 	iris_hfi_gen2_flush_debug_queue(core, core->response_packet);
+ }
+-
+-static const struct iris_hfi_response_ops iris_hfi_gen2_response_ops = {
+-	.hfi_response_handler = iris_hfi_gen2_response_handler,
+-};
+-
+-void iris_hfi_gen2_response_ops_init(struct iris_core *core)
+-{
+-	core->hfi_response_ops = &iris_hfi_gen2_response_ops;
+-}
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
+index d71069026..6b76a9046 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_common.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
+@@ -202,8 +202,7 @@ enum platform_pm_domain_type {
+ };
+ 
+ struct iris_platform_data {
+-	void (*init_hfi_command_ops)(struct iris_core *core);
+-	void (*init_hfi_response_ops)(struct iris_core *core);
++	void (*init_hfi_ops)(struct iris_core *core);
+ 	struct iris_inst *(*get_instance)(void);
+ 	u32 (*get_vpu_buffer_size)(struct iris_inst *inst, enum iris_buffer_type buffer_type);
+ 	const struct vpu_ops *vpu_ops;
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_gen1.c b/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+index ed07d1b00..dc74da047 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_gen1.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+@@ -334,8 +334,7 @@ static const u32 sm8250_enc_ip_int_buf_tbl[] = {
+ 
+ const struct iris_platform_data sm8250_data = {
+ 	.get_instance = iris_hfi_gen1_get_instance,
+-	.init_hfi_command_ops = &iris_hfi_gen1_command_ops_init,
+-	.init_hfi_response_ops = iris_hfi_gen1_response_ops_init,
++	.init_hfi_ops = &iris_hfi_gen1_sys_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu_buf_size,
+ 	.vpu_ops = &iris_vpu2_ops,
+ 	.icc_tbl = sm8250_icc_table,
+@@ -387,8 +386,7 @@ const struct iris_platform_data sm8250_data = {
+ 
+ const struct iris_platform_data sc7280_data = {
+ 	.get_instance = iris_hfi_gen1_get_instance,
+-	.init_hfi_command_ops = &iris_hfi_gen1_command_ops_init,
+-	.init_hfi_response_ops = iris_hfi_gen1_response_ops_init,
++	.init_hfi_ops = &iris_hfi_gen1_sys_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu_buf_size,
+ 	.vpu_ops = &iris_vpu2_ops,
+ 	.icc_tbl = sm8250_icc_table,
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_gen2.c b/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+index c84d4399f..19e99e1c2 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_gen2.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+@@ -908,8 +908,7 @@ static const u32 sm8550_enc_op_int_buf_tbl[] = {
+ 
+ const struct iris_platform_data sm8550_data = {
+ 	.get_instance = iris_hfi_gen2_get_instance,
+-	.init_hfi_command_ops = iris_hfi_gen2_command_ops_init,
+-	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
++	.init_hfi_ops = iris_hfi_gen2_sys_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu_buf_size,
+ 	.vpu_ops = &iris_vpu3_ops,
+ 	.icc_tbl = sm8550_icc_table,
+@@ -1008,8 +1007,7 @@ const struct iris_platform_data sm8550_data = {
+  */
+ const struct iris_platform_data sm8650_data = {
+ 	.get_instance = iris_hfi_gen2_get_instance,
+-	.init_hfi_command_ops = iris_hfi_gen2_command_ops_init,
+-	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
++	.init_hfi_ops = iris_hfi_gen2_sys_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu33_buf_size,
+ 	.vpu_ops = &iris_vpu33_ops,
+ 	.icc_tbl = sm8550_icc_table,
+@@ -1103,8 +1101,7 @@ const struct iris_platform_data sm8650_data = {
+ 
+ const struct iris_platform_data sm8750_data = {
+ 	.get_instance = iris_hfi_gen2_get_instance,
+-	.init_hfi_command_ops = iris_hfi_gen2_command_ops_init,
+-	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
++	.init_hfi_ops = iris_hfi_gen2_sys_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu33_buf_size,
+ 	.vpu_ops = &iris_vpu35_ops,
+ 	.icc_tbl = sm8550_icc_table,
+@@ -1200,8 +1197,7 @@ const struct iris_platform_data sm8750_data = {
+  */
+ const struct iris_platform_data qcs8300_data = {
+ 	.get_instance = iris_hfi_gen2_get_instance,
+-	.init_hfi_command_ops = iris_hfi_gen2_command_ops_init,
+-	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
++	.init_hfi_ops = iris_hfi_gen2_sys_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu_buf_size,
+ 	.vpu_ops = &iris_vpu3_ops,
+ 	.icc_tbl = sm8550_icc_table,
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index baa13cc5c..fa561f6a7 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -264,8 +264,7 @@ static int iris_probe(struct platform_device *pdev)
+ 	disable_irq_nosync(core->irq);
+ 
+ 	iris_init_ops(core);
+-	core->iris_platform_data->init_hfi_command_ops(core);
+-	core->iris_platform_data->init_hfi_response_ops(core);
++	core->iris_platform_data->init_hfi_ops(core);
+ 
+ 	ret = iris_init_resources(core);
+ 	if (ret)
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.c b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+index 60a3d429f..e77e94ac9 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+@@ -149,7 +149,7 @@ int iris_vpu_prepare_pc(struct iris_core *core)
+ 	if (!wfi_status || !idle_status)
+ 		goto skip_power_off;
+ 
+-	ret = core->hfi_ops->sys_pc_prep(core);
++	ret = core->hfi_sys_ops->sys_pc_prep(core);
+ 	if (ret)
+ 		goto skip_power_off;
+ 
+-- 
+2.53.0
+

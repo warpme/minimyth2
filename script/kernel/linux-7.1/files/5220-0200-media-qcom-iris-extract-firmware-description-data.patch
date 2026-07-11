@@ -1,0 +1,306 @@
+From 6f3d0f392f84daede83f471aacd3eb86deaa489c Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Sun, 29 Mar 2026 02:33:12 +0200
+Subject: [PATCH 200/309] media: qcom: iris: extract firmware description data
+
+In preparation to adding support for several firmware revisions to be
+used for a platform, extract the firmware description data. It
+incorporates firmware name, HFI ops and buffer requirements of the
+particular firmware build.
+
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+[bod: Made struct iris_firmware_desc into static consts to pass media CI]
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ .../media/platform/qcom/iris/iris_buffer.c    |  2 +-
+ drivers/media/platform/qcom/iris/iris_core.h  |  2 +
+ .../media/platform/qcom/iris/iris_firmware.c  |  2 +-
+ .../qcom/iris/iris_hfi_gen1_command.c         |  2 +-
+ .../platform/qcom/iris/iris_platform_common.h | 15 ++++---
+ .../platform/qcom/iris/iris_platform_vpu2.c   | 20 ++++++---
+ .../platform/qcom/iris/iris_platform_vpu3x.c  | 41 +++++++++++++------
+ drivers/media/platform/qcom/iris/iris_probe.c |  3 +-
+ 8 files changed, 58 insertions(+), 29 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_buffer.c b/drivers/media/platform/qcom/iris/iris_buffer.c
+index 95b9a370c..60e3d1445 100644
+--- a/drivers/media/platform/qcom/iris/iris_buffer.c
++++ b/drivers/media/platform/qcom/iris/iris_buffer.c
+@@ -295,7 +295,7 @@ static void iris_fill_internal_buf_info(struct iris_inst *inst,
+ {
+ 	struct iris_buffers *buffers = &inst->buffers[buffer_type];
+ 
+-	buffers->size = inst->core->iris_platform_data->get_vpu_buffer_size(inst, buffer_type);
++	buffers->size = inst->core->iris_firmware_desc->get_vpu_buffer_size(inst, buffer_type);
+ 	buffers->min_count = iris_vpu_buf_count(inst, buffer_type);
+ }
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index e0ca245c8..24da60448 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -55,6 +55,7 @@ struct qcom_ubwc_cfg_data;
+  * @controller_resets: table of controller reset clocks
+  * @iris_platform_data: a structure for platform data
+  * @iris_firmware_data: a pointer to the firmware (or HFI) specific data
++ * @iris_firmware_desc: a pointer to the firmware-specific descriptive data
+  * @ubwc_cfg: UBWC configuration for the platform
+  * @state: current state of core
+  * @iface_q_table_daddr: device address for interface queue table memory
+@@ -99,6 +100,7 @@ struct iris_core {
+ 	struct reset_control_bulk_data		*controller_resets;
+ 	const struct iris_platform_data		*iris_platform_data;
+ 	const struct iris_firmware_data		*iris_firmware_data;
++	const struct iris_firmware_desc		*iris_firmware_desc;
+ 	const struct qcom_ubwc_cfg_data		*ubwc_cfg;
+ 	enum iris_core_state			state;
+ 	dma_addr_t				iface_q_table_daddr;
+diff --git a/drivers/media/platform/qcom/iris/iris_firmware.c b/drivers/media/platform/qcom/iris/iris_firmware.c
+index bc6c5c3e0..1a476146d 100644
+--- a/drivers/media/platform/qcom/iris/iris_firmware.c
++++ b/drivers/media/platform/qcom/iris/iris_firmware.c
+@@ -72,7 +72,7 @@ int iris_fw_load(struct iris_core *core)
+ 	ret = of_property_read_string_index(core->dev->of_node, "firmware-name", 0,
+ 					    &fwpath);
+ 	if (ret)
+-		fwpath = core->iris_platform_data->fwname;
++		fwpath = core->iris_firmware_desc->fwname;
+ 
+ 	ret = iris_load_fw_to_memory(core, fwpath);
+ 	if (ret) {
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index 3fb90a466..833738626 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -918,7 +918,7 @@ static int iris_hfi_gen1_set_bufsize(struct iris_inst *inst, u32 plane)
+ 
+ 	if (iris_split_mode_enabled(inst)) {
+ 		bufsz.type = HFI_BUFFER_OUTPUT;
+-		bufsz.size = inst->core->iris_platform_data->get_vpu_buffer_size(inst, BUF_DPB);
++		bufsz.size = inst->core->iris_firmware_desc->get_vpu_buffer_size(inst, BUF_DPB);
+ 
+ 		ret = hfi_gen1_set_property(inst, ptype, &bufsz, sizeof(bufsz));
+ 		if (ret)
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
+index 6dfead673..6a108173b 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_common.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
+@@ -250,14 +250,18 @@ struct iris_firmware_data {
+ 	unsigned int enc_op_int_buf_tbl_size;
+ };
+ 
++struct iris_firmware_desc {
++	const struct iris_firmware_data *firmware_data;
++	u32 (*get_vpu_buffer_size)(struct iris_inst *inst, enum iris_buffer_type buffer_type);
++	const char *fwname;
++};
++
+ struct iris_platform_data {
+ 	/*
+-	 * XXX: remove firmware_data pointer and consider moving
+-	 * get_vpu_buffer_size pointer once we have platforms supporting both
+-	 * firmware kinds.
++	 * XXX: replace with gen1 / gen2 pointers once we have platforms
++	 * supporting both firmware kinds.
+ 	 */
+-	const struct iris_firmware_data *firmware_data;
+-	u32 (*get_vpu_buffer_size)(struct iris_inst *inst, enum iris_buffer_type buffer_type);
++	const struct iris_firmware_desc *firmware_desc;
+ 
+ 	const struct vpu_ops *vpu_ops;
+ 	const struct icc_info *icc_tbl;
+@@ -276,7 +280,6 @@ struct iris_platform_data {
+ 	const char * const *controller_rst_tbl;
+ 	unsigned int controller_rst_tbl_size;
+ 	u64 dma_mask;
+-	const char *fwname;
+ 	struct iris_fmt *inst_iris_fmts;
+ 	u32 inst_iris_fmts_size;
+ 	struct platform_inst_caps *inst_caps;
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_vpu2.c b/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
+index 692fbc2aa..41986af83 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
+@@ -16,6 +16,18 @@
+ #include "iris_platform_sc7280.h"
+ #include "iris_platform_sm8250.h"
+ 
++static const struct iris_firmware_desc iris_vpu20_p1_gen1_desc = {
++	.firmware_data = &iris_hfi_gen1_data,
++	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.fwname = "qcom/vpu/vpu20_p1.mbn",
++};
++
++static const struct iris_firmware_desc iris_vpu20_p4_gen1_desc = {
++	.firmware_data = &iris_hfi_gen1_data,
++	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.fwname = "qcom/vpu/vpu20_p4.mbn",
++};
++
+ static struct iris_fmt iris_fmts_vpu2_dec[] = {
+ 	[IRIS_FMT_H264] = {
+ 		.pixfmt = V4L2_PIX_FMT_H264,
+@@ -62,8 +74,7 @@ static const struct tz_cp_config tz_cp_config_vpu2[] = {
+ };
+ 
+ const struct iris_platform_data sc7280_data = {
+-	.firmware_data = &iris_hfi_gen1_data,
+-	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.firmware_desc = &iris_vpu20_p1_gen1_desc,
+ 	.vpu_ops = &iris_vpu2_ops,
+ 	.icc_tbl = iris_icc_info_vpu2,
+ 	.icc_tbl_size = ARRAY_SIZE(iris_icc_info_vpu2),
+@@ -78,7 +89,6 @@ const struct iris_platform_data sc7280_data = {
+ 	.opp_clk_tbl = sc7280_opp_clk_table,
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+-	.fwname = "qcom/vpu/vpu20_p1.mbn",
+ 	.inst_iris_fmts = iris_fmts_vpu2_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(iris_fmts_vpu2_dec),
+ 	.inst_caps = &platform_inst_cap_vpu2,
+@@ -93,8 +103,7 @@ const struct iris_platform_data sc7280_data = {
+ };
+ 
+ const struct iris_platform_data sm8250_data = {
+-	.firmware_data = &iris_hfi_gen1_data,
+-	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.firmware_desc = &iris_vpu20_p4_gen1_desc,
+ 	.vpu_ops = &iris_vpu2_ops,
+ 	.icc_tbl = iris_icc_info_vpu2,
+ 	.icc_tbl_size = ARRAY_SIZE(iris_icc_info_vpu2),
+@@ -111,7 +120,6 @@ const struct iris_platform_data sm8250_data = {
+ 	.opp_clk_tbl = sm8250_opp_clk_table,
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+-	.fwname = "qcom/vpu/vpu20_p4.mbn",
+ 	.inst_iris_fmts = iris_fmts_vpu2_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(iris_fmts_vpu2_dec),
+ 	.inst_caps = &platform_inst_cap_vpu2,
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_vpu3x.c b/drivers/media/platform/qcom/iris/iris_platform_vpu3x.c
+index c2496aa0f..c249ff827 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_vpu3x.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_vpu3x.c
+@@ -17,6 +17,30 @@
+ #include "iris_platform_sm8650.h"
+ #include "iris_platform_sm8750.h"
+ 
++static const struct iris_firmware_desc iris_vpu30_p4_s6_gen2_desc = {
++	.firmware_data = &iris_hfi_gen2_data,
++	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.fwname = "qcom/vpu/vpu30_p4_s6.mbn",
++};
++
++static const struct iris_firmware_desc iris_vpu30_p4_gen2_desc = {
++	.firmware_data = &iris_hfi_gen2_data,
++	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.fwname = "qcom/vpu/vpu30_p4.mbn",
++};
++
++static const struct iris_firmware_desc iris_vpu33_p4_gen2_desc = {
++	.firmware_data = &iris_hfi_gen2_data,
++	.get_vpu_buffer_size = iris_vpu33_buf_size,
++	.fwname = "qcom/vpu/vpu33_p4.mbn",
++};
++
++static const struct iris_firmware_desc iris_vpu35_p4_gen2_desc = {
++	.firmware_data = &iris_hfi_gen2_data,
++	.get_vpu_buffer_size = iris_vpu33_buf_size,
++	.fwname = "qcom/vpu/vpu35_p4.mbn",
++};
++
+ static struct iris_fmt iris_fmts_vpu3x_dec[] = {
+ 	[IRIS_FMT_H264] = {
+ 		.pixfmt = V4L2_PIX_FMT_H264,
+@@ -71,8 +95,7 @@ static const struct tz_cp_config tz_cp_config_vpu3[] = {
+  * - inst_caps to platform_inst_cap_qcs8300
+  */
+ const struct iris_platform_data qcs8300_data = {
+-	.firmware_data = &iris_hfi_gen2_data,
+-	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.firmware_desc = &iris_vpu30_p4_s6_gen2_desc,
+ 	.vpu_ops = &iris_vpu3_ops,
+ 	.icc_tbl = iris_icc_info_vpu3x,
+ 	.icc_tbl_size = ARRAY_SIZE(iris_icc_info_vpu3x),
+@@ -89,7 +112,6 @@ const struct iris_platform_data qcs8300_data = {
+ 	.opp_clk_tbl = iris_opp_clk_table_vpu3x,
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+-	.fwname = "qcom/vpu/vpu30_p4_s6.mbn",
+ 	.inst_iris_fmts = iris_fmts_vpu3x_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(iris_fmts_vpu3x_dec),
+ 	.inst_caps = &platform_inst_cap_qcs8300,
+@@ -102,8 +124,7 @@ const struct iris_platform_data qcs8300_data = {
+ };
+ 
+ const struct iris_platform_data sm8550_data = {
+-	.firmware_data = &iris_hfi_gen2_data,
+-	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.firmware_desc = &iris_vpu30_p4_gen2_desc,
+ 	.vpu_ops = &iris_vpu3_ops,
+ 	.icc_tbl = iris_icc_info_vpu3x,
+ 	.icc_tbl_size = ARRAY_SIZE(iris_icc_info_vpu3x),
+@@ -120,7 +141,6 @@ const struct iris_platform_data sm8550_data = {
+ 	.opp_clk_tbl = iris_opp_clk_table_vpu3x,
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+-	.fwname = "qcom/vpu/vpu30_p4.mbn",
+ 	.inst_iris_fmts = iris_fmts_vpu3x_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(iris_fmts_vpu3x_dec),
+ 	.inst_caps = &platform_inst_cap_sm8550,
+@@ -137,11 +157,9 @@ const struct iris_platform_data sm8550_data = {
+  * - vpu_ops to iris_vpu33_ops
+  * - clk_rst_tbl to sm8650_clk_reset_table
+  * - controller_rst_tbl to sm8650_controller_reset_table
+- * - fwname to "qcom/vpu/vpu33_p4.mbn"
+  */
+ const struct iris_platform_data sm8650_data = {
+-	.firmware_data = &iris_hfi_gen2_data,
+-	.get_vpu_buffer_size = iris_vpu33_buf_size,
++	.firmware_desc = &iris_vpu33_p4_gen2_desc,
+ 	.vpu_ops = &iris_vpu33_ops,
+ 	.icc_tbl = iris_icc_info_vpu3x,
+ 	.icc_tbl_size = ARRAY_SIZE(iris_icc_info_vpu3x),
+@@ -160,7 +178,6 @@ const struct iris_platform_data sm8650_data = {
+ 	.opp_clk_tbl = iris_opp_clk_table_vpu3x,
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+-	.fwname = "qcom/vpu/vpu33_p4.mbn",
+ 	.inst_iris_fmts = iris_fmts_vpu3x_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(iris_fmts_vpu3x_dec),
+ 	.inst_caps = &platform_inst_cap_sm8550,
+@@ -173,8 +190,7 @@ const struct iris_platform_data sm8650_data = {
+ };
+ 
+ const struct iris_platform_data sm8750_data = {
+-	.firmware_data = &iris_hfi_gen2_data,
+-	.get_vpu_buffer_size = iris_vpu33_buf_size,
++	.firmware_desc = &iris_vpu35_p4_gen2_desc,
+ 	.vpu_ops = &iris_vpu35_ops,
+ 	.icc_tbl = iris_icc_info_vpu3x,
+ 	.icc_tbl_size = ARRAY_SIZE(iris_icc_info_vpu3x),
+@@ -191,7 +207,6 @@ const struct iris_platform_data sm8750_data = {
+ 	.opp_clk_tbl = iris_opp_clk_table_vpu3x,
+ 	/* Upper bound of DMA address range */
+ 	.dma_mask = 0xe0000000 - 1,
+-	.fwname = "qcom/vpu/vpu35_p4.mbn",
+ 	.inst_iris_fmts = iris_fmts_vpu3x_dec,
+ 	.inst_iris_fmts_size = ARRAY_SIZE(iris_fmts_vpu3x_dec),
+ 	.inst_caps = &platform_inst_cap_sm8550,
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index dd87504c2..d36f0c0e7 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -251,7 +251,8 @@ static int iris_probe(struct platform_device *pdev)
+ 		return core->irq;
+ 
+ 	core->iris_platform_data = of_device_get_match_data(core->dev);
+-	core->iris_firmware_data = core->iris_platform_data->firmware_data;
++	core->iris_firmware_desc = core->iris_platform_data->firmware_desc;
++	core->iris_firmware_data = core->iris_firmware_desc->firmware_data;
+ 
+ 	core->ubwc_cfg = qcom_ubwc_config_get_data();
+ 	if (IS_ERR(core->ubwc_cfg))
+-- 
+2.53.0
+

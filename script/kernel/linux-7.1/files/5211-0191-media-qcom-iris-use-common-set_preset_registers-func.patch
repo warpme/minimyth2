@@ -1,0 +1,151 @@
+From be046309207938a9f0deaef979da0758bc1d2f0b Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Sun, 29 Mar 2026 02:33:03 +0200
+Subject: [PATCH 191/309] media: qcom: iris: use common set_preset_registers
+ function
+
+The set_preset_registers is (currently) common to all supported devices.
+Extract it to a iris_vpu_common.c and call it directly from
+iris_vpu_power_on(). Later, if any of the devices requires special
+handling, it can be sorted out separately.
+
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Reviewed-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ drivers/media/platform/qcom/iris/iris_platform_common.h | 1 -
+ drivers/media/platform/qcom/iris/iris_platform_gen1.c   | 7 -------
+ drivers/media/platform/qcom/iris/iris_platform_gen2.c   | 9 ---------
+ drivers/media/platform/qcom/iris/iris_vpu_common.c      | 7 ++++++-
+ drivers/media/platform/qcom/iris/iris_vpu_common.h      | 2 ++
+ 5 files changed, 8 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
+index e4eefc646..d71069026 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_common.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
+@@ -207,7 +207,6 @@ struct iris_platform_data {
+ 	struct iris_inst *(*get_instance)(void);
+ 	u32 (*get_vpu_buffer_size)(struct iris_inst *inst, enum iris_buffer_type buffer_type);
+ 	const struct vpu_ops *vpu_ops;
+-	void (*set_preset_registers)(struct iris_core *core);
+ 	const struct icc_info *icc_tbl;
+ 	unsigned int icc_tbl_size;
+ 	const struct bw_info *bw_tbl_dec;
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_gen1.c b/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+index 07ed572e8..ed07d1b00 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_gen1.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+@@ -260,11 +260,6 @@ static struct platform_inst_caps platform_inst_cap_sm8250 = {
+ 	.max_operating_rate = MAXIMUM_FPS,
+ };
+ 
+-static void iris_set_sm8250_preset_registers(struct iris_core *core)
+-{
+-	writel(0x0, core->reg_base + 0xB0088);
+-}
+-
+ static const struct icc_info sm8250_icc_table[] = {
+ 	{ "cpu-cfg",    1000, 1000     },
+ 	{ "video-mem",  1000, 15000000 },
+@@ -343,7 +338,6 @@ const struct iris_platform_data sm8250_data = {
+ 	.init_hfi_response_ops = iris_hfi_gen1_response_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu_buf_size,
+ 	.vpu_ops = &iris_vpu2_ops,
+-	.set_preset_registers = iris_set_sm8250_preset_registers,
+ 	.icc_tbl = sm8250_icc_table,
+ 	.icc_tbl_size = ARRAY_SIZE(sm8250_icc_table),
+ 	.clk_rst_tbl = sm8250_clk_reset_table,
+@@ -397,7 +391,6 @@ const struct iris_platform_data sc7280_data = {
+ 	.init_hfi_response_ops = iris_hfi_gen1_response_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu_buf_size,
+ 	.vpu_ops = &iris_vpu2_ops,
+-	.set_preset_registers = iris_set_sm8250_preset_registers,
+ 	.icc_tbl = sm8250_icc_table,
+ 	.icc_tbl_size = ARRAY_SIZE(sm8250_icc_table),
+ 	.bw_tbl_dec = sc7280_bw_table_dec,
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_gen2.c b/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+index 1f23ddb97..c84d4399f 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_gen2.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+@@ -756,11 +756,6 @@ static struct platform_inst_caps platform_inst_cap_sm8550 = {
+ 	.max_operating_rate = MAXIMUM_FPS,
+ };
+ 
+-static void iris_set_sm8550_preset_registers(struct iris_core *core)
+-{
+-	writel(0x0, core->reg_base + 0xB0088);
+-}
+-
+ static const struct icc_info sm8550_icc_table[] = {
+ 	{ "cpu-cfg",    1000, 1000     },
+ 	{ "video-mem",  1000, 15000000 },
+@@ -917,7 +912,6 @@ const struct iris_platform_data sm8550_data = {
+ 	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu_buf_size,
+ 	.vpu_ops = &iris_vpu3_ops,
+-	.set_preset_registers = iris_set_sm8550_preset_registers,
+ 	.icc_tbl = sm8550_icc_table,
+ 	.icc_tbl_size = ARRAY_SIZE(sm8550_icc_table),
+ 	.clk_rst_tbl = sm8550_clk_reset_table,
+@@ -1018,7 +1012,6 @@ const struct iris_platform_data sm8650_data = {
+ 	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu33_buf_size,
+ 	.vpu_ops = &iris_vpu33_ops,
+-	.set_preset_registers = iris_set_sm8550_preset_registers,
+ 	.icc_tbl = sm8550_icc_table,
+ 	.icc_tbl_size = ARRAY_SIZE(sm8550_icc_table),
+ 	.clk_rst_tbl = sm8650_clk_reset_table,
+@@ -1114,7 +1107,6 @@ const struct iris_platform_data sm8750_data = {
+ 	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu33_buf_size,
+ 	.vpu_ops = &iris_vpu35_ops,
+-	.set_preset_registers = iris_set_sm8550_preset_registers,
+ 	.icc_tbl = sm8550_icc_table,
+ 	.icc_tbl_size = ARRAY_SIZE(sm8550_icc_table),
+ 	.clk_rst_tbl = sm8750_clk_reset_table,
+@@ -1212,7 +1204,6 @@ const struct iris_platform_data qcs8300_data = {
+ 	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
+ 	.get_vpu_buffer_size = iris_vpu_buf_size,
+ 	.vpu_ops = &iris_vpu3_ops,
+-	.set_preset_registers = iris_set_sm8550_preset_registers,
+ 	.icc_tbl = sm8550_icc_table,
+ 	.icc_tbl_size = ARRAY_SIZE(sm8550_icc_table),
+ 	.clk_rst_tbl = sm8550_clk_reset_table,
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.c b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+index 69e6126dc..60a3d429f 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+@@ -472,7 +472,7 @@ int iris_vpu_power_on(struct iris_core *core)
+ 
+ 	iris_opp_set_rate(core->dev, freq);
+ 
+-	core->iris_platform_data->set_preset_registers(core);
++	iris_vpu_set_preset_registers(core);
+ 
+ 	iris_vpu_interrupt_init(core);
+ 	core->intr_status = 0;
+@@ -489,3 +489,8 @@ int iris_vpu_power_on(struct iris_core *core)
+ 
+ 	return ret;
+ }
++
++void iris_vpu_set_preset_registers(struct iris_core *core)
++{
++	writel(0x0, core->reg_base + 0xb0088);
++}
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.h b/drivers/media/platform/qcom/iris/iris_vpu_common.h
+index dee3b1349..09799a375 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.h
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.h
+@@ -42,4 +42,6 @@ int iris_vpu35_vpu4x_power_on_controller(struct iris_core *core);
+ void iris_vpu35_vpu4x_program_bootup_registers(struct iris_core *core);
+ u64 iris_vpu3x_vpu4x_calculate_frequency(struct iris_inst *inst, size_t data_size);
+ 
++void iris_vpu_set_preset_registers(struct iris_core *core);
++
+ #endif
+-- 
+2.53.0
+

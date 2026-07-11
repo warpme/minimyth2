@@ -1,0 +1,142 @@
+From 55ee57c1269920a6b08a77bb40d152826c2377de Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Fri, 27 Mar 2026 22:19:56 +0200
+Subject: [PATCH 180/309] media: qcom: venus: flip the venus/iris switch
+
+With the Iris and Venus driver having more or less feature parity for
+"HFI 6xx" platforms and with Iris gaining support for SC7280, flip the
+switch. Use Iris by default for SM8250 and SC7280, the platforms which
+are supported by both drivers, and use Venus only if Iris is not
+compiled at all. Use IS_ENABLED to strip out the code and data
+structures which are used by the disabled platforms.
+
+Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Reviewed-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+[bod: Moved two conditional compats inside of one ifdef for ci]
+[bod: Changed IS_V6(core) (0) to ((void)(core), 0) for ci]
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ drivers/media/platform/qcom/iris/Makefile     |  5 +----
+ drivers/media/platform/qcom/iris/iris_probe.c |  2 --
+ drivers/media/platform/qcom/venus/core.c      |  6 +++++-
+ drivers/media/platform/qcom/venus/core.h      | 11 +++++++++++
+ 4 files changed, 17 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/Makefile b/drivers/media/platform/qcom/iris/Makefile
+index 2abbd3aeb..2fde45f81 100644
+--- a/drivers/media/platform/qcom/iris/Makefile
++++ b/drivers/media/platform/qcom/iris/Makefile
+@@ -10,6 +10,7 @@ qcom-iris-objs += iris_buffer.o \
+              iris_hfi_gen2_packet.o \
+              iris_hfi_gen2_response.o \
+              iris_hfi_queue.o \
++             iris_platform_gen1.o \
+              iris_platform_gen2.o \
+              iris_power.o \
+              iris_probe.o \
+@@ -26,8 +27,4 @@ qcom-iris-objs += iris_buffer.o \
+              iris_vpu_buffer.o \
+              iris_vpu_common.o \
+ 
+-ifeq ($(CONFIG_VIDEO_QCOM_VENUS),)
+-qcom-iris-objs += iris_platform_gen1.o
+-endif
+-
+ obj-$(CONFIG_VIDEO_QCOM_IRIS) += qcom-iris.o
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index 487eb0917..74ec81e3d 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -359,7 +359,6 @@ static const struct of_device_id iris_dt_match[] = {
+ 		.compatible = "qcom,qcs8300-iris",
+ 		.data = &qcs8300_data,
+ 	},
+-#if (!IS_ENABLED(CONFIG_VIDEO_QCOM_VENUS))
+ 	{
+ 		.compatible = "qcom,sc7280-venus",
+ 		.data = &sc7280_data,
+@@ -368,7 +367,6 @@ static const struct of_device_id iris_dt_match[] = {
+ 		.compatible = "qcom,sm8250-venus",
+ 		.data = &sm8250_data,
+ 	},
+-#endif
+ 	{
+ 		.compatible = "qcom,sm8550-iris",
+ 		.data = &sm8550_data,
+diff --git a/drivers/media/platform/qcom/venus/core.c b/drivers/media/platform/qcom/venus/core.c
+index 00fb6806c..a87e8afb2 100644
+--- a/drivers/media/platform/qcom/venus/core.c
++++ b/drivers/media/platform/qcom/venus/core.c
+@@ -951,6 +951,7 @@ static const struct venus_resources sc7180_res = {
+ 	.enc_nodename = "video-encoder",
+ };
+ 
++#if (!IS_ENABLED(CONFIG_VIDEO_QCOM_IRIS))
+ static const struct freq_tbl sm8250_freq_table[] = {
+ 	{ 0, 444000000 },
+ 	{ 0, 366000000 },
+@@ -1073,6 +1074,7 @@ static const struct venus_resources sc7280_res = {
+ 	.dec_nodename = "video-decoder",
+ 	.enc_nodename = "video-encoder",
+ };
++#endif
+ 
+ static const struct bw_tbl qcm2290_bw_table_dec[] = {
+ 	{ 352800, 597000, 0, 746000, 0 }, /* 1080p@30 + 720p@30 */
+@@ -1130,11 +1132,13 @@ static const struct of_device_id venus_dt_match[] = {
+ 	{ .compatible = "qcom,msm8998-venus", .data = &msm8998_res, },
+ 	{ .compatible = "qcom,qcm2290-venus", .data = &qcm2290_res, },
+ 	{ .compatible = "qcom,sc7180-venus", .data = &sc7180_res, },
+-	{ .compatible = "qcom,sc7280-venus", .data = &sc7280_res, },
+ 	{ .compatible = "qcom,sdm660-venus", .data = &sdm660_res, },
+ 	{ .compatible = "qcom,sdm845-venus", .data = &sdm845_res, },
+ 	{ .compatible = "qcom,sdm845-venus-v2", .data = &sdm845_res_v2, },
++#if (!IS_ENABLED(CONFIG_VIDEO_QCOM_IRIS))
++	{ .compatible = "qcom,sc7280-venus", .data = &sc7280_res, },
+ 	{ .compatible = "qcom,sm8250-venus", .data = &sm8250_res, },
++#endif
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, venus_dt_match);
+diff --git a/drivers/media/platform/qcom/venus/core.h b/drivers/media/platform/qcom/venus/core.h
+index 70e7b40af..03804c308 100644
+--- a/drivers/media/platform/qcom/venus/core.h
++++ b/drivers/media/platform/qcom/venus/core.h
+@@ -54,8 +54,10 @@ enum vpu_version {
+ 	VPU_VERSION_AR50,
+ 	VPU_VERSION_AR50_LITE,
+ 	VPU_VERSION_IRIS1,
++#if (!IS_ENABLED(CONFIG_VIDEO_QCOM_IRIS))
+ 	VPU_VERSION_IRIS2,
+ 	VPU_VERSION_IRIS2_1,
++#endif
+ };
+ 
+ struct firmware_version {
+@@ -526,13 +528,22 @@ struct venus_inst {
+ #define IS_V1(core)	((core)->res->hfi_version == HFI_VERSION_1XX)
+ #define IS_V3(core)	((core)->res->hfi_version == HFI_VERSION_3XX)
+ #define IS_V4(core)	((core)->res->hfi_version == HFI_VERSION_4XX)
++#if (!IS_ENABLED(CONFIG_VIDEO_QCOM_IRIS))
+ #define IS_V6(core)	((core)->res->hfi_version == HFI_VERSION_6XX)
++#else
++#define IS_V6(core)	(((void)(core), 0))
++#endif
+ 
+ #define IS_AR50(core)		((core)->res->vpu_version == VPU_VERSION_AR50)
+ #define IS_AR50_LITE(core)	((core)->res->vpu_version == VPU_VERSION_AR50_LITE)
+ #define IS_IRIS1(core)		((core)->res->vpu_version == VPU_VERSION_IRIS1)
++#if (!IS_ENABLED(CONFIG_VIDEO_QCOM_IRIS))
+ #define IS_IRIS2(core)		((core)->res->vpu_version == VPU_VERSION_IRIS2)
+ #define IS_IRIS2_1(core)	((core)->res->vpu_version == VPU_VERSION_IRIS2_1)
++#else
++#define IS_IRIS2(core)		(((void)(core), 0))
++#define IS_IRIS2_1(core)	(((void)(core), 0))
++#endif
+ 
+ static inline bool is_lite(struct venus_core *core)
+ {
+-- 
+2.53.0
+

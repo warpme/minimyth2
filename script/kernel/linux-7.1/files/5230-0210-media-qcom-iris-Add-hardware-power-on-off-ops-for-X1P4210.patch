@@ -1,0 +1,52 @@
+From 0834fb16917d7e6249e688ff5024f2bd0d15a39e Mon Sep 17 00:00:00 2001
+From: Wangao Wang <wangao.wang@oss.qualcomm.com>
+Date: Fri, 29 May 2026 15:34:59 +0800
+Subject: [PATCH 210/309] media: iris: Add hardware power on/off ops for
+ X1P42100
+
+On X1P42100 the Iris block has an extra BSE clock. Wire this clock into
+the power on/off sequence.
+
+The BSE clock is used to drive the Bin Stream Engine, which is a sub-block
+of the video codec hardware responsible for bitstream-level processing. It
+is required to be enabled separately from the core clock to ensure proper
+codec operation.
+
+Reviewed-by: Bryan O'Donoghue <bryan.odonoghue@linaro.org>
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Signed-off-by: Wangao Wang <wangao.wang@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ drivers/media/platform/qcom/iris/iris_vpu_common.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.c b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+index ca96e9122..4cc9c8207 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+@@ -224,6 +224,7 @@ void iris_vpu_power_off_hw(struct iris_core *core)
+ {
+ 	dev_pm_genpd_set_hwmode(core->pmdomain_tbl->pd_devs[IRIS_HW_POWER_DOMAIN], false);
+ 	iris_disable_power_domains(core, core->pmdomain_tbl->pd_devs[IRIS_HW_POWER_DOMAIN]);
++	iris_disable_unprepare_clock(core, IRIS_BSE_HW_CLK);
+ 	iris_disable_unprepare_clock(core, IRIS_HW_AHB_CLK);
+ 	iris_disable_unprepare_clock(core, IRIS_HW_CLK);
+ }
+@@ -292,8 +293,14 @@ int iris_vpu_power_on_hw(struct iris_core *core)
+ 	if (ret && ret != -ENOENT)
+ 		goto err_disable_hw_clock;
+ 
++	ret = iris_prepare_enable_clock(core, IRIS_BSE_HW_CLK);
++	if (ret && ret != -ENOENT)
++		goto err_disable_bse_hw_clock;
++
+ 	return 0;
+ 
++err_disable_bse_hw_clock:
++	iris_disable_unprepare_clock(core, IRIS_BSE_HW_CLK);
+ err_disable_hw_clock:
+ 	iris_disable_unprepare_clock(core, IRIS_HW_CLK);
+ err_disable_power:
+-- 
+2.53.0
+

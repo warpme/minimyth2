@@ -1,0 +1,88 @@
+From 92c2c5556de00b51977b7d59d64a6ee519f99a8c Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Sun, 25 Jan 2026 13:30:05 +0200
+Subject: [PATCH 183/309] media: iris: retrieve UBWC platform configuration
+
+Specifying UBWC data in each driver doesn't scale and is prone to
+errors. Request UBWC data from the central database in preparation to
+using it through the rest of the driver.
+
+Reviewed-by: Bryan O'Donoghue <bryan.odonoghue@linaro.org>
+Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Tested-by: Wangao Wang <wangao.wang@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ drivers/media/platform/qcom/iris/Kconfig      | 1 +
+ drivers/media/platform/qcom/iris/iris_core.h  | 4 ++++
+ drivers/media/platform/qcom/iris/iris_probe.c | 5 +++++
+ 3 files changed, 10 insertions(+)
+
+diff --git a/drivers/media/platform/qcom/iris/Kconfig b/drivers/media/platform/qcom/iris/Kconfig
+index 5498f4836..af78a1775 100644
+--- a/drivers/media/platform/qcom/iris/Kconfig
++++ b/drivers/media/platform/qcom/iris/Kconfig
+@@ -5,6 +5,7 @@ config VIDEO_QCOM_IRIS
+         select V4L2_MEM2MEM_DEV
+         select QCOM_MDT_LOADER
+         select QCOM_SCM
++        select QCOM_UBWC_CONFIG
+         select VIDEOBUF2_DMA_CONTIG
+         help
+           This is a V4L2 driver for Qualcomm iris video accelerator
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index fb194c967..d10a03aa5 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -30,6 +30,8 @@ enum domain_type {
+ 	DECODER	= BIT(1),
+ };
+ 
++struct qcom_ubwc_cfg_data;
++
+ /**
+  * struct iris_core - holds core parameters valid for all instances
+  *
+@@ -52,6 +54,7 @@ enum domain_type {
+  * @resets: table of iris reset clocks
+  * @controller_resets: table of controller reset clocks
+  * @iris_platform_data: a structure for platform data
++ * @ubwc_cfg: UBWC configuration for the platform
+  * @state: current state of core
+  * @iface_q_table_daddr: device address for interface queue table memory
+  * @sfr_daddr: device address for SFR (Sub System Failure Reason) register memory
+@@ -95,6 +98,7 @@ struct iris_core {
+ 	struct reset_control_bulk_data		*resets;
+ 	struct reset_control_bulk_data		*controller_resets;
+ 	const struct iris_platform_data		*iris_platform_data;
++	const struct qcom_ubwc_cfg_data		*ubwc_cfg;
+ 	enum iris_core_state			state;
+ 	dma_addr_t				iface_q_table_daddr;
+ 	dma_addr_t				sfr_daddr;
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index 74ec81e3d..baa13cc5c 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -10,6 +10,7 @@
+ #include <linux/pm_opp.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/reset.h>
++#include <linux/soc/qcom/ubwc.h>
+ 
+ #include "iris_core.h"
+ #include "iris_ctrls.h"
+@@ -251,6 +252,10 @@ static int iris_probe(struct platform_device *pdev)
+ 
+ 	core->iris_platform_data = of_device_get_match_data(core->dev);
+ 
++	core->ubwc_cfg = qcom_ubwc_config_get_data();
++	if (IS_ERR(core->ubwc_cfg))
++		return PTR_ERR(core->ubwc_cfg);
++
+ 	ret = devm_request_threaded_irq(core->dev, core->irq, iris_hfi_isr,
+ 					iris_hfi_isr_handler, IRQF_TRIGGER_HIGH, "iris", core);
+ 	if (ret)
+-- 
+2.53.0
+

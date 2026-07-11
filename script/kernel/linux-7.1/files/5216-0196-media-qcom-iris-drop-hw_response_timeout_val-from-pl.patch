@@ -1,0 +1,135 @@
+From 715cf698c860d59336f4163d0eeeb69a8a51dced Mon Sep 17 00:00:00 2001
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Date: Sun, 29 Mar 2026 02:33:08 +0200
+Subject: [PATCH 196/309] media: qcom: iris: drop hw_response_timeout_val from
+ platform data
+
+The HW response time is a constant between platforms. Remove it from the
+iris_platform_data structure and use it directly.
+
+Suggested-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Reviewed-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Reviewed-by: Dikshita Agarwal <dikshita.agarwal@oss.qualcomm.com>
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Signed-off-by: Bryan O'Donoghue <bod@kernel.org>
+---
+ drivers/media/platform/qcom/iris/iris_core.c            | 3 +--
+ drivers/media/platform/qcom/iris/iris_platform_common.h | 1 -
+ drivers/media/platform/qcom/iris/iris_platform_gen1.c   | 2 --
+ drivers/media/platform/qcom/iris/iris_platform_gen2.c   | 4 ----
+ drivers/media/platform/qcom/iris/iris_utils.c           | 5 +----
+ 5 files changed, 2 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+index dbaac01eb..1f326f696 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -28,14 +28,13 @@ void iris_core_deinit(struct iris_core *core)
+ 
+ static int iris_wait_for_system_response(struct iris_core *core)
+ {
+-	u32 hw_response_timeout_val = core->iris_platform_data->hw_response_timeout;
+ 	int ret;
+ 
+ 	if (core->state == IRIS_CORE_ERROR)
+ 		return -EIO;
+ 
+ 	ret = wait_for_completion_timeout(&core->core_init_done,
+-					  msecs_to_jiffies(hw_response_timeout_val));
++					  msecs_to_jiffies(HW_RESPONSE_TIMEOUT_VALUE));
+ 	if (!ret) {
+ 		core->state = IRIS_CORE_ERROR;
+ 		return -ETIMEDOUT;
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
+index d1daef2d8..e8a219023 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_common.h
++++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
+@@ -232,7 +232,6 @@ struct iris_platform_data {
+ 	const struct tz_cp_config *tz_cp_config_data;
+ 	u32 tz_cp_config_data_size;
+ 	u32 core_arch;
+-	u32 hw_response_timeout;
+ 	u32 num_vpp_pipe;
+ 	bool no_aon;
+ 	u32 max_session_count;
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_gen1.c b/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+index 9925a893b..6ed4c4ae4 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_gen1.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+@@ -361,7 +361,6 @@ const struct iris_platform_data sm8250_data = {
+ 	.inst_fw_caps_enc_size = ARRAY_SIZE(inst_fw_cap_sm8250_enc),
+ 	.tz_cp_config_data = tz_cp_config_sm8250,
+ 	.tz_cp_config_data_size = ARRAY_SIZE(tz_cp_config_sm8250),
+-	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
+ 	.num_vpp_pipe = 4,
+ 	.max_session_count = 16,
+ 	.max_core_mbpf = NUM_MBS_8K,
+@@ -410,7 +409,6 @@ const struct iris_platform_data sc7280_data = {
+ 	.inst_fw_caps_enc_size = ARRAY_SIZE(inst_fw_cap_sm8250_enc),
+ 	.tz_cp_config_data = tz_cp_config_sm8250,
+ 	.tz_cp_config_data_size = ARRAY_SIZE(tz_cp_config_sm8250),
+-	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
+ 	.num_vpp_pipe = 1,
+ 	.no_aon = true,
+ 	.max_session_count = 16,
+diff --git a/drivers/media/platform/qcom/iris/iris_platform_gen2.c b/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+index 10a972f96..abe523db4 100644
+--- a/drivers/media/platform/qcom/iris/iris_platform_gen2.c
++++ b/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+@@ -936,7 +936,6 @@ const struct iris_platform_data sm8550_data = {
+ 	.tz_cp_config_data = tz_cp_config_sm8550,
+ 	.tz_cp_config_data_size = ARRAY_SIZE(tz_cp_config_sm8550),
+ 	.core_arch = VIDEO_ARCH_LX,
+-	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
+ 	.num_vpp_pipe = 4,
+ 	.max_session_count = 16,
+ 	.max_core_mbpf = NUM_MBS_8K * 2,
+@@ -1036,7 +1035,6 @@ const struct iris_platform_data sm8650_data = {
+ 	.tz_cp_config_data = tz_cp_config_sm8550,
+ 	.tz_cp_config_data_size = ARRAY_SIZE(tz_cp_config_sm8550),
+ 	.core_arch = VIDEO_ARCH_LX,
+-	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
+ 	.num_vpp_pipe = 4,
+ 	.max_session_count = 16,
+ 	.max_core_mbpf = NUM_MBS_8K * 2,
+@@ -1127,7 +1125,6 @@ const struct iris_platform_data sm8750_data = {
+ 	.tz_cp_config_data = tz_cp_config_sm8550,
+ 	.tz_cp_config_data_size = ARRAY_SIZE(tz_cp_config_sm8550),
+ 	.core_arch = VIDEO_ARCH_LX,
+-	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
+ 	.num_vpp_pipe = 4,
+ 	.max_session_count = 16,
+ 	.max_core_mbpf = NUM_MBS_8K * 2,
+@@ -1222,7 +1219,6 @@ const struct iris_platform_data qcs8300_data = {
+ 	.tz_cp_config_data = tz_cp_config_sm8550,
+ 	.tz_cp_config_data_size = ARRAY_SIZE(tz_cp_config_sm8550),
+ 	.core_arch = VIDEO_ARCH_LX,
+-	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
+ 	.num_vpp_pipe = 2,
+ 	.max_session_count = 16,
+ 	.max_core_mbpf = ((4096 * 2176) / 256) * 4,
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.c b/drivers/media/platform/qcom/iris/iris_utils.c
+index cfc5b576e..29b07d885 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.c
++++ b/drivers/media/platform/qcom/iris/iris_utils.c
+@@ -55,16 +55,13 @@ void iris_helper_buffers_done(struct iris_inst *inst, unsigned int type,
+ 
+ int iris_wait_for_session_response(struct iris_inst *inst, bool is_flush)
+ {
+-	struct iris_core *core = inst->core;
+-	u32 hw_response_timeout_val;
+ 	struct completion *done;
+ 	int ret;
+ 
+-	hw_response_timeout_val = core->iris_platform_data->hw_response_timeout;
+ 	done = is_flush ? &inst->flush_completion : &inst->completion;
+ 
+ 	mutex_unlock(&inst->lock);
+-	ret = wait_for_completion_timeout(done, msecs_to_jiffies(hw_response_timeout_val));
++	ret = wait_for_completion_timeout(done, msecs_to_jiffies(HW_RESPONSE_TIMEOUT_VALUE));
+ 	mutex_lock(&inst->lock);
+ 	if (!ret) {
+ 		iris_inst_change_state(inst, IRIS_INST_ERROR);
+-- 
+2.53.0
+
