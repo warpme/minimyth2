@@ -1,14 +1,24 @@
-Patch from MiniMyth2 project
+From 4dde24aecb917f73e018a5f5648d854988e7e6cb Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Fri, 14 Oct 2022 20:15:43 +0200
+Subject: [PATCH 16/27] iommu/sun50i: Allow page sizes multiple of 4096
 
-Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+While peripheral supports only 4K page sizes, we can easily emulate
+support for bigger page sizes, up to 1M. This is done by making multiple
+entries in map function or clearing multiple entries in unmap.
 
+This considerably lowers overhead.
 
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/iommu/sun50i-iommu.c | 42 +++++++++++++++++++++---------------
+ 1 file changed, 25 insertions(+), 17 deletions(-)
 
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.17-rc2/drivers/iommu/sun50i-iommu.c linux-6.17-rc2/drivers/iommu/sun50i-iommu.c
---- linux-6.17-rc2/drivers/iommu/sun50i-iommu.c	2025-08-18 00:22:10.000000000 +0200
-+++ linux-6.17-rc2/drivers/iommu/sun50i-iommu.c	2025-08-24 17:04:50.914561141 +0200
-@@ -598,10 +598,12 @@
+diff --git a/drivers/iommu/sun50i-iommu.c b/drivers/iommu/sun50i-iommu.c
+index be3f1ce69..d4696da42 100644
+--- a/drivers/iommu/sun50i-iommu.c
++++ b/drivers/iommu/sun50i-iommu.c
+@@ -598,7 +598,7 @@ static int sun50i_iommu_map(struct iommu_domain *domain, unsigned long iova,
  {
  	struct sun50i_iommu_domain *sun50i_domain = to_sun50i_domain(domain);
  	struct sun50i_iommu *iommu = sun50i_domain->iommu;
@@ -17,12 +27,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.17-rc2/drivers
  	u32 *page_table, *pte_addr;
  	int ret = 0;
  
+@@ -610,6 +610,8 @@ static int sun50i_iommu_map(struct iommu_domain *domain, unsigned long iova,
+ 		goto out;
+ 	}
+ 
 +	pages = size / SPAGE_SIZE;
 +
- 	/* the IOMMU can only handle 32-bit addresses, both input and output */
- 	if ((uint64_t)paddr >> 32) {
- 		ret = -EINVAL;
-@@ -617,18 +619,21 @@
+ 	page_table = sun50i_dte_get_page_table(sun50i_domain, iova, gfp);
+ 	if (IS_ERR(page_table)) {
+ 		ret = PTR_ERR(page_table);
+@@ -617,18 +619,21 @@ static int sun50i_iommu_map(struct iommu_domain *domain, unsigned long iova,
  	}
  
  	pte_index = sun50i_iova_get_pte_index(iova);
@@ -54,7 +68,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.17-rc2/drivers
  	*mapped = size;
  
  out:
-@@ -640,8 +645,10 @@
+@@ -640,8 +645,10 @@ static size_t sun50i_iommu_unmap(struct iommu_domain *domain, unsigned long iova
  {
  	struct sun50i_iommu_domain *sun50i_domain = to_sun50i_domain(domain);
  	phys_addr_t pt_phys;
@@ -66,7 +80,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.17-rc2/drivers
  
  	dte = sun50i_domain->dt[sun50i_iova_get_dte_index(iova)];
  	if (!sun50i_dte_is_pt_valid(dte))
-@@ -650,13 +657,14 @@
+@@ -650,13 +657,14 @@ static size_t sun50i_iommu_unmap(struct iommu_domain *domain, unsigned long iova
  	pt_phys = sun50i_dte_get_pt_address(dte);
  	pte_addr = (u32 *)phys_to_virt(pt_phys) + sun50i_iova_get_pte_index(iova);
  
@@ -86,16 +100,6 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.17-rc2/drivers
  }
  
  static phys_addr_t sun50i_iommu_iova_to_phys(struct iommu_domain *domain,
-@@ -697,7 +705,7 @@
- 
- 	refcount_set(&sun50i_domain->refcnt, 1);
- 
--	sun50i_domain->domain.pgsize_bitmap = SZ_4K;
-+	sun50i_domain->domain.pgsize_bitmap = 0x1ff000;
- 
- 	sun50i_domain->domain.geometry.aperture_start = 0;
- 	sun50i_domain->domain.geometry.aperture_end = DMA_BIT_MASK(32);
---
-
-MiniMyth2
+-- 
+2.53.0
 

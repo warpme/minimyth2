@@ -182,7 +182,6 @@ PATCHFILES += 2008-pwm-Add-Allwinner-s-D1-T113-S3-R329-SoCs-PWM-support.patch
 PATCHFILES += 2009-pwm-sun20i-modify-for-h616-support.patch
 PATCHFILES += 2010-pwm-sun20i-Add-support-for-bypass.patch
 PATCHFILES += 2015-net-wireless-add-xr819-support-07072021.patch
-PATCHFILES += 2016-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
 PATCHFILES += 2017-drm-sun4i-Add-support-for-DE33-CSC.patch
 PATCHFILES += 2018-drm-sun4i-vi_layer-Limit-formats-for-DE33.patch
 PATCHFILES += 2019-clk-sunxi-ng-de2-Export-register-regmap-for-DE33.patch
@@ -190,20 +189,19 @@ PATCHFILES += 2020-drm-sun4i-Add-planes-driver.patch
 PATCHFILES += 2021-drm-sun4i-switch-DE33-to-new-bindings.patch
 PATCHFILES += 2024-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
 PATCHFILES += 2025-asoc-sun4i-i2s-WiP-multi-channel.patch
-PATCHFILES += 2026-media-cedrus-Don-t-CPU-map-source-buffers.patch
-PATCHFILES += 2027-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
-PATCHFILES += 2028-media-cedrus-add-format-filtering-based-on-depth-and.patch
 PATCHFILES += 2029-media-cedrus-Increase-H6-clock-rate.patch
 PATCHFILES += 2030-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 2031-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 2032-bluetooth-btrtl-add-hci-ver-rtl8822cs.patch
 PATCHFILES += 2033-h6-add-sun50i-di-deinterlace-WiP.patch
+# h6 dtsi additions
+PATCHFILES += 2300-arm64-dtsi-allwinner-h6-Protect-SCP-clock.patch
+PATCHFILES += 2301-arm64-dtsi-allwinner-h6-Add-SCPI-protocol.patch
+PATCHFILES += 2302-arm64-dtsi-allwinner-h6-dtsi-add-sound-node.patch
+PATCHFILES += 2303-arm64-dtsi-allwinner-sun50i-h6-Add-missing-SRAM-regio.patch
+PATCHFILES += 2304-arm64-dtsi-allwinner-sun50i-h6-Add-missing-IOMMU-for-.patch
+PATCHFILES += 2304-arm64-dtsi-allwinner-h6-add-ac200-nodes.patch
 # h6 board dts additions
-PATCHFILES += 2300-arm64-dts-allwinner-h6-Protect-SCP-clock.patch
-PATCHFILES += 2301-arm64-dts-allwinner-h6-Add-SCPI-protocol.patch
-PATCHFILES += 2302-arm64-dts-allwinner-h6-dtsi-add-sound-node.patch
-PATCHFILES += 2303-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
-PATCHFILES += 2304-arm64-dts-allwinner-h6.dtsi-add-ac200-nodes.patch
 PATCHFILES += 2305-arm64-dts-allwinner-gs1-fixes.patch
 PATCHFILES += 2306-arm64-dts-allwinner-tanix-tx6-additions.patch
 PATCHFILES += 2307-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
@@ -212,13 +210,10 @@ PATCHFILES += 2309-arm64-dts-allwinner-h6-add-deinterlace-node.patch
 PATCHFILES += 2310-arm64-dts-allwinner-add-orangepi-3-lts.patch
 # h616 drivers additions
 PATCHFILES += 2401-drivers-thermal-allwinner-add-h616-ths-support.patch
-PATCHFILES += 2402-media-cedrus-add-H616-variant.patch
 PATCHFILES += 2403-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
-PATCHFILES += 2404-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 2405-drm-sun4i-Add-H616-TCON-TV-support.patch
 PATCHFILES += 2406-srm-sun4i-Add-support-for-H616-HDMI-PHY.patch
 PATCHFILES += 2407-drm-sun4i-Add-compatible-for-H616-display-engine.patch
-PATCHFILES += 2409-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 PATCHFILES += 2410-sound-soc-sunxi-add-codec-driver-for-h616.patch
 PATCHFILES += 2411-sound-soc-add-sunxi_v2-for-h616-ahub.patch
 PATCHFILES += 2412-sound-soc-sunxi-hack-to-fix-oops-on-cards-caps-query.patch
@@ -229,17 +224,36 @@ PATCHFILES += 2416-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 PATCHFILES += 2417-drvers-of-add-dt-overlay-configfs-interface.patch
 PATCHFILES += 2418-drv-rtc-sun6i-add-support-rtc-without-external-losc.patch
 PATCHFILES += 2419-mmc-pwrseq_simple-fix-add-support-for-one-reset-control.patch
+# h616 cedrus improvements (vp9 ,etc)
+PATCHFILES += 2425-soc-sunxi-sram-Const-ify-sunxi_sram_func-data-and-re.patch
+PATCHFILES += 2426-soc-sunxi-sram-Allow-SRAM-to-be-claimed-multiple-tim.patch
+PATCHFILES += 2427-soc-sunxi-sram-Support-claiming-multiple-regions-per.patch
+PATCHFILES += 2428-soc-sunxi-sram-Add-H616-SRAM-regions.patch
+PATCHFILES += 2429-drivers-staging-media-sunxi-cedrus-add-H616-variant.patch
+PATCHFILES += 2430-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
+PATCHFILES += 2431-iommu-sun50i-support-DRAM-above-the-32-bit-boundary.patch
+PATCHFILES += 2432-media-cedrus-Don-t-CPU-map-source-buffers.patch
+PATCHFILES += 2433-media-cedrus-Add-VP9-decoding-support.patch
+PATCHFILES += 2434-media-cedrus-Add-P010-capture-format-and-shared-10-b.patch
+PATCHFILES += 2435-media-cedrus-Add-VP9-P010-output-support.patch
+PATCHFILES += 2436-media-cedrus-Add-H265-P010-output-support.patch
+PATCHFILES += 2437-media-cedrus-Name-H616-VP9-mode-register-bits.patch
+PATCHFILES += 2438-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
+PATCHFILES += 2439-media-cedrus-add-format-filtering-based-on-depth-and.patch
+PATCHFILES += 2440-media-cedrus-Filter-P010-by-depth-like-AFBC-formats.patch
+PATCHFILES += 2441-media-cedrus-Implement-AFBC-YUV420-output-for-VP9.patch
 # h616 dtsi additions
 PATCHFILES += 2500-arm64-dtsi-allwinner-h616-Add-display-pipeline.patch
 PATCHFILES += 2501-arm64-dtsi-allwinner-h616-Add-hdmi-audio.patch
 PATCHFILES += 2502-arm64-dtsi-allwinner-h616.dtsi-add-emac1.patch
 PATCHFILES += 2503-arm64-dtsi-allwinner-h616.dtsi-add-cpu-gpu-dvfs-opp.patch
-PATCHFILES += 2504-arm64-dtsi-allwinner-h616.dtsi-add-vdec.patch
 PATCHFILES += 2505-arm64-dtsi-allwinner-h616.dtsi-fix-x96q-failing-mmc3.patch
 PATCHFILES += 2506-arm64-dtsi-allwinner-h616.dtsi-enable-highspeedx-on-mmc0.patch
 PATCHFILES += 2507-arm64-dtsi-allwinner-h616-add-PWM-nodes.patch
 PATCHFILES += 2508-arm64-dtsi-allwinner-h616.dtsi-add-i2c-uart-pinctrl.patch
 PATCHFILES += 2509-arm64-dtsi-allwinner-h616-add-ac300-network.dtsi.patch
+PATCHFILES += 2511-arm64-dtsi-allwinner-h616-add-SRAM-nodes.patch
+PATCHFILES += 2512-arm64-dtsi-allwinner-h616-add-video-engine.patch
 # h616 board dts additions
 PATCHFILES += 2600-arm64-dts-allwinner-h616-opi-zero23-improvements.patch
 PATCHFILES += 2601-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
@@ -272,25 +286,25 @@ PATCHFILES += 2727-drm-sun4i-sun55i_de-fix-HDMI-page-flip-tearing-with-.patch
 PATCHFILES += 2728-drm-sun4i-sun55i_de-re-issue-full-RCQ-reloads-after-.patch
 PATCHFILES += 2729-drm-sun4i-sun55i_de-bypass-the-VSU-for-unscaled-laye.patch
 PATCHFILES += 2730-drm-sun4i-sun8i_hdmi_phy-demote-Inno-PHY-register-du.patch
-endif
 PATCHFILES += 2731-clk-sunxi-ng-sun55i-a523-add-the-IOMMU-bus-reset.patch
 PATCHFILES += 2732-iommu-sun50i-add-support-for-the-A523-sun55i.patch
-# cedrus
+PATCHFILES += 2805-arm64-dtsi-allwinner-a523-add-the-IOMMU-nodes.patch
+endif
+# cedrus enablement (not works correctly)
 PATCHFILES += 2733-media-cedrus-add-A523-sun55i-variant.patch
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
 PATCHFILES += 2803-arm64-dtsi-allwinner-a523-add-the-HDMI-display-pipeli.patch
-# PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
-PATCHFILES += 2805-arm64-dtsi-allwinner-a523-add-the-IOMMU-nodes.patch
+# move to per board PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
 PATCHFILES += 2806-arm64-dtsi-allwinner-a523-add-Cedrus-nodes.patch
 # a523 board dts additions
 PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch
 PATCHFILES += 2902-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch
 PATCHFILES += 2903-arm64-dts-allwinner-a523-enable-hdmi.patch
-# PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
+# move to per board PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
 #------------------------------------------------------------
 endif
 
@@ -335,7 +349,6 @@ PATCHFILES += 3407-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 3408-net-phy-realtek-Reset-after-clock-enable.patch
 PATCHFILES += 3409-net-phy-realtek-re-init-after-reset.patch
 PATCHFILES += 3410-clk-rockchip-rk3588-Don-t-change-PLL-rates-w.patch
-
 # drm enhacements from collabora
 # https://gitlab.collabora.com/hardware-enablement/rockchip-3588/linux/-/commits/eec645fc0f6a12c1daa8a0e7d9a9c4a5b5875e3b
 PATCHFILES += 3430-drm-rockchip-vop2-Add-clock-resets-support.patch
