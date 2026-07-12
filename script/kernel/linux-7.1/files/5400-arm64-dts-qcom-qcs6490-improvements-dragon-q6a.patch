@@ -1,25 +1,25 @@
+Patch from MiniMyth2 project
 
-Move the common Radxa Dragon Q6A board description from
-qcs6490-radxa-dragon-q6a.dts to a new qcs6490-radxa-dragon-q6a.dtsi so
-it can be shared by multiple board variants.
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
-Keep the existing Audioreach-based qcs6490-radxa-dragon-q6a.dts as the
-default configuration by including the new common .dtsi and
-qcs6490-audioreach.dtsi.
 
-No functional change intended.
 
-Signed-off-by: Xilin Wu <sophon@radxa.com>
----
- .../boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts     | 1135 +------------------
- .../boot/dts/qcom/qcs6490-radxa-dragon-q6a.dtsi    | 1137 ++++++++++++++++++++
- 2 files changed, 1139 insertions(+), 1133 deletions(-)
-
-diff --git a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
-index 5679f38de5b3..f52328fbaef9 100644
---- a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
-+++ b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
-@@ -1,568 +1,13 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.1.3/arch/arm64/boot/dts/qcom/Makefile linux-7.1.3/arch/arm64/boot/dts/qcom/Makefile
+--- linux-7.1.3/arch/arm64/boot/dts/qcom/Makefile	2026-07-12 18:42:34.053923995 +0200
++++ linux-7.1.3/arch/arm64/boot/dts/qcom/Makefile	2026-07-12 12:19:34.113527361 +0200
+@@ -169,6 +169,7 @@
+ 
+ dtb-$(CONFIG_ARCH_QCOM)	+= qcs615-ride-el2.dtb
+ dtb-$(CONFIG_ARCH_QCOM)	+= qcs6490-radxa-dragon-q6a.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= qcs6490-radxa-dragon-q6a-lpass-cpu.dtb
+ dtb-$(CONFIG_ARCH_QCOM)	+= qcs6490-rb3gen2.dtb
+ 
+ qcs6490-rb3gen2-vision-mezzanine-dtbs := qcs6490-rb3gen2.dtb qcs6490-rb3gen2-vision-mezzanine.dtbo
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
+--- linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts	2026-07-04 13:45:09.000000000 +0200
++++ linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts	2026-07-12 12:19:34.037297139 +0200
+@@ -1,509 +1,13 @@
  // SPDX-License-Identifier: BSD-3-Clause
  /*
 - * Copyright (c) 2025 Radxa Computer (Shenzhen) Co., Ltd.
@@ -46,9 +46,7 @@ index 5679f38de5b3..f52328fbaef9 100644
  #include "qcs6490-audioreach.dtsi"
  
 -/delete-node/ &adsp_mem;
--/delete-node/ &adsp_rpc_remote_heap_mem;
 -/delete-node/ &cdsp_mem;
--/delete-node/ &gpu_zap_mem;
 -/delete-node/ &ipa_fw_mem;
 -/delete-node/ &mpss_mem;
 -/delete-node/ &remoteproc_mpss;
@@ -59,6 +57,7 @@ index 5679f38de5b3..f52328fbaef9 100644
 -/delete-node/ &wlan_ce_mem;
 -/delete-node/ &wlan_fw_mem;
 -/delete-node/ &wpss_mem;
+-/delete-node/ &xbl_mem;
 -
 -/ {
 -	model = "Radxa Dragon Q6A";
@@ -136,71 +135,6 @@ index 5679f38de5b3..f52328fbaef9 100644
 -		};
 -	};
 -
--	usb3_con: connector {
--		compatible = "usb-a-connector";
--
--		ports {
--			#address-cells = <1>;
--			#size-cells = <0>;
--
--			port@0 {
--				reg = <0>;
--
--				usb3_con_hs_in: endpoint {
--					remote-endpoint = <&usb_1_dwc3_hs>;
--				};
--			};
--
--			port@1 {
--				reg = <1>;
--
--				usb3_con_ss_in: endpoint {
--					remote-endpoint = <&usb_1_qmpphy_out_usb>;
--				};
--			};
--		};
--	};
--
--	hdmi-bridge {
--		compatible = "radxa,ra620";
--
--		pinctrl-0 = <&dp_hot_plug_det>;
--		pinctrl-names = "default";
--
--		ports {
--			#address-cells = <1>;
--			#size-cells = <0>;
--
--			port@0 {
--				reg = <0>;
--
--				hdmi_bridge_in: endpoint {
--					remote-endpoint = <&usb_1_qmpphy_out_dp>;
--				};
--			};
--
--			port@1 {
--				reg = <1>;
--
--				hdmi_bridge_out: endpoint {
--					remote-endpoint = <&hdmi_connector_in>;
--				};
--			};
--		};
--	};
--
--	hdmi-connector {
--		compatible = "hdmi-connector";
--		label = "hdmi";
--		type = "a";
--
--		port {
--			hdmi_connector_in: endpoint {
--				remote-endpoint = <&hdmi_bridge_out>;
--			};
--		};
--	};
--
 -	leds {
 -		compatible = "gpio-leds";
 -
@@ -218,33 +152,43 @@ index 5679f38de5b3..f52328fbaef9 100644
 -	};
 -
 -	reserved-memory {
--		lpass_ml_mem: lpass-ml@81800000 {
--			reg = <0x0 0x81800000 0x0 0xf00000>;
+-		xbl_mem: xbl@80700000 {
+-			reg = <0x0 0x80700000 0x0 0x100000>;
 -			no-map;
 -		};
 -
--		cdsp_secure_heap_mem: cdsp-secure-heap@82700000 {
--			reg = <0x0 0x82700000 0x0 0x10000>;
+-		cdsp_secure_heap_mem: cdsp-secure-heap@81800000 {
+-			reg = <0x0 0x81800000 0x0 0x1e00000>;
 -			no-map;
 -		};
 -
--		adsp_mem: adsp@8b800000 {
--			reg = <0x0 0x8b800000 0x0 0x2800000>;
+-		camera_mem: camera@84300000 {
+-			reg = <0x0 0x84300000 0x0 0x500000>;
 -			no-map;
 -		};
 -
--		cdsp_mem: cdsp@8e000000 {
--			reg = <0x0 0x8e000000 0x0 0x1e00000>;
+-		adsp_mem: adsp@84800000 {
+-			reg = <0x0 0x84800000 0x0 0x2800000>;
 -			no-map;
 -		};
 -
--		video_mem: video@8fe00000 {
--			reg = <0x0 0x8fe00000 0x0 0x500000>;
+-		cdsp_mem: cdsp@87000000 {
+-			reg = <0x0 0x87000000 0x0 0x1e00000>;
 -			no-map;
 -		};
 -
--		gpu_zap_mem: zap@90300000 {
--			reg = <0x0 0x90300000 0x0 0x5000>;
+-		video_mem: video@88e00000 {
+-			reg = <0x0 0x88e00000 0x0 0x700000>;
+-			no-map;
+-		};
+-
+-		cvp_mem: cvp@89500000 {
+-			reg = <0x0 0x89500000 0x0 0x500000>;
+-			no-map;
+-		};
+-
+-		gpu_microcode_mem: gpu-microcode@89a00000 {
+-			reg = <0x0 0x89a00000 0x0 0x2000>;
 -			no-map;
 -		};
 -
@@ -264,12 +208,12 @@ index 5679f38de5b3..f52328fbaef9 100644
 -		};
 -
 -		trusted_apps_mem: trusted-apps@c1800000 {
--			reg = <0x0 0xc1800000 0x0 0x2200000>;
+-			reg = <0x0 0xc1800000 0x0 0x1c00000>;
 -			no-map;
 -		};
 -
--		adsp_rpc_remote_heap_mem: adsp-rpc-remote-heap@c6500000 {
--			reg = <0x0 0xc6500000 0x0 0x800000>;
+-		debug_vm_mem: debug-vm@d0600000 {
+-			reg = <0x0 0xd0600000 0x0 0x100000>;
 -			no-map;
 -		};
 -	};
@@ -528,9 +472,6 @@ index 5679f38de5b3..f52328fbaef9 100644
 -			   <GCC_MSS_Q6SS_BOOT_CLK_SRC>,
 -			   <GCC_MSS_Q6_MEMNOC_AXI_CLK>,
 -			   <GCC_MSS_SNOC_AXI_CLK>,
--			   <GCC_QSPI_CNOC_PERIPH_AHB_CLK>,
--			   <GCC_QSPI_CORE_CLK>,
--			   <GCC_QSPI_CORE_CLK_SRC>,
 -			   <GCC_SEC_CTRL_CLK_SRC>,
 -			   <GCC_WPSS_AHB_BDG_MST_CLK>,
 -			   <GCC_WPSS_AHB_CLK>,
@@ -590,25 +531,10 @@ index 5679f38de5b3..f52328fbaef9 100644
  &lpass_audiocc {
  	compatible = "qcom,qcm6490-lpassaudiocc";
  	/delete-property/ power-domains;
-@@ -580,207 +25,6 @@ &lpass_va_macro {
+@@ -521,214 +25,6 @@
  	status = "okay";
  };
  
--&mdss {
--	status = "okay";
--};
--
--&mdss_dp {
--	sound-name-prefix = "Display Port0";
--
--	status = "okay";
--};
--
--&mdss_dp_out {
--	data-lanes = <0 1>;
--	remote-endpoint = <&usb_dp_qmpphy_dp_in>;
--};
--
 -&pcie0 {
 -	perst-gpios = <&tlmm 87 GPIO_ACTIVE_LOW>;
 -	wake-gpios = <&tlmm 89 GPIO_ACTIVE_HIGH>;
@@ -753,6 +679,28 @@ index 5679f38de5b3..f52328fbaef9 100644
 -	status = "okay";
 -};
 -
+-&qspi {
+-	/* It's not possible to use QSPI with iommu */
+-	/* due to an error in qcom_smmu_write_s2cr */
+-	/delete-property/ iommus;
+-
+-	pinctrl-0 = <&qspi_clk>, <&qspi_cs0>, <&qspi_data0>,
+-				<&qspi_data1>, <&qspi_data23>;
+-	pinctrl-1 = <&qspi_sleep>;
+-	pinctrl-names = "default", "sleep";
+-
+-	status = "okay";
+-
+-	spi_flash: flash@0 {
+-		compatible = "winbond,w25q256", "jedec,spi-nor";
+-		reg = <0>;
+-
+-		spi-max-frequency = <104000000>;
+-		spi-tx-bus-width = <4>;
+-		spi-rx-bus-width = <4>;
+-	};
+-};
+-
 -&qupv3_id_0 {
 -	firmware-name = "qcom/qcm6490/qupv3fw.elf";
 -	status = "okay";
@@ -769,7 +717,7 @@ index 5679f38de5b3..f52328fbaef9 100644
 -};
 -
 -&remoteproc_cdsp {
--	firmware-name = "qcom/qcs6490/radxa/dragon-q6a/cdsp.mbn";
+-	firmware-name = "qcom/qcs6490/cdsp.mbn";
 -	status = "okay";
 -};
 -
@@ -798,7 +746,30 @@ index 5679f38de5b3..f52328fbaef9 100644
  &sound {
  	compatible = "qcom,qcs6490-rb3gen2-sndcard";
  	model = "QCS6490-Radxa-Dragon-Q6A";
-@@ -838,378 +82,3 @@ platform {
+@@ -738,6 +34,22 @@
+ 			"AMIC2", "MIC BIAS2",
+ 			"TX SWR_ADC1", "ADC2_OUTPUT";
+ 
++	dp0-dai-link {
++		link-name = "DP0 Playback";
++
++		codec {
++			sound-dai = <&mdss_dp>;
++		};
++
++		cpu {
++			sound-dai = <&q6apmbedai DISPLAY_PORT_RX_0>;
++		};
++
++		platform {
++			sound-dai = <&q6apm>;
++		};
++	};
++
+ 	wcd-playback-dai-link {
+ 		link-name = "WCD Playback";
+ 
+@@ -770,326 +82,3 @@
  		};
  	};
  };
@@ -842,10 +813,6 @@ index 5679f38de5b3..f52328fbaef9 100644
 -};
 -
 -&tlmm {
--	/*
--	 * 12-17: reserved for QSPI flash
--	 */
--	gpio-reserved-ranges = <12 6>;
 -	gpio-line-names =
 -		/* GPIO_0 ~ GPIO_3 */
 -		"PIN_13", "PIN_15", "", "",
@@ -860,7 +827,7 @@ index 5679f38de5b3..f52328fbaef9 100644
 -		/* GPIO_20 ~ GPIO_23 */
 -		"", "", "PIN_8", "PIN_10",
 -		/* GPIO_24 ~ GPIO_27 */
--		"PIN_3", "PIN_5", "PIN_16", "PIN_18",
+-		"PIN_3", "PIN_5", "PIN_16", "PIN_27",
 -		/* GPIO_28 ~ GPIO_31 */
 -		"PIN_31", "PIN_11", "PIN_32", "PIN_29",
 -		/* GPIO_32 ~ GPIO_35 */
@@ -964,6 +931,12 @@ index 5679f38de5b3..f52328fbaef9 100644
 -		bias-pull-up;
 -	};
 -
+-	qspi_sleep: qspi-sleep-state {
+-		pins = "gpio12", "gpio13", "gpio14", "gpio15", "gpio16", "gpio17";
+-		function = "gpio";
+-		output-disable;
+-	};
+-
 -	sd_cd: sd-cd-state {
 -		pins = "gpio91";
 -		function = "gpio";
@@ -987,81 +960,6 @@ index 5679f38de5b3..f52328fbaef9 100644
 -
 -&uart5 {
 -	status = "okay";
--};
--
--&ufs_mem_hc {
--	reset-gpios = <&tlmm 175 GPIO_ACTIVE_LOW>;
--	vcc-supply = <&vreg_l7b_2p96>;
--	vcc-max-microamp = <800000>;
--	vccq-supply = <&vreg_l9b_1p2>;
--	vccq-max-microamp = <900000>;
--	vccq2-supply = <&vreg_l9b_1p2>;
--	vccq2-max-microamp = <1300000>;
--
--	/* Gear-4 Rate-B is unstable due to board */
--	/* and UFS module design limitations */
--	limit-gear-rate = "rate-a";
--
--	status = "okay";
--};
--
--&ufs_mem_phy {
--	vdda-phy-supply = <&vreg_l10c_0p88>;
--	vdda-pll-supply = <&vreg_l6b_1p2>;
--
--	status = "okay";
--};
--
--&usb_1 {
--	dr_mode = "host";
--
--	status = "okay";
--};
--
--&usb_1_dwc3_hs {
--	remote-endpoint = <&usb3_con_hs_in>;
--};
--
--&usb_1_hsphy {
--	vdda-pll-supply = <&vreg_l10c_0p88>;
--	vdda33-supply = <&vreg_l2b_3p072>;
--	vdda18-supply = <&vreg_l1c_1p8>;
--
--	status = "okay";
--};
--
--&usb_1_qmpphy {
--	vdda-phy-supply = <&vreg_l6b_1p2>;
--	vdda-pll-supply = <&vreg_l1b_0p912>;
--
--	/delete-property/ orientation-switch;
--
--	status = "okay";
--
--	ports {
--		port@0 {
--			#address-cells = <1>;
--			#size-cells = <0>;
--
--			/delete-node/ endpoint;
--
--			/* RX0/TX0 is statically connected to RA620 bridge */
--			usb_1_qmpphy_out_dp: endpoint@0 {
--				reg = <0>;
--
--				data-lanes = <0 1>;
--				remote-endpoint = <&hdmi_bridge_in>;
--			};
--
--			/* RX1/TX1 is statically connected to USB-A port */
--			usb_1_qmpphy_out_usb: endpoint@1 {
--				reg = <1>;
--
--				data-lanes = <2 3>;
--				remote-endpoint = <&usb3_con_ss_in>;
--			};
--		};
--	};
 -};
 -
 -&usb_2 {
@@ -1130,10 +1028,6 @@ index 5679f38de5b3..f52328fbaef9 100644
 -};
 -
 -/* PINCTRL - additions to nodes defined in sc7280.dtsi */
--&dp_hot_plug_det {
--	bias-disable;
--};
--
 -&pcie0_clkreq_n {
 -	bias-pull-up;
 -	drive-strength = <2>;
@@ -1142,6 +1036,31 @@ index 5679f38de5b3..f52328fbaef9 100644
 -&pcie1_clkreq_n {
 -	bias-pull-up;
 -	drive-strength = <2>;
+-};
+-
+-&qspi_clk {
+-	bias-disable;
+-	drive-strength = <16>;
+-};
+-
+-&qspi_cs0 {
+-	bias-disable;
+-	drive-strength = <8>;
+-};
+-
+-&qspi_data0 {
+-	bias-disable;
+-	drive-strength = <8>;
+-};
+-
+-&qspi_data1 {
+-	bias-disable;
+-	drive-strength = <8>;
+-};
+-
+-&qspi_data23 {
+-	bias-disable;
+-	drive-strength = <8>;
 -};
 -
 -&sdc1_clk {
@@ -1177,12 +1096,10 @@ index 5679f38de5b3..f52328fbaef9 100644
 -	bias-pull-up;
 -	drive-strength = <10>;
 -};
-diff --git a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dtsi b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dtsi
-new file mode 100644
-index 000000000000..52c2f053c820
---- /dev/null
-+++ b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dtsi
-@@ -0,0 +1,1137 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dtsi linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dtsi
+--- linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dtsi	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dtsi	2026-07-12 17:54:27.939564454 +0200
+@@ -0,0 +1,1227 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +/*
 + * Copyright (c) 2025-2026 Radxa Computer (Shenzhen) Co., Ltd.
@@ -1367,11 +1284,9 @@ index 000000000000..52c2f053c820
 +
 +		user-led {
 +			color = <LED_COLOR_ID_BLUE>;
-+			function = LED_FUNCTION_INDICATOR;
++			function = LED_FUNCTION_DISK_ACTIVITY;
 +			gpios = <&tlmm 42 GPIO_ACTIVE_HIGH>;
-+			linux,default-trigger = "none";
-+			default-state = "off";
-+			panic-indicator;
++			linux,default-trigger = "disk-activity";
 +		};
 +	};
 +
@@ -1396,8 +1311,8 @@ index 000000000000..52c2f053c820
 +			no-map;
 +		};
 +
-+		video_mem: video@8fe00000 {
-+			reg = <0x0 0x8fe00000 0x0 0x500000>;
++		video_mem: video@85b00000 {
++			reg = <0x0 0x85b00000 0x0 0x700000>;
 +			no-map;
 +		};
 +
@@ -1429,6 +1344,10 @@ index 000000000000..52c2f053c820
 +		adsp_rpc_remote_heap_mem: adsp-rpc-remote-heap@c6500000 {
 +			reg = <0x0 0xc6500000 0x0 0x800000>;
 +			no-map;
++		};
++
++		iris_iova: iris-iova {
++			iommu-addresses = <&venus 0x0 0x0 0x0 0x25800000>;
 +		};
 +	};
 +
@@ -1542,7 +1461,7 @@ index 000000000000..52c2f053c820
 +			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 +			regulator-allow-set-load;
 +			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
-+							RPMH_REGULATOR_MODE_HPM>;
++						   RPMH_REGULATOR_MODE_HPM>;
 +		};
 +
 +		vreg_l2b_3p072: ldo2 {
@@ -1552,7 +1471,7 @@ index 000000000000..52c2f053c820
 +			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 +			regulator-allow-set-load;
 +			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
-+							RPMH_REGULATOR_MODE_HPM>;
++						   RPMH_REGULATOR_MODE_HPM>;
 +		};
 +
 +		vreg_l6b_1p2: ldo6 {
@@ -1562,7 +1481,7 @@ index 000000000000..52c2f053c820
 +			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 +			regulator-allow-set-load;
 +			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
-+							RPMH_REGULATOR_MODE_HPM>;
++						   RPMH_REGULATOR_MODE_HPM>;
 +		};
 +
 +		vreg_l7b_2p96: ldo7 {
@@ -1572,7 +1491,7 @@ index 000000000000..52c2f053c820
 +			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 +			regulator-allow-set-load;
 +			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
-+							RPMH_REGULATOR_MODE_HPM>;
++						   RPMH_REGULATOR_MODE_HPM>;
 +		};
 +
 +		vreg_l9b_1p2: ldo9 {
@@ -1761,6 +1680,8 @@ index 000000000000..52c2f053c820
 +};
 +
 +&pcie0 {
++	vdda-supply = <&vreg_l1c_1p8>;
++	vddpe-3v3-supply = <&vreg_bob_3p296>;
 +	perst-gpios = <&tlmm 87 GPIO_ACTIVE_LOW>;
 +	wake-gpios = <&tlmm 89 GPIO_ACTIVE_HIGH>;
 +
@@ -1778,22 +1699,44 @@ index 000000000000..52c2f053c820
 +};
 +
 +&pcie1 {
++	vdda-supply = <&vreg_l1c_1p8>;
++	vddpe-3v3-supply = <&vreg_bob_3p296>;
 +	perst-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
 +	wake-gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
 +
 +	pinctrl-0 = <&pcie1_clkreq_n>, <&pcie1_reset_n>, <&pcie1_wake_n>;
 +	pinctrl-names = "default";
 +
-+	/* Support for QPS615 PCIe switch */
++	/*
++	 * Support for many different bus topologies
++	 * Tested devices:
++	 * - QPS615 PCIe switch
++	 * - ASM1182e PCIe switch
++	 * - ASM2824 PCIe switch
++	 * - NVIDIA dGPU
++	 * - Chelsio T520-CR
++	*/
 +	iommu-map = <0x0 &apps_smmu 0x1c80 0x1>,
-+		    <0x100 &apps_smmu 0x1c81 0x1>,
-+		    <0x208 &apps_smmu 0x1c84 0x1>,
-+		    <0x210 &apps_smmu 0x1c85 0x1>,
-+		    <0x218 &apps_smmu 0x1c86 0x1>,
-+		    <0x300 &apps_smmu 0x1c87 0x1>,
-+		    <0x400 &apps_smmu 0x1c88 0x1>,
-+		    <0x500 &apps_smmu 0x1c89 0x1>,
-+		    <0x501 &apps_smmu 0x1c90 0x1>;
++		    <0x100 &apps_smmu 0x1c80 0x1>,
++		    <0x101 &apps_smmu 0x1c80 0x1>,
++		    <0x102 &apps_smmu 0x1c80 0x1>,
++		    <0x103 &apps_smmu 0x1c80 0x1>,
++		    <0x104 &apps_smmu 0x1c80 0x1>,
++		    <0x105 &apps_smmu 0x1c80 0x1>,
++		    <0x106 &apps_smmu 0x1c80 0x1>,
++		    <0x200 &apps_smmu 0x1c80 0x1>,
++		    <0x208 &apps_smmu 0x1c80 0x1>,
++		    <0x210 &apps_smmu 0x1c80 0x1>,
++		    <0x218 &apps_smmu 0x1c80 0x1>,
++		    <0x220 &apps_smmu 0x1c80 0x1>,
++		    <0x238 &apps_smmu 0x1c80 0x1>,
++		    <0x240 &apps_smmu 0x1c80 0x1>,
++		    <0x260 &apps_smmu 0x1c80 0x1>,
++		    <0x300 &apps_smmu 0x1c80 0x1>,
++		    <0x400 &apps_smmu 0x1c80 0x1>,
++		    <0x500 &apps_smmu 0x1c80 0x1>,
++		    <0x501 &apps_smmu 0x1c80 0x1>,
++		    <0x600 &apps_smmu 0x1c80 0x1>;
 +
 +	status = "okay";
 +};
@@ -1805,11 +1748,30 @@ index 000000000000..52c2f053c820
 +	status = "okay";
 +};
 +
++/* Disable EUD as it conflicts with USB operation */
++&eud {
++	status = "disabled";
++};
++
 +&pm7325_gpios {
-+	pm7325_adc_default: adc-default-state {
-+		pins = "gpio2";
-+		function = PMIC_GPIO_FUNC_NORMAL;
-+		bias-high-impedance;
++	pinctrl-0 = <&hardware_version_sel>;
++	pinctrl-names = "default";
++	gpio-line-names = "",   /* GPIO_01 */
++			  "UFS_THERM",
++			  "Version_ADC",
++			  "",
++			  "",
++			  "KYPD_VOL_UP_N",
++			  "Version_SEL",
++			  "",
++			  "MICRO USB DET",
++			  "";
++
++	hardware_version_sel: hardware-version-sel-state {
++			pins = "gpio7";
++			function = PMIC_GPIO_FUNC_NORMAL;
++			bias-high-impedance;
++			power-source = <1>;
 +	};
 +};
 +
@@ -1851,9 +1813,6 @@ index 000000000000..52c2f053c820
 +};
 +
 +&pmk8350_vadc {
-+	pinctrl-0 = <&pm7325_adc_default>;
-+	pinctrl-names = "default";
-+
 +	channel@3 {
 +		reg = <PMK8350_ADC7_DIE_TEMP>;
 +		label = "pmk7325_die_temp";
@@ -1872,6 +1831,13 @@ index 000000000000..52c2f053c820
 +		reg = <PM7325_ADC7_DIE_TEMP>;
 +		label = "pm7325_die_temp";
 +		qcom,pre-scaling = <1 1>;
++	};
++
++	channel@10b {
++		reg = <PM7325_ADC7_GPIO2>;
++		qcom,hw-settle-time = <200>;
++		qcom,pre-scaling = <1 1>;
++		label = "hardware_version_adc";
 +	};
 +
 +	channel@144 {
@@ -2107,6 +2073,12 @@ index 000000000000..52c2f053c820
 +		bias-pull-up;
 +	};
 +
++	dp_hot_plug_det: dp-hot-plug-det-state {
++		pins = "gpio47";
++		function = "dp_hot";
++		bias-disable;
++	};
++
 +	sd_cd: sd-cd-state {
 +		pins = "gpio91";
 +		function = "gpio";
@@ -2269,6 +2241,9 @@ index 000000000000..52c2f053c820
 +};
 +
 +&venus {
++	firmware-name = "qcom/vpu/vpu20_p1_gen2_s6.mbn";
++	memory-region = <&video_mem>, <&iris_iova>;
++
 +	status = "okay";
 +};
 +
@@ -2320,3 +2295,174 @@ index 000000000000..52c2f053c820
 +	bias-pull-up;
 +	drive-strength = <10>;
 +};
++
++&mdss_dsi {
++	status = "disabled";
++};
++
++&mdss_dsi_phy {
++	status = "disabled";
++};
++
++&mdss_edp {
++	status = "disabled";
++};
++
++&mdss_edp_phy {
++	status = "disabled";
++};
++
++&gpucc {
++	status = "okay";
++};
++
++&gmu {
++	status = "okay";
++};
++
++&dispcc {
++	status = "okay";
++};
++
++&mdss {
++	status = "okay";
++};
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a-lpass-cpu.dts linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a-lpass-cpu.dts
+--- linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a-lpass-cpu.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.1.3/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a-lpass-cpu.dts	2026-07-12 12:19:34.052738339 +0200
+@@ -0,0 +1,131 @@
++// SPDX-License-Identifier: BSD-3-Clause
++/*
++ * Copyright (c) 2025-2026 Radxa Computer (Shenzhen) Co., Ltd.
++ *
++ * Direct CPU access to the LPASS hardware block on this platform is
++ * restricted by default. Booting the Linux kernel in EL2 will allow the
++ * kernel to access the LPASS hardware directly.
++ *
++ * You can achieve this by setting the Hypervisor Override BIOS setting to
++ * "Enabled" if you are using the official UEFI firmware.
++ */
++
++/dts-v1/;
++
++#include "qcs6490-radxa-dragon-q6a.dtsi"
++
++&gcc {
++	protected-clocks = <GCC_MSS_CFG_AHB_CLK>,
++			   <GCC_MSS_GPLL0_MAIN_DIV_CLK_SRC>,
++			   <GCC_MSS_OFFLINE_AXI_CLK>,
++			   <GCC_MSS_Q6SS_BOOT_CLK_SRC>,
++			   <GCC_MSS_Q6_MEMNOC_AXI_CLK>,
++			   <GCC_MSS_SNOC_AXI_CLK>,
++			   <GCC_QSPI_CNOC_PERIPH_AHB_CLK>,
++			   <GCC_QSPI_CORE_CLK>,
++			   <GCC_QSPI_CORE_CLK_SRC>,
++			   <GCC_SEC_CTRL_CLK_SRC>,
++			   <GCC_WPSS_AHB_BDG_MST_CLK>,
++			   <GCC_WPSS_AHB_CLK>,
++			   <GCC_WPSS_RSCP_CLK>;
++};
++
++&lpass_aon {
++	status = "okay";
++};
++
++&lpass_core {
++	status = "okay";
++};
++
++&lpass_cpu {
++	status = "okay";
++
++	dai-link@5 {
++		reg = <LPASS_DP_RX>;
++	};
++
++	dai-link@6 {
++		reg = <LPASS_CDC_DMA_RX0>;
++	};
++
++	dai-link@19 {
++		reg = <LPASS_CDC_DMA_TX3>;
++	};
++};
++
++&lpass_hm {
++	status = "okay";
++};
++
++&lpass_rx_macro {
++	status = "okay";
++};
++
++&lpass_tx_macro {
++	status = "okay";
++};
++
++&lpass_va_macro {
++	status = "okay";
++};
++
++&lpasscc {
++	status = "okay";
++};
++
++&remoteproc_adsp {
++	status = "disabled";
++};
++
++&sound {
++	compatible = "radxa,dragon-q6a-sndcard", "google,sc7280-herobrine";
++	model = "qcs6490-wcd938x-dp";
++
++	audio-routing = "IN1_HPHL", "HPHL_OUT",
++			"IN2_HPHR", "HPHR_OUT",
++			"AMIC2", "MIC BIAS2",
++			"TX SWR_ADC1", "ADC2_OUTPUT";
++
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	dai-link@0 {
++		link-name = "WCD9380 Playback";
++		reg = <0>;
++
++		cpu {
++			sound-dai = <&lpass_cpu LPASS_CDC_DMA_RX0>;
++		};
++
++		codec {
++			sound-dai = <&wcd938x 0>, <&swr0 0>, <&lpass_rx_macro 0>;
++		};
++	};
++
++	dai-link@1 {
++		link-name = "DisplayPort";
++		reg = <1>;
++
++		cpu {
++			sound-dai = <&lpass_cpu LPASS_DP_RX>;
++		};
++
++		codec {
++			sound-dai = <&mdss_dp>;
++		};
++	};
++
++	dai-link@2 {
++		link-name = "WCD9380 Capture";
++		reg = <2>;
++
++		cpu {
++			sound-dai = <&lpass_cpu LPASS_CDC_DMA_TX3>;
++		};
++
++		codec {
++			sound-dai = <&wcd938x 1>, <&swr1 0>, <&lpass_tx_macro 0>;
++		};
++	};
++};
+--
+
+MiniMyth2
+

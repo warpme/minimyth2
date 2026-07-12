@@ -694,17 +694,7 @@ PATCHFILES += 5324-arm64-dts-qcom-sm8250-correct-frequencies-in-the-Iri.patch
 # sc8280 dtsi additions
 PATCHFILES += 5350-arm64-dtsi-qcom-sc8280xp-improvements-for-dragon-q8b.patch
 # board dts additions
-PATCHFILES += 5400-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Enable-UFS-controller.patch
-PATCHFILES += 5401-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Enable-USB-3.0-and-HDMI-ports.patch
-PATCHFILES += 5402-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Use-board-specific-CDSP-firmware.patch
-PATCHFILES += 5403-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Drop-QSPI-node-and-reserve-its-pins.patch
-PATCHFILES += 5404-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Correct-GPIO_27-label.patch
-PATCHFILES += 5405-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-Align-reserved-memory-with-latest-firmware-map.patch
-PATCHFILES += 5406-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-factor-out-common-board-dtsi.patch
-PATCHFILES += 5407-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-add-LPASS-CPU-audio-variant.patch
-PATCHFILES += 5408-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-change-led-fn.patch
-PATCHFILES += 5409-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-finetune-display-pipeline.patch
-PATCHFILES += 5410-arm64-dts-qcom-qcs6490-radxa-dragon-q6a-add-missing-pcie-regulators-disable-eud.patch
+PATCHFILES += 5400-arm64-dts-qcom-qcs6490-improvements-dragon-q6a.patch
 # sc8280 boards dts additions
 PATCHFILES += 5450-arm64-dts-qcom-sc8280xp-add-dragon-q8b.patch
 endif
