@@ -36,6 +36,7 @@ DEPENDS = \
 	firmware/ap6359sa-firmware \
 	firmware/ap6275p-firmware \
 	firmware/sc8280-firmware \
+	firmware/qcom-audioreach-firmware \
 
 include ../../gar.mk
 

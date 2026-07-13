@@ -30,7 +30,6 @@ install-custom:
 	@# qualcomm gcs6490 gpu firmware
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/qcom/vpu-2.0
 	@cp -f $(DESTDIR)$(elibdir)/firmware/qcom/vpu/vpu20_p1.mbn $(DESTDIR)$(elibdir)/firmware/qcom/vpu-2.0/venus.mbn
-	@cp -f $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/radxa/dragon-q6a/QCS6490-Radxa-Dragon-Q6A-tplg.bin $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/QCS6490-Radxa-Dragon-Q6A-tplg.bin
 
 	@# Broadcom 43430 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.AP6212.bin
