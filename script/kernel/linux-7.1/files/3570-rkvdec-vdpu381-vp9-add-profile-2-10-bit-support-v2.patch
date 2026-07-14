@@ -1,0 +1,191 @@
+From: sky-rk3588 <297247175+sky-rk3588@users.noreply.github.com>
+Date: Sun, 12 Jul 2026 13:30:00 +0200
+Subject: [PATCH] media: rkvdec: vdpu381: add VP9 profile 2 (10-bit) support
+
+The VDPU381 VP9 backend already computes strides from the per-frame
+bit_depth, but the driver never exposed a 10-bit capture format or a
+profile 2 control range, so 10-bit VP9 always fell back to software.
+
+Three changes wire it up:
+
+1. Raise the VP9_PROFILE control max to PROFILE_2 and skip PROFILE_1
+   (4:2:2, which the VDPU381 cannot decode).
+
+2. Add an NV15 (10-bit) entry to a dedicated vdpu381 decoded-format
+   list and a get_image_fmt() callback that selects NV12/NV15 from the
+   VP9 frame's bit_depth, mirroring the HEVC backend. The VP9_FRAME
+   control gets .cfg.ops so the callback actually runs.
+
+3. Fix the output stride for 10-bit. The backend used
+   round_up(width * bit_depth, 512) / 8, which over-aligns the 10-bit
+   NV15 stride (2432 vs the buffer's 2400 for 1920px) and corrupts the
+   picture with green striping. Use the capture buffer's bytesperline
+   (as the HEVC backend does) / DIV_ROUND_UP(width * bit_depth, 8).
+   For 8-bit this is identical to the old value, so no regression.
+
+4. Default VP9 image_fmt to 8-bit/NV12 in the OUTPUT s_fmt reset. VP9
+   carries
+   bit depth per-frame (no up-front SPS like HEVC), so leaving image_fmt
+   as ANY made the CAPTURE queue enumerate both NV12 and NV15 before the
+   breaking 8-bit zero-copy clients (green frames). A 10-bit frame still switches
+   to NV15 via the get_image_fmt() callback.
+
+Tested on Orange Pi 5 Plus (RK3588), kernel 7.0, mainline stateless
+V4L2 path via GStreamer v4l2slvp9dec:
+  - 8-bit VP9 720p: byte-identical to libvpx (PSNR inf) -> no regression
+  - 10-bit VP9 720p / 1296x816 / 1080p / 4K: clean, PSNR 64.3-64.4 dB vs
+    libvpx (difference is sub-LSB videoconvert rounding), no IOMMU faults.
+
+Also drop a pre-existing unused `delta` variable in config_registers()
+so the build is -Werror clean (spotted by dongioia during Rock 5B+
+testing).
+
+Signed-off-by: sky-rk3588 <297247175+sky-rk3588@users.noreply.github.com>
+---
+--- /usr/src/rkvdec-vp9-1.0/rkvdec.c	2026-07-01 21:48:32.000000000 +0200
++++ src/rkvdec.c	2026-07-12 18:05:43.103277388 +0200
+@@ -295,6 +295,7 @@
+ static const struct rkvdec_ctrl_desc vdpu381_vp9_ctrl_descs[] = {
+ 	{
+ 		.cfg.id = V4L2_CID_STATELESS_VP9_FRAME,
++		.cfg.ops = &rkvdec_ctrl_ops,
+ 	},
+ 	{
+ 		.cfg.id = V4L2_CID_STATELESS_VP9_COMPRESSED_HDR,
+@@ -302,8 +303,10 @@
+ 	{
+ 		.cfg.id = V4L2_CID_MPEG_VIDEO_VP9_PROFILE,
+ 		.cfg.min = V4L2_MPEG_VIDEO_VP9_PROFILE_0,
+-		.cfg.max = V4L2_MPEG_VIDEO_VP9_PROFILE_0,
++		.cfg.max = V4L2_MPEG_VIDEO_VP9_PROFILE_2,
+ 		.cfg.def = V4L2_MPEG_VIDEO_VP9_PROFILE_0,
++		/* profiles 1/3 are 4:2:2/4:4:4 which VDPU381 cannot decode */
++		.cfg.menu_skip_mask = BIT(V4L2_MPEG_VIDEO_VP9_PROFILE_1),
+ 	},
+ 	{
+ 		.cfg.id = V4L2_CID_MPEG_VIDEO_VP9_LEVEL,
+@@ -468,6 +471,17 @@
+ 	},
+ };
+ 
++static const struct rkvdec_decoded_fmt_desc vdpu381_vp9_decoded_fmts[] = {
++	{
++		.fourcc = V4L2_PIX_FMT_NV12,
++		.image_fmt = RKVDEC_IMG_FMT_420_8BIT,
++	},
++	{
++		.fourcc = V4L2_PIX_FMT_NV15,
++		.image_fmt = RKVDEC_IMG_FMT_420_10BIT,
++	},
++};
++
+ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
+ 	{
+ 		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
+@@ -580,8 +594,8 @@
+ 		},
+ 		.ctrls = &vdpu381_vp9_ctrls,
+ 		.ops = &rkvdec_vdpu381_vp9_fmt_ops,
+-		.num_decoded_fmts = ARRAY_SIZE(rkvdec_vp9_decoded_fmts),
+-		.decoded_fmts = rkvdec_vp9_decoded_fmts,
++		.num_decoded_fmts = ARRAY_SIZE(vdpu381_vp9_decoded_fmts),
++		.decoded_fmts = vdpu381_vp9_decoded_fmts,
+ 		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
+ 	},
+ };
+@@ -840,6 +854,19 @@
+ 	 * Note that this will propagates any size changes to the decoded format.
+ 	 */
+ 	ctx->image_fmt = RKVDEC_IMG_FMT_ANY;
++
++	/*
++	 * VP9 carries bit depth in the per-frame header, not in an SPS that is
++	 * set up-front (as HEVC does). If we leave image_fmt as ANY, the CAPTURE
++	 * queue enumerates both NV12 and NV15 before the first frame control is
++	 * seen, which breaks 8-bit zero-copy clients (they end up with a wrong
++	 * import layout -> green frames). Default VP9 to 8-bit/NV12 so only that
++	 * format is exposed until a 10-bit frame switches image_fmt to NV15 via
++	 * the VP9_FRAME control's get_image_fmt() callback.
++	 */
++	if (desc->fourcc == V4L2_PIX_FMT_VP9_FRAME)
++		ctx->image_fmt = RKVDEC_IMG_FMT_420_8BIT;
++
+ 	rkvdec_reset_decoded_fmt(ctx);
+ 
+ 	/* Propagate colorspace information to capture. */
+--- /usr/src/rkvdec-vp9-1.0/rkvdec-vdpu381-vp9.c	2026-07-01 21:48:32.000000000 +0200
++++ src/rkvdec-vdpu381-vp9.c	2026-07-12 19:23:01.810264664 +0200
+@@ -383,7 +383,7 @@
+ 	unsigned int aligned_pitch, aligned_height, yuv_len;
+ 
+ 	aligned_height = round_up(buf->vp9.height, 64);
+-	aligned_pitch = round_up(buf->vp9.width * buf->vp9.bit_depth, 512) / 8;
++	aligned_pitch = DIV_ROUND_UP(buf->vp9.width * buf->vp9.bit_depth, 8);
+ 	yuv_len = (aligned_height * aligned_pitch * 3) / 2;
+ 
+ 	return vb2_dma_contig_plane_dma_addr(&buf->base.vb.vb2_buf, 0) +
+@@ -432,7 +432,7 @@
+ 	if (&ref_buf->base.vb == run->base.bufs.dst)
+ 		return;
+ 
+-	aligned_pitch = round_up(ref_buf->vp9.width * ref_buf->vp9.bit_depth, 512) / 8;
++	aligned_pitch = DIV_ROUND_UP(ref_buf->vp9.width * ref_buf->vp9.bit_depth, 8);
+ 	y_len = aligned_height * aligned_pitch;
+ 	yuv_len = (y_len * 3) / 2;
+ 
+@@ -584,9 +584,13 @@
+ 	bit_depth = dec_params->bit_depth;
+     aligned_height = round_up(ctx->decoded_fmt.fmt.pix_mp.height, 64);
+ 
+-	aligned_pitch = round_up(ctx->decoded_fmt.fmt.pix_mp.width *
+-				 bit_depth,
+-				 512) / 8;
++	/*
++	 * Use the capture buffer's bytesperline as the hardware stride, same
++	 * as the HEVC backend. v4l2_fill_pixfmt_mp() already sizes NV12/NV15
++	 * correctly (10-bit NV15 packs as width*10/8); the old round_up(...,512)
++	 * over-aligned 10-bit strides and corrupted the output.
++	 */
++	aligned_pitch = ctx->decoded_fmt.fmt.pix_mp.plane_fmt[0].bytesperline;
+ 	y_len = aligned_height * aligned_pitch;
+ 	uv_len = y_len / 2;
+ 	yuv_len = y_len + uv_len;
+@@ -654,7 +658,6 @@
+ 
+ 	if (!intra_only) {
+ 		const struct v4l2_vp9_loop_filter *lf;
+-		s8 delta;
+ 
+ 		if (vp9_ctx->last.valid)
+ 			lf = &vp9_ctx->last.lf;
+@@ -1129,7 +1132,23 @@
+ 	return 0;
+ }
+ 
++static enum rkvdec_image_fmt
++rkvdec_vp9_get_image_fmt(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl)
++{
++	const struct v4l2_ctrl_vp9_frame *frame = ctrl->p_new.p_vp9_frame;
++
++	if (ctrl->id != V4L2_CID_STATELESS_VP9_FRAME)
++		return RKVDEC_IMG_FMT_ANY;
+ 
++	switch (frame->bit_depth) {
++	case 8:
++		return RKVDEC_IMG_FMT_420_8BIT;
++	case 10:
++		return RKVDEC_IMG_FMT_420_10BIT;
++	default:
++		return RKVDEC_IMG_FMT_ANY;
++	}
++}
+ 
+ const struct rkvdec_coded_fmt_ops rkvdec_vdpu381_vp9_fmt_ops = {
+ 	.adjust_fmt = rkvdec_vp9_adjust_fmt,
+@@ -1137,4 +1156,5 @@
+ 	.stop = rkvdec_vp9_stop,
+ 	.run = rkvdec_vp9_run,
+ 	.done = rkvdec_vp9_done,
++	.get_image_fmt = rkvdec_vp9_get_image_fmt,
+ };
+\ No newline at end of file
