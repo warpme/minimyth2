@@ -693,6 +693,7 @@ PATCHFILES += 5323-arm64-dts-qcom-sm8250-sort-out-Iris-power-domains.patch
 PATCHFILES += 5324-arm64-dts-qcom-sm8250-correct-frequencies-in-the-Iri.patch
 # sc8280 dtsi additions
 PATCHFILES += 5350-arm64-dtsi-qcom-sc8280xp-improvements-for-dragon-q8b.patch
+PATCHFILES += 5351-arm64-dtsi-qcom-sc8280xp-reduce-cpufreqs-levels-to-get-stats-working.patch
 # board dts additions
 PATCHFILES += 5400-arm64-dts-qcom-qcs6490-improvements-dragon-q6a.patch
 # sc8280 boards dts additions
