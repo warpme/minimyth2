@@ -20,18 +20,12 @@ include ../../gar.mk
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/radxa/dragon-q6a
 	@cp $(WORKSRC)/lib/firmware/qcom/qcs6490/radxa/dragon-q6a/QCS6490-Radxa-Dragon-Q6A-tplg.bin \
-	    $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/radxa/dragon-q6a/
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/radxa/dragon-q6a/QCS6490-Radxa-Dragon-Q6A-tplg.bin \
-	         $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/QCS6490-Radxa-Dragon-Q6A-tplg.bin
+	    $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/qcom/sc8280xp/radxa/dragon-q8b
 	@cp $(WORKSRC)/lib/firmware/qcom/sc8280xp/radxa/dragon-q8b/SC8280XP-Radxa-Dragon-Q8B-tplg.bin \
-	    $(DESTDIR)$(elibdir)/firmware/qcom/sc8280xp/radxa/dragon-q8b/
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/qcom/sc8280xp/radxa/dragon-q8b/SC8280XP-Radxa-Dragon-Q8B-tplg.bin \
-	         $(DESTDIR)$(elibdir)/firmware/qcom/sc8280xp/SC8280XP-Radxa-Dragon-Q8B-tplg.bin
+	    $(DESTDIR)$(elibdir)/firmware/qcom/sc8280xp/
 	@$(MAKECOOKIE)
 
 clean-all: clean
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/radxa/dragon-q6a/QCS6490-Radxa-Dragon-Q6A-tplg.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/qcom/qcs6490/QCS6490-Radxa-Dragon-Q6A-tplg.bin
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/qcom/sc8280xp/radxa/dragon-q8b/SC8280XP-Radxa-Dragon-Q8B-tplg.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/qcom/sc8280xp/SC8280XP-Radxa-Dragon-Q8B-tplg.bin
