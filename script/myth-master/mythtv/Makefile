@@ -89,6 +89,10 @@ PATCHFILES += 0161-hack-hack-hack-ffmpeg8.1-libavcodec-v4l2-m2m-backport-rpi-see
 # PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-control.patch
 # support for NV15 NV30
 # PATCHFILES += 0163-ffmpeg8-add-handling-AV_PIX_FMT_NV15_NV20BS_NV30.patch
+# support for vc1 v4l2_request decoding
+PATCHFILES += 0170-ffmpeg8-avcodec-add-V4L2-Request-API-VC-1-WMV3-hwaccel.patch
+PATCHFILES += 0171-libmythtv-decoders-mythv4l2m2mcontext-add-vc1_request-support.patch
+#todo PATCHFILES += 0173-ffmpeg8-avutil-hwcontext_v4l2request-add-YUV420_8_AFBC-and-YUV420_10_AFBC-pix-fmt.patch
 endif
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
