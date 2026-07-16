@@ -1,0 +1,41 @@
+From 5d18903de6004e0540d47d37784280dd3ceaefa0 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 21 Jun 2026 22:43:04 +0200
+Subject: [PATCH 19/20] media: cedrus: vc1: reject Main profile intensity
+ compensation
+
+The H6 video engine has a hardware limitation: Main/WMV3 profile with
+intensity compensation (MVMODE=4) produces accumulating drift on every
+P-frame.  The vendor BSP (TvdVideo) blocks all Main/WMV3 content at
+the application level; the kernel allowed it but produced broken output
+(pinball 12.5 dB, factory 17.3 dB, snowboard 13.5 dB).
+
+Main profile without IC works correctly (Robotica_720, SMM0015, etc.
+are bit-exact).
+
+Reject only Main+IC frames at the V4L2 control-validation level so
+that ffmpeg falls back to software decode instead of producing
+drifting garbage.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ drivers/staging/media/sunxi/cedrus/cedrus.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.c b/drivers/staging/media/sunxi/cedrus/cedrus.c
+index 5ecf58562..eb088077d 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.c
+@@ -84,6 +84,9 @@ static int cedrus_try_ctrl(struct v4l2_ctrl *ctrl)
+ 			/* Complex profile is not supported by the hardware */
+ 			return -EINVAL;
+ 
++			if (slice->sequence.profile == V4L2_VC1_PROFILE_MAIN && slice->picture_layer.mvmode == 4)
++				return -EINVAL;
++
+ 		if (slice->picture_layer.respic)
+ 			/* Reduced-resolution (multi-res) coding is not supported */
+ 			return -EINVAL;
+-- 
+2.53.0
+

@@ -1,0 +1,143 @@
+From 43f6a72d33c7e0134a6174fcfb8e502a25eabce7 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 21 Jun 2026 19:08:46 +0200
+Subject: [PATCH 16/20] media: cedrus: vc1: single contiguous aux buffer
+ allocation
+
+Match vendor layout: BPLANE @+0x0000 (16KB), DCAC @+0x4000 (16KB),
+MV @+0x8000 (112KB) in one 144KB allocation. Also write secondary
+FB line stride register (0xcc) to match vendor top-level VE config.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ drivers/staging/media/sunxi/cedrus/cedrus.h   |  2 +
+ .../staging/media/sunxi/cedrus/cedrus_hw.c    |  3 +
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 66 +++++++------------
+ 3 files changed, 29 insertions(+), 42 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
+index 9862b7cd5..5f4a2c3be 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.h
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
+@@ -166,6 +166,8 @@ struct cedrus_ctx {
+ 			dma_addr_t	entropy_probs_buf_dma;
+ 		} vp8;
+ 		struct {
++			void		*aux_buf;
++			dma_addr_t	aux_buf_addr;
+ 			void		*mv_buf;
+ 			dma_addr_t	mv_buf_addr;
+ 			void		*acdc_buf;
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_hw.c b/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
+index f73f8886d..e7d39db67 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
+@@ -119,6 +119,9 @@ void cedrus_dst_format_set(struct cedrus_dev *dev,
+ 		      VE_PRIMARY_FB_LINE_STRIDE_CHROMA(ALIGN(width, 16) / 2);
+ 		cedrus_write(dev, VE_PRIMARY_FB_LINE_STRIDE, reg);
+ 
++		/* Secondary FB line stride (vendor writes same value as primary) */
++		cedrus_write(dev, 0xcc, reg);
++
+ 		break;
+ 	case V4L2_PIX_FMT_NV12_32L32:
+ 	default:
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 45f1d67cf..5ca9042fe 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -20,6 +20,17 @@
+ #define ACDC_BUF_SIZE			(16 * SZ_1K)
+ #define BITPLANES_BUF_SIZE		(16 * SZ_1K)
+ 
++/* Vendor allocates BPLANE+DCAC+MV as one contiguous block:
++ *   BPLANE @ +0x0000  16KB
++ *   DCAC   @ +0x4000  16KB
++ *   MV     @ +0x8000 112KB
++ * Total = 144KB, 16KB-aligned
++ */
++#define VC1_AUX_ALLOC_SIZE		(144 * SZ_1K)
++#define VC1_AUX_BPLANE_OFF		0x0000
++#define VC1_AUX_DCAC_OFF		0x4000
++#define VC1_AUX_MV_OFF			0x8000
++
+ #define VC1_PROFILE_SIMPLE		0
+ #define VC1_PROFILE_MAIN		1
+ #define VC1_PROFILE_COMPLEX		2
+@@ -753,44 +764,21 @@ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
+ 	offset = 0;
+ #endif
+ 
+-	ctx->codec.vc1.mv_buf =
+-		dma_alloc_coherent(dev->dev, MV_BUF_SIZE,
+-				   &ctx->codec.vc1.mv_buf_addr,
++	ctx->codec.vc1.aux_buf =
++		dma_alloc_coherent(dev->dev, VC1_AUX_ALLOC_SIZE,
++				   &ctx->codec.vc1.aux_buf_addr,
+ 				   GFP_KERNEL);
+-	if (!ctx->codec.vc1.mv_buf)
++	if (!ctx->codec.vc1.aux_buf)
+ 		return -ENOMEM;
+ 
+-	ctx->codec.vc1.acdc_buf =
+-		dma_alloc_coherent(dev->dev, ACDC_BUF_SIZE,
+-				   &ctx->codec.vc1.acdc_buf_addr,
+-				   GFP_KERNEL);
+-	if (!ctx->codec.vc1.acdc_buf) {
+-		ret = -ENOMEM;
+-		goto err_mv_buf;
+-	}
+-
+-	ctx->codec.vc1.bitplanes_buf =
+-		dma_alloc_coherent(dev->dev, BITPLANES_BUF_SIZE,
+-				   &ctx->codec.vc1.bitplanes_buf_addr,
+-				   GFP_KERNEL);
+-	if (!ctx->codec.vc1.bitplanes_buf) {
+-		ret = -ENOMEM;
+-		goto err_acdc_buf;
+-	}
++	ctx->codec.vc1.bitplanes_buf = ctx->codec.vc1.aux_buf + VC1_AUX_BPLANE_OFF;
++	ctx->codec.vc1.bitplanes_buf_addr = ctx->codec.vc1.aux_buf_addr + VC1_AUX_BPLANE_OFF;
++	ctx->codec.vc1.acdc_buf = ctx->codec.vc1.aux_buf + VC1_AUX_DCAC_OFF;
++	ctx->codec.vc1.acdc_buf_addr = ctx->codec.vc1.aux_buf_addr + VC1_AUX_DCAC_OFF;
++	ctx->codec.vc1.mv_buf = ctx->codec.vc1.aux_buf + VC1_AUX_MV_OFF;
++	ctx->codec.vc1.mv_buf_addr = ctx->codec.vc1.aux_buf_addr + VC1_AUX_MV_OFF;
+ 
+ 	return 0;
+-
+-err_acdc_buf:
+-	dma_free_coherent(dev->dev, ACDC_BUF_SIZE,
+-			  ctx->codec.vc1.acdc_buf,
+-			  ctx->codec.vc1.acdc_buf_addr);
+-
+-err_mv_buf:
+-	dma_free_coherent(dev->dev, MV_BUF_SIZE,
+-			  ctx->codec.vc1.mv_buf,
+-			  ctx->codec.vc1.mv_buf_addr);
+-
+-	return ret;
+ }
+ 
+ #ifdef CEDRUS_VC1_DEBUG
+@@ -817,15 +805,9 @@ static void cedrus_vc1_stop(struct cedrus_ctx *ctx)
+ 	filp_close(f, NULL);
+ #endif
+ 
+-	dma_free_coherent(dev->dev, MV_BUF_SIZE,
+-			  ctx->codec.vc1.mv_buf,
+-			  ctx->codec.vc1.mv_buf_addr);
+-	dma_free_coherent(dev->dev, ACDC_BUF_SIZE,
+-			  ctx->codec.vc1.acdc_buf,
+-			  ctx->codec.vc1.acdc_buf_addr);
+-	dma_free_coherent(dev->dev, BITPLANES_BUF_SIZE,
+-			  ctx->codec.vc1.bitplanes_buf,
+-			  ctx->codec.vc1.bitplanes_buf_addr);
++	dma_free_coherent(dev->dev, VC1_AUX_ALLOC_SIZE,
++			  ctx->codec.vc1.aux_buf,
++			  ctx->codec.vc1.aux_buf_addr);
+ }
+ 
+ static void cedrus_vc1_trigger(struct cedrus_ctx *ctx)
+-- 
+2.53.0
+

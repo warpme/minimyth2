@@ -1,0 +1,97 @@
+From c0d1e151b7c24b9be328effe686c48bd4ebef6cd Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 21 Jun 2026 09:02:49 +0200
+Subject: [PATCH 12/20] media: cedrus: vc1: Advertise whole source buffer to
+ the bit reader
+
+The VC-1 engine's bitstream reader prefetches a little past the last
+bit it consumes. When BITS_LEN and BITS_END are set to the exact frame
+length, the reader can run off the end of the frame on the last
+macroblock and the bitstream DMA stalls fetching past the buffer
+(VE_DEC_VC1_STATUS bs_dma_busy), which only resolves via the 2 second
+watchdog and a VPU reset.
+
+The vendor decoder never hits this: it keeps the whole multi-frame VBV
+buffer mapped and programs BITS_LEN to the total buffered data, so the
+reader always has data ahead of the current frame and the per-frame
+decode is bounded by the macroblock count.
+
+The stateless interface hands us a single frame per buffer, so mirror
+the vendor as closely as possible: set BITS_LEN and BITS_END to the
+whole (page-rounded) source allocation rather than the frame payload,
+and pad the VC-1 source buffer size so there is always slack after the
+payload for the reader to over-read into. A correct frame still
+finishes on its macroblock count, leaving the padding untouched, so
+bit-exact streams are unaffected; streams that previously stalled on
+the over-read now complete. This eliminates a large fraction of the
+watchdog timeouts on the SMPTE conformance streams (e.g. SA20021 drops
+from 16 timeouts to 6) with no regression on the bit-exact set.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tj82JZ5jPRRbNkByAQPcy7
+---
+ drivers/staging/media/sunxi/cedrus/cedrus_vc1.c | 17 +++++++++++++----
+ .../staging/media/sunxi/cedrus/cedrus_video.c   |  8 ++++++++
+ 2 files changed, 21 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index a76692556..406ac1841 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -229,7 +229,7 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	dma_addr_t src_buf_addr;
+ 	u32 reg, condover, pq;
+ 	struct vb2_queue *vq;
+-	size_t slice_bytes;
++	size_t buf_size;
+ 	int brfd, flag;
+ 
+ 	unsigned int raw_coding = ~bitplanes->bitplane_flags;
+@@ -353,13 +353,22 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 
+ 	/* Set bitstream source */
+ 
+-	slice_bytes = vb2_get_plane_payload(src_buf, 0);
+-	cedrus_write(dev, VE_DEC_VC1_BITS_LEN, slice_bytes * 8);
++	buf_size = vb2_plane_size(src_buf, 0);
++	/*
++	 * The vendor decoder keeps the whole multi-frame VBV buffer mapped and
++	 * sets BITS_LEN to the total buffered data, so the bit reader always has
++	 * data ahead of the current frame and the per-frame decode is bounded by
++	 * the macroblock count. The stateless interface hands us a single frame
++	 * per buffer; advertise the whole (page-rounded) source allocation so the
++	 * bitstream DMA does not stall fetching past the frame when the VLD over-
++	 * reads on the last macroblock (STATUS bs_dma_busy -> watchdog timeout).
++	 */
++	cedrus_write(dev, VE_DEC_VC1_BITS_LEN, buf_size * 8);
+ 	cedrus_write(dev, VE_DEC_VC1_BITS_OFFSET, 0);
+ 
+ 	src_buf_addr = vb2_dma_contig_plane_dma_addr(src_buf, 0);
+ 	cedrus_write(dev, VE_DEC_VC1_BITS_END_ADDR,
+-		     src_buf_addr + slice_bytes);
++		     src_buf_addr + buf_size);
+ 	cedrus_write(dev, VE_DEC_VC1_BITS_ADDR,
+ 		     VE_DEC_VC1_BITS_ADDR_BASE(src_buf_addr) |
+ 		     VE_DEC_VC1_BITS_ADDR_VALID_SLICE_DATA |
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_video.c b/drivers/staging/media/sunxi/cedrus/cedrus_video.c
+index 311580325..6781879af 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_video.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_video.c
+@@ -138,6 +138,14 @@ void cedrus_prepare_format(struct v4l2_pix_format *pix_fmt)
+ 		bytesperline = 0;
+ 		/* Choose some minimum size since this can't be 0 */
+ 		sizeimage = max_t(u32, SZ_1K, sizeimage);
++		/*
++		 * VC-1 over-reads the bitstream a little past the end of a frame
++		 * on the last macroblock; pad the source allocation so the bit
++		 * reader has slack and the DMA does not stall (see
++		 * cedrus_vc1_setup()).
++		 */
++		if (pix_fmt->pixelformat == V4L2_PIX_FMT_VC1_SLICE)
++			sizeimage += SZ_16K;
+ 		break;
+ 
+ 	case V4L2_PIX_FMT_NV12_32L32:
+-- 
+2.53.0
+

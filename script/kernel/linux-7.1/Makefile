@@ -189,11 +189,28 @@ PATCHFILES += 2020-drm-sun4i-Add-planes-driver.patch
 PATCHFILES += 2021-drm-sun4i-switch-DE33-to-new-bindings.patch
 PATCHFILES += 2024-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
 PATCHFILES += 2025-asoc-sun4i-i2s-WiP-multi-channel.patch
-PATCHFILES += 2029-media-cedrus-Increase-H6-clock-rate.patch
+#todo PATCHFILES += 2029-media-cedrus-Increase-H6-clock-rate.patch
 PATCHFILES += 2030-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 2031-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 2032-bluetooth-btrtl-add-hci-ver-rtl8822cs.patch
 PATCHFILES += 2033-h6-add-sun50i-di-deinterlace-WiP.patch
+PATCHFILES += 2034-Revert-drm-sun4i-dw-hdmi-Fix-ddc-en-GPIO-consumer-co.patch
+# cedrus vc-1 support
+PATCHFILES += 2050-media-cedrus-Don-t-CPU-map-source-buffers.patch
+PATCHFILES += 2051-media-Add-VC-1-parsed-slice.patch
+PATCHFILES += 2052-media-cedrus-Add-VC-1-decoding-support.patch
+PATCHFILES += 2053-media-cedrus-vc1-program-EPHS-before-consuming-the-b.patch
+PATCHFILES += 2054-media-cedrus-vc1-fix-the-MVMODE-hardware-code-mappin.patch
+PATCHFILES += 2055-media-cedrus-vc1-Handle-skipped-pictures-without-the.patch
+PATCHFILES += 2056-media-cedrus-vc1-Advertise-whole-source-buffer-to-th.patch
+PATCHFILES += 2057-media-cedrus-vc1-Skip-the-picture-header-24-bits-at-.patch
+PATCHFILES += 2058-media-cedrus-vc1-Fix-interlaced-field-IC-backup-luma.patch
+PATCHFILES += 2059-media-cedrus-vc1-increase-MV-buffer-size-to-112KB.patch
+PATCHFILES += 2060-media-cedrus-vc1-single-contiguous-aux-buffer-alloca.patch
+PATCHFILES += 2061-media-cedrus-vc1-BITS_LEN-from-slice-bit_size-raw_co.patch
+PATCHFILES += 2062-media-cedrus-vc1-INTENCOMP-I-frame-self-ref-ts-0-fix.patch
+PATCHFILES += 2063-media-cedrus-vc1-reject-Main-profile-intensity-compe.patch
+PATCHFILES += 2064-media-cedrus-vc1-fix-field-intensity-compensation-sl.patch
 # h6 dtsi additions
 PATCHFILES += 2300-arm64-dtsi-allwinner-h6-Protect-SCP-clock.patch
 PATCHFILES += 2301-arm64-dtsi-allwinner-h6-Add-SCPI-protocol.patch
@@ -232,7 +249,8 @@ PATCHFILES += 2428-soc-sunxi-sram-Add-H616-SRAM-regions.patch
 PATCHFILES += 2429-drivers-staging-media-sunxi-cedrus-add-H616-variant.patch
 PATCHFILES += 2430-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
 PATCHFILES += 2431-iommu-sun50i-support-DRAM-above-the-32-bit-boundary.patch
-PATCHFILES += 2432-media-cedrus-Don-t-CPU-map-source-buffers.patch
+
+#done in 2050 PATCHFILES += 2432-media-cedrus-Don-t-CPU-map-source-buffers.patch
 PATCHFILES += 2433-media-cedrus-Add-VP9-decoding-support.patch
 PATCHFILES += 2434-media-cedrus-Add-P010-capture-format-and-shared-10-b.patch
 PATCHFILES += 2435-media-cedrus-Add-VP9-P010-output-support.patch
@@ -242,6 +260,7 @@ PATCHFILES += 2438-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
 PATCHFILES += 2439-media-cedrus-add-format-filtering-based-on-depth-and.patch
 PATCHFILES += 2440-media-cedrus-Filter-P010-by-depth-like-AFBC-formats.patch
 PATCHFILES += 2441-media-cedrus-Implement-AFBC-YUV420-output-for-VP9.patch
+
 # h616 dtsi additions
 PATCHFILES += 2500-arm64-dtsi-allwinner-h616-Add-display-pipeline.patch
 PATCHFILES += 2501-arm64-dtsi-allwinner-h616-Add-hdmi-audio.patch
@@ -291,14 +310,14 @@ PATCHFILES += 2732-iommu-sun50i-add-support-for-the-A523-sun55i.patch
 PATCHFILES += 2805-arm64-dtsi-allwinner-a523-add-the-IOMMU-nodes.patch
 endif
 # cedrus enablement (not works correctly)
-PATCHFILES += 2733-media-cedrus-add-A523-sun55i-variant.patch
+# PATCHFILES += 2733-media-cedrus-add-A523-sun55i-variant.patch
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
 PATCHFILES += 2803-arm64-dtsi-allwinner-a523-add-the-HDMI-display-pipeli.patch
 # move to per board PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
-PATCHFILES += 2806-arm64-dtsi-allwinner-a523-add-Cedrus-nodes.patch
+# PATCHFILES += 2806-arm64-dtsi-allwinner-a523-add-Cedrus-nodes.patch
 # a523 board dts additions
 PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch

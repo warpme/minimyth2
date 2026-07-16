@@ -1,0 +1,124 @@
+From bf5ab28f75c75ebe5d15120436313924f6c84440 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 20 Jun 2026 23:36:45 +0200
+Subject: [PATCH 11/20] media: cedrus: vc1: Handle skipped pictures without the
+ engine
+
+A VC-1 skipped picture (PTYPE == SKIPPED) carries no coded
+macroblocks; per spec its reconstructed output is an exact copy of the
+forward reference. Such a frame reaches the decoder as a single byte
+of bitstream. The H6 VC-1 engine cannot process it: even with
+NO_RECONSTRUCT_PIC set the engine wedges and the decode job only
+completes via the 2 second watchdog, which then resets the VPU and
+marks the buffer erroneous. Streams that use skipped pictures
+(FlightSimX, the 1080i60 sample, several SMPTE conformance streams)
+therefore stalled badly and produced corrupted output.
+
+Handle skipped pictures entirely in the driver: copy the forward
+reference into the destination buffer and finish the job directly,
+without enabling or triggering the engine. cedrus_vc1_setup() now
+returns a positive value to signal "output produced, do not run the
+engine", and cedrus_device_run() completes such a job with
+VB2_BUF_STATE_DONE and no watchdog. The capture queue is kernel
+mapped (only the output queue uses DMA_ATTR_NO_KERNEL_MAPPING), so
+vb2_plane_vaddr() is valid for the memcpy.
+
+With this, FlightSimX (5799 frames), the 1080i60 sample, SA00040 and
+SA00050 decode the full clip with zero watchdog timeouts and are
+bit-exact against the software decoder.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tj82JZ5jPRRbNkByAQPcy7
+---
+ .../staging/media/sunxi/cedrus/cedrus_dec.c   | 15 +++++---
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 34 +++++++++++++++----
+ 2 files changed, 39 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+index 886ebfad1..e1aa39ef0 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+@@ -102,7 +102,7 @@ void cedrus_device_run(void *priv)
+ 	cedrus_dst_format_set(dev, &ctx->dst_fmt);
+ 
+ 	error = ctx->current_codec->setup(ctx, &run);
+-	if (error)
++	if (error < 0)
+ 		v4l2_err(&ctx->dev->v4l2_dev,
+ 			 "Failed to setup decoding job: %d\n", error);
+ 
+@@ -111,9 +111,16 @@ void cedrus_device_run(void *priv)
+ 	if (src_req)
+ 		v4l2_ctrl_request_complete(src_req, &ctx->hdl);
+ 
+-	/* Trigger decoding if setup went well, bail out otherwise. */
+-	if (!error) {
+-		/* Start the watchdog timer. */
++	if (error > 0) {
++		/*
++		 * Setup produced the output without the engine (e.g. a skipped
++		 * picture copied from its reference); finish the job directly.
++		 */
++		v4l2_m2m_buf_done_and_job_finish(ctx->dev->m2m_dev,
++						 ctx->fh.m2m_ctx,
++						 VB2_BUF_STATE_DONE);
++	} else if (!error) {
++		/* Setup went well, start the watchdog timer and trigger. */
+ 		schedule_delayed_work(&dev->watchdog_work,
+ 				      msecs_to_jiffies(2000));
+ 
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 79596c60f..a76692556 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -285,6 +285,34 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	else
+ 		bwd_buf = out_buf;
+ 
++	/*
++	 * A skipped picture (PTYPE == SKIPPED) carries no coded macroblocks;
++	 * its output is identical to the forward reference. The decode engine
++	 * cannot process such a 1-byte frame and wedges (watchdog timeout), so
++	 * produce the output here by copying the forward reference and return a
++	 * positive value to tell device_run to finish the job without the engine.
++	 */
++	if (picture->ptype == VC1_PICTURE_TYPE_SKIPPED) {
++		struct vb2_buffer *dst = &run->dst->vb2_buf;
++		unsigned int i;
++
++		if (forward_vb2) {
++			for (i = 0; i < dst->num_planes; i++) {
++				void *dvaddr = vb2_plane_vaddr(dst, i);
++				void *svaddr = vb2_plane_vaddr(forward_vb2, i);
++				unsigned long size = vb2_plane_size(dst, i);
++
++				if (dvaddr && svaddr)
++					memcpy(dvaddr, svaddr, size);
++				vb2_set_plane_payload(dst, i, size);
++			}
++			/* Inherit the forward reference's frame metadata. */
++			out_buf->codec.vc1 = fwd_buf->codec.vc1;
++		}
++
++		return 1;
++	}
++
+ 	cedrus_engine_enable(ctx);
+ 
+ 	/*
+@@ -639,12 +667,6 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	      VE_DEC_VC1_CTRL_ERROR_IRQ_EN |
+ 	      VE_DEC_VC1_CTRL_VLD_DATA_REQ_IRQ_EN |
+ 	      VE_DEC_VC1_CTRL_MCRI_CACHE_EN;
+-	if (picture->ptype == VC1_PICTURE_TYPE_SKIPPED) {
+-#ifdef CEDRUS_VC1_DEBUG
+-		printk("frame is skipped!\n");
+-#endif
+-		reg |= VE_DEC_VC1_CTRL_NO_RECONSTRUCT_PIC;
+-	}
+ 	cedrus_write(dev, VE_DEC_VC1_CTRL, reg);
+ 
+ 	return 0;
+-- 
+2.53.0
+

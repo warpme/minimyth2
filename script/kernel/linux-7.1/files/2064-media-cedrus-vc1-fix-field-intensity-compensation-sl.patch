@@ -1,0 +1,112 @@
+From 6e582f0b77ef6d920b83511b9a38730b63ad5eb9 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 28 Jun 2026 11:44:43 +0200
+Subject: [PATCH 20/20] media: cedrus: vc1: fix field intensity compensation
+ slots
+
+The stateless controls follow the VA-API convention and place the selected field's intensity compensation values in lumscale and lumshift. Cedrus instead has two fixed register slots, so a second-field-only update was programmed into slot one and later restored from an incomplete backup. This corrupted a seven-frame interval in the 1080i test stream.
+
+Reconstruct both fixed slots, including the default scale for the inactive field, and copy the complete value into the backup registers. Match the vendor's conditional B/I backup register write order as these registers form a stateful transaction.
+---
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 53 +++++++++++--------
+ 1 file changed, 31 insertions(+), 22 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 915b35880..d9ae36d1a 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -32,6 +32,7 @@
+ #define VC1_AUX_MV_OFF			0x8000
+ #define MV_SLOT_SIZE			(16 * SZ_1K)
+ #define MV_SLOT_COUNT			7
++#define VC1_IC_LUMSCALE_DEFAULT		32
+ 
+ #define VC1_PROFILE_SIMPLE		0
+ #define VC1_PROFILE_MAIN		1
+@@ -547,20 +548,24 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	if (picture->fcm == VC1_FCM_INTERLACED_FIELD) {
+ 		if (picture->ptype == VC1_PICTURE_TYPE_I) {
+ 			cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, 0);
+-			cedrus_write(dev, VE_DEC_VC1_PICICBAK0, 0);
+ 			cedrus_write(dev, VE_DEC_VC1_PICICBAK1, 0);
++			cedrus_write(dev, VE_DEC_VC1_PICICBAK0, 0);
+ 			ctx->codec.vc1.ic_icb1_regbak = 0;
+ 			ctx->codec.vc1.ic_icb0_reg68 = 0;
+ 		} else if (picture->ptype == VC1_PICTURE_TYPE_B) {
+ 			cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, ctx->codec.vc1.ic_icb1_regbak & 0x3f3f3f3f);
+-			cedrus_write(dev, VE_DEC_VC1_PICICBAK0, ctx->codec.vc1.ic_icb0_reg68);
+-			if (second_field)
+-				reg = 0;
+-			else
++			if (second_field) {
++				cedrus_write(dev, VE_DEC_VC1_PICICBAK1, 0);
++				reg = ctx->codec.vc1.ic_icb0_reg68;
++				cedrus_write(dev, VE_DEC_VC1_PICICBAK0, reg);
++			} else {
++				reg = ctx->codec.vc1.ic_icb0_reg68;
++				cedrus_write(dev, VE_DEC_VC1_PICICBAK0, reg);
+ 				reg = ctx->codec.vc1.ic_icf0_reg6c;
+-			cedrus_write(dev, VE_DEC_VC1_PICICBAK1, reg);
++				cedrus_write(dev, VE_DEC_VC1_PICICBAK1, reg);
++			}
+ 		} else if (picture->ptype == VC1_PICTURE_TYPE_P) {
+-			unsigned int field;
++			unsigned int field, scale2;
+ 			u32 bakreg;
+ 
+ 			if (picture->mvmode == VC1_MVMODE_INTENSITY_COMP)
+@@ -568,24 +573,29 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 			else
+ 				field = 0;
+ 
+-			reg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE1(picture->lumscale);
+-			reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT1(picture->lumshift);
+-			reg |= VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(picture->lumscale2);
+-			reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT2(picture->lumshift2);
++			/*
++			 * The controls follow VA-API and place the selected field's
++			 * parameters in lumscale/lumshift. The hardware uses fixed
++			 * field slots, including the default scale for the other field.
++			 */
++			if (field == 2) {
++				reg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE1(VC1_IC_LUMSCALE_DEFAULT);
++				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(picture->lumscale);
++				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT2(picture->lumshift);
++			} else {
++				scale2 = field == 1 ? VC1_IC_LUMSCALE_DEFAULT : picture->lumscale2;
++				reg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE1(picture->lumscale);
++				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT1(picture->lumshift);
++				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(scale2);
++				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT2(picture->lumshift2);
++			}
+ 			cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, reg);
+ 
+ 			/*
+-			 * The IC backup (PICICBAK0/1) is consumed by later fields,
+-			 * which read the luma scale/shift from the slot selected by
+-			 * the FIELD bits. Store the parameters in the slot matching
+-			 * the compensated field (bottom -> slot 2) as the vendor does.
++			 * The vendor copies both fixed field slots into the backup and
++			 * adds the mask selecting which slot later fields consume.
+ 			 */
+-			if (field == 2)
+-				bakreg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(picture->lumscale) |
+-					 VE_DEC_VC1_PICINTENCOMP_LUMASHIFT2(picture->lumshift);
+-			else
+-				bakreg = reg;
+-			bakreg |= VE_DEC_VC1_PICINTENCOMP_FIELD(field);
++			bakreg = reg | VE_DEC_VC1_PICINTENCOMP_FIELD(field);
+ 
+ 			if (!second_field) {
+ 				ctx->codec.vc1.ic_icf0_reg6c = ctx->codec.vc1.ic_icb1_regbak & 0xff3f3f3f;
+@@ -733,7 +743,6 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
+ {
+ 	struct cedrus_dev *dev = ctx->dev;
+-	int ret;
+ 
+ 	ctx->codec.vc1.ic_oldval = 0;
+ 	ctx->codec.vc1.ic_intenen = false;
+-- 
+2.53.0
+

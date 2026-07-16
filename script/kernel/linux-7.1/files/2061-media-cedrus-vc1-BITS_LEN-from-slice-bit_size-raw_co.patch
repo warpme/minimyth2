@@ -1,0 +1,189 @@
+From 89ecad56abe47c74dc93ac21fd07304d33db481a Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 21 Jun 2026 20:14:44 +0200
+Subject: [PATCH 17/20] media: cedrus: vc1: BITS_LEN from slice bit_size,
+ raw_coding revert
+
+Use the actual frame bit_size for BITS_LEN instead of the inflated
+page-rounded buffer size, preventing VLD from reading uninitialized
+memory past the frame end.  Revert raw_coding to ~bitplane_flags
+since ffmpeg's slice->raw_coding_flags is always zero for this
+stream.
+
+Also remove the CEDRUS_VC1_DEBUG instrumentation.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 81 ++++---------------
+ 1 file changed, 17 insertions(+), 64 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 5ca9042fe..ce40552c7 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -14,7 +14,7 @@
+ #include "cedrus_hw.h"
+ #include "cedrus_regs.h"
+ 
+-#define CEDRUS_VC1_DEBUG
++/* #define CEDRUS_VC1_DEBUG */
+ 
+ #define MV_BUF_SIZE			(112 * SZ_1K)
+ #define ACDC_BUF_SIZE			(16 * SZ_1K)
+@@ -23,13 +23,15 @@
+ /* Vendor allocates BPLANE+DCAC+MV as one contiguous block:
+  *   BPLANE @ +0x0000  16KB
+  *   DCAC   @ +0x4000  16KB
+- *   MV     @ +0x8000 112KB
++ *   MV     @ +0x8000 112KB (7 slots × 16KB, rotated per decode)
+  * Total = 144KB, 16KB-aligned
+  */
+ #define VC1_AUX_ALLOC_SIZE		(144 * SZ_1K)
+ #define VC1_AUX_BPLANE_OFF		0x0000
+ #define VC1_AUX_DCAC_OFF		0x4000
+ #define VC1_AUX_MV_OFF			0x8000
++#define MV_SLOT_SIZE			(16 * SZ_1K)
++#define MV_SLOT_COUNT			7
+ 
+ #define VC1_PROFILE_SIMPLE		0
+ #define VC1_PROFILE_MAIN		1
+@@ -114,9 +116,6 @@ static unsigned int cedrus_vc1_get_pq(unsigned int pqindex, unsigned int qmode)
+ 		return ff_vc1_pquant_table[1][pqindex];
+ }
+ 
+-#ifdef CEDRUS_VC1_DEBUG
+-static unsigned int seq;
+-#endif
+ 
+ static void cedrus_vc1_bitplanes_setup(struct cedrus_ctx *ctx,
+ 				       struct cedrus_run *run)
+@@ -243,7 +242,7 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	size_t buf_size;
+ 	int brfd, flag;
+ 
+-	unsigned int raw_coding = run->vc1.slice_params->raw_coding_flags;
++	unsigned int raw_coding = ~(bitplanes ? bitplanes->bitplane_flags : 0);
+ 
+ 	sequence = &slice->sequence;
+ 	entrypoint = &slice->entrypoint_header;
+@@ -376,19 +375,19 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 		reg |= VE_DEC_VC1_EPHS_EPTB_DET_BYPASS;
+ 	cedrus_write(dev, VE_DEC_VC1_EPHS, reg);
+ 
+-	/* Set bitstream source */
+-
+-	buf_size = vb2_plane_size(src_buf, 0);
+-	/*
+-	 * The vendor decoder keeps the whole multi-frame VBV buffer mapped and
+-	 * sets BITS_LEN to the total buffered data, so the bit reader always has
+-	 * data ahead of the current frame and the per-frame decode is bounded by
+-	 * the macroblock count. The stateless interface hands us a single frame
+-	 * per buffer; advertise the whole (page-rounded) source allocation so the
+-	 * bitstream DMA does not stall fetching past the frame when the VLD over-
+-	 * reads on the last macroblock (STATUS bs_dma_busy -> watchdog timeout).
++	/* Set bitstream source.
++	 *
++	 * The vendor keeps a multi-frame VBV buffer permanently mapped;
++	 * any over-read beyond the current frame lands on valid data of
++	 * the next frame.  The stateless API provides one frame per
++	 * buffer — limit BITS_LEN to the actual frame bit_size so the
++	 * VLD never fetches uninitialized memory past the frame end.
++	 * Keep BITS_END_ADDR at the page-rounded allocation boundary as
++	 * a safety net against runaway DMA (watchdog timeout).
+ 	 */
+-	cedrus_write(dev, VE_DEC_VC1_BITS_LEN, buf_size * 8);
++	buf_size = vb2_plane_size(src_buf, 0);
++	cedrus_write(dev, VE_DEC_VC1_BITS_LEN,
++		     slice->bit_size ? slice->bit_size : buf_size * 8);
+ 	cedrus_write(dev, VE_DEC_VC1_BITS_OFFSET, 0);
+ 
+ 	src_buf_addr = vb2_dma_contig_plane_dma_addr(src_buf, 0);
+@@ -685,18 +684,6 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	reg |= VE_DEC_VC1_PICSIZE_HEIGHT(ctx->src_fmt.height);
+ 	cedrus_write(dev, VE_DEC_VC1_PICSIZE, reg);
+ 
+-#ifdef CEDRUS_VC1_DEBUG
+-	{
+-		dma_addr_t rec_l = cedrus_dst_buf_addr(ctx, &run->dst->vb2_buf, 0);
+-		dma_addr_t fwd_l = forward_vb2 ? cedrus_dst_buf_addr(ctx, forward_vb2, 0) : 0;
+-		dma_addr_t bwd_l = backward_vb2 ? cedrus_dst_buf_addr(ctx, backward_vb2, 0) : 0;
+-		pr_info("vc1: seq=%u pt=%d fcm=%d sf=%d rec=%pad fwd=%pad bwd=%pad fwd_ts=%llu bwd_ts=%llu mvmode_ff=%d mvmode_hw=%d\n",
+-			seq, picture->ptype, picture->fcm, second_field,
+-			&rec_l, &fwd_l, &bwd_l,
+-			slice->forward_ref_ts, slice->backward_ref_ts,
+-			picture->mvmode, vc1_mvmode_map[picture->mvmode & 3]);
+-	}
+-#endif
+ 
+ 	/* Destination luma and chroma buffers. */
+ 
+@@ -742,10 +729,6 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	return 0;
+ }
+ 
+-#ifdef CEDRUS_VC1_DEBUG
+-static struct file *f;
+-static loff_t offset;
+-#endif
+ 
+ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
+ {
+@@ -758,11 +741,6 @@ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
+ 	ctx->codec.vc1.ic_icb0_reg68 = 0;
+ 	ctx->codec.vc1.ic_icf0_reg6c = 0;
+ 
+-#ifdef CEDRUS_VC1_DEBUG
+-	seq = 0;
+-	f = filp_open("/root/out.bin", O_CREAT | O_WRONLY | O_TRUNC, 0666);
+-	offset = 0;
+-#endif
+ 
+ 	ctx->codec.vc1.aux_buf =
+ 		dma_alloc_coherent(dev->dev, VC1_AUX_ALLOC_SIZE,
+@@ -781,29 +759,11 @@ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
+ 	return 0;
+ }
+ 
+-#ifdef CEDRUS_VC1_DEBUG
+-#include <linux/kernel.h>
+-
+-static void write_section(const char *info, volatile char *regs, unsigned int o, unsigned int size)
+-{
+-	char data[128];
+-	int i;
+-
+-	for (i = 0; i <= size; i += 4) {
+-		snprintf(data, sizeof(data), "%.3x: %.8x\n", i + o, readl(regs + i + o));
+-		kernel_write(f, data, strlen(data), &offset);
+-	}
+-	kernel_write(f, info, strlen(info), &offset);
+-}
+-#endif
+ 
+ static void cedrus_vc1_stop(struct cedrus_ctx *ctx)
+ {
+ 	struct cedrus_dev *dev = ctx->dev;
+ 
+-#ifdef CEDRUS_VC1_DEBUG
+-	filp_close(f, NULL);
+-#endif
+ 
+ 	dma_free_coherent(dev->dev, VC1_AUX_ALLOC_SIZE,
+ 			  ctx->codec.vc1.aux_buf,
+@@ -814,13 +774,6 @@ static void cedrus_vc1_trigger(struct cedrus_ctx *ctx)
+ {
+ 	struct cedrus_dev *dev = ctx->dev;
+ 
+-#ifdef CEDRUS_VC1_DEBUG
+-	write_section("main section\n", dev->base, 0, 0xec);
+-	write_section("--eof--\n", dev->base, 0x300, 0xcc);
+-	if (seq == 59)
+-		kernel_write(f, ctx->codec.vc1.bitplanes_buf, BITPLANES_BUF_SIZE, &offset);
+-	seq++;
+-#endif
+ 
+ 	cedrus_write(dev, VE_DEC_VC1_TRIGGER_TYPE,
+ 		     VE_DEC_VC1_TRIGGER_TYPE_DECODE);
+-- 
+2.53.0
+

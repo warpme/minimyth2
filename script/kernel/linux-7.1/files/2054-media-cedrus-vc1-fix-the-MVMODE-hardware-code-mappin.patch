@@ -1,0 +1,56 @@
+From 0f175c6eef9ca627900923042d186945d0544b77 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 20 Jun 2026 19:01:32 +0200
+Subject: [PATCH 10/20] media: cedrus: vc1: fix the MVMODE hardware code
+ mapping
+
+vc1_mvmode_map translates the motion-vector mode to the hardware PICMV
+MVMODE code. It was set to {3, 2, 0, 1}, which is the vendor library's
+mMVModeTable literal -- but that table is indexed by the vendor's mv mode
+enum order (1MV-halfpel-bilinear, 1MV-halfpel, 1MV, mixed), whereas this
+driver indexes it with the ffmpeg/uAPI enum order (1MV-halfpel-bilinear,
+1MV, 1MV-halfpel, mixed). Copying the literal therefore swapped the codes
+for 1MV and 1MV-halfpel.
+
+Pictures using 1MV or 1MV-halfpel motion mode (e.g. progressive/main P
+frames, and interlaced-frame P/B frames which the hardware codes as 1MV)
+were programmed with the wrong mode and decoded with accumulating drift.
+Streams that only use 1MV-halfpel-bilinear or mixed motion modes were
+unaffected, since those two entries are identical in both orderings.
+
+Use the correct mapping {3, 0, 2, 1}: 1MV_HPEL_BILIN -> 3, 1MV -> 0,
+1MV_HPEL -> 2, MIXED_MV -> 1. With this, progressive content using
+1MV-halfpel (e.g. vc1/Robotica_720.wmv) and interlaced-frame content
+(vc1-samples/ilaced_twomv.vc1) decode bit-exact against the software
+decoder.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tj82JZ5jPRRbNkByAQPcy7
+---
+ drivers/staging/media/sunxi/cedrus/cedrus_vc1.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 8939f8742..79596c60f 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -80,11 +80,12 @@ const uint8_t ff_vc1_pquant_table[3][32] = {
+ };
+ 
+ /*
+- * Map the VC-1 MVMODE (Table 46/47, indexed by enum vc1 mv mode value) to the
+- * hardware PICMV MVMODE code. Verified against the vendor library: 1MV_HPEL_BILIN
+- * -> 3, 1MV -> 2, 1MV_HPEL -> 0, MIXED_MV -> 1.
++ * Map the VC-1 MVMODE to the hardware PICMV MVMODE code, indexed by the mv mode
++ * enum value (1MV_HPEL_BILIN=0, 1MV=1, 1MV_HPEL=2, MIXED_MV=3). Per the vendor
++ * library (mMVModeTable): 1MV_HPEL_BILIN -> 3, 1MV -> 0, 1MV_HPEL -> 2,
++ * MIXED_MV -> 1.
+  */
+-static const unsigned int vc1_mvmode_map[] = {3, 2, 0, 1};
++static const unsigned int vc1_mvmode_map[] = {3, 0, 2, 1};
+ 
+ static unsigned int cedrus_vc1_get_fraction(unsigned int index)
+ {
+-- 
+2.53.0
+

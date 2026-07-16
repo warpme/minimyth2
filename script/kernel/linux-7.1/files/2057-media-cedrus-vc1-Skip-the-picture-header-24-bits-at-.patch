@@ -1,0 +1,64 @@
+From 70a06a3e11c550c03f8905c77c9e1a15f45ec0be Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 21 Jun 2026 12:09:10 +0200
+Subject: [PATCH 13/20] media: cedrus: vc1: Skip the picture header 24 bits at
+ a time
+
+Positioning the bit reader at the start of the macroblock data was done
+one bit per GET_BITS trigger, i.e. data_bit_offset register-write +
+poll pairs per frame (often hundreds), which the code itself flagged as
+a TODO. The engine's bit reader accepts up to 24-bit GET_BITS reads
+(the vendor reads 24-bit start codes the same way) and strips
+emulation-prevention bytes for any read width, so flush up to 24 bits
+per trigger, with a smaller final chunk for the remainder. This cuts
+the number of register writes by ~24x with no change in decoded output
+(the full sample set remains bit-exact against the software decoder).
+Wider reads (e.g. 32-bit) overrun the bit FIFO and desync the VLD, so
+24 is the maximum.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Tj82JZ5jPRRbNkByAQPcy7
+---
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c    | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 406ac1841..6992e6eab 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -227,7 +227,7 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	struct vb2_buffer *backward_vb2;
+ 	struct vb2_buffer *forward_vb2;
+ 	dma_addr_t src_buf_addr;
+-	u32 reg, condover, pq;
++	u32 reg, condover, pq, skip;
+ 	struct vb2_queue *vq;
+ 	size_t buf_size;
+ 	int brfd, flag;
+@@ -390,11 +390,19 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	cedrus_write(dev, VE_DEC_VC1_TRIGGER_TYPE,
+ 		     VE_DEC_VC1_TRIGGER_TYPE_INIT_SWDEC);
+ 
+-	/* TODO: minimize time impact of this block */
+-	for (reg = 0; reg < slice->data_bit_offset; reg++) {
++	/*
++	 * Skip the picture-layer header to the start of the macroblock data.
++	 * Flush up to 24 bits per GET_BITS trigger: the engine's bit reader
++	 * handles <= 24-bit reads (the vendor reads 24-bit start codes the same
++	 * way) and strips emulation-prevention bytes, so this matches a 1-bit
++	 * loop but is far fewer register writes. Wider (e.g. 32-bit) reads
++	 * overrun the bit FIFO and desync the VLD.
++	 */
++	for (reg = 0; reg < slice->data_bit_offset; reg += skip) {
++		skip = min_t(u32, slice->data_bit_offset - reg, 24);
+ 		cedrus_write(dev, VE_DEC_VC1_TRIGGER_TYPE,
+-				VE_DEC_VC1_TRIGGER_TYPE_GET_BITS |
+-				VE_DEC_VC1_TRIGGER_TYPE_N_BITS(1));
++			     VE_DEC_VC1_TRIGGER_TYPE_GET_BITS |
++			     VE_DEC_VC1_TRIGGER_TYPE_N_BITS(skip));
+ 
+ 		cedrus_wait_for(dev, VE_DEC_VC1_STATUS, VE_DEC_VC1_STATUS_BITS_BUSY);
+ 	}
+-- 
+2.53.0
+
