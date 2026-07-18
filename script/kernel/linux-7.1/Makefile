@@ -448,6 +448,8 @@ PATCHFILES += 3570-media-rkvdec-add-VP9-VDPU381-decoder-support.patch
 PATCHFILES += 3571-media-rkvdec-vp9-fix-altref-vscale-and-segmap-size-for-2K-decode.patch
 PATCHFILES += 3572-media-rkvdec-vdpu381-add-VP9-profile-2-10bit-support.patch
 PATCHFILES += 3573-media-rkvdec-vdpu381-vp9-use-the-real-buffer-stride.patch
+# rkvdec on 356x
+PATCHFILES += 3574-media-rkvdec-Add-support-for-the-VDPU346-variant.patch
 # rk35xx dtsi additions
 PATCHFILES += 3600-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 3601-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
