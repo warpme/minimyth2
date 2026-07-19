@@ -5,9 +5,9 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/Makefile a/libavcodec/Makefile
---- a/libavcodec/Makefile	2026-03-27 21:33:40.637084826 +0100
-+++ a/libavcodec/Makefile	2026-03-27 21:29:39.747528625 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/Makefile ffmpeg-8.1/libavcodec/Makefile
+--- ffmpeg-8.1/libavcodec/Makefile	2026-07-19 11:00:37.447305003 +0200
++++ ffmpeg-8.1/libavcodec/Makefile	2026-07-19 10:57:39.889030680 +0200
 @@ -184,7 +184,8 @@
  OBJS-$(CONFIG_VIDEODSP)                += videodsp.o
  OBJS-$(CONFIG_VP3DSP)                  += vp3dsp.o
@@ -18,20 +18,18 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/Makefile 
  OBJS-$(CONFIG_V4L2_REQUEST)            += v4l2_request.o
  OBJS-$(CONFIG_WMA_FREQS)               += wma_freqs.o
  OBJS-$(CONFIG_WMV2DSP)                 += wmv2dsp.o
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buffers.c a/libavcodec/v4l2_buffers.c
---- a/libavcodec/v4l2_buffers.c	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_buffers.c	2026-03-27 21:26:55.250009223 +0100
-@@ -22,9 +22,6 @@
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_buffers.c ffmpeg-8.1/libavcodec/v4l2_buffers.c
+--- ffmpeg-8.1/libavcodec/v4l2_buffers.c	2026-03-16 19:13:05.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_buffers.c	2026-03-27 21:26:55.250009223 +0100
+@@ -21,6 +21,7 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
   */
  
- #include "config.h"
--#if CONFIG_LIBDRM
--#include <drm_fourcc.h>
--#endif
++#include "config.h"
  #include <linux/videodev2.h>
  #include <sys/ioctl.h>
  #include <sys/mman.h>
-@@ -32,63 +29,98 @@
+@@ -28,61 +29,98 @@
  #include <fcntl.h>
  #include <poll.h>
  #include "libavcodec/avcodec.h"
@@ -39,8 +37,6 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +#include "libavutil/avassert.h"
 +#include "libavutil/mem.h"
  #include "libavutil/pixdesc.h"
--#include "libavutil/hwcontext.h"
--#include "libavutil/buffer.h"
  #include "libavutil/refstruct.h"
 +#include "libavutil/hwcontext.h"
  #include "v4l2_context.h"
@@ -157,7 +153,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  }
  
  static enum AVColorPrimaries v4l2_get_color_primaries(V4L2Buffer *buf)
-@@ -125,6 +157,105 @@
+@@ -119,6 +157,105 @@
      return AVCOL_PRI_UNSPECIFIED;
  }
  
@@ -263,7 +259,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  static enum AVColorRange v4l2_get_color_range(V4L2Buffer *buf)
  {
      enum v4l2_quantization qt;
-@@ -143,6 +274,20 @@
+@@ -137,6 +274,20 @@
       return AVCOL_RANGE_UNSPECIFIED;
  }
  
@@ -284,7 +280,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  static enum AVColorSpace v4l2_get_color_space(V4L2Buffer *buf)
  {
      enum v4l2_ycbcr_encoding ycbcr;
-@@ -222,21 +367,55 @@
+@@ -216,88 +367,259 @@
      return AVCOL_TRC_UNSPECIFIED;
  }
  
@@ -320,48 +316,74 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +{
 +    if (!is_interlaced) {
 +        frame->flags &= ~(AV_FRAME_FLAG_TOP_FIELD_FIRST | AV_FRAME_FLAG_INTERLACED);
-     }
++    }
 +    else {
 +        if (is_tff)
 +            frame->flags |= AV_FRAME_FLAG_TOP_FIELD_FIRST | AV_FRAME_FLAG_INTERLACED;
 +        else
 +            frame->flags = (frame->flags & ~AV_FRAME_FLAG_TOP_FIELD_FIRST) | AV_FRAME_FLAG_INTERLACED;
-+    }
-+}
-+
+     }
+ }
+ 
+-static void v4l2_free_buffer(void *opaque, uint8_t *unused)
 +static inline int frame_is_interlaced(const AVFrame* const frame)
-+{
+ {
+-    V4L2Buffer* avbuf = opaque;
+-    V4L2m2mContext *s = buf_to_m2mctx(avbuf);
 +    return (frame->flags & AV_FRAME_FLAG_INTERLACED) != 0;
 +}
-+
+ 
+-    if (atomic_fetch_sub(&avbuf->context_refcount, 1) == 1) {
+-        atomic_fetch_sub_explicit(&s->refcount, 1, memory_order_acq_rel);
 +static inline int frame_is_tff(const AVFrame* const frame)
 +{
 +    return (frame->flags & AV_FRAME_FLAG_TOP_FIELD_FIRST) != 0;
 +}
-+
+ 
+-        if (s->reinit) {
+-            if (!atomic_load(&s->refcount))
+-                sem_post(&s->refsync);
+-        } else {
+-            if (s->draining && V4L2_TYPE_IS_OUTPUT(avbuf->context->type)) {
+-                /* no need to queue more buffers to the driver */
+-                avbuf->status = V4L2BUF_AVAILABLE;
+-            }
+-            else if (avbuf->context->streamon)
+-                ff_v4l2_buffer_enqueue(avbuf);
+-        }
 +static inline int frame_is_key(const AVFrame* const frame)
 +{
 +    return (frame->flags & AV_FRAME_FLAG_KEY) != 0;
 +}
-+
+ 
+-        av_refstruct_unref(&avbuf->context_ref);
 +static inline void frame_set_key(AVFrame* const frame, const int is_key)
 +{
 +    frame->flags = is_key ?
 +        frame->flags | AV_FRAME_FLAG_KEY :
 +        frame->flags & ~AV_FRAME_FLAG_KEY;
- }
- 
- #if CONFIG_LIBDRM
-@@ -254,11 +433,44 @@
- 
-     for (int i = 0; i < avbuf->num_planes; i++) {
-         layer->planes[i].object_index = i;
--        layer->planes[i].offset = 0;
++}
++
++#if CONFIG_LIBDRM
++static uint8_t * v4l2_get_drm_frame(V4L2Buffer *avbuf)
++{
++    AVDRMFrameDescriptor *drm_desc = &avbuf->drm_frame;
++    AVDRMLayerDescriptor *layer;
++
++    /* fill the DRM frame descriptor */
++    drm_desc->nb_objects = avbuf->num_planes;
++    drm_desc->nb_layers = 1;
++
++    layer = &drm_desc->layers[0];
++    layer->nb_planes = avbuf->num_planes;
++
++    for (int i = 0; i < avbuf->num_planes; i++) {
++        layer->planes[i].object_index = i;
 +        layer->planes[i].offset = avbuf->plane_info[i].offset;
-         layer->planes[i].pitch = avbuf->plane_info[i].bytesperline;
-     }
- 
-     switch (avbuf->context->av_pix_fmt) {
++        layer->planes[i].pitch = avbuf->plane_info[i].bytesperline;
++    }
++
++    switch (avbuf->context->av_pix_fmt) {
 +    case AV_PIX_FMT_0BGR:
 +        layer->format = DRM_FORMAT_RGBX8888;
 +        break;
@@ -395,44 +417,82 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +        layer->format = DRM_FORMAT_RGB888;
 +        break;
 +
-     case AV_PIX_FMT_YUYV422:
- 
-         layer->format = DRM_FORMAT_YUYV;
-@@ -313,158 +525,167 @@
++    case AV_PIX_FMT_YUYV422:
++
++        layer->format = DRM_FORMAT_YUYV;
++        layer->nb_planes = 1;
++
++        break;
++
++    case AV_PIX_FMT_NV12:
++    case AV_PIX_FMT_NV21:
++
++        layer->format = avbuf->context->av_pix_fmt == AV_PIX_FMT_NV12 ?
++            DRM_FORMAT_NV12 : DRM_FORMAT_NV21;
++
++        if (avbuf->num_planes > 1)
++            break;
++
++        layer->nb_planes = 2;
++
++        layer->planes[1].object_index = 0;
++        layer->planes[1].offset = avbuf->plane_info[0].bytesperline *
++            avbuf->context->format.fmt.pix.height;
++        layer->planes[1].pitch = avbuf->plane_info[0].bytesperline;
++        break;
++
++    case AV_PIX_FMT_YUV420P:
++
++        layer->format = DRM_FORMAT_YUV420;
++
++        if (avbuf->num_planes > 1)
++            break;
++
++        layer->nb_planes = 3;
++
++        layer->planes[1].object_index = 0;
++        layer->planes[1].offset = avbuf->plane_info[0].bytesperline *
++            avbuf->context->format.fmt.pix.height;
++        layer->planes[1].pitch = avbuf->plane_info[0].bytesperline >> 1;
++
++        layer->planes[2].object_index = 0;
++        layer->planes[2].offset = layer->planes[1].offset +
++            ((avbuf->plane_info[0].bytesperline *
++              avbuf->context->format.fmt.pix.height) >> 2);
++        layer->planes[2].pitch = avbuf->plane_info[0].bytesperline >> 1;
++        break;
++
++    default:
++        drm_desc->nb_layers = 0;
++        break;
+     }
++
++    return (uint8_t *) drm_desc;
  }
- #endif
++#endif
  
--static void v4l2_free_buffer(void *opaque, uint8_t *unused)
+-static int v4l2_buf_increase_ref(V4L2Buffer *in)
 +static void v4l2_free_bufref(void *opaque, uint8_t *data)
  {
--    V4L2Buffer* avbuf = opaque;
--    V4L2m2mContext *s = buf_to_m2mctx(avbuf);
+-    V4L2m2mContext *s = buf_to_m2mctx(in);
 +    AVBufferRef * bufref = (AVBufferRef *)data;
 +    V4L2Buffer *avbuf = (V4L2Buffer *)bufref->data;
 +    struct V4L2Context *ctx = ff_weak_link_lock(&avbuf->context_wl);
  
--    if (atomic_fetch_sub(&avbuf->context_refcount, 1) == 1) {
--        atomic_fetch_sub_explicit(&s->refcount, 1, memory_order_acq_rel);
+-    if (in->context_ref)
+-        atomic_fetch_add(&in->context_refcount, 1);
+-    else {
+-        in->context_ref = av_refstruct_ref(s->self_ref);
 +    if (ctx != NULL) {
 +        // Buffer still attached to context
 +        V4L2m2mContext * const s = ctx_to_m2mctx(ctx);
  
--        if (s->reinit) {
--            if (!atomic_load(&s->refcount))
--                sem_post(&s->refsync);
--        } else {
--            if (s->draining && V4L2_TYPE_IS_OUTPUT(avbuf->context->type)) {
--                /* no need to queue more buffers to the driver */
--                avbuf->status = V4L2BUF_AVAILABLE;
--            }
--            else if (avbuf->context->streamon)
--                ff_v4l2_buffer_enqueue(avbuf);
+-        in->context_refcount = 1;
 +        if (!s->output_drm && avbuf->dmabuf[0] != NULL) {
 +            for (unsigned int i = 0; i != avbuf->num_planes; ++i)
 +                dmabuf_read_end(avbuf->dmabuf[i]);
-         }
- 
--        av_refstruct_unref(&avbuf->context_ref);
++        }
++
 +        ff_mutex_lock(&ctx->lock);
 +
 +        ff_v4l2_buffer_set_avail(avbuf);
@@ -452,31 +512,37 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +
 +        ff_mutex_unlock(&ctx->lock);
      }
-+
+ 
+-    in->status = V4L2BUF_RET_USER;
+-    atomic_fetch_add_explicit(&s->refcount, 1, memory_order_relaxed);
 +    ff_weak_link_unlock(avbuf->context_wl);
 +    av_buffer_unref(&bufref);
 +}
-+
+ 
+-    return 0;
 +static inline uint32_t ff_v4l2_buf_len(const struct v4l2_buffer * b, unsigned int i)
 +{
 +    return V4L2_TYPE_IS_MULTIPLANAR(b->type) ? b->m.planes[i].length : b->length;
  }
  
--#if CONFIG_LIBDRM
- static int v4l2_buffer_export_drm(V4L2Buffer* avbuf)
+-static int v4l2_buf_to_bufref(V4L2Buffer *in, int plane, AVBufferRef **buf)
++static int v4l2_buffer_export_drm(V4L2Buffer* avbuf)
  {
--    struct v4l2_exportbuffer expbuf;
-     int i, ret;
+-    int ret;
++    int i, ret;
 +    const V4L2m2mContext * const s = buf_to_m2mctx(avbuf);
  
-     for (i = 0; i < avbuf->num_planes; i++) {
--        memset(&expbuf, 0, sizeof(expbuf));
+-    if (plane >= in->num_planes)
+-        return AVERROR(EINVAL);
++    for (i = 0; i < avbuf->num_planes; i++) {
 +        int dma_fd = -1;
 +        const uint32_t blen = ff_v4l2_buf_len(&avbuf->buf, i);
  
--        expbuf.index = avbuf->buf.index;
--        expbuf.type = avbuf->buf.type;
--        expbuf.plane = i;
+-    /* even though most encoders return 0 in data_offset encoding vp8 does require this value */
+-    *buf = av_buffer_create((char *)in->plane_info[plane].mm_addr + in->planes[plane].data_offset,
+-                            in->plane_info[plane].length, v4l2_free_buffer, in, 0);
+-    if (!*buf)
+-        return AVERROR(ENOMEM);
 +        if (s->db_ctl != NULL) {
 +            if ((avbuf->dmabuf[i] = dmabuf_alloc(s->db_ctl, blen)) == NULL)
 +                return AVERROR(ENOMEM);
@@ -486,9 +552,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +            else
 +                avbuf->buf.m.fd = dma_fd;
  
--        ret = ioctl(buf_to_m2mctx(avbuf)->fd, VIDIOC_EXPBUF, &expbuf);
--        if (ret < 0)
--            return AVERROR(errno);
+-    ret = v4l2_buf_increase_ref(in);
+-    if (ret)
+-        av_buffer_unref(buf);
 +            if (!s->output_drm)
 +                avbuf->plane_info[i].mm_addr = dmabuf_map(avbuf->dmabuf[i]);
 +        }
@@ -496,16 +562,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +            struct v4l2_exportbuffer expbuf;
 +            memset(&expbuf, 0, sizeof(expbuf));
  
--        if (V4L2_TYPE_IS_MULTIPLANAR(avbuf->buf.type)) {
--            /* drm frame */
--            avbuf->drm_frame.objects[i].size = avbuf->buf.m.planes[i].length;
--            avbuf->drm_frame.objects[i].fd = expbuf.fd;
--            avbuf->drm_frame.objects[i].format_modifier = DRM_FORMAT_MOD_LINEAR;
--        } else {
--            /* drm frame */
--            avbuf->drm_frame.objects[0].size = avbuf->buf.length;
--            avbuf->drm_frame.objects[0].fd = expbuf.fd;
--            avbuf->drm_frame.objects[0].format_modifier = DRM_FORMAT_MOD_LINEAR;
+-    return ret;
 +            expbuf.index = avbuf->buf.index;
 +            expbuf.type = avbuf->buf.type;
 +            expbuf.plane = i;
@@ -514,7 +571,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +            if (ret < 0)
 +                return AVERROR(errno);
 +            dma_fd = expbuf.fd;
-         }
++        }
 +
 +        avbuf->drm_frame.objects[i].size = blen;
 +        avbuf->drm_frame.objects[i].fd = dma_fd;
@@ -523,111 +580,74 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +#else
 +        avbuf->drm_frame.objects[i].format_modifier = DRM_FORMAT_MOD_LINEAR;
 +#endif
-     }
- 
-     return 0;
++    }
++
++    return 0;
  }
--#endif
  
--static int v4l2_buf_increase_ref(V4L2Buffer *in)
-+static int v4l2_bufref_to_buf(V4L2Buffer *out, int plane, const uint8_t* data, int size, int offset)
+ static int v4l2_bufref_to_buf(V4L2Buffer *out, int plane, const uint8_t* data, int size, int offset)
  {
--    V4L2m2mContext *s = buf_to_m2mctx(in);
--
--    if (in->context_ref)
--        atomic_fetch_add(&in->context_refcount, 1);
--    else {
--        in->context_ref = av_refstruct_ref(s->self_ref);
--
--        in->context_refcount = 1;
--    }
-+    unsigned int bytesused, length;
+     unsigned int bytesused, length;
 +    int rv = 0;
  
--    in->status = V4L2BUF_RET_USER;
--    atomic_fetch_add_explicit(&s->refcount, 1, memory_order_relaxed);
-+    if (plane >= out->num_planes)
-+        return AVERROR(EINVAL);
+     if (plane >= out->num_planes)
+         return AVERROR(EINVAL);
+@@ -305,32 +627,65 @@
+     length = out->plane_info[plane].length;
+     bytesused = FFMIN(size+offset, length);
  
--    return 0;
--}
-+    length = out->plane_info[plane].length;
-+    bytesused = FFMIN(size+offset, length);
- 
--#if CONFIG_LIBDRM
--static int v4l2_buf_to_bufref_drm(V4L2Buffer *in, AVBufferRef **buf)
--{
--    int ret;
+-    memcpy((uint8_t*)out->plane_info[plane].mm_addr+offset, data, FFMIN(size, length-offset));
+-
+-    if (V4L2_TYPE_IS_MULTIPLANAR(out->buf.type)) {
+-        out->planes[plane].bytesused = bytesused;
+-        out->planes[plane].length = length;
+-    } else {
+-        out->buf.bytesused = bytesused;
+-        out->buf.length = length;
 +    if (size > length - offset) {
 +        size = length - offset;
 +        rv = AVERROR(ENOMEM);
-+    }
+     }
  
--    *buf = av_buffer_create((uint8_t *) &in->drm_frame,
--                            sizeof(in->drm_frame),
--                            v4l2_free_buffer,
--                            in, AV_BUFFER_FLAG_READONLY);
--    if (!*buf)
--        return AVERROR(ENOMEM);
+-    return 0;
 +    memcpy((uint8_t*)out->plane_info[plane].mm_addr+offset, data, size);
- 
--    ret = v4l2_buf_increase_ref(in);
--    if (ret)
--         av_buffer_unref(buf);
++
 +    set_buf_length(out, plane, bytesused, length);
- 
--    return ret;
++
 +    return rv;
- }
--#endif
- 
--static int v4l2_buf_to_bufref(V4L2Buffer *in, int plane, AVBufferRef **buf)
++}
++
 +static AVBufferRef * wrap_avbuf(V4L2Buffer * const avbuf)
- {
--    int ret;
--
--    if (plane >= in->num_planes)
--        return AVERROR(EINVAL);
++{
 +    AVBufferRef * bufref = av_buffer_ref(avbuf->context->bufrefs[avbuf->buf.index]);
 +    AVBufferRef * newbuf;
- 
--    /* even though most encoders return 0 in data_offset encoding vp8 does require this value */
--    *buf = av_buffer_create((char *)in->plane_info[plane].mm_addr + in->planes[plane].data_offset,
--                            in->plane_info[plane].length, v4l2_free_buffer, in, 0);
--    if (!*buf)
--        return AVERROR(ENOMEM);
++
 +    if (!bufref)
 +        return NULL;
- 
--    ret = v4l2_buf_increase_ref(in);
--    if (ret)
--        av_buffer_unref(buf);
++
 +    newbuf = av_buffer_create((uint8_t *)bufref, sizeof(*bufref), v4l2_free_bufref, NULL, 0);
 +    if (newbuf == NULL)
 +        av_buffer_unref(&bufref);
- 
--    return ret;
++
 +    avbuf->status = V4L2BUF_RET_USER;
 +    return newbuf;
  }
  
--static int v4l2_bufref_to_buf(V4L2Buffer *out, int plane, const uint8_t* data, int size, int offset)
-+static int v4l2_buffer_buf_to_swframe(AVFrame *frame, V4L2Buffer *avbuf)
+ static int v4l2_buffer_buf_to_swframe(AVFrame *frame, V4L2Buffer *avbuf)
  {
--    unsigned int bytesused, length;
+-    int i, ret;
 +    int i;
  
--    if (plane >= out->num_planes)
--        return AVERROR(EINVAL);
-+    frame->format = avbuf->context->av_pix_fmt;
+     frame->format = avbuf->context->av_pix_fmt;
  
--    length = out->plane_info[plane].length;
--    bytesused = FFMIN(size+offset, length);
+-    for (i = 0; i < avbuf->num_planes; i++) {
+-        ret = v4l2_buf_to_bufref(avbuf, i, &frame->buf[i]);
+-        if (ret)
+-            return ret;
 +    frame->buf[0] = wrap_avbuf(avbuf);
 +    if (frame->buf[0] == NULL)
 +        return AVERROR(ENOMEM);
- 
--    memcpy((uint8_t*)out->plane_info[plane].mm_addr+offset, data, FFMIN(size, length-offset));
++
 +    if (buf_to_m2mctx(avbuf)->output_drm) {
 +#if !CONFIG_LIBDRM
 +        return AVERROR_OPTION_NOT_FOUND;
@@ -637,41 +657,23 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +        if (rv != 0)
 +            return rv;
  
--    if (V4L2_TYPE_IS_MULTIPLANAR(out->buf.type)) {
--        out->planes[plane].bytesused = bytesused;
--        out->planes[plane].length = length;
--    } else {
--        out->buf.bytesused = bytesused;
--        out->buf.length = length;
 +        frame->data[0] = (uint8_t *) v4l2_get_drm_frame(avbuf);
 +        frame->format = AV_PIX_FMT_DRM_PRIME;
 +        frame->hw_frames_ctx = av_buffer_ref(avbuf->context->frames_ref);
 +        return 0;
 +#endif
-     }
- 
--    return 0;
--}
--
--static int v4l2_buffer_buf_to_swframe(AVFrame *frame, V4L2Buffer *avbuf)
--{
--    int i, ret;
--
--    frame->format = avbuf->context->av_pix_fmt;
- 
++    }
++
++
 +    /* 1. get references to the actual data */
-     for (i = 0; i < avbuf->num_planes; i++) {
--        ret = v4l2_buf_to_bufref(avbuf, i, &frame->buf[i]);
--        if (ret)
--            return ret;
--
++    for (i = 0; i < avbuf->num_planes; i++) {
 +        frame->data[i] = (uint8_t *)avbuf->plane_info[i].mm_addr + avbuf->planes[i].data_offset;
          frame->linesize[i] = avbuf->plane_info[i].bytesperline;
 -        frame->data[i] = frame->buf[i]->data;
      }
  
      /* fixup special cases */
-@@ -473,88 +694,152 @@
+@@ -339,88 +694,152 @@
      case AV_PIX_FMT_NV21:
          if (avbuf->num_planes > 1)
              break;
@@ -854,7 +856,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +            int h = frame->height;
 +            int dst_stride = out->plane_info[0].bytesperline;
 +            uint8_t * const dst = (uint8_t *)out->plane_info[0].mm_addr + offset;
- 
++
 +            if (is_chroma(desc, i, num_planes)) {
 +                // Is chroma
 +                dst_stride >>= desc->log2_chroma_w;
@@ -870,7 +872,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +                av_log(NULL, AV_LOG_ERROR, "%s: Plane total %u > buffer size %zu\n", __func__, offset, out->plane_info[0].length);
 +                return -1;
 +            }
-+
+ 
 +            cpy_2d(dst, dst_stride,
 +                   frame->data[i], frame->linesize[i],
 +                   w * pel_strides[i], h);
@@ -880,7 +882,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
      return 0;
  }
  
-@@ -564,52 +849,66 @@
+@@ -430,16 +849,31 @@
   *
   ******************************************************************************/
  
@@ -915,26 +917,8 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
      av_frame_unref(frame);
  
-     /* 1. get references to the actual data */
--    if (buf_to_m2mctx(avbuf)->output_drm) {
--#if CONFIG_LIBDRM
--        /* 1. get references to the actual data */
--        ret = v4l2_buf_to_bufref_drm(avbuf, &frame->buf[0]);
--        if (ret)
--            return ret;
--
--        frame->data[0] = (uint8_t *) v4l2_get_drm_frame(avbuf);
--        frame->format = AV_PIX_FMT_DRM_PRIME;
--        frame->hw_frames_ctx = av_buffer_ref(avbuf->context->frames_ref);
--#endif
--    } else {
--        ret = v4l2_buffer_buf_to_swframe(frame, avbuf);
--        if (ret)
--            return ret;
--    }
-+    ret = v4l2_buffer_buf_to_swframe(frame, avbuf);
-+    if (ret)
-+        return ret;
+@@ -449,20 +883,32 @@
+         return ret;
  
      /* 2. get frame information */
 -    if (avbuf->buf.flags & V4L2_BUF_FLAG_KEYFRAME)
@@ -972,7 +956,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
      /* 3. report errors upstream */
      if (avbuf->buf.flags & V4L2_BUF_FLAG_ERROR) {
-@@ -622,15 +921,15 @@
+@@ -475,15 +921,15 @@
  
  int ff_v4l2_buffer_buf_to_avpkt(AVPacket *pkt, V4L2Buffer *avbuf)
  {
@@ -994,7 +978,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
      if (avbuf->buf.flags & V4L2_BUF_FLAG_KEYFRAME)
          pkt->flags |= AV_PKT_FLAG_KEY;
-@@ -645,60 +944,108 @@
+@@ -498,39 +944,108 @@
      return 0;
  }
  
@@ -1035,54 +1019,34 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
 -int ff_v4l2_buffer_initialize(V4L2Buffer* avbuf, int index)
 +int ff_v4l2_buffer_avpkt_to_buf(const AVPacket *pkt, V4L2Buffer *out)
- {
--    V4L2Context *ctx = avbuf->context;
--    int ret, i;
++{
 +    return ff_v4l2_buffer_avpkt_to_buf_ext(pkt, out, NULL, 0, 0);
 +}
- 
--    avbuf->buf.memory = V4L2_MEMORY_MMAP;
--    avbuf->buf.type = ctx->type;
--    avbuf->buf.index = index;
- 
--    if (buf_to_m2mctx(avbuf)->output_drm) {
--        AVHWFramesContext *hwframes;
++
++
 +static void v4l2_buffer_buffer_free(void *opaque, uint8_t *data)
 +{
 +    V4L2Buffer * const avbuf = (V4L2Buffer *)data;
 +    int i;
- 
--        av_buffer_unref(&ctx->frames_ref);
++
 +    for (i = 0; i != FF_ARRAY_ELEMS(avbuf->plane_info); ++i) {
 +        struct V4L2Plane_info *p = avbuf->plane_info + i;
 +        if (p->mm_addr != NULL)
 +            munmap(p->mm_addr, p->length);
 +    }
- 
--        ctx->frames_ref = av_hwframe_ctx_alloc(buf_to_m2mctx(avbuf)->device_ref);
--        if (!ctx->frames_ref) {
--            ret = AVERROR(ENOMEM);
--            return ret;
++
 +    if (avbuf->dmabuf[0] == NULL) {
 +        for (i = 0; i != FF_ARRAY_ELEMS(avbuf->drm_frame.objects); ++i) {
 +            if (avbuf->drm_frame.objects[i].fd != -1)
 +                close(avbuf->drm_frame.objects[i].fd);
-         }
++        }
 +    }
 +    else {
 +        for (i = 0; i != FF_ARRAY_ELEMS(avbuf->dmabuf); ++i) {
 +            dmabuf_free(avbuf->dmabuf[i]);
 +        }
 +    }
- 
--        hwframes = (AVHWFramesContext*)ctx->frames_ref->data;
--        hwframes->format = AV_PIX_FMT_DRM_PRIME;
--        hwframes->sw_format = ctx->av_pix_fmt;
--        hwframes->width = ctx->width;
--        hwframes->height = ctx->height;
--        ret = av_hwframe_ctx_init(ctx->frames_ref);
--        if (ret < 0)
--            return ret;
++
 +    av_buffer_unref(&avbuf->ref_buf);
 +
 +    ff_weak_link_unref(&avbuf->context_wl);
@@ -1092,13 +1056,15 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +
 +
 +int ff_v4l2_buffer_initialize(AVBufferRef ** pbufref, int index, V4L2Context *ctx, enum v4l2_memory mem)
-+{
-+    int ret, i;
+ {
+-    V4L2Context *ctx = avbuf->context;
+     int ret, i;
 +    V4L2Buffer * const avbuf = av_mallocz(sizeof(*avbuf));
 +    AVBufferRef * bufref;
 +    V4L2m2mContext * const s = ctx_to_m2mctx(ctx);
 +    int want_mmap;
-+
+ 
+-    avbuf->buf.memory = V4L2_MEMORY_MMAP;
 +    *pbufref = NULL;
 +    if (avbuf == NULL)
 +        return AVERROR(ENOMEM);
@@ -1107,13 +1073,13 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +    if (bufref == NULL) {
 +        av_free(avbuf);
 +        return AVERROR(ENOMEM);
-     }
- 
++    }
++
 +    avbuf->context = ctx;
 +    avbuf->buf.memory = mem;
-+    avbuf->buf.type = ctx->type;
-+    avbuf->buf.index = index;
-+
+     avbuf->buf.type = ctx->type;
+     avbuf->buf.index = index;
+ 
 +    for (i = 0; i != FF_ARRAY_ELEMS(avbuf->drm_frame.objects); ++i) {
 +        avbuf->drm_frame.objects[i].fd = -1;
 +    }
@@ -1133,7 +1099,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
      if (V4L2_TYPE_IS_MULTIPLANAR(ctx->type)) {
          avbuf->num_planes = 0;
-@@ -710,34 +1057,37 @@
+@@ -542,33 +1057,41 @@
      } else
          avbuf->num_planes = 1;
  
@@ -1148,26 +1114,24 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
          if (V4L2_TYPE_IS_MULTIPLANAR(ctx->type)) {
              avbuf->plane_info[i].length = avbuf->buf.m.planes[i].length;
+-            avbuf->plane_info[i].mm_addr = mmap(NULL, avbuf->buf.m.planes[i].length,
+-                                           PROT_READ | PROT_WRITE, MAP_SHARED,
+-                                           buf_to_m2mctx(avbuf)->fd, avbuf->buf.m.planes[i].m.mem_offset);
 +            avbuf->plane_info[i].offset = avbuf->buf.m.planes[i].data_offset;
- 
--            if ((V4L2_TYPE_IS_OUTPUT(ctx->type) && buf_to_m2mctx(avbuf)->output_drm) ||
--                !buf_to_m2mctx(avbuf)->output_drm) {
++
 +            if (want_mmap)
-                 avbuf->plane_info[i].mm_addr = mmap(NULL, avbuf->buf.m.planes[i].length,
-                                                PROT_READ | PROT_WRITE, MAP_SHARED,
-                                                buf_to_m2mctx(avbuf)->fd, avbuf->buf.m.planes[i].m.mem_offset);
--            }
++                avbuf->plane_info[i].mm_addr = mmap(NULL, avbuf->buf.m.planes[i].length,
++                                               PROT_READ | PROT_WRITE, MAP_SHARED,
++                                               buf_to_m2mctx(avbuf)->fd, avbuf->buf.m.planes[i].m.mem_offset);
          } else {
              avbuf->plane_info[i].length = avbuf->buf.length;
+-            avbuf->plane_info[i].mm_addr = mmap(NULL, avbuf->buf.length,
+-                                          PROT_READ | PROT_WRITE, MAP_SHARED,
+-                                          buf_to_m2mctx(avbuf)->fd, avbuf->buf.m.offset);
 +            avbuf->plane_info[i].offset = 0;
- 
--            if ((V4L2_TYPE_IS_OUTPUT(ctx->type) && buf_to_m2mctx(avbuf)->output_drm) ||
--                !buf_to_m2mctx(avbuf)->output_drm) {
++
 +            if (want_mmap)
-                 avbuf->plane_info[i].mm_addr = mmap(NULL, avbuf->buf.length,
--                                              PROT_READ | PROT_WRITE, MAP_SHARED,
--                                              buf_to_m2mctx(avbuf)->fd, avbuf->buf.m.offset);
--            }
++                avbuf->plane_info[i].mm_addr = mmap(NULL, avbuf->buf.length,
 +                                               PROT_READ | PROT_WRITE, MAP_SHARED,
 +                                               buf_to_m2mctx(avbuf)->fd, avbuf->buf.m.offset);
          }
@@ -1182,33 +1146,26 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
      }
  
      avbuf->status = V4L2BUF_AVAILABLE;
-@@ -745,35 +1095,58 @@
-     if (V4L2_TYPE_IS_MULTIPLANAR(ctx->type)) {
-         avbuf->buf.m.planes = avbuf->planes;
-         avbuf->buf.length   = avbuf->num_planes;
-+
-     } else {
-         avbuf->buf.bytesused = avbuf->planes[0].bytesused;
-         avbuf->buf.length    = avbuf->planes[0].length;
-     }
  
 -    if (V4L2_TYPE_IS_OUTPUT(ctx->type))
 -        return 0;
 -
--#if CONFIG_LIBDRM
--    if (buf_to_m2mctx(avbuf)->output_drm) {
+     if (V4L2_TYPE_IS_MULTIPLANAR(ctx->type)) {
+         avbuf->buf.m.planes = avbuf->planes;
+         avbuf->buf.length   = avbuf->num_planes;
+@@ -578,20 +1101,52 @@
+         avbuf->buf.length    = avbuf->planes[0].length;
+     }
+ 
+-    return ff_v4l2_buffer_enqueue(avbuf);
 +    if (V4L2_TYPE_IS_CAPTURE(ctx->type) && !want_mmap) {
 +        // export_drm does dmabuf alloc if we aren't using v4l2 alloc
-         ret = v4l2_buffer_export_drm(avbuf);
--        if (ret)
--            return ret;
++        ret = v4l2_buffer_export_drm(avbuf);
 +        if (ret) {
 +            av_log(logger(avbuf), AV_LOG_ERROR, "Failed to get exported drm handles\n");
 +            goto fail;
 +        }
-     }
--#endif
--    return ff_v4l2_buffer_enqueue(avbuf);
++    }
 +
 +    *pbufref = bufref;
 +    return 0;
@@ -1253,14 +1210,13 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
      return 0;
  }
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buffers.h a/libavcodec/v4l2_buffers.h
---- a/libavcodec/v4l2_buffers.h	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_buffers.h	2026-03-27 21:26:55.250009223 +0100
-@@ -28,35 +28,47 @@
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_buffers.h ffmpeg-8.1/libavcodec/v4l2_buffers.h
+--- ffmpeg-8.1/libavcodec/v4l2_buffers.h	2026-03-16 19:13:05.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_buffers.h	2026-03-27 21:26:55.250009223 +0100
+@@ -28,31 +28,47 @@
  #include <stddef.h>
  #include <linux/videodev2.h>
  
--#include "libavutil/hwcontext_drm.h"
 +#include "avcodec.h"
 +#include "libavutil/buffer.h"
  #include "libavutil/frame.h"
@@ -1292,14 +1248,13 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
      struct V4L2Context *context;
 +    struct ff_weak_link_client *context_wl;
  
-     /* DRM descriptor */
-     AVDRMFrameDescriptor drm_frame;
--
 -    /* This object is refcounted per-plane, so we need to keep track
 -     * of how many context-refs we are holding.
 -     * This pointer is a RefStruct reference. */
 -    const struct V4L2m2mContext *context_ref;
 -    atomic_uint context_refcount;
++    /* DRM descriptor */
++    AVDRMFrameDescriptor drm_frame;
 +    /* For DRM_PRIME encode - need to keep a ref to the source buffer till we
 +     * are done
 +     */
@@ -1313,7 +1268,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
          void * mm_addr;
          size_t length;
      } plane_info[VIDEO_MAX_PLANES];
-@@ -67,9 +79,9 @@
+@@ -63,9 +79,9 @@
      struct v4l2_buffer buf;
      struct v4l2_plane planes[VIDEO_MAX_PLANES];
  
@@ -1324,7 +1279,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  } V4L2Buffer;
  
  /**
-@@ -105,6 +117,10 @@
+@@ -101,6 +117,10 @@
   */
  int ff_v4l2_buffer_avpkt_to_buf(const AVPacket *pkt, V4L2Buffer *out);
  
@@ -1335,7 +1290,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  /**
   * Extracts the data from an AVFrame to a V4L2Buffer
   *
-@@ -113,7 +129,7 @@
+@@ -109,7 +129,7 @@
   *
   * @returns 0 in case of success, a negative AVERROR code otherwise
   */
@@ -1344,7 +1299,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
  /**
   * Initializes a V4L2Buffer
-@@ -123,7 +139,7 @@
+@@ -119,7 +139,7 @@
   *
   * @returns 0 in case of success, a negative AVERROR code otherwise
   */
@@ -1353,7 +1308,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
  
  /**
   * Enqueues a V4L2Buffer
-@@ -134,5 +150,12 @@
+@@ -130,5 +150,12 @@
   */
  int ff_v4l2_buffer_enqueue(V4L2Buffer* avbuf);
  
@@ -1366,9 +1321,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_buff
 +
  
  #endif // AVCODEC_V4L2_BUFFERS_H
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_context.c a/libavcodec/v4l2_context.c
---- a/libavcodec/v4l2_context.c	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_context.c	2026-03-27 21:26:55.250009223 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_context.c ffmpeg-8.1/libavcodec/v4l2_context.c
+--- ffmpeg-8.1/libavcodec/v4l2_context.c	2026-03-16 19:13:05.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_context.c	2026-03-27 21:26:55.250009223 +0100
 @@ -28,11 +28,14 @@
  #include <fcntl.h>
  #include <poll.h>
@@ -1737,7 +1692,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
      return 1;
  }
  
-@@ -267,177 +430,300 @@
+@@ -267,175 +430,300 @@
      return 0;
  }
  
@@ -1796,8 +1751,8 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
 +        buf.m.planes = planes;
      }
  
--    /* if there are no more capture buffers queued in the driver, skip polling */
--    if (!V4L2_TYPE_IS_OUTPUT(ctx->type)) {
+-    /* if we are draining and there are no more capture buffers queued in the driver we are done */
+-    if (!V4L2_TYPE_IS_OUTPUT(ctx->type) && ctx_to_m2mctx(ctx)->draining) {
 -        for (i = 0; i < ctx->num_buffers; i++) {
 -            /* capture buffer initialization happens during decode hence
 -             * detection happens at runtime
@@ -1818,9 +1773,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
 +
 +            return AVERROR(err);
          }
--        /* if we were waiting to drain, all done! */
--        if (ctx_to_m2mctx(ctx)->draining)
--            ctx->done = 1;
+-        ctx->done = 1;
 -        return NULL;
      }
 +    atomic_fetch_sub(&ctx->q_count, 1);
@@ -2164,7 +2117,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
      }
  
      return NULL;
-@@ -445,44 +731,31 @@
+@@ -443,25 +731,45 @@
  
  static int v4l2_release_buffers(V4L2Context* ctx)
  {
@@ -2173,7 +2126,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
 -        .type = ctx->type,
 -        .count = 0, /* 0 -> unmaps buffers from the driver */
 -    };
--    int ret, i, j;
+-    int i, j;
 +    int i;
 +    int ret = 0;
 +    const int fd = ctx_to_m2mctx(ctx)->fd;
@@ -2185,61 +2138,46 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
  
 -        for (j = 0; j < buffer->num_planes; j++) {
 -            struct V4L2Plane_info *p = &buffer->plane_info[j];
+-            if (p->mm_addr && p->length)
+-                if (munmap(p->mm_addr, p->length) < 0)
+-                    av_log(logger(ctx), AV_LOG_ERROR, "%s unmap plane (%s))\n", ctx->name, av_err2str(AVERROR(errno)));
 +    if (ctx->bufrefs) {
 +        for (i = 0; i < ctx->num_buffers; i++)
 +            av_buffer_unref(ctx->bufrefs + i);
 +    }
- 
--            if (V4L2_TYPE_IS_OUTPUT(ctx->type)) {
--                /* output buffers are not EXPORTED */
--                goto unmap;
--            }
++
 +    if (fd != -1) {
 +        struct v4l2_requestbuffers req = {
 +            .memory = V4L2_MEMORY_MMAP,
 +            .type = ctx->type,
 +            .count = 0, /* 0 -> unmap all buffers from the driver */
 +        };
- 
--            if (ctx_to_m2mctx(ctx)->output_drm) {
--                /* use the DRM frame to close */
--                if (buffer->drm_frame.objects[j].fd >= 0) {
--                    if (close(buffer->drm_frame.objects[j].fd) < 0) {
--                        av_log(logger(ctx), AV_LOG_ERROR, "%s close drm fd "
--                            "[buffer=%2d, plane=%d, fd=%2d] - %s \n",
--                            ctx->name, i, j, buffer->drm_frame.objects[j].fd,
--                            av_err2str(AVERROR(errno)));
--                    }
--                }
--            }
--unmap:
--            if (p->mm_addr && p->length)
--                if (munmap(p->mm_addr, p->length) < 0)
--                    av_log(logger(ctx), AV_LOG_ERROR, "%s unmap plane (%s))\n", ctx->name, av_err2str(AVERROR(errno)));
--        }
--    }
++
 +        while ((ret = ioctl(fd, VIDIOC_REQBUFS, &req)) == -1) {
 +            if (errno == EINTR)
 +                continue;
 +
 +            ret = AVERROR(errno);
- 
--    ret = ioctl(ctx_to_m2mctx(ctx)->fd, VIDIOC_REQBUFS, &req);
--    if (ret < 0) {
-             av_log(logger(ctx), AV_LOG_ERROR, "release all %s buffers (%s)\n",
-                 ctx->name, av_err2str(AVERROR(errno)));
- 
-@@ -492,7 +765,9 @@
-                     "for all buffers: \n"
-                     "  1. drmModeRmFB(..)\n"
-                     "  2. drmIoctl(.., DRM_IOCTL_GEM_CLOSE,... )\n");
-+        }
++
++            av_log(logger(ctx), AV_LOG_ERROR, "release all %s buffers (%s)\n",
++                ctx->name, av_err2str(AVERROR(errno)));
++
++            if (ctx_to_m2mctx(ctx)->output_drm)
++                av_log(logger(ctx), AV_LOG_ERROR,
++                    "Make sure the DRM client releases all FB/GEM objects before closing the codec (ie):\n"
++                    "for all buffers: \n"
++                    "  1. drmModeRmFB(..)\n"
++                    "  2. drmIoctl(.., DRM_IOCTL_GEM_CLOSE,... )\n");
+         }
      }
 +    atomic_store(&ctx->q_count, 0);
  
-     return ret;
+-    return ioctl(ctx_to_m2mctx(ctx)->fd, VIDIOC_REQBUFS, &req);
++    return ret;
  }
-@@ -523,6 +798,8 @@
+ 
+ static inline int v4l2_try_raw_format(V4L2Context* ctx, enum AVPixelFormat pixfmt)
+@@ -490,6 +798,8 @@
  
  static int v4l2_get_raw_format(V4L2Context* ctx, enum AVPixelFormat *p)
  {
@@ -2248,7 +2186,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
      enum AVPixelFormat pixfmt = ctx->av_pix_fmt;
      struct v4l2_fmtdesc fdesc;
      int ret;
-@@ -536,21 +813,22 @@
+@@ -503,21 +813,22 @@
              return 0;
      }
  
@@ -2279,7 +2217,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
      }
  
      return AVERROR(EINVAL);
-@@ -593,30 +871,131 @@
+@@ -560,30 +871,131 @@
    *
    *****************************************************************************/
  
@@ -2420,7 +2358,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
          s->draining= 1;
          return 0;
      }
-@@ -625,23 +1004,29 @@
+@@ -592,23 +1004,29 @@
      if (!avbuf)
          return AVERROR(EAGAIN);
  
@@ -2453,7 +2391,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
          s->draining = 1;
          return 0;
      }
-@@ -650,8 +1035,13 @@
+@@ -617,8 +1035,13 @@
      if (!avbuf)
          return AVERROR(EAGAIN);
  
@@ -2469,7 +2407,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
          return ret;
  
      return ff_v4l2_buffer_enqueue(avbuf);
-@@ -659,42 +1049,77 @@
+@@ -626,42 +1049,77 @@
  
  int ff_v4l2_context_dequeue_frame(V4L2Context* ctx, AVFrame* frame, int timeout)
  {
@@ -2572,7 +2510,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
  }
  
  int ff_v4l2_context_get_format(V4L2Context* ctx, int probe)
-@@ -726,78 +1151,194 @@
+@@ -693,78 +1151,194 @@
  
  int ff_v4l2_context_set_format(V4L2Context* ctx)
  {
@@ -2717,7 +2655,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
 +    const int w = ctx->width != 0 ? ctx->width : s->avctx->width;
 +    const int h = ctx->height != 0 ? ctx->height : s->avctx->height;
 +    int ret;
- 
++
 +    if (ctx->frames_ref != NULL) {
 +        const AVHWFramesContext * const hwf = (AVHWFramesContext*)ctx->frames_ref->data;
 +        if (hwf->sw_format == ctx->av_pix_fmt && hwf->width == w && hwf->height == h)
@@ -2754,7 +2692,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
 +
 +    // It is not valid to reinit a context without a previous release
 +    av_assert0(ctx->bufrefs == NULL);
-+
+ 
 +    if (!v4l2_type_supported(ctx)) {
 +        av_log(logger(ctx), AV_LOG_ERROR, "type %i not supported\n", ctx->type);
 +        return AVERROR_PATCHWELCOME;
@@ -2799,9 +2737,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
 +    ff_mutex_destroy(&ctx->lock);
      return ret;
  }
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_context.h a/libavcodec/v4l2_context.h
---- a/libavcodec/v4l2_context.h	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_context.h	2026-03-27 21:26:55.250009223 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_context.h ffmpeg-8.1/libavcodec/v4l2_context.h
+--- ffmpeg-8.1/libavcodec/v4l2_context.h	2026-03-16 19:13:05.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_context.h	2026-03-27 21:26:55.250009223 +0100
 @@ -32,6 +32,8 @@
  #include "libavutil/rational.h"
  #include "codec_id.h"
@@ -2832,7 +2770,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
  
      /**
       * Readonly after init.
-@@ -83,18 +92,38 @@
+@@ -83,16 +92,38 @@
      int num_buffers;
  
      /**
@@ -2862,16 +2800,16 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
 +     */
 +    uint64_t track_ts;
 +
-     AVBufferRef *frames_ref;
++    AVBufferRef *frames_ref;
 +    atomic_int q_count;
 +    struct ff_weak_link_master *wl_master;
- 
++
 +    AVMutex lock;
 +    pthread_cond_t cond;
  } V4L2Context;
  
  /**
-@@ -106,6 +135,14 @@
+@@ -104,6 +135,14 @@
  int ff_v4l2_context_init(V4L2Context* ctx);
  
  /**
@@ -2886,7 +2824,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
   * Sets the V4L2Context format in the v4l2 driver.
   *
   * @param[in] ctx A pointer to a V4L2Context. See V4L2Context description for required variables.
-@@ -123,6 +160,19 @@
+@@ -121,6 +160,19 @@
  int ff_v4l2_context_get_format(V4L2Context* ctx, int probe);
  
  /**
@@ -2906,7 +2844,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
   * Releases a V4L2Context.
   *
   * @param[in] ctx A pointer to a V4L2Context.
-@@ -150,7 +200,7 @@
+@@ -148,7 +200,7 @@
   * @param[inout] pkt The AVPacket to dequeue to.
   * @return 0 in case of success, AVERROR(EAGAIN) if no buffer was ready, another negative error in case of error.
   */
@@ -2915,7 +2853,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
  
  /**
   * Dequeues a buffer from a V4L2Context to an AVFrame.
-@@ -159,7 +209,10 @@
+@@ -157,7 +209,10 @@
   * @param[in] ctx The V4L2Context to dequeue from.
   * @param[inout] f The AVFrame to dequeue to.
   * @param[in] timeout The timeout for dequeue (-1 to block, 0 to return immediately, or milliseconds)
@@ -2926,7 +2864,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
   */
  int ff_v4l2_context_dequeue_frame(V4L2Context* ctx, AVFrame* f, int timeout);
  
-@@ -173,7 +226,7 @@
+@@ -171,7 +226,7 @@
   * @param[in] pkt A pointer to an AVPacket.
   * @return 0 in case of success, a negative error otherwise.
   */
@@ -2935,7 +2873,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
  
  /**
   * Enqueues a buffer to a V4L2Context from an AVFrame
-@@ -186,4 +239,28 @@
+@@ -184,4 +239,28 @@
   */
  int ff_v4l2_context_enqueue_frame(V4L2Context* ctx, const AVFrame* f);
  
@@ -2964,9 +2902,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_cont
 +}
 +
  #endif // AVCODEC_V4L2_CONTEXT_H
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_fmt.c a/libavcodec/v4l2_fmt.c
---- a/libavcodec/v4l2_fmt.c	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_fmt.c	2026-03-27 21:26:55.250009223 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_fmt.c ffmpeg-8.1/libavcodec/v4l2_fmt.c
+--- ffmpeg-8.1/libavcodec/v4l2_fmt.c	2023-11-10 00:38:51.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_fmt.c	2026-07-19 10:57:39.894164520 +0200
 @@ -42,6 +42,14 @@
      { AV_FMT(RGB24),       AV_CODEC(RAWVIDEO),    V4L2_FMT(RGB24) },
      { AV_FMT(BGR0),        AV_CODEC(RAWVIDEO),    V4L2_FMT(BGR32) },
@@ -2992,9 +2930,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_fmt.
  #ifdef V4L2_PIX_FMT_VC1_ANNEX_G
      { AV_FMT(NONE),        AV_CODEC(VC1),         V4L2_FMT(VC1_ANNEX_G) },
  #endif
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m.c a/libavcodec/v4l2_m2m.c
---- a/libavcodec/v4l2_m2m.c	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_m2m.c	2026-03-27 21:26:55.250009223 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_m2m.c ffmpeg-8.1/libavcodec/v4l2_m2m.c
+--- ffmpeg-8.1/libavcodec/v4l2_m2m.c	2026-03-16 19:13:05.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_m2m.c	2026-07-19 10:57:39.894284300 +0200
 @@ -36,6 +36,15 @@
  #include "v4l2_context.h"
  #include "v4l2_fmt.h"
@@ -3159,10 +3097,10 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m.
  
      priv->context->frame = av_frame_alloc();
      if (!priv->context->frame) {
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_dec.c a/libavcodec/v4l2_m2m_dec.c
---- a/libavcodec/v4l2_m2m_dec.c	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_m2m_dec.c	2026-03-27 21:26:55.250009223 +0100
-@@ -21,89 +21,295 @@
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_m2m_dec.c ffmpeg-8.1/libavcodec/v4l2_m2m_dec.c
+--- ffmpeg-8.1/libavcodec/v4l2_m2m_dec.c	2026-03-16 19:13:05.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_m2m_dec.c	2026-03-27 21:26:55.250009223 +0100
+@@ -21,8 +21,15 @@
   * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
   */
  
@@ -3170,22 +3108,22 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
 +
  #include <linux/videodev2.h>
  #include <sys/ioctl.h>
- 
++
 +#include "libavutil/avassert.h"
- #include "libavutil/hwcontext.h"
- #include "libavutil/hwcontext_drm.h"
++#include "libavutil/hwcontext.h"
++#include "libavutil/hwcontext_drm.h"
 +#include "libavutil/mem.h"
  #include "libavutil/pixfmt.h"
  #include "libavutil/pixdesc.h"
  #include "libavutil/opt.h"
- #include "libavcodec/avcodec.h"
+@@ -30,75 +37,279 @@
  #include "codec_internal.h"
  #include "libavcodec/decode.h"
-+
-+#include "libavcodec/hwaccels.h"
- #include "libavcodec/internal.h"
- #include "libavcodec/hwconfig.h"
  
++#include "libavcodec/hwaccels.h"
++#include "libavcodec/internal.h"
++#include "libavcodec/hwconfig.h"
++
  #include "v4l2_context.h"
  #include "v4l2_m2m.h"
  #include "v4l2_fmt.h"
@@ -3258,13 +3196,13 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
 +    for (i = 0; i != 8; ++i) {
 +        *s++ = ' ';
 +        s = len > i + offset ? hex2(s, *m++) : dash2(s);
-     }
++    }
 +    *s++ = ' ';
 +    *s++ = ':';
 +    for (; i != 16; ++i) {
 +        *s++ = ' ';
 +        s = len > i + offset ? hex2(s, *m++) : dash2(s);
-+    }
+     }
 +    *s++ = 0;
 +}
  
@@ -3506,7 +3444,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
      return 0;
  }
  
-@@ -138,51 +344,887 @@
+@@ -133,51 +344,887 @@
      return 0;
  }
  
@@ -4421,7 +4359,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
  static av_cold int v4l2_decode_init(AVCodecContext *avctx)
  {
      V4L2Context *capture, *output;
-@@ -190,10 +1232,17 @@
+@@ -185,10 +1232,17 @@
      V4L2m2mPriv *priv = avctx->priv_data;
      int ret;
  
@@ -4439,7 +4377,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
      capture = &s->capture;
      output = &s->output;
  
-@@ -201,40 +1250,34 @@
+@@ -196,14 +1250,45 @@
       * by the v4l2 driver; this event will trigger a full pipeline reconfig and
       * the proper values will be retrieved from the kernel driver.
       */
@@ -4457,32 +4395,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
      capture->av_codec_id = AV_CODEC_ID_RAWVIDEO;
      capture->av_pix_fmt = avctx->pix_fmt;
 +    capture->min_buf_size = 0;
- 
--    /* the client requests the codec to generate DRM frames:
--     *   - data[0] will therefore point to the returned AVDRMFrameDescriptor
--     *       check the ff_v4l2_buffer_to_avframe conversion function.
--     *   - the DRM frame format is passed in the DRM frame descriptor layer.
--     *       check the v4l2_get_drm_frame function.
--     */
--    {
--    const enum AVPixelFormat *pix_fmts = NULL;
--    int num_pix_fmts = 0;
--    ret = avcodec_get_supported_config(avctx, NULL, AV_CODEC_CONFIG_PIX_FORMAT,
--                                       0, (const void **) &pix_fmts, &num_pix_fmts);
--    if (ret < 0)
--        return ret;
--    if (pix_fmts == NULL || num_pix_fmts < 1)
--        return -1;
--    switch (ff_get_format(avctx, pix_fmts)) {
--    case AV_PIX_FMT_DRM_PRIME:
--        s->output_drm = 1;
--        break;
--    case AV_PIX_FMT_NONE:
--        return 0;
--        break;
--    default:
--        break;
--    }
++
 +    capture->av_pix_fmt = AV_PIX_FMT_NONE;
 +    s->output_drm = 0;
 +
@@ -4498,22 +4411,21 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
 +            av_log(avctx, AV_LOG_ERROR, "Can't open dmabuf provider '%s'\n", priv->dmabuf_alloc);
 +            return AVERROR(ENOMEM);
 +        }
-     }
++    }
++
++    s->device_ref = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_DRM);
++    if (!s->device_ref) {
++        ret = AVERROR(ENOMEM);
++        return ret;
++    }
++
++    ret = av_hwdevice_ctx_init(s->device_ref);
++    if (ret < 0)
++        return ret;
  
-     s->device_ref = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_DRM);
-@@ -243,33 +1286,101 @@
-         return ret;
-     }
- 
--    s->avctx = avctx;
-     ret = av_hwdevice_ctx_init(s->device_ref);
-     if (ret < 0)
-         return ret;
- 
-+    s->avctx = avctx;
+     s->avctx = avctx;
      ret = ff_v4l2_m2m_codec_init(priv);
-     if (ret) {
-         av_log(avctx, AV_LOG_ERROR, "can't configure decoder\n");
+@@ -212,12 +1297,90 @@
          return ret;
      }
  
@@ -4553,13 +4465,10 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
 +    rv = ff_v4l2_m2m_codec_end(avctx->priv_data);
 +    av_log(avctx, AV_LOG_TRACE, ">>> %s: rv=%d\n", __func__, rv);
 +    return rv;
- }
- 
--static void v4l2_flush(AVCodecContext *avctx)
++}
++
 +static void v4l2_decode_flush(AVCodecContext *avctx)
- {
--    V4L2m2mPriv *priv = avctx->priv_data;
--    V4L2m2mContext* s = priv->context;
++{
 +    // An alternatve and more drastic form of flush is to simply do this:
 +    //    v4l2_decode_close(avctx);
 +    //    v4l2_decode_init(avctx);
@@ -4567,10 +4476,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
 +    // associated with it have been returned.  This is a bit wasteful on
 +    // possibly limited h/w resources and fails on a Pi for this reason unless
 +    // more GPU mem is allocated than is the default.
- 
--    /* wait for pending buffer references */
--    if (atomic_load(&s->refcount))
--        while(sem_wait(&s->refsync) == -1 && errno == EINTR);
++
 +    V4L2m2mPriv * const priv = avctx->priv_data;
 +    V4L2m2mContext * const s = priv->context;
 +    V4L2Context * const output = &s->output;
@@ -4612,7 +4518,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
  }
  
  #define OFFSET(x) offsetof(V4L2m2mPriv, x)
-@@ -279,6 +1390,8 @@
+@@ -227,9 +1390,16 @@
      V4L_M2M_DEFAULT_OPTS,
      { "num_capture_buffers", "Number of buffers in the capture context",
          OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 20}, 2, INT_MAX, FLAGS },
@@ -4621,7 +4527,15 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
      { NULL},
  };
  
-@@ -297,7 +1410,7 @@
++static const AVCodecHWConfigInternal *v4l2_m2m_hw_configs[] = {
++    HW_CONFIG_INTERNAL(DRM_PRIME),
++    NULL
++};
++
+ #define M2MDEC_CLASS(NAME) \
+     static const AVClass v4l2_m2m_ ## NAME ## _dec_class = { \
+         .class_name = #NAME "_v4l2m2m_decoder", \
+@@ -240,7 +1410,7 @@
  
  #define M2MDEC(NAME, LONGNAME, CODEC, bsf_name) \
      M2MDEC_CLASS(NAME) \
@@ -4630,17 +4544,12 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
          .p.name         = #NAME "_v4l2m2m" , \
          CODEC_LONG_NAME("V4L2 mem2mem " LONGNAME " decoder wrapper"), \
          .p.type         = AVMEDIA_TYPE_VIDEO, \
-@@ -307,16 +1420,13 @@
+@@ -250,11 +1420,13 @@
          .init           = v4l2_decode_init, \
          FF_CODEC_RECEIVE_FRAME_CB(v4l2_receive_frame), \
          .close          = v4l2_decode_close, \
--        .flush          = v4l2_flush, \
--        .p.pix_fmts       = (const enum AVPixelFormat[]) { AV_PIX_FMT_DRM_PRIME, \
--                                                         AV_PIX_FMT_NV12, \
--                                                         AV_PIX_FMT_NONE}, \
 +        .flush          = v4l2_decode_flush, \
          .bsfs           = bsf_name, \
--        .hw_configs     = v4l2_m2m_hw_configs, \
          .p.capabilities = AV_CODEC_CAP_HARDWARE | AV_CODEC_CAP_DELAY | AV_CODEC_CAP_AVOID_PROBING, \
          .caps_internal  = FF_CODEC_CAP_NOT_INIT_THREADSAFE | \
                            FF_CODEC_CAP_INIT_CLEANUP, \
@@ -4649,14 +4558,14 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
      }
  
  M2MDEC(h264,  "H.264", AV_CODEC_ID_H264,       "h264_mp4toannexb");
-@@ -328,3 +1438,4 @@
+@@ -266,3 +1438,4 @@
  M2MDEC(vc1 ,  "VC1",   AV_CODEC_ID_VC1,        NULL);
  M2MDEC(vp8,   "VP8",   AV_CODEC_ID_VP8,        NULL);
  M2MDEC(vp9,   "VP9",   AV_CODEC_ID_VP9,        NULL);
 +M2MDEC(av1,   "AV1",   AV_CODEC_ID_AV1,        NULL);
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_enc.c a/libavcodec/v4l2_m2m_enc.c
---- a/libavcodec/v4l2_m2m_enc.c	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_m2m_enc.c	2026-03-27 21:40:54.061299070 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_m2m_enc.c ffmpeg-8.1/libavcodec/v4l2_m2m_enc.c
+--- ffmpeg-8.1/libavcodec/v4l2_m2m_enc.c	2026-03-16 19:13:05.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_m2m_enc.c	2026-07-19 10:57:39.897253270 +0200
 @@ -21,13 +21,17 @@
   * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
   */
@@ -5127,9 +5036,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m_
  
  static const AVOption mpeg4_options[] = {
      V4L_M2M_CAPTURE_OPTS,
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m.h a/libavcodec/v4l2_m2m.h
---- a/libavcodec/v4l2_m2m.h	2026-03-20 00:23:30.000000000 +0100
-+++ a/libavcodec/v4l2_m2m.h	2026-03-27 21:26:55.250009223 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_m2m.h ffmpeg-8.1/libavcodec/v4l2_m2m.h
+--- ffmpeg-8.1/libavcodec/v4l2_m2m.h	2026-03-16 19:13:05.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_m2m.h	2026-03-27 21:26:55.250009223 +0100
 @@ -30,6 +30,7 @@
  #include <linux/videodev2.h>
  
@@ -5185,10 +5094,15 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m.
      AVPacket buf_pkt;
  
      /* Reference to a frame. Only used during encoding */
-@@ -71,6 +100,32 @@
+@@ -66,6 +95,37 @@
  
-     /* generate DRM frames */
-     int output_drm;
+     /* reference back to V4L2m2mPriv */
+     void *priv;
++
++    AVBufferRef *device_ref;
++
++    /* generate DRM frames */
++    int output_drm;
 +
 +    /* input frames are drmprime */
 +    int input_drm;
@@ -5218,7 +5132,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m.
  } V4L2m2mContext;
  
  typedef struct V4L2m2mPriv {
-@@ -80,6 +135,8 @@
+@@ -75,6 +135,8 @@
  
      int num_output_buffers;
      int num_capture_buffers;
@@ -5227,7 +5141,7 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m.
  } V4L2m2mPriv;
  
  /**
-@@ -133,4 +190,26 @@
+@@ -128,4 +190,26 @@
   */
  int ff_v4l2_m2m_codec_full_reinit(V4L2m2mContext *ctx);
  
@@ -5254,9 +5168,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_m2m.
 +
 +
  #endif /* AVCODEC_V4L2_M2M_H */
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_req_dmabufs.c a/libavcodec/v4l2_req_dmabufs.c
---- a/libavcodec/v4l2_req_dmabufs.c	1970-01-01 01:00:00.000000000 +0100
-+++ a/libavcodec/v4l2_req_dmabufs.c	2026-03-27 21:26:55.250009223 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_req_dmabufs.c ffmpeg-8.1/libavcodec/v4l2_req_dmabufs.c
+--- ffmpeg-8.1/libavcodec/v4l2_req_dmabufs.c	1970-01-01 01:00:00.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_req_dmabufs.c	2026-07-19 10:57:39.897858960 +0200
 @@ -0,0 +1,433 @@
 +/*
 +    Copyright (C) 2024  John Cox john.cox@raspberrypi.com
@@ -5691,9 +5605,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_req_
 +    return dmabufs_ctl_new2(&dmabuf_vidbuf_cached_fns);
 +}
 +
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_req_dmabufs.h a/libavcodec/v4l2_req_dmabufs.h
---- a/libavcodec/v4l2_req_dmabufs.h	1970-01-01 01:00:00.000000000 +0100
-+++ a/libavcodec/v4l2_req_dmabufs.h	2026-03-27 21:26:55.250009223 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_req_dmabufs.h ffmpeg-8.1/libavcodec/v4l2_req_dmabufs.h
+--- ffmpeg-8.1/libavcodec/v4l2_req_dmabufs.h	1970-01-01 01:00:00.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_req_dmabufs.h	2026-07-19 10:57:39.898017270 +0200
 @@ -0,0 +1,69 @@
 +/*
 +    Copyright (C) 2024  John Cox john.cox@raspberrypi.com
@@ -5764,9 +5678,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_req_
 +void dmabuf_free(struct dmabuf_h * dh);
 +
 +#endif
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_req_utils.h a/libavcodec/v4l2_req_utils.h
---- a/libavcodec/v4l2_req_utils.h	1970-01-01 01:00:00.000000000 +0100
-+++ a/libavcodec/v4l2_req_utils.h	2026-03-27 21:26:55.250009223 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/v4l2_req_utils.h ffmpeg-8.1/libavcodec/v4l2_req_utils.h
+--- ffmpeg-8.1/libavcodec/v4l2_req_utils.h	1970-01-01 01:00:00.000000000 +0100
++++ ffmpeg-8.1/libavcodec/v4l2_req_utils.h	2026-07-19 10:57:39.898098460 +0200
 @@ -0,0 +1,51 @@
 +/*
 +    Copyright (C) 2024  John Cox john.cox@raspberrypi.com
@@ -5819,9 +5733,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/v4l2_req_
 +}
 +
 +#endif
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/weak_link.c a/libavcodec/weak_link.c
---- a/libavcodec/weak_link.c	1970-01-01 01:00:00.000000000 +0100
-+++ a/libavcodec/weak_link.c	2026-03-27 21:29:39.750207715 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/weak_link.c ffmpeg-8.1/libavcodec/weak_link.c
+--- ffmpeg-8.1/libavcodec/weak_link.c	1970-01-01 01:00:00.000000000 +0100
++++ ffmpeg-8.1/libavcodec/weak_link.c	2026-07-19 10:57:39.898175460 +0200
 @@ -0,0 +1,127 @@
 +/*
 +    Copyright (C) 2024  John Cox john.cox@raspberrypi.com
@@ -5950,9 +5864,9 @@ diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/weak_link
 +}
 +
 +
-diff --speed-large-files --no-dereference --minimal -Naur a/libavcodec/weak_link.h a/libavcodec/weak_link.h
---- a/libavcodec/weak_link.h	1970-01-01 01:00:00.000000000 +0100
-+++ a/libavcodec/weak_link.h	2026-03-27 21:29:39.750276625 +0100
+diff --speed-large-files --no-dereference --minimal -Naur ffmpeg-8.1/libavcodec/weak_link.h ffmpeg-8.1/libavcodec/weak_link.h
+--- ffmpeg-8.1/libavcodec/weak_link.h	1970-01-01 01:00:00.000000000 +0100
++++ ffmpeg-8.1/libavcodec/weak_link.h	2026-07-19 10:57:39.898266460 +0200
 @@ -0,0 +1,46 @@
 +/*
 +    Copyright (C) 2024  John Cox john.cox@raspberrypi.com
