@@ -432,7 +432,7 @@ PATCHFILES += 3534-usb-typec-fusb302-rename-init_gpio-into-fusb302_init.patch
 PATCHFILES += 3535-usb-typec-fusb302-move-gpio_int_n-into-function-loca.patch
 PATCHFILES += 3536-usb-typec-fusb302-rework-gpio_int_n_irq-handling.patch
 PATCHFILES += 3537-usb-typec-fusb302-drop-custom-gpio-interrupt-logic.patch
-PATCHFILES += 3538-usb-typec-tcpm-Fix-VDM-type-for-Enter-Mode-commands.patch
+#PATCHFILES += 3538-usb-typec-tcpm-Fix-VDM-type-for-Enter-Mode-commands.patch
 # misc additions
 PATCHFILES += 3560-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
 PATCHFILES += 3561-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
