@@ -1,6 +1,6 @@
 
 GARNAME      = dav1d
-GARVERSION   = 1.5.0
+GARVERSION   = 1.5.4
 CATEGORIES   = lib
 MASTER_SITES = https://code.videolan.org/videolan/dav1d/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
@@ -21,3 +21,8 @@ MESON_CONFIGURE_ARGS = \
 	-Dtestdata_tests=false
 
 include ../../gar.mk
+
+clean-all:
+	@rm -rf $(DESTDIR)$(includedir)/dav1d*
+	@rm -rf $(DESTDIR)$(libdir)/libdav1d.so*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/dav1d.pc
