@@ -1,17 +1,16 @@
 
 GARNAME      = libcec-libcec
-GARVERSION   = 7.1.1
+GARVERSION   = 8.0.0
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/Pulse-Eight/libcec/archive/
 DISTFILES    = libcec-$(GARVERSION).tar.gz
-PATCHFILES   = add-support-multiple-dev-cecX-devices.patch
 LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/cxx lib/lockdev lib/p8-platform system/eudev xorg/xorg
+DEPENDS = lang/cxx system/eudev
 
 WORKBLD = $(WORKSRC)_build
 
@@ -32,3 +31,10 @@ post-install:
 	@rm -f $(DESTDIR)$(bindir)/cec-client
 	@mv -f $(DESTDIR)$(bindir)/cec-client-$(GARVERSION) $(DESTDIR)$(bindir)/cec-client
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -rf $(DESTDIR)$(bindir)/cec-client
+	@rm -rf $(DESTDIR)$(bindir)/cecc-client
+	@rm -rf $(DESTDIR)$(libdir)/libcec.so*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libcec.pc
+	@rm -rf $(DESTDIR)$(includedir)/libcec*
