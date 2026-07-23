@@ -434,6 +434,7 @@ PATCHFILES += 3536-usb-typec-fusb302-rework-gpio_int_n_irq-handling.patch
 PATCHFILES += 3537-usb-typec-fusb302-drop-custom-gpio-interrupt-logic.patch
 #PATCHFILES += 3538-usb-typec-tcpm-Fix-VDM-type-for-Enter-Mode-commands.patch
 # misc additions
+PATCHFILES += 3559-media-rkvdec-fix-PM-runtime-teardown-ordering-in-remove.patch
 PATCHFILES += 3560-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
 PATCHFILES += 3561-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
 PATCHFILES += 3562-drm-rockchip-set-dma-mask-to-64-bit.patch
