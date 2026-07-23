@@ -150,7 +150,6 @@ DEPENDS = \
 	db/sqlite \
 	lib/alsa-lib \
 	lib/avahi \
-	lib/libbluray \
 	lib/dav1d \
 	lib/exiv2 \
 	lib/flac \
@@ -158,6 +157,7 @@ DEPENDS = \
 	lib/lame \
 	lib/libass \
 	lib/libavc1394 \
+	lib/libbluray \
 	lib/libcdaudio \
 	lib/libcdio \
 	lib/libcdio-paranoia \
