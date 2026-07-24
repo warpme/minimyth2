@@ -44,7 +44,8 @@ PATCHFILES += linux-7.1-defaults.patch
 
 ifeq (1,1)
 
-PATCHFILES += 0001-net-brcm80211-brcmfmac-pcie-stop-loading-txcap_blob-fw.patch
+PATCHFILES += 0106-net-brcm80211-brcmfmac-pcie-stop-loading-txcap_blob-fw.patch
+PATCHFILES += 0107-OF-add-DT-Overlay-using-configfs-interface.patch
 PATCHFILES += 0108-drivers-led-add-openvfd-g6de4e217b.patch
 PATCHFILES += 0109-block-add-led-showing-block-activity.patch
 
@@ -60,6 +61,8 @@ ifeq (1,1)
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
+
+
 
 # patches numbering:
 # 1000-1999: amlogic
@@ -238,7 +241,6 @@ PATCHFILES += 2413-net-wireless-add-uwe5622-support-v20231020.patch
 PATCHFILES += 2414-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 2415-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
 PATCHFILES += 2416-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
-PATCHFILES += 2417-drvers-of-add-dt-overlay-configfs-interface.patch
 PATCHFILES += 2418-drv-rtc-sun6i-add-support-rtc-without-external-losc.patch
 PATCHFILES += 2419-mmc-pwrseq_simple-fix-add-support-for-one-reset-control.patch
 # h616 cedrus improvements (vp9 ,etc)
@@ -432,7 +434,6 @@ PATCHFILES += 3534-usb-typec-fusb302-rename-init_gpio-into-fusb302_init.patch
 PATCHFILES += 3535-usb-typec-fusb302-move-gpio_int_n-into-function-loca.patch
 PATCHFILES += 3536-usb-typec-fusb302-rework-gpio_int_n_irq-handling.patch
 PATCHFILES += 3537-usb-typec-fusb302-drop-custom-gpio-interrupt-logic.patch
-#PATCHFILES += 3538-usb-typec-tcpm-Fix-VDM-type-for-Enter-Mode-commands.patch
 # misc additions
 PATCHFILES += 3559-media-rkvdec-fix-PM-runtime-teardown-ordering-in-remove.patch
 PATCHFILES += 3560-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
@@ -464,7 +465,8 @@ PATCHFILES += 3608-arm64-dtsi-rk3588-enable-dp0-dp1-audio-support.patch
 PATCHFILES += 3610-arm64-dtsi-rockchip-rk3576-enable-dwc3simple-for-usb-boot.patch
 PATCHFILES += 3611-arm64-dtsi-rk3588-add-av1-iommu-nodes.patch
 PATCHFILES += 3612-arm64-dtsi-rk3576-add-DP-sound-nodes.patch
-
+# rk3588 overlays
+PATCHFILES += 3650-arm64-dts-rockchip-rk3588-add-useful-overlays.patch
 # rk35xx board dts additions
 PATCHFILES += 3700-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
 PATCHFILES += 3701-arm64-dts-rockchip-add-dts-for-x96-x6.patch
