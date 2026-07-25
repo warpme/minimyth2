@@ -91,6 +91,7 @@ PATCHFILES  += 68-rk3566-add-urve-pi_defconfig.patch
 PATCHFILES  += 69-rk3399-add-orangepi-4-lts_defconfig.patch
 PATCHFILES  += 70-rk3399-add-rock-pi-4b-rk3399_defconfig.patch
 PATCHFILES  += 71-rk3399-add-rock-pi-4se-rk3399_defconfig.patch
+PATCHFILES  += 72-rk3588-rock5b-t-itx-add-eth-aliases-to-constify-mac-addr.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
