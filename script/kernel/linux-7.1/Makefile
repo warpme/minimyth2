@@ -311,6 +311,20 @@ PATCHFILES += 3000-v4l2-wip-iep-driver.patch
 PATCHFILES += 3001-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
 PATCHFILES += 3002-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
 PATCHFILES += 3003-phy-rockchip-phy-add-rockchip-inno-usb3.patch
+# drm: bridge: dw_hdmi: Misc enable/disable, CEC and EDID cleanup
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=1077110
+PATCHFILES += 3010-drm-bridge-dw_hdmi-Disable-scrambler-feature-when-not-supported.patch
+PATCHFILES += 3011-drm-bridge-dw_hdmi-Only-notify-connected-status-on-HPD-interrupt.patch
+PATCHFILES += 3012-drm-bridge-dw_hdmi-Call-poweron-poweroff-from-atomic-enable-disable.patch
+PATCHFILES += 3013-drm-bridge-dw_hdmi-Use-passed-mode-instead-of-stored-previous_mode.patch
+PATCHFILES += 3014-drm-bridge-dw_hdmi-Fold-poweron-and-setup-functions.patch
+PATCHFILES += 3015-drm-bridge-dw_hdmi-Remove-previous_mode-and-mode_set.patch
+PATCHFILES += 3016-drm-bridge-dw_hdmi-Invalidate-CEC-phys-addr-from-connector-detect.patch
+PATCHFILES += 3017-drm-bridge-dw_hdmi-Remove-cec_notifier_mutex.patch
+PATCHFILES += 3018-drm-bridge-dw_hdmi-Use-delayed_work-to-debounce-hotplug-event.patch
+PATCHFILES += 3019-drm-bridge-dw_hdmi-Use-drm_connector_helper_hpd_irq_event.patch
+PATCHFILES += 3020-drm-bridge-dw_hdmi-Extract-dw_hdmi_connector_status_update.patch
+PATCHFILES += 3021-drm-bridge-dw_hdmi-Use-dw_hdmi_connector_status_update.patch
 # rk33xx dtsi additions
 PATCHFILES += 3200-arm64-dtsi-rockchip-rk3328-enable-dwc3simple-for-usb-boot.patch
 PATCHFILES += 3201-arm64-dtsi-rockchip-rk3399-enable-dwc3simple-for-usb-boot.patch
