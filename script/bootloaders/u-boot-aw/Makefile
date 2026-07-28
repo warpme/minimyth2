@@ -34,18 +34,17 @@
 
 
 GARNAME      = u-boot-aw
-GARVERSION   = 2026.04
+GARVERSION   = 2026.07
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
 
 PATCHFILES  += 01-fix-compiling-clock_sun50i_h6.c.patch
-
+PATCHFILES  += 050-my-boards-defconfigs-enable-overlays.patch
 # h6 boards related patches
 PATCHFILES  += 052-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 PATCHFILES  += 054-sunxi-Add-OrangePi-3-LTS-board.patch
 PATCHFILES  += 055-h6-tanix-tx6-improvements.patch
-# PATCHFILES  += 056-sunxi-dram-Fix-incorrect-ram-size-detection-for-some-H6-boards.patch
 PATCHFILES  += 057-enable-opi3lts-netbooting.patch
 PATCHFILES  += 058-enable-beelink-gs1-netbooting.patch
 # h616 patches
@@ -66,7 +65,6 @@ PATCHFILES  += 158-add-pendoo-x12pro-defconfig.patch
 PATCHFILES  += 159-add-x96-q-lpddr3-v1.3-defconfig.patch
 PATCHFILES  += 160-add-vontar-h618-defconfig.patch
 PATCHFILES  += 161-dts-zero2w-improvements.patch
-# to check PATCHFILES  += 162-add-tx1-defconfig.patch
 PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
 PATCHFILES  += 164-add-tx1-v1.2-defconfig.patch
 PATCHFILES  += 165-transpeed-8k618-t-improvements.patch
