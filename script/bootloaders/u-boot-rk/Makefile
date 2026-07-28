@@ -35,6 +35,7 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = roc-pc-rk3576_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-4d-rk3576_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = nanopi-r76s-rk3576_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3588.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
@@ -47,10 +48,11 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-rk3588s_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = nanopi-r6s-rk3588s_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = nanopi-m6-rk3588s_defconfig
 
 GARNAME      = u-boot-rk
-# git@ 05.04.2026 mainline 2026.04 GA
-GARVERSION   = 88dc2788777babfd6322fa655df549a019aa1e69
+# git@ 06.07.2026 mainline 2026.07 GA
+GARVERSION   = ece349ade2973e220f524ce59e59711cc919263f
 # git@ 13.06.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = 74213af1e952c4683d2e35952507133b61394862
 MASTER_SITES = \
@@ -62,15 +64,9 @@ DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch
 PATCHFILES  += 02-rockchip-rk3328-set-vop-qos-to-high-priority.patch
-# rk3576 ufs boot support https://patchwork.ozlabs.org/project/uboot/list/?series=489106
-PATCHFILES  += 03-spl-Make-UFS-available-for-SPL-builds-v5.patch
-PATCHFILES  += 04-reset-rockchip-make-device-resets-available-in-SPL-v5.patch
-PATCHFILES  += 05-ufs-rockchip-Add-device-reset-support-v5.patch
-PATCHFILES  += 06-rockchip-spl-Add-support-for-booting-from-UFS-v5.patch
-
 PATCHFILES  += 08-rockchip-change-spl-load-order.patch
 # dts/defconfig fixes
-PATCHFILES  += 50-my-boards-rk3566-defconfigs-enable-overlays.patch
+PATCHFILES  += 50-my-boards-defconfigs-enable-overlays.patch
 PATCHFILES  += 51-my-boards-rk35xx-change-sdcard-alias-to-mmc0.patch
 PATCHFILES  += 52-rk3xxx-generic-defconfigs-change-sdcard-alias-to-mmc0.patch
 PATCHFILES  += 52-rk3566-add-x96-x6-defconfig.patch
@@ -91,7 +87,7 @@ PATCHFILES  += 68-rk3566-add-urve-pi_defconfig.patch
 PATCHFILES  += 69-rk3399-add-orangepi-4-lts_defconfig.patch
 PATCHFILES  += 70-rk3399-add-rock-pi-4b-rk3399_defconfig.patch
 PATCHFILES  += 71-rk3399-add-rock-pi-4se-rk3399_defconfig.patch
-PATCHFILES  += 72-rk3588-rock5b-t-itx-add-eth-aliases-to-constify-mac-addr.patch
+PATCHFILES  += 74-add-nanopi-m6-rk3588s_defconfig.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
