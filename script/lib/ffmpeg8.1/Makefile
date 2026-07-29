@@ -24,6 +24,7 @@ PATCHFILES += 0156-ffmpeg8.1-add-nv12-sand128-for-old-rpi-hevc-decoder.patch
 PATCHFILES += 0158-ffmpeg8-libavutil-add-extra-fourcc.patch
 PATCHFILES += 0159-ffmpeg8.1-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 PATCHFILES += 0161-hack-hack-hack-ffmpeg8.1-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_1.patch
+PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-control.patch
 PATCHFILES += 0170-ffmpeg8-avcodec-add-V4L2-Request-API-VC-1-WMV3-hwaccel.patch
 endif
 
