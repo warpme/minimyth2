@@ -1,98 +1,141 @@
 
-From: Detlev Casanova <detlev.casanova@collabora.com>
-Subject: wip: hevc: Add support for sps_st_rps control
+Linux v7.1 brings support to 2 new V4L2 stateless controls:
+ - hevc_ext_sps_lt_rps
+ - hevc_ext_sps_st_rps
 
-Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
+Respectively for extended SPS Long and Short term reference picture sets
+support.
 
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/hevc/ps.c mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/hevc/ps.c
---- mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/hevc/ps.c	2026-01-27 07:05:23.000000000 +0100
-+++ mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/hevc/ps.c	2026-01-30 12:39:53.303380079 +0100
-@@ -103,8 +103,12 @@
+Some Rockchip decoder hardware need that extended information to decode
+HEVC frames, so add support for it when supported by the kernel.
+
+Signed-off-by: default avatarDetlev Casanova <detlev.casanova@collabora.com>
+
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/hevc/ps.c mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/hevc/ps.c
+--- mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/hevc/ps.c	2026-07-17 16:49:30.000000000 +0200
++++ mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/hevc/ps.c	2026-07-29 18:01:49.078486782 +0200
+@@ -94,8 +94,15 @@
+     int k  = 0;
+     int i;
+ 
+-    rps->used        = 0;
+-    rps->rps_predict = 0;
++    rps->used                  = 0;
++    rps->used_by_curr_pic_flag = 0;
++    rps->use_delta_flag        = 0;
++    rps->rps_predict           = 0;
++    /* delta_idx_minus1 is inferred to 0 when not present (SPS path),
++     * so default delta_idx (= delta_idx_minus1 + 1) to 1. */
++    rps->delta_idx             = 1;
++    memset(rps->delta_poc_s0_minus1, 0, sizeof(rps->delta_poc_s0_minus1));
++    memset(rps->delta_poc_s1_minus1, 0, sizeof(rps->delta_poc_s1_minus1));
+ 
+     if (rps != sps->st_rps && sps->nb_st_rps)
+         rps->rps_predict = get_bits1(gb);
+@@ -103,8 +110,14 @@
      if (rps->rps_predict) {
          const ShortTermRPS *rps_ridx;
          uint8_t used[32] = { 0 };
-+        uint8_t use_delta[32] = { 0 };
++        uint8_t used_by_curr_pic_flag[32] = { 0 };
++        uint8_t use_delta_flag[32];
          int delta_rps;
  
-+	for (i = 0; i < 16; i++)
-+		use_delta[i] = 1;
++        /* use_delta_flag[j] is inferred to be 1 when not present */
++        for (i = 0; i < FF_ARRAY_ELEMS(use_delta_flag); i++)
++            use_delta_flag[i] = 1;
 +
          if (is_slice_header) {
              rps->delta_idx = get_ue_golomb_long(gb) + 1;
              if (rps->delta_idx > sps->nb_st_rps) {
-@@ -128,13 +132,13 @@
+@@ -128,18 +141,19 @@
          }
          delta_rps      = (1 - (rps->delta_rps_sign << 1)) * rps->abs_delta_rps;
          for (i = 0; i <= rps_ridx->num_delta_pocs; i++) {
 -            used[k] = get_bits1(gb);
-+            used[i] = get_bits1(gb);
++            int u = get_bits1(gb);
++            used_by_curr_pic_flag[i] = u;
  
 -            rps->use_delta = 0;
 -            if (!used[k])
 -                rps->use_delta = get_bits1(gb);
-+            use_delta[i] = 1;
-+            if (!used[i])
-+                use_delta[i] = get_bits1(gb);
++            if (!u)
++                use_delta_flag[i] = get_bits1(gb);
  
 -            if (used[k] || rps->use_delta) {
-+            if (used[i] || use_delta[i]) {
++            if (u || use_delta_flag[i]) {
                  if (i < rps_ridx->num_delta_pocs)
                      delta_poc = delta_rps + rps_ridx->delta_poc[i];
                  else
-@@ -155,6 +159,7 @@
-         rps->num_delta_pocs    = k;
-         rps->num_negative_pics = k0;
-         // sort in increasing order (smallest first)
-+	/*
-         if (rps->num_delta_pocs != 0) {
-             int u, tmp;
-             for (i = 1; i < rps->num_delta_pocs; i++) {
-@@ -184,10 +189,12 @@
-                 used[k]           = u;
-                 k--;
-             }
--        }
-+        }*/
+                     delta_poc = delta_rps;
+                 rps->delta_poc[k] = delta_poc;
++                used[k] = u;
+                 if (delta_poc < 0)
+                     k0++;
+                 k++;
+@@ -188,6 +202,11 @@
  
--        for (unsigned i = 0; i < FF_ARRAY_ELEMS(used); i++)
-+        for (unsigned i = 0; i < FF_ARRAY_ELEMS(used); i++) {
+         for (unsigned i = 0; i < FF_ARRAY_ELEMS(used); i++)
              rps->used |= (uint32_t)used[i] << i;
-+            rps->use_delta |= (uint32_t)use_delta[i] << i;
++        /* Raw bitstream flags, indexed by source candidate position j */
++        for (unsigned i = 0; i < FF_ARRAY_ELEMS(used_by_curr_pic_flag); i++) {
++            rps->used_by_curr_pic_flag |= (uint32_t)used_by_curr_pic_flag[i] << i;
++            rps->use_delta_flag        |= (uint32_t)use_delta_flag[i] << i;
 +        }
      } else {
          unsigned int nb_positive_pics;
  
-@@ -215,6 +222,7 @@
+@@ -203,6 +222,7 @@
+         rps->num_delta_pocs = rps->num_negative_pics + nb_positive_pics;
+         if (rps->num_delta_pocs) {
+             int prev = 0;
++            unsigned int u;
+ 
+             for (i = 0; i < rps->num_negative_pics; i++) {
+                 delta_poc = get_ue_golomb_long(gb) + 1;
+@@ -214,7 +234,10 @@
+                 }
                  prev -= delta_poc;
                  rps->delta_poc[i] = prev;
-                 rps->used        |= get_bits1(gb) * (1 << i);
-+                rps->delta_poc_s0[i] = delta_poc;
+-                rps->used        |= get_bits1(gb) * (1 << i);
++                rps->delta_poc_s0_minus1[i] = delta_poc - 1;
++                u = get_bits1(gb);
++                rps->used                  |= u << i;
++                rps->used_by_curr_pic_flag |= u << i;
              }
              prev = 0;
              for (i = 0; i < nb_positive_pics; i++) {
-@@ -228,6 +236,7 @@
+@@ -227,7 +250,10 @@
+                 }
                  prev += delta_poc;
                  rps->delta_poc[rps->num_negative_pics + i] = prev;
-                 rps->used                                 |= get_bits1(gb) * (1 << (rps->num_negative_pics + i));
-+                rps->delta_poc_s1[i] = delta_poc;
+-                rps->used                                 |= get_bits1(gb) * (1 << (rps->num_negative_pics + i));
++                rps->delta_poc_s1_minus1[i] = delta_poc - 1;
++                u = get_bits1(gb);
++                rps->used                  |= u << (rps->num_negative_pics + i);
++                rps->used_by_curr_pic_flag |= u << (rps->num_negative_pics + i);
              }
          }
      }
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/hevc/ps.h mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/hevc/ps.h
---- mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/hevc/ps.h	2026-01-27 07:05:23.000000000 +0100
-+++ mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/hevc/ps.h	2026-01-30 12:39:47.870046598 +0100
-@@ -74,7 +74,10 @@
- 
- typedef struct ShortTermRPS {
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/hevc/ps.h mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/hevc/ps.h
+--- mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/hevc/ps.h	2026-07-17 16:49:30.000000000 +0200
++++ mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/hevc/ps.h	2026-07-29 18:01:49.078644032 +0200
+@@ -76,6 +76,15 @@
      int32_t delta_poc[32];
-+    uint16_t delta_poc_s0[16];
-+    uint16_t delta_poc_s1[16];
      uint32_t used;
-+    uint32_t use_delta;
  
++    /* Raw bitstream values, indexed by source candidate position j (predict
++     * case) or by negative-then-positive position (non-predict case). Used to
++     * fill hardware acceleration controls that expect the un-reordered values
++     * from the bitstream. */
++    uint16_t delta_poc_s0_minus1[16];
++    uint16_t delta_poc_s1_minus1[16];
++    uint32_t used_by_curr_pic_flag;
++    uint32_t use_delta_flag;
++
      uint8_t delta_idx;
      uint8_t num_negative_pics;
-@@ -85,7 +88,6 @@
+     uint8_t num_delta_pocs;
+@@ -85,7 +94,6 @@
      unsigned delta_rps_sign:1;
  
      unsigned rps_predict:1;
@@ -100,20 +143,28 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-b83d762f5430519
  } ShortTermRPS;
  
  typedef struct HEVCWindow {
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
---- mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2026-01-30 12:40:18.250047412 +0100
-+++ mythtv-b83d762f54305194a33c3424fc56e566be707165/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2026-01-30 12:39:53.303380079 +0100
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
+--- mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2026-07-29 18:02:05.479985253 +0200
++++ mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2026-07-29 18:01:49.078727182 +0200
 @@ -25,7 +25,8 @@
  #include "internal.h"
  #include "v4l2_request.h"
  
 -#define V4L2_HEVC_CONTROLS_MAX 6
-+#define V4L2_HEVC_CONTROLS_MAX 7
++#define V4L2_HEVC_CONTROLS_MAX 8
 +#define MAX_EXT_SPS_RPS 65
  
  typedef struct V4L2RequestContextHEVC {
      V4L2RequestContext base;
-@@ -44,6 +45,8 @@
+@@ -34,6 +35,7 @@
+     unsigned int max_slice_params;
+     unsigned int max_entry_point_offsets;
+     bool has_scaling_matrix;
++    bool has_ext_sps_rps;
+ } V4L2RequestContextHEVC;
+ 
+ typedef struct V4L2RequestControlsHEVC {
+@@ -44,6 +46,8 @@
      struct v4l2_ctrl_hevc_scaling_matrix scaling_matrix;
      struct v4l2_ctrl_hevc_slice_params slice_params;
      struct v4l2_ctrl_hevc_slice_params *frame_slice_params;
@@ -122,79 +173,134 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-b83d762f5430519
      unsigned int allocated_slice_params;
      unsigned int num_slice_params;
      uint32_t *entry_point_offsets;
-@@ -360,6 +363,48 @@
+@@ -361,6 +365,47 @@
          ctrl->flags |= V4L2_HEVC_SPS_FLAG_STRONG_INTRA_SMOOTHING_ENABLED;
  }
  
-+static void fill_ext_sps_st_rps (struct v4l2_ctrl_hevc_ext_sps_st_rps *ctrl, const HEVCContext *h)
++static void fill_ext_sps_st_rps(struct v4l2_ctrl_hevc_ext_sps_st_rps *ctrl,
++                                const HEVCContext *h)
 +{
-+    const HEVCPPS *pps = h->pps;
-+    const HEVCSPS *sps = pps->sps;
-+    int i;
++    const HEVCSPS *sps = h->pps->sps;
 +
-+    for (i = 0; i < sps->nb_st_rps; i++) {
-+        ctrl[i].flags |=
-+          sps->st_rps[i].rps_predict ?
-+          V4L2_HEVC_EXT_SPS_ST_RPS_FLAG_INTER_REF_PIC_SET_PRED : 0,
-+        ctrl[i].delta_idx_minus1 =
-+          sps->st_rps[i].delta_idx;
-+        ctrl[i].delta_rps_sign =
-+          sps->st_rps[i].delta_rps_sign;
-+        ctrl[i].abs_delta_rps_minus1 =
-+          sps->st_rps[i].abs_delta_rps - 1;
-+        ctrl[i].num_negative_pics =
-+          sps->st_rps[i].num_negative_pics;
-+        ctrl[i].num_positive_pics =
-+          sps->st_rps[i].num_delta_pocs - sps->st_rps[i].num_negative_pics;
++    for (int i = 0; i < sps->nb_st_rps; i++) {
++        const ShortTermRPS *st_rps = &sps->st_rps[i];
 +
-+        ctrl[i].used_by_curr_pic = sps->st_rps[i].used;
-+        ctrl[i].use_delta_flag = sps->st_rps[i].use_delta;
++        ctrl[i] = (struct v4l2_ctrl_hevc_ext_sps_st_rps) {
++            .delta_idx_minus1     = st_rps->delta_idx - 1,
++            .delta_rps_sign       = st_rps->delta_rps_sign,
++            .abs_delta_rps_minus1 = st_rps->abs_delta_rps - 1,
++            .num_negative_pics    = st_rps->num_negative_pics,
++            .num_positive_pics    = st_rps->num_delta_pocs - st_rps->num_negative_pics,
++            .used_by_curr_pic     = st_rps->used_by_curr_pic_flag,
++            .use_delta_flag       = st_rps->use_delta_flag,
++            .flags                = st_rps->rps_predict ?
++                                    V4L2_HEVC_EXT_SPS_ST_RPS_FLAG_INTER_REF_PIC_SET_PRED : 0,
++        };
 +
 +        for (int j = 0; j < 16; j++) {
-+            ctrl[i].delta_poc_s0_minus1[j] = sps->st_rps[i].delta_poc_s0[j] ? sps->st_rps[i].delta_poc_s0[j] - 1 : 0;
-+            ctrl[i].delta_poc_s1_minus1[j] = sps->st_rps[i].delta_poc_s1[j] ? sps->st_rps[i].delta_poc_s1[j] - 1 : 0;
++            ctrl[i].delta_poc_s0_minus1[j] = st_rps->delta_poc_s0_minus1[j];
++            ctrl[i].delta_poc_s1_minus1[j] = st_rps->delta_poc_s1_minus1[j];
 +        }
 +    }
-+/*
-+  for (i = 0; i < sps->num_long_term_ref_pics_sps; i++) {
-+    ext_sps_rps_set = &g_array_index (self->ext_sps_rps,
-+      struct v4l2_ctrl_hevc_ext_sps_rps, i);
-+
-+    ctrl[i]->lt_ref_pic_poc_lsb_sps = sps->lt_ref_pic_poc_lsb_sps[i];
-+    ctrl[i]->flags |= sps->used_by_curr_pic_lt_sps_flag[i] ?
-+                              V4L2_HEVC_EXT_SPS_RPS_FLAG_USED_LT : 0;
-+  }
-+*/
 +}
 +
++static void fill_ext_sps_lt_rps(struct v4l2_ctrl_hevc_ext_sps_lt_rps *ctrl,
++                                const HEVCContext *h)
++{
++    const HEVCSPS *sps = h->pps->sps;
++
++    for (int i = 0; i < sps->num_long_term_ref_pics_sps; i++) {
++        ctrl[i] = (struct v4l2_ctrl_hevc_ext_sps_lt_rps) {
++            .lt_ref_pic_poc_lsb_sps = sps->lt_ref_pic_poc_lsb_sps[i],
++            .flags                  = (sps->used_by_curr_pic_lt & (1U << i)) ?
++                                      V4L2_HEVC_EXT_SPS_LT_RPS_FLAG_USED_LT : 0,
++        };
++    }
++}
 +
  static int v4l2_request_hevc_start_frame(AVCodecContext *avctx,
                                           av_unused const AVBufferRef *buf_ref,
                                           av_unused const uint8_t *buffer,
-@@ -378,6 +423,8 @@
+@@ -379,6 +424,12 @@
          return ret;
  
      fill_sps(&controls->sps, h);
-+    if (controls->sps.num_short_term_ref_pic_sets)
-+        fill_ext_sps_st_rps(controls->ext_sps_st_rps, h);
++    if (ctx->has_ext_sps_rps) {
++        if (sps->nb_st_rps)
++            fill_ext_sps_st_rps(controls->ext_sps_st_rps, h);
++        if (sps->num_long_term_ref_pics_sps)
++            fill_ext_sps_lt_rps(controls->ext_sps_lt_rps, h);
++    }
      fill_decode_params(&controls->decode_params, h);
  
      if (ctx->has_scaling_matrix) {
-@@ -528,6 +575,17 @@
+@@ -529,6 +580,24 @@
          .size = sizeof(controls->decode_params),
      };
  
-+    if (controls->sps.num_short_term_ref_pic_sets) {
-+        printf("%lu, %d\n", sizeof(*controls->ext_sps_st_rps), controls->sps.num_short_term_ref_pic_sets);
++    if (ctx->has_ext_sps_rps && controls->sps.num_short_term_ref_pic_sets) {
 +        control[count++] = (struct v4l2_ext_control) {
 +            .id = V4L2_CID_STATELESS_HEVC_EXT_SPS_ST_RPS,
 +            .ptr = controls->ext_sps_st_rps,
 +            .size = sizeof(*controls->ext_sps_st_rps) *
-+		    controls->sps.num_short_term_ref_pic_sets,
++                    controls->sps.num_short_term_ref_pic_sets,
 +        };
 +    }
-+    // TODO: Add long term
++
++    if (ctx->has_ext_sps_rps && controls->sps.num_long_term_ref_pics_sps) {
++        control[count++] = (struct v4l2_ext_control) {
++            .id = V4L2_CID_STATELESS_HEVC_EXT_SPS_LT_RPS,
++            .ptr = controls->ext_sps_lt_rps,
++            .size = sizeof(*controls->ext_sps_lt_rps) *
++                    controls->sps.num_long_term_ref_pics_sps,
++        };
++    }
 +
      if (ctx->has_scaling_matrix) {
          control[count++] = (struct v4l2_ext_control) {
              .id = V4L2_CID_STATELESS_HEVC_SCALING_MATRIX,
+@@ -657,6 +726,12 @@
+     struct v4l2_query_ext_ctrl slice_params = {
+         .id = V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
+     };
++    struct v4l2_query_ext_ctrl ext_sps_st_rps = {
++        .id = V4L2_CID_STATELESS_HEVC_EXT_SPS_ST_RPS,
++    };
++    struct v4l2_query_ext_ctrl ext_sps_lt_rps = {
++        .id = V4L2_CID_STATELESS_HEVC_EXT_SPS_LT_RPS,
++    };
+ 
+     ctx->decode_mode = ff_v4l2_request_query_control_default_value(avctx,
+                                         V4L2_CID_STATELESS_HEVC_DECODE_MODE);
+@@ -697,10 +772,17 @@
+     else
+         ctx->max_slice_params = 0;
+ 
++    /* The EXT SPS ST/LT RPS controls were added together; both must be
++     * present (linux 6.20+) to enable the path. */
++    ctx->has_ext_sps_rps =
++        !ff_v4l2_request_query_control(avctx, &ext_sps_st_rps) &&
++        !ff_v4l2_request_query_control(avctx, &ext_sps_lt_rps);
++
+     av_log(ctx, AV_LOG_VERBOSE, "%s-based decoder with SLICE_PARAMS=%u, "
+-           "ENTRY_POINT_OFFSETS=%u and SCALING_MATRIX=%d controls\n",
++           "ENTRY_POINT_OFFSETS=%u, SCALING_MATRIX=%d and EXT_SPS_RPS=%d controls\n",
+           ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED ? "slice" : "frame",
+-          ctx->max_slice_params, ctx->max_entry_point_offsets, ctx->has_scaling_matrix);
++          ctx->max_slice_params, ctx->max_entry_point_offsets,
++          ctx->has_scaling_matrix, ctx->has_ext_sps_rps);
+ 
+     control[0].value = ctx->decode_mode;
+     control[1].value = ctx->start_code;
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/vulkan_hevc.c mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/vulkan_hevc.c
+--- mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/vulkan_hevc.c	2026-07-17 16:49:30.000000000 +0200
++++ mythtv-a1790c663619cd3320d5d31e29461ad52c530e45/mythtv/external/FFmpeg/libavcodec/vulkan_hevc.c	2026-07-29 18:01:49.078862762 +0200
+@@ -342,7 +342,7 @@
+                 .delta_rps_sign = sps->st_rps[i].delta_rps_sign,
+             },
+             .delta_idx_minus1 = sps->st_rps[i].delta_idx - 1,
+-            .use_delta_flag = sps->st_rps[i].use_delta,
++            .use_delta_flag = sps->st_rps[i].use_delta_flag,
+             .abs_delta_rps_minus1 = sps->st_rps[i].abs_delta_rps - 1,
+             .used_by_curr_pic_flag    = 0x0,
+             .used_by_curr_pic_s0_flag = 0x0,
