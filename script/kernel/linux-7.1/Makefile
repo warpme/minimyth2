@@ -291,6 +291,7 @@ PATCHFILES += 2702-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
 PATCHFILES += 2703-add-initial-cpufreq-support.patch
 PATCHFILES += 2704-net-drivers-stmmac-add-25M-phy-clock-support.patch
 PATCHFILES += 2705-clk-sunxi-ng-ccu-sun55i-make-mmc-high-speed-working.patch
+PATCHFILES += 2706-pinctrl-sunxi-A523-fix-voltage-withstand-encoding.patch
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
