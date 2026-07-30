@@ -52,7 +52,8 @@ PATCHFILES  += 100-sunsi-add-h616-internal-eth-phy-support.patch
 PATCHFILES  += 101-unreliable-dram.patch
 PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
 PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
-PATCHFILES  += 106-Add-int-phy-eth-H313-h616-with-AC300.patch
+# dtsi
+PATCHFILES  += 140-sun50i-h616.dtsi-add-emac1-nodes.patch
 # h616 boards aditions.
 PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
