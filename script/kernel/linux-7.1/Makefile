@@ -296,12 +296,10 @@ PATCHFILES += 2706-pinctrl-sunxi-A523-fix-voltage-withstand-encoding.patch
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
-# move to per board PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
 # a523 board dts additions
 PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch
 PATCHFILES += 2902-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch
-# move to per board PATCHFILES += 2804-arm64-dtsi-allwinner-a523-make-mmc-high-speed-working.patch
 #------------------------------------------------------------
 endif
 
