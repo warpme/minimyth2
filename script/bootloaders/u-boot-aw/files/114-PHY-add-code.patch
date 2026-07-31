@@ -1,0 +1,165 @@
+From 50703010970e89ba52cbb4cce2970f05ffa22981 Mon Sep 17 00:00:00 2001
+From: Richard Genoud <richard.genoud@bootlin.com>
+Date: Tue, 21 Oct 2025 17:07:30 +0200
+Subject: [PATCH 14/20] PHY: add code
+
+---
+ drivers/net/phy/phy.c | 124 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 124 insertions(+)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index d7e0c4fe0..b7ddd2689 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -16,6 +16,7 @@
+ #include <command.h>
+ #include <miiphy.h>
+ #include <phy.h>
++#include <asm/io.h>
+ #include <errno.h>
+ #include <asm-generic/gpio.h>
+ #include <dm/device_compat.h>
+@@ -385,10 +386,101 @@ int genphy_parse_link(struct phy_device *phydev)
+ 	return 0;
+ }
+ 
++#define AC300_DEV 0x10
++static void ac300_ephy_enable(struct phy_device *phydev)
++{
++	struct mii_dev *bus = phydev->bus;
++	bus->write(bus, AC300_DEV, MDIO_DEVAD_NONE, 0x00, 0x0000);	/* reset ephy */
++	bus->write(bus, AC300_DEV, MDIO_DEVAD_NONE, 0x00, 0x0003);	/* de-reset ephy */
++
++	bus->write(bus, AC300_DEV, MDIO_DEVAD_NONE, 0x00, 0x00b7);	/* open clk gate */
++	bus->write(bus, AC300_DEV, MDIO_DEVAD_NONE, 0x05, 0xa81f);	/* enable io */
++
++	mdelay(10);
++	bus->write(bus, AC300_DEV, MDIO_DEVAD_NONE, 0x06, 0x5811);	/* shutdown ephy */
++	mdelay(10);
++	bus->write(bus, AC300_DEV, MDIO_DEVAD_NONE, 0x06, 0x5810);	/* powerup ephy */
++}
++
++static void disable_intelligent_ieee(struct phy_device *phydev)
++{
++	unsigned int value;
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* switch to page 1 */
++	value = phy_read(phydev, MDIO_DEVAD_NONE, 0x17);	/* read address 0 0x17 register */
++	value &= ~(1 << 3);					/* reg 0x17 bit 3, set 0 to disable IEEE */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x17, value);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0000);	/* switch to page 0 */
++}
++
++static void disable_802_3az_ieee(struct phy_device *phydev)
++{
++	unsigned int value;
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x3c);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x1 << 14 | 0x7);
++	value = phy_read(phydev, MDIO_DEVAD_NONE, 0xe);
++	value &= ~(0x1 << 1);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x3c);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x1 << 14 | 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, value);
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* switch to page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);
++}
++
++static void ephy_config_default(struct phy_device *phydev)
++{
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* Switch to Page 1 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x12, 0x4824);	/* Disable APS */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* Switch to Page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);	/* PHYAFE TRX optimization */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0600);	/* Switch to Page 6 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x14, 0x708b);	/* PHYAFE TX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x13, 0xF000);	/* PHYAFE RX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x15, 0x1530);
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0800);	/* Switch to Page 6 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x00bc);	/* PHYAFE TRX optimization */
++}
++
++static void __maybe_unused ephy_config_fixed(struct phy_device *phydev)
++{
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* switch to Page 1 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x12, 0x4824);	/* Disable APS */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* switch to Page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);	/* PHYAFE TRX optimization */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0600);	/* switch to Page 6 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x14, 0x7809);	/* PHYAFE TX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x13, 0xf000);	/* PHYAFE RX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0x5523);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x15, 0x3533);
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0800);	/* switch to Page 8 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x0844);	/* disable auto offset */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x00bc);	/* PHYAFE TRX optimization */
++}
++
++static void __maybe_unused ephy_config_cali(struct phy_device *phydev, u16 ephy_cali)
++{
++	int value;
++	value = phy_read(phydev, MDIO_DEVAD_NONE, 0x06);
++	value &= ~(0x0F << 12);
++	value |= (0x0F & (0x03 + ephy_cali)) << 12;
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x06, value);
++}
++
+ int genphy_config(struct phy_device *phydev)
+ {
+ 	int val;
+ 	u32 features;
++	u16 ephy_cali;
+ 
+ 	features = (SUPPORTED_TP | SUPPORTED_MII
+ 			| SUPPORTED_AUI | SUPPORTED_FIBRE |
+@@ -433,6 +525,38 @@ int genphy_config(struct phy_device *phydev)
+ 
+ 	genphy_config_aneg(phydev);
+ 
++#define sunxi_ac300_key (1<<8)
++
++	val = readl(0x300622c);
++	ephy_cali = val & 0xffff;
++	if (val & sunxi_ac300_key) {
++		ac300_ephy_enable(phydev);
++		ephy_config_cali(phydev, ephy_cali);
++
++		/*
++		 * BIT9: the flag of calibration value
++		 * 0: Normal
++		 * 1: Low level of calibration value
++		 */
++		if (ephy_cali & 0x200) {
++			printf("ac300:ephy cali efuse read: fixed!\n");
++			ephy_config_fixed(phydev);
++		} else {
++			printf("ac300:ephy cali efuse read: default!\n");
++			ephy_config_default(phydev);
++		}
++	}
++
++	disable_intelligent_ieee(phydev);
++	disable_802_3az_ieee(phydev);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0000); /* Switch to Page 0 */
++
++	if (val & sunxi_ac300_key) {
++		val = phy_read(phydev, MDIO_DEVAD_NONE, 6);
++		val |= (0x1 << 11);
++		phy_write(phydev, MDIO_DEVAD_NONE, 6, val | (1 << 1));
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+2.53.0
+

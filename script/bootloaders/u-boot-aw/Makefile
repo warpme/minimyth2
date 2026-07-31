@@ -48,10 +48,14 @@ PATCHFILES  += 055-h6-tanix-tx6-improvements.patch
 PATCHFILES  += 057-enable-opi3lts-netbooting.patch
 PATCHFILES  += 058-enable-beelink-gs1-netbooting.patch
 # h616 patches
-PATCHFILES  += 100-sunsi-add-h616-internal-eth-phy-support.patch
 PATCHFILES  += 101-unreliable-dram.patch
 PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
 PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
+PATCHFILES  += 110-sunxi-h616-configure-PWM5-EPHY-clock.patch
+PATCHFILES  += 112-pinctrl-add-emac1.patch
+PATCHFILES  += 114-PHY-add-code.patch
+PATCHFILES  += 115-emac-add-code.patch
+PATCHFILES  += 118-gpio-sunxi-Don-t-clear-pull-settings-when-setting-in.patch
 # dtsi
 PATCHFILES  += 140-sun50i-h616.dtsi-add-emac1-nodes.patch
 # h616 boards aditions.
