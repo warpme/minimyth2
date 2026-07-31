@@ -104,7 +104,7 @@ Allwinner H6    | TanixTX6         | works  (ap6330@SDIO)                   | wo
 Allwinner H6    | TanixTX6-Mini    | works  (xr819@SDIO)                    | not tested| n/a       | not tested| works       | n/a         | not works                      | well supported                |
 Allwinner H6    | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works     | n/a       | not works | works       | n/a         | not works (firmware issue)     | some things are still missing |
 Allwinner H6    | OrangePi-3 LTS   | not works (aw859a)                     | works     | works     | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H313  | X96-Q(DDR3)      | works  (xr819@SDIO)                    | works     | n/a       | not works | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H313  | X96-Q(DDR3)      | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313  | X96-Q(LPDDR3)    | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313  | X96-Q(LPDDR3v1.3)| works  (xr819@SDIO)                    | works     | n/a       | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313  | X96-Q(DDR3Lv5.1) | works  (xr819@SDIO)                    | works     | n/a       | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
@@ -114,9 +114,9 @@ Allwinner H616  | TanixTX6s        | works  (xr819@SDIO)                    | wo
 Allwinner H616  | Pendoo-X12Pro    | works  (sp6330@SDIO)                   | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616  | OrangePi-Zero2   | works  (aw859a@SDIO)                   | not tested| not works | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618  | OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | not tested| works     | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H618  | Vontar H618      | works  (ap6334@SDIO)                   | works     | n/a       | not tested| works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H618  | Vontar H618      | works  (ap6334@SDIO)                   | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H618  | OrangePi-Zero2w  | works  (uwe5622a@SDIO)                 | not tested| works     | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H618  | Transpeed-8k618t | works  (hk2735@SDIO)                   | works     | n/a       | not tested| works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H618  | Transpeed-8k618t | works  (hk2735@SDIO)                   | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
 Rockchip 3328   | Beelink A1       | works  (rtl8821@USB)                   | not works | n/a       | not works | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399   | RockPI 4-b       | works  (ap6256@SDIO)                   | works     | not works | works     | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3399   | RockPI 4-se      | works  (ap6255@SDIO)                   | works     | not tested| works     | works       | n/a         | currently power off/on         | well supported                |
