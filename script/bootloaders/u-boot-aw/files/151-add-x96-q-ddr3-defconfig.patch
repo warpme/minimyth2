@@ -1,6 +1,13 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
 diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/configs/x96_q_ddr3_defconfig u-boot-2026.07/configs/x96_q_ddr3_defconfig
 --- u-boot-2026.07/configs/x96_q_ddr3_defconfig	1970-01-01 01:00:00.000000000 +0100
-+++ u-boot-2026.07/configs/x96_q_ddr3_defconfig	2026-07-31 21:33:13.479605988 +0200
++++ u-boot-2026.07/configs/x96_q_ddr3_defconfig	2026-08-03 18:56:43.285065143 +0200
 @@ -0,0 +1,49 @@
 +CONFIG_ARM=y
 +CONFIG_ARCH_SUNXI=y
@@ -53,9 +60,9 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/configs
 +CONFIG_BOOTCOMMAND="if dhcp ${scriptaddr} /PXEclient/pxelinux.cfg/sun50i-h313-x96q-ddr3.scr; then source ${scriptaddr}; fi; run distro_bootcmd"
 diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/dts/upstream/src/arm64/allwinner/sun50i-h313-x96q-ddr3.dts u-boot-2026.07/dts/upstream/src/arm64/allwinner/sun50i-h313-x96q-ddr3.dts
 --- u-boot-2026.07/dts/upstream/src/arm64/allwinner/sun50i-h313-x96q-ddr3.dts	1970-01-01 01:00:00.000000000 +0100
-+++ u-boot-2026.07/dts/upstream/src/arm64/allwinner/sun50i-h313-x96q-ddr3.dts	2026-07-31 21:31:05.916492166 +0200
-@@ -0,0 +1,167 @@
-+// SPDX-License-Identifier: (GPL-2.0+ or MIT)
++++ u-boot-2026.07/dts/upstream/src/arm64/allwinner/sun50i-h313-x96q-ddr3.dts	2026-08-03 18:41:40.688573763 +0200
+@@ -0,0 +1,233 @@
++// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
 +/*
 + * Author: piotr.oniszczuk@gmail.com
 + */
@@ -63,65 +70,58 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/dts/ups
 +/dts-v1/;
 +
 +#include "sun50i-h616.dtsi"
++#include "sun50i-h616-cpu-opp.dtsi"
 +
 +#include <dt-bindings/gpio/gpio.h>
 +#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/input/linux-event-codes.h>
 +#include <dt-bindings/leds/common.h>
 +
 +/ {
-+	model = "Shenzhen Amediatech Technology Co., Ltd X96Q DDR3 TV Box";
-+	compatible = "hechuang,x96-q", "allwinner,sun50i-h616";
++	model = "X96Q DDR3 TV Box";
++	compatible = "amediatech,x96q", "allwinner,sun50i-h616";
 +
 +	aliases {
++		serial0 = &uart0;
 +		mmc0 = &mmc0;
 +		mmc1 = &mmc1;
 +		mmc2 = &mmc2;
 +		ethernet0 = &emac1;
-+		serial0 = &uart0;
 +	};
 +
 +	chosen {
 +		stdout-path = "serial0:115200n8";
 +	};
 +
-+	leds {
-+		compatible = "gpio-leds";
-+
-+		led-red {
-+			function = LED_FUNCTION_DISK_ACTIVITY;
-+			color = <LED_COLOR_ID_RED>;
-+			gpios = <&pio 7 6 GPIO_ACTIVE_HIGH>; /* PH6 */
-+			linux,default-trigger = "mmc0";
-+		};
-+	};
-+
 +	reg_vcc5v: vcc5v {
-+		/* board wide 5V supply directly from the USB-C socket */
++		/* board wide 5V supply directly from the DC input */
 +		compatible = "regulator-fixed";
 +		regulator-name = "vcc-5v";
 +		regulator-min-microvolt = <5000000>;
 +		regulator-max-microvolt = <5000000>;
 +		regulator-always-on;
 +	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			color = <LED_COLOR_ID_BLUE>;
++			gpios = <&pio 7 6 GPIO_ACTIVE_LOW>;
++			default-state = "on";
++		};
++	};
 +};
 +
 +&cpu0 {
-+	cpu-supply = <&reg_dcdc2>;
++	cpu-supply = <&reg_dcdca>;
++};
++
++&ehci0 {
 +	status = "okay";
 +};
 +
-+&cpu1 {
-+	cpu-supply = <&reg_dcdc2>;
-+	status = "okay";
-+};
-+
-+&cpu2 {
-+	cpu-supply = <&reg_dcdc2>;
-+	status = "okay";
-+};
-+
-+&cpu3 {
-+	cpu-supply = <&reg_dcdc2>;
++&ehci3 {
 +	status = "okay";
 +};
 +
@@ -147,25 +147,38 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/dts/ups
 +	};
 +};
 +
-+&mmc0 {
-+	vmmc-supply = <&reg_dldo2>;
-+	broken-cd;
-+	bus-width = <4>;
++&gpu {
++	mali-supply = <&reg_dcdcc>;
 +	status = "okay";
 +};
 +
-+&mmc1 {
-+	vmmc-supply = <&reg_dldo2>;
-+	broken-cd;
++&mmc0 {
++	/* microSD */
++	vmmc-supply = <&reg_aldo1>;
++	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	disable-wp;
 +	bus-width = <4>;
 +	status = "okay";
 +};
 +
 +&mmc2 {
-+	vmmc-supply = <&reg_dldo2>;
-+	bus-width = <8>;
++	/* eMMC */
++	vmmc-supply = <&reg_aldo1>;
++	vqmmc-supply = <&reg_bldo1>;
 +	non-removable;
 +	cap-mmc-hw-reset;
++	mmc-ddr-1_8v;
++	mmc-hs200-1_8v;
++	max-frequency = <100000000>; /* required for stable operation */
++	bus-width = <8>;
++	status = "okay";
++};
++
++&ohci0 {
++	status = "okay";
++};
++
++&ohci3 {
 +	status = "okay";
 +};
 +
@@ -175,43 +188,94 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/dts/ups
 +	axp305: pmic@36 {
 +		compatible = "x-powers,axp305", "x-powers,axp805",
 +			     "x-powers,axp806";
++		interrupt-controller;
++		#interrupt-cells = <1>;
 +		reg = <0x36>;
-+		wakeup-source;
++
++		x-powers,self-working-mode;
++		vina-supply = <&reg_vcc5v>;
++		vinb-supply = <&reg_vcc5v>;
++		vinc-supply = <&reg_vcc5v>;
++		vind-supply = <&reg_vcc5v>;
++		vine-supply = <&reg_vcc5v>;
++		aldoin-supply = <&reg_vcc5v>;
++		bldoin-supply = <&reg_vcc5v>;
++		cldoin-supply = <&reg_vcc5v>;
 +
 +		regulators {
-+			reg_dcdc1: dcdc1 {
++			reg_dcdca: dcdca {
 +				regulator-always-on;
-+				regulator-min-microvolt = <1160000>;
-+				regulator-max-microvolt = <1160000>;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1100000>;
 +				regulator-name = "vdd-cpu";
 +			};
 +
-+			reg_dcdc2: dcdc2 {
++			dcdcb {
++				/* unused */
++			};
++
++			reg_dcdcc: dcdcc {
 +				regulator-always-on;
-+				regulator-min-microvolt = <1160000>;
-+				regulator-max-microvolt = <1160000>;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <990000>;
 +				regulator-name = "vdd-gpu-sys";
 +			};
 +
-+			reg_dcdc3: dcdc3 {
++			dcdcd {
 +				regulator-always-on;
 +				regulator-min-microvolt = <1500000>;
 +				regulator-max-microvolt = <1500000>;
 +				regulator-name = "vdd-dram";
 +			};
 +
-+			reg_aldo1: ldo1 {
-+				regulator-always-on;
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <1800000>;
-+				regulator-name = "vcc-sys";
++			dcdce {
++				/* unused */
 +			};
 +
-+			reg_dldo2: ldo2 {
++			reg_aldo1: aldo1 {
 +				regulator-always-on;
 +				regulator-min-microvolt = <3300000>;
 +				regulator-max-microvolt = <3300000>;
-+				regulator-name = "vcc3v3-ext";
++				regulator-name = "vcc3v3";
++			};
++
++			aldo2 {
++				/* unused */
++			};
++
++			aldo3 {
++				/* unused */
++			};
++
++			reg_bldo1: bldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8";
++			};
++
++			bldo2 {
++				/* unused */
++			};
++
++			bldo3 {
++				/* unused */
++			};
++
++			bldo4 {
++				/* unused */
++			};
++
++			cldo1 {
++				/* unused */
++			};
++
++			cldo2 {
++				/* unused */
++			};
++
++			cldo3 {
++				/* unused */
 +			};
 +		};
 +	};
@@ -222,3 +286,16 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/dts/ups
 +	pinctrl-0 = <&uart0_ph_pins>;
 +	status = "okay";
 +};
++
++&usbotg {
++	dr_mode = "host";	/* USB A type receptacle */
++	status = "okay";
++};
++
++&usbphy {
++	status = "okay";
++};
+--
+
+MiniMyth2
+
