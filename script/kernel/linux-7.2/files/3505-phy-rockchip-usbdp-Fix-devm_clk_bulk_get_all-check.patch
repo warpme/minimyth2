@@ -1,0 +1,44 @@
+From c027b55331244c60c031e57d6c28ecc26962c71e Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 17 Jun 2026 13:45:06 +0200
+Subject: [PATCH 049/172] phy: rockchip: usbdp: Fix devm_clk_bulk_get_all check
+
+If devm_clk_bulk_get_all() returns -EPROBE_DEFER, it is replaced with
+-ENODEV, permanently failing the driver probe instead of allowing it to
+defer. Avoid masking the error code to fix the issue.
+
+This effectively drops returning -ENODEV in case no clocks are being
+described in DT. This special case will now be handled by the follow-up
+check searching for "refclk" and exit with -EINVAL.
+
+None of this will be hit in practice, since the driver is only used by
+RK3588 and RK3576 - on these platforms the DT is validated to contain
+the clocks and the clock driver is force probed early. Thus there is
+no need to backport this.
+
+Fixes: 2f70bbddeb45 ("phy: rockchip: add usbdp combo phy driver")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Closes: https://lore.kernel.org/linux-phy/20260612164107.C7DB21F000E9@smtp.kernel.org/
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index 957df7457f4..8485e62e23f 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -426,8 +426,8 @@ static int rk_udphy_clk_init(struct rk_udphy *udphy, struct device *dev)
+ 	int i;
+ 
+ 	udphy->num_clks = devm_clk_bulk_get_all(dev, &udphy->clks);
+-	if (udphy->num_clks < 1)
+-		return -ENODEV;
++	if (udphy->num_clks < 0)
++		return udphy->num_clks;
+ 
+ 	/* used for configure phy reference clock frequency */
+ 	for (i = 0; i < udphy->num_clks; i++) {
+-- 
+2.53.0
+

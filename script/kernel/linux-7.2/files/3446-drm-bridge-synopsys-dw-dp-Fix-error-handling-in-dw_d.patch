@@ -1,0 +1,44 @@
+From 0e051f2301431df3edcc449ea2ea13bb75a086d2 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Mon, 3 Aug 2026 19:37:14 +0200
+Subject: [PATCH 111/172] drm/bridge: synopsys: dw-dp: Fix error handling in
+ dw_dp_link_enable()
+
+Add missing error handling in dw_dp_link_enable(), which failed to
+release resources it already requested before hitting an error.
+
+Fixes: 86eecc3a9c2e ("drm/bridge: synopsys: Add DW DPTX Controller support library")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 06997208945..e332d66b805 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -1636,10 +1636,19 @@ static int dw_dp_link_enable(struct dw_dp *dp)
+ 
+ 	ret = drm_dp_link_power_up(&dp->aux, dp->link.revision);
+ 	if (ret < 0)
+-		return ret;
++		goto err_phy_power_off;
+ 
+ 	ret = dw_dp_link_train(dp);
++	if (ret < 0)
++		goto err_link_power_down;
++
++	return 0;
++
++err_link_power_down:
++	drm_dp_link_power_down(&dp->aux, dp->link.revision);
+ 
++err_phy_power_off:
++	phy_power_off(dp->phy);
+ 	return ret;
+ }
+ 
+-- 
+2.53.0
+

@@ -1,0 +1,37 @@
+From 42d80ffdb31e3b98f2ec1417bec777ee0a856625 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Fri, 24 Jul 2026 15:28:55 +0200
+Subject: [PATCH 117/172] drm/bridge: synopsys: dw-dp: Free output_fmts when
+ none are valid
+
+If dw_dp_bandwidth_ok() returns false for all formats, *num_output_fmts
+might end up becoming 0. In this case functions calling it assume that
+nothing needs to be free'd, so free output_fmts within the function to
+avoid leaking memory.
+
+Fixes: 86eecc3a9c2e ("drm/bridge: synopsys: Add DW DPTX Controller support library")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 22a244de08a..bde938b0d11 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -1813,6 +1813,11 @@ static u32 *dw_dp_bridge_atomic_get_output_bus_fmts(struct drm_bridge *bridge,
+ 		output_fmts[j++] = fmt->bus_format;
+ 	}
+ 
++	if (j == 0) {
++		kfree(output_fmts);
++		output_fmts = NULL;
++	}
++
+ 	*num_output_fmts = j;
+ 
+ 	return output_fmts;
+-- 
+2.53.0
+

@@ -1,0 +1,44 @@
+From 21149466eeb41ff700565701aa9395acb00d25eb Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 29 Jul 2026 20:31:06 +0200
+Subject: [PATCH 113/172] drm/bridge: synopsys: dw-dp: Document missing reset
+ line deassert
+
+If the driver uses devm_reset_control_get_exclusive_deasserted() instead
+of devm_reset_control_get() and thus automatically deasserts during
+probe, the SoC will hang when the device is unbound.
+
+This does not happen, when runtime PM is being used (not yet supported
+in mainline), which suggests the power-domain involved requires this reset
+line to be deasserted.
+
+Even with runtime PM there is no gurantee that the power-domain is
+disabled as it is shared. Considering the power-domain does not have
+the reset dependency described in DT, document the problem but leave
+things in the current state until a better solution is found as the
+reset line is deasserted by default on all supported platforms.
+
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 278953a8549..facd1c47999 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -2088,6 +2088,10 @@ struct dw_dp *dw_dp_probe(struct platform_device *pdev, const struct dw_dp_plat_
+ 		return ERR_CAST(dp->hdcp_clk);
+ 	}
+ 
++	/*
++	 * This reset line is deasserted by default; asserting it hangs the SoC if the
++	 * related power-domain is still active.
++	 */
+ 	dp->rstc = devm_reset_control_get(dev, NULL);
+ 	if (IS_ERR(dp->rstc)) {
+ 		dev_err_probe(dev, PTR_ERR(dp->rstc), "failed to get reset control\n");
+-- 
+2.53.0
+

@@ -1,0 +1,92 @@
+From 91a753257590353b087762cdee8ebce0607233e2 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 19 Mar 2026 16:44:22 +0100
+Subject: [PATCH 124/172] drm/rockchip: dw_dp: Add runtime PM support
+
+Add support for runtime PM to the Rockchip RK3576/3588 Synopsys
+DesignWare DisplayPort driver.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/rockchip/dw_dp-rockchip.c | 29 +++++++++++++++++++++--
+ 1 file changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_dp-rockchip.c b/drivers/gpu/drm/rockchip/dw_dp-rockchip.c
+index d516b3910b5..dde3881efad 100644
+--- a/drivers/gpu/drm/rockchip/dw_dp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_dp-rockchip.c
+@@ -12,6 +12,7 @@
+ #include <linux/mfd/syscon.h>
+ #include <linux/of_device.h>
+ #include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
+ #include <linux/regmap.h>
+ #include <linux/videodev2.h>
+ 
+@@ -194,7 +195,7 @@ static int dw_dp_rockchip_probe(struct platform_device *pdev)
+ 	struct device *dev = &pdev->dev;
+ 	struct rockchip_dw_dp *dp;
+ 	struct resource *res;
+-	int id;
++	int id, ret;
+ 
+ 	plat_data_const = device_get_match_data(dev);
+ 	if (!plat_data_const)
+@@ -231,16 +232,21 @@ static int dw_dp_rockchip_probe(struct platform_device *pdev)
+ 	if (IS_ERR(dp->vo_grf))
+ 		return PTR_ERR(dp->vo_grf);
+ 
++	plat_data->autosuspend_delay = 500;
+ 	plat_data->max_link_rate = plat_data_const->max_link_rate;
+ 	plat_data->pixel_mode = plat_data_const->pixel_mode;
+ 	plat_data->hpd_sw_sel = dw_dp_rockchip_hpd_sw_sel;
+ 	plat_data->hpd_sw_cfg = dw_dp_rockchip_hpd_sw_cfg;
+ 	plat_data->data = dp;
+ 
+-	dp->base = dw_dp_probe(pdev, plat_data);
++	dp->base = dw_dp_alloc(pdev, plat_data);
+ 	if (IS_ERR(dp->base))
+ 		return PTR_ERR(dp->base);
+ 
++	ret = dw_dp_probe(dp->base);
++	if (ret)
++		return ret;
++
+ 	return component_add(&pdev->dev, &dw_dp_rockchip_component_ops);
+ }
+ 
+@@ -249,6 +255,24 @@ static void dw_dp_rockchip_remove(struct platform_device *pdev)
+ 	component_del(&pdev->dev, &dw_dp_rockchip_component_ops);
+ }
+ 
++static int dw_dp_rockchip_runtime_suspend(struct device *dev)
++{
++	struct rockchip_dw_dp *dp = dev_get_drvdata(dev);
++
++	return dw_dp_runtime_suspend(dp->base);
++}
++
++static int dw_dp_rockchip_runtime_resume(struct device *dev)
++{
++	struct rockchip_dw_dp *dp = dev_get_drvdata(dev);
++
++	return dw_dp_runtime_resume(dp->base);
++}
++
++static const struct dev_pm_ops dw_dp_pm_ops = {
++	RUNTIME_PM_OPS(dw_dp_rockchip_runtime_suspend, dw_dp_rockchip_runtime_resume, NULL)
++};
++
+ static const struct rockchip_dw_dp_plat_data rk3588_dp_plat_data = {
+ 	.num_ctrls = 2,
+ 	.ctrl_ids = {0xfde50000, 0xfde60000},
+@@ -283,5 +307,6 @@ struct platform_driver dw_dp_driver = {
+ 	.driver = {
+ 		.name = "dw-dp",
+ 		.of_match_table = dw_dp_of_match,
++		.pm = pm_ptr(&dw_dp_pm_ops),
+ 	},
+ };
+-- 
+2.53.0
+

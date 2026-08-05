@@ -1,0 +1,127 @@
+From d9b49ae4e1977cbc248d845790755b5ac5645a5a Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 29 Jul 2026 18:55:32 +0200
+Subject: [PATCH 109/172] drm/bridge: synopsys: dw-dp: Register DP AUX on
+ bridge attach
+
+Unregister the DP AUX device at the right spot as documented in the
+drm_dp_aux_register() function description. This helps that it is
+only accessed when the DRM device is ready and the bridge is powered
+and initialized (further fixes are required for that).
+
+Fixes: 86eecc3a9c2e ("drm/bridge: synopsys: Add DW DPTX Controller support library")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 55 ++++++++++++++++---------
+ 1 file changed, 35 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 3445c82e6f5..112a4991130 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -1813,7 +1813,36 @@ static struct drm_bridge_state *dw_dp_bridge_atomic_duplicate_state(struct drm_b
+ 	return &state->base;
+ }
+ 
++static int dw_dp_bridge_attach(struct drm_bridge *bridge,
++			       struct drm_encoder *encoder,
++			       enum drm_bridge_attach_flags flags)
++{
++	struct dw_dp *dp = bridge_to_dp(bridge);
++	struct device *dev = dp->dev;
++	int ret;
++
++	dp->aux.dev = dev;
++	dp->aux.drm_dev = encoder->dev;
++	dp->aux.name = dev_name(dev);
++	dp->aux.transfer = dw_dp_aux_transfer;
++
++	ret = drm_dp_aux_register(&dp->aux);
++	if (ret)
++		dev_err(dev, "Aux register failed: %d\n", ret);
++
++	return ret;
++}
++
++static void dw_dp_bridge_detach(struct drm_bridge *bridge)
++{
++	struct dw_dp *dp = bridge_to_dp(bridge);
++
++	drm_dp_aux_unregister(&dp->aux);
++}
++
+ static const struct drm_bridge_funcs dw_dp_bridge_funcs = {
++	.attach = dw_dp_bridge_attach,
++	.detach = dw_dp_bridge_detach,
+ 	.atomic_duplicate_state = dw_dp_bridge_atomic_duplicate_state,
+ 	.atomic_destroy_state = drm_atomic_helper_bridge_destroy_state,
+ 	.atomic_create_state = drm_atomic_helper_bridge_create_state,
+@@ -2044,20 +2073,10 @@ struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
+ 	if (ret)
+ 		return ERR_PTR(ret);
+ 
+-	dp->aux.dev = dev;
+-	dp->aux.drm_dev = encoder->dev;
+-	dp->aux.name = dev_name(dev);
+-	dp->aux.transfer = dw_dp_aux_transfer;
+-	ret = drm_dp_aux_register(&dp->aux);
+-	if (ret) {
+-		dev_err_probe(dev, ret, "Aux register failed\n");
+-		return ERR_PTR(ret);
+-	}
+-
+ 	ret = drm_bridge_attach(encoder, bridge, NULL, DRM_BRIDGE_ATTACH_NO_CONNECTOR);
+ 	if (ret) {
+ 		dev_err_probe(dev, ret, "Failed to attach bridge\n");
+-		goto unregister_aux;
++		return ERR_PTR(ret);
+ 	}
+ 
+ 	dw_dp_init_hw(dp);
+@@ -2065,37 +2084,33 @@ struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
+ 	ret = phy_init(dp->phy);
+ 	if (ret) {
+ 		dev_err_probe(dev, ret, "phy init failed\n");
+-		goto unregister_aux;
++		return ERR_PTR(ret);
+ 	}
+ 
+ 	ret = devm_add_action_or_reset(dev, dw_dp_phy_exit, dp);
+ 	if (ret)
+-		goto unregister_aux;
++		return ERR_PTR(ret);
+ 
+ 	dp->irq = platform_get_irq(pdev, 0);
+ 	if (dp->irq < 0) {
+ 		ret = dp->irq;
+-		goto unregister_aux;
++		return ERR_PTR(ret);
+ 	}
+ 
+ 	ret = devm_request_threaded_irq(dev, dp->irq, NULL, dw_dp_irq,
+ 					IRQF_ONESHOT, dev_name(dev), dp);
+ 	if (ret) {
+ 		dev_err_probe(dev, ret, "failed to request irq\n");
+-		goto unregister_aux;
++		return ERR_PTR(ret);
+ 	}
+ 
+ 	return dp;
+-
+-unregister_aux:
+-	drm_dp_aux_unregister(&dp->aux);
+-	return ERR_PTR(ret);
+ }
+ EXPORT_SYMBOL_GPL(dw_dp_bind);
+ 
+ void dw_dp_unbind(struct dw_dp *dp)
+ {
+-	drm_dp_aux_unregister(&dp->aux);
++	/* nothing to do */
+ }
+ EXPORT_SYMBOL_GPL(dw_dp_unbind);
+ 
+-- 
+2.53.0
+

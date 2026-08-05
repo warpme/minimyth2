@@ -1,0 +1,135 @@
+From bf2ffed605db58f4dfa9e0a8255e5570d3da4f49 Mon Sep 17 00:00:00 2001
+From: Chaoyi Chen <chaoyi.chen@rock-chips.com>
+Date: Fri, 17 Jul 2026 15:23:19 +0800
+Subject: [PATCH 134/172] drm/bridge: Implement generic USB Type-C DP HPD
+ bridge
+
+The HPD function of Type-C DP is implemented through
+drm_connector_oob_hotplug_event(). For embedded DP, it is required
+that the DRM connector fwnode corresponds to the Type-C port fwnode.
+
+To describe the relationship between the DP controller and the Type-C
+port device, we usually using drm_bridge to build a bridge chain.
+
+Now several USB-C controller drivers have already implemented the DP
+HPD bridge function provided by aux-hpd-bridge.c, it will build a DP
+HPD bridge on USB-C connector port device.
+
+But this requires the USB-C controller driver to manually register the
+HPD bridge. If the driver does not implement this feature, the bridge
+will not be create.
+
+So this patch implements a generic DP HPD bridge based on
+aux-hpd-bridge.c. It will monitor Type-C bus events, and when a
+Type-C port device containing the DP svid is registered, it will
+create an HPD bridge for it without the need for the USB-C controller
+driver to implement it.
+
+Signed-off-by: Chaoyi Chen <chaoyi.chen@rock-chips.com>
+Reviewed-by: Heikki Krogerus <heikki.krogerus@linux.intel.com>
+Reviewed-by: Nicolas Frattaroli <nicolas.frattaroli@collabora.com>
+Link: https://lore.kernel.org/r/20260717072323.96-2-kernel@airkyi.com
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/Kconfig                | 10 ++++
+ drivers/gpu/drm/bridge/Makefile               |  1 +
+ .../gpu/drm/bridge/aux-hpd-typec-dp-bridge.c  | 54 +++++++++++++++++++
+ 3 files changed, 65 insertions(+)
+ create mode 100644 drivers/gpu/drm/bridge/aux-hpd-typec-dp-bridge.c
+
+diff --git a/drivers/gpu/drm/bridge/Kconfig b/drivers/gpu/drm/bridge/Kconfig
+index 4a57d49b4c6..9739b2a1975 100644
+--- a/drivers/gpu/drm/bridge/Kconfig
++++ b/drivers/gpu/drm/bridge/Kconfig
+@@ -30,6 +30,16 @@ config DRM_AUX_HPD_BRIDGE
+ 	  Simple bridge that terminates the bridge chain and provides HPD
+ 	  support.
+ 
++if DRM_AUX_HPD_BRIDGE
++config DRM_AUX_HPD_TYPEC_BRIDGE
++	tristate
++	depends on TYPEC || !TYPEC
++	default TYPEC
++	help
++	  Simple bridge that terminates the bridge chain and provides HPD
++	  support. It build bridge on each USB-C connector device node.
++endif
++
+ menu "Display Interface Bridges"
+ 	depends on DRM && DRM_BRIDGE
+ 
+diff --git a/drivers/gpu/drm/bridge/Makefile b/drivers/gpu/drm/bridge/Makefile
+index 15cc821d85b..d88a9e1ccc9 100644
+--- a/drivers/gpu/drm/bridge/Makefile
++++ b/drivers/gpu/drm/bridge/Makefile
+@@ -1,6 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0
+ obj-$(CONFIG_DRM_AUX_BRIDGE) += aux-bridge.o
+ obj-$(CONFIG_DRM_AUX_HPD_BRIDGE) += aux-hpd-bridge.o
++obj-$(CONFIG_DRM_AUX_HPD_TYPEC_BRIDGE) += aux-hpd-typec-dp-bridge.o
+ obj-$(CONFIG_DRM_CHIPONE_ICN6211) += chipone-icn6211.o
+ obj-$(CONFIG_DRM_CHRONTEL_CH7033) += chrontel-ch7033.o
+ obj-$(CONFIG_DRM_CROS_EC_ANX7688) += cros-ec-anx7688.o
+diff --git a/drivers/gpu/drm/bridge/aux-hpd-typec-dp-bridge.c b/drivers/gpu/drm/bridge/aux-hpd-typec-dp-bridge.c
+new file mode 100644
+index 00000000000..c09579ff7ab
+--- /dev/null
++++ b/drivers/gpu/drm/bridge/aux-hpd-typec-dp-bridge.c
+@@ -0,0 +1,54 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2026 Rockchip Electronics Co., Ltd.
++ *
++ * Author: Chaoyi Chen <chaoyi.chen@rock-chips.com>
++ */
++#include <linux/of.h>
++#include <linux/usb/typec_altmode.h>
++#include <linux/usb/typec_dp.h>
++
++#include <drm/bridge/aux-bridge.h>
++
++static int drm_typec_bus_event(struct notifier_block *nb,
++			       unsigned long action, void *data)
++{
++	struct device *dev = (struct device *)data;
++	struct typec_altmode *alt = to_typec_altmode(dev);
++
++	if (action != BUS_NOTIFY_ADD_DEVICE)
++		return NOTIFY_OK;
++
++	/*
++	 * alt->dev.parent->parent : USB-C controller device
++	 * alt->dev.parent         : USB-C connector device
++	 */
++	if (is_typec_port_altmode(&alt->dev) && alt->svid == USB_TYPEC_DP_SID)
++		drm_dp_hpd_bridge_register(alt->dev.parent->parent,
++					   to_of_node(alt->dev.parent->fwnode));
++
++	return NOTIFY_OK;
++}
++
++static struct notifier_block drm_typec_event_nb = {
++	.notifier_call = drm_typec_bus_event,
++};
++
++static void drm_aux_hpd_typec_dp_bridge_module_exit(void)
++{
++	bus_unregister_notifier(&typec_bus, &drm_typec_event_nb);
++}
++
++static int __init drm_aux_hpd_typec_dp_bridge_module_init(void)
++{
++	bus_register_notifier(&typec_bus, &drm_typec_event_nb);
++
++	return 0;
++}
++
++module_init(drm_aux_hpd_typec_dp_bridge_module_init);
++module_exit(drm_aux_hpd_typec_dp_bridge_module_exit);
++
++MODULE_AUTHOR("Chaoyi Chen <chaoyi.chen@rock-chips.com>");
++MODULE_DESCRIPTION("DRM TYPEC DP HPD BRIDGE");
++MODULE_LICENSE("GPL");
+-- 
+2.53.0
+

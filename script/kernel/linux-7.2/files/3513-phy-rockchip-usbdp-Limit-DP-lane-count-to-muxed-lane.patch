@@ -1,0 +1,39 @@
+From 94a57e93e55a01225b7e3e068c8907c650a2046b Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 16 Jun 2026 18:05:39 +0200
+Subject: [PATCH 057/172] phy: rockchip: usbdp: Limit DP lane count to muxed
+ lanes
+
+In theory the DP controller could request 4 lanes when the PHY is
+restricted to 2 lanes as the other half is used by USB3.
+
+With the current user (DW-DP) this cannot happen, but as the check is
+cheap and users might change in the future protect things accordingly.
+Not doing so would corrupt USB3 usage by the following code configuring
+the voltages.
+
+Fixes: 2f70bbddeb45 ("phy: rockchip: add usbdp combo phy driver")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Closes: https://lore.kernel.org/linux-phy/20260612165546.98E1F1F000E9@smtp.kernel.org/
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index 96a5dd60e59..04b62ccd02c 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -1098,6 +1098,9 @@ static int rk_udphy_dp_phy_verify_link_rate(struct rk_udphy *udphy,
+ static int rk_udphy_dp_phy_verify_lanes(struct rk_udphy *udphy,
+ 					struct phy_configure_opts_dp *dp)
+ {
++	if (dp->lanes > udphy->dp_lanes)
++		return -EINVAL;
++
+ 	switch (dp->lanes) {
+ 	case 1:
+ 	case 2:
+-- 
+2.53.0
+

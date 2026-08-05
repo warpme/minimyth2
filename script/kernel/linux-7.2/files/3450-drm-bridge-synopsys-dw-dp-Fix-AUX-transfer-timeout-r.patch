@@ -1,0 +1,60 @@
+From a7af0cbe011a64975bb701f6da10dfd037c2939a Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Fri, 24 Jul 2026 15:04:19 +0200
+Subject: [PATCH 115/172] drm/bridge: synopsys: dw-dp: Fix AUX transfer timeout
+ race condition
+
+The DP AUX transfer method uses a completion triggered by an interrupt,
+which can timeout. If the function runs into the timeout and the
+interrupt fires afterwards, the following DP aux transfer completion
+would trigger immediately without waiting for the interrupt. This in
+turn means the next one would also be broken and so on.
+
+Fix this potential issue by re-initializing the completion directly
+before sending the AUX command.
+
+As this is racy (the interrupt might arrive between the completion
+re-init and the new command being programmed), also reset the AUX
+controller on timeouts and synchronize pending interrupts to gurantee
+that there are no pending AUX transfers when the dw_dp_aux_transfer()
+returns.
+
+Due to lack of a sink, which generates AUX timeouts, this change is
+effectively untested.
+
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Fixes: 86eecc3a9c2e ("drm/bridge: synopsys: Add DW DPTX Controller support library")
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index af3fa788642..8b587a4c5e9 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -1466,6 +1466,8 @@ static ssize_t dw_dp_aux_transfer(struct drm_dp_aux *aux,
+ 	if (WARN_ON(msg->size > 16))
+ 		return -E2BIG;
+ 
++	reinit_completion(&dp->complete);
++
+ 	switch (msg->request & ~DP_AUX_I2C_MOT) {
+ 	case DP_AUX_NATIVE_WRITE:
+ 	case DP_AUX_I2C_WRITE:
+@@ -1492,6 +1494,12 @@ static ssize_t dw_dp_aux_transfer(struct drm_dp_aux *aux,
+ 	status = wait_for_completion_timeout(&dp->complete, timeout);
+ 	if (!status) {
+ 		dev_err(dp->dev, "timeout waiting for AUX reply\n");
++		regmap_update_bits(dp->regmap, DW_DP_SOFT_RESET_CTRL,
++				   AUX_RESET, FIELD_PREP(AUX_RESET, 1));
++		usleep_range(10, 20);
++		regmap_update_bits(dp->regmap, DW_DP_SOFT_RESET_CTRL,
++				   AUX_RESET, FIELD_PREP(AUX_RESET, 0));
++		synchronize_irq(dp->irq);
+ 		return -ETIMEDOUT;
+ 	}
+ 
+-- 
+2.53.0
+

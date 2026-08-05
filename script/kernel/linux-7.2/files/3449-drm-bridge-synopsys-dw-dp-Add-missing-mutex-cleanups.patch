@@ -1,0 +1,37 @@
+From 8b34992639103e1a161532960e3eb172d98d0722 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 22 Jul 2026 20:03:14 +0200
+Subject: [PATCH 114/172] drm/bridge: synopsys: dw-dp: Add missing mutex
+ cleanups on module removal
+
+The driver is currently missing to fully clean up after itself. Ensure
+that the mutex is cleaned up.
+
+Fixes: 86eecc3a9c2e ("drm/bridge: synopsys: Add DW DPTX Controller support library")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index facd1c47999..af3fa788642 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -2039,9 +2039,12 @@ struct dw_dp *dw_dp_probe(struct platform_device *pdev, const struct dw_dp_plat_
+ 	dp->pixel_mode = plat_data->pixel_mode;
+ 	dp->plat_data.max_link_rate = plat_data->max_link_rate;
+ 
+-	mutex_init(&dp->irq_lock);
+ 	init_completion(&dp->complete);
+ 
++	ret = devm_mutex_init(dev, &dp->irq_lock);
++	if (ret)
++		return ERR_PTR(ret);
++
+ 	res = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(res))
+ 		return ERR_CAST(res);
+-- 
+2.53.0
+

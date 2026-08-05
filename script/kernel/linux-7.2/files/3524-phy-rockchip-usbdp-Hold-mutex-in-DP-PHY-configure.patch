@@ -1,0 +1,39 @@
+From 124c59cd3aba319f496f452f8f15686264d409f8 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 18 Jun 2026 19:18:48 +0200
+Subject: [PATCH 068/172] phy: rockchip: usbdp: Hold mutex in DP PHY configure
+
+rk_udphy_dp_phy_configure() accesses some variables from the struct
+rk_udphy, which are updated independently from the USB-C framework.
+
+The USB-C mux/orientation switch functions already hold a mutex to
+ensure mutual exclusive access to the struct rk_udphy states, so
+simply hold the same one in the DP PHY configuration function.
+
+Reproducing problems due to this on real hardware would be really hard,
+but could be possible when quickly re-connecting the USB-C connector.
+
+Fixes: 2f70bbddeb45 ("phy: rockchip: add usbdp combo phy driver")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Closes: https://lore.kernel.org/linux-phy/20260612164627.23D391F000E9@smtp.kernel.org/
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index d1716245d01..b242b137cfe 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -1153,6 +1153,8 @@ static int rk_udphy_dp_phy_configure(struct phy *phy,
+ 	u32 i, val, lane;
+ 	int ret;
+ 
++	guard(mutex)(&udphy->mutex);
++
+ 	if (dp->set_rate) {
+ 		ret = rk_udphy_dp_phy_verify_link_rate(udphy, dp);
+ 		if (ret)
+-- 
+2.53.0
+

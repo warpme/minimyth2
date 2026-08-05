@@ -1,0 +1,83 @@
+From f9c3d3c67893fd00325c6c2c70393589a1778cba Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 23 Jul 2026 22:59:37 +0200
+Subject: [PATCH 125/172] drm/bridge: synopsys: dw-dp: Protect sdp_reg_bank
+ from concurrent access
+
+Right now sdp_reg_bank is only used during atomic enable/disable and
+thus there is no risk of two threads accidently claiming the same bit.
+
+This changes once more SDP users (like audio support) are added, so
+introduce a mutex to protect concurrent access to the bitmap.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 24 +++++++++++++++++-------
+ 1 file changed, 17 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 501b28abeca..19b6c11f672 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -323,6 +323,8 @@ struct dw_dp {
+ 	struct dw_dp_hotplug hotplug;
+ 	/* Serialize hpd status access */
+ 	struct mutex irq_lock;
++	/* Serialize sdp_reg_bank access */
++	struct mutex sdp_lock;
+ 
+ 	struct drm_dp_aux aux;
+ 
+@@ -1048,11 +1050,13 @@ static int dw_dp_send_sdp(struct dw_dp *dp, struct dw_dp_sdp *sdp)
+ 	u32 reg;
+ 	int i, nr;
+ 
+-	nr = find_first_zero_bit(dp->sdp_reg_bank, SDP_REG_BANK_SIZE);
+-	if (nr < SDP_REG_BANK_SIZE)
+-		set_bit(nr, dp->sdp_reg_bank);
+-	else
+-		return -EBUSY;
++	scoped_guard(mutex, &dp->sdp_lock) {
++		nr = find_first_zero_bit(dp->sdp_reg_bank, SDP_REG_BANK_SIZE);
++		if (nr < SDP_REG_BANK_SIZE)
++			set_bit(nr, dp->sdp_reg_bank);
++		else
++			return -EBUSY;
++	}
+ 
+ 	reg = DW_DP_SDP_REGISTER_BANK + nr * 9 * 4;
+ 
+@@ -1702,7 +1706,8 @@ static void dw_dp_bridge_atomic_enable(struct drm_bridge *bridge,
+ 		return;
+ 	}
+ 
+-	set_bit(0, dp->sdp_reg_bank);
++	scoped_guard(mutex, &dp->sdp_lock)
++		set_bit(0, dp->sdp_reg_bank);
+ 
+ 	ret = dw_dp_link_enable(dp);
+ 	if (ret < 0) {
+@@ -1746,7 +1751,8 @@ static void dw_dp_bridge_atomic_disable(struct drm_bridge *bridge,
+ 
+ 	dw_dp_video_disable(dp);
+ 	dw_dp_link_disable(dp);
+-	bitmap_zero(dp->sdp_reg_bank, SDP_REG_BANK_SIZE);
++	scoped_guard(mutex, &dp->sdp_lock)
++		bitmap_zero(dp->sdp_reg_bank, SDP_REG_BANK_SIZE);
+ 	dw_dp_reset(dp);
+ 	pm_runtime_put_autosuspend(dp->dev);
+ }
+@@ -2249,6 +2255,10 @@ int dw_dp_probe(struct dw_dp *dp)
+ 	if (ret)
+ 		return ret;
+ 
++	ret = devm_mutex_init(dev, &dp->sdp_lock);
++	if (ret)
++		return ret;
++
+ 	res = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(res))
+ 		return PTR_ERR(res);
+-- 
+2.53.0
+

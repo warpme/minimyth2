@@ -1,0 +1,134 @@
+From d06f278bb90d35351af5b3912666ad7b185b205c Mon Sep 17 00:00:00 2001
+From: Luca Ceresoli <luca.ceresoli@bootlin.com>
+Date: Tue, 30 Jun 2026 17:34:04 +0200
+Subject: [PATCH 010/172] [MERGED] drm/bridge: rename
+ drm_for_each_bridge_in_chain_scoped() to drm_for_each_bridge_in_chain()
+
+drm_for_each_bridge_in_chain_scoped() was added in commit e46efc6a7d28
+("drm/bridge: add drm_for_each_bridge_in_chain_scoped()") to provide a
+safer alternative to drm_for_each_bridge_in_chain().
+
+Following commits converted all users to the _scoped variant.
+
+Finally commit 2f08387a444c ("drm/bridge: remove
+drm_for_each_bridge_in_chain()") removed the old
+drm_for_each_bridge_in_chain() macro.
+
+It's time to rename drm_for_each_bridge_in_chain_scoped() back to the
+original name.
+
+Reviewed-by: Louis Chauvet <louis.chauvet@bootlin.com>
+Link: https://patch.msgid.link/20260630-drm-bridge-alloc-getput-for_each_bridge-2-v2-1-e0a1094cd1eb@bootlin.com
+Signed-off-by: Luca Ceresoli <luca.ceresoli@bootlin.com>
+[Adapted for v7.2-rc5]
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ .clang-format                                  |  2 +-
+ drivers/gpu/drm/display/drm_bridge_connector.c |  4 ++--
+ drivers/gpu/drm/drm_atomic.c                   |  2 +-
+ drivers/gpu/drm/drm_bridge.c                   |  2 +-
+ include/drm/drm_bridge.h                       | 11 +++++------
+ 5 files changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/.clang-format b/.clang-format
+index 6a3de86ab27..5ef5743b77c 100644
+--- a/.clang-format
++++ b/.clang-format
+@@ -167,7 +167,7 @@ ForEachMacros:
+   - 'drm_connector_for_each_possible_encoder'
+   - 'drm_exec_for_each_locked_object'
+   - 'drm_exec_for_each_locked_object_reverse'
+-  - 'drm_for_each_bridge_in_chain_scoped'
++  - 'drm_for_each_bridge_in_chain'
+   - 'drm_for_each_connector_iter'
+   - 'drm_for_each_crtc'
+   - 'drm_for_each_crtc_reverse'
+diff --git a/drivers/gpu/drm/display/drm_bridge_connector.c b/drivers/gpu/drm/display/drm_bridge_connector.c
+index 649969fca14..521b3958b48 100644
+--- a/drivers/gpu/drm/display/drm_bridge_connector.c
++++ b/drivers/gpu/drm/display/drm_bridge_connector.c
+@@ -147,7 +147,7 @@ static void drm_bridge_connector_hpd_notify(struct drm_connector *connector,
+ 		to_drm_bridge_connector(connector);
+ 
+ 	/* Notify all bridges in the pipeline of hotplug events. */
+-	drm_for_each_bridge_in_chain_scoped(bridge_connector->encoder, bridge) {
++	drm_for_each_bridge_in_chain(bridge_connector->encoder, bridge) {
+ 		if (bridge->funcs->hpd_notify)
+ 			bridge->funcs->hpd_notify(bridge, connector, status);
+ 	}
+@@ -823,7 +823,7 @@ struct drm_connector *drm_bridge_connector_init(struct drm_device *drm,
+ 	 * detection are available, we don't support hotplug detection at all.
+ 	 */
+ 	connector_type = DRM_MODE_CONNECTOR_Unknown;
+-	drm_for_each_bridge_in_chain_scoped(encoder, bridge) {
++	drm_for_each_bridge_in_chain(encoder, bridge) {
+ 		if (!bridge->interlace_allowed)
+ 			connector->interlace_allowed = false;
+ 		if (!bridge->ycbcr_420_allowed)
+diff --git a/drivers/gpu/drm/drm_atomic.c b/drivers/gpu/drm/drm_atomic.c
+index 080aec5a977..7e90580549a 100644
+--- a/drivers/gpu/drm/drm_atomic.c
++++ b/drivers/gpu/drm/drm_atomic.c
+@@ -1474,7 +1474,7 @@ drm_atomic_add_encoder_bridges(struct drm_atomic_commit *state,
+ 		       "Adding all bridges for [encoder:%d:%s] to %p\n",
+ 		       encoder->base.id, encoder->name, state);
+ 
+-	drm_for_each_bridge_in_chain_scoped(encoder, bridge) {
++	drm_for_each_bridge_in_chain(encoder, bridge) {
+ 		/* Skip bridges that don't implement the atomic state hooks. */
+ 		if (!bridge->funcs->atomic_duplicate_state)
+ 			continue;
+diff --git a/drivers/gpu/drm/drm_bridge.c b/drivers/gpu/drm/drm_bridge.c
+index ef06c1aa509..4a8128bbe5f 100644
+--- a/drivers/gpu/drm/drm_bridge.c
++++ b/drivers/gpu/drm/drm_bridge.c
+@@ -1709,7 +1709,7 @@ static int encoder_bridges_show(struct seq_file *m, void *data)
+ 	struct drm_printer p = drm_seq_file_printer(m);
+ 	unsigned int idx = 0;
+ 
+-	drm_for_each_bridge_in_chain_scoped(encoder, bridge)
++	drm_for_each_bridge_in_chain(encoder, bridge)
+ 		drm_bridge_debugfs_show_bridge(&p, bridge, idx++, false, true);
+ 
+ 	return 0;
+diff --git a/include/drm/drm_bridge.h b/include/drm/drm_bridge.h
+index c0703af611b..0a3acf10a02 100644
+--- a/include/drm/drm_bridge.h
++++ b/include/drm/drm_bridge.h
+@@ -1498,9 +1498,9 @@ static inline struct drm_bridge *__drm_for_each_bridge_in_chain_next(struct drm_
+ DEFINE_FREE(__drm_for_each_bridge_in_chain_cleanup, struct drm_bridge *,
+ 	if (_T) { mutex_unlock(&_T->encoder->bridge_chain_mutex); drm_bridge_put(_T); })
+ 
+-/* Internal to drm_for_each_bridge_in_chain_scoped() */
++/* Internal to drm_for_each_bridge_in_chain() */
+ static inline struct drm_bridge *
+-__drm_for_each_bridge_in_chain_scoped_start(struct drm_encoder *encoder)
++__drm_for_each_bridge_in_chain_start(struct drm_encoder *encoder)
+ {
+ 	mutex_lock(&encoder->bridge_chain_mutex);
+ 
+@@ -1513,8 +1513,7 @@ __drm_for_each_bridge_in_chain_scoped_start(struct drm_encoder *encoder)
+ }
+ 
+ /**
+- * drm_for_each_bridge_in_chain_scoped - iterate over all bridges attached
+- *                                       to an encoder
++ * drm_for_each_bridge_in_chain - iterate over all bridges attached to an encoder
+  * @encoder: the encoder to iterate bridges on
+  * @bridge: a bridge pointer updated to point to the current bridge at each
+  *	    iteration
+@@ -1524,9 +1523,9 @@ __drm_for_each_bridge_in_chain_scoped_start(struct drm_encoder *encoder)
+  * Automatically gets/puts the bridge reference while iterating and locks
+  * the encoder chain mutex to prevent chain modifications while iterating.
+  */
+-#define drm_for_each_bridge_in_chain_scoped(encoder, bridge)				\
++#define drm_for_each_bridge_in_chain(encoder, bridge)					\
+ 	for (struct drm_bridge *bridge __free(__drm_for_each_bridge_in_chain_cleanup) =	\
+-		__drm_for_each_bridge_in_chain_scoped_start((encoder));			\
++		__drm_for_each_bridge_in_chain_start((encoder));			\
+ 	     bridge;									\
+ 	     bridge = __drm_for_each_bridge_in_chain_next(bridge))			\
+ 
+-- 
+2.53.0
+

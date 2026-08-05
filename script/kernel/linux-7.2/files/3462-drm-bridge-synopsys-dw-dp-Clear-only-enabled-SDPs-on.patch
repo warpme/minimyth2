@@ -1,0 +1,93 @@
+From 047d8dcd36e47ea878244863a33b100b1e3044ba Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Tue, 28 Jul 2026 02:46:18 +0200
+Subject: [PATCH 127/172] drm/bridge: synopsys: dw-dp: Clear only enabled SDPs
+ on atomic disable
+
+dw_dp_bridge_atomic_disable() bulk-cleared the whole SDP register bank
+allocation bitmap via bitmap_zero() resulting in the loss of all
+tracking information. This results in a slot potentially being handed
+out again by dw_dp_send_sdp(), which is still considered to be held
+by the previous owner. Then the previous owner might free up the wrong
+SDP later on.
+
+Instead of bulk clearing the tracking information, the new
+implementation only clears the SDPs actually configured during
+dw_dp_bridge_atomic_enable() instead of the entire bank. The
+introduced functionality for that will also be used by the to-be-added
+audio infrastructure.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 27 +++++++++++++++++++++----
+ 1 file changed, 23 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 05d3485a4d8..d8c6a99e93b 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -337,6 +337,7 @@ struct dw_dp {
+ 
+ 	struct drm_bridge *next_bridge;
+ 
++	int vsc_sdp_nr;
+ 	DECLARE_BITMAP(sdp_reg_bank, SDP_REG_BANK_SIZE);
+ };
+ 
+@@ -1078,7 +1079,19 @@ static int dw_dp_send_sdp(struct dw_dp *dp, struct dw_dp_sdp *sdp)
+ 				   EN_HORIZONTAL_SDP << nr,
+ 				   EN_HORIZONTAL_SDP << nr);
+ 
+-	return 0;
++	return nr;
++}
++
++static void dw_dp_clear_sdp(struct dw_dp *dp, int nr)
++{
++	regmap_clear_bits(dp->regmap, DW_DP_SDP_VERTICAL_CTRL,
++			  EN_VERTICAL_SDP << nr);
++
++	regmap_clear_bits(dp->regmap, DW_DP_SDP_HORIZONTAL_CTRL,
++			  EN_HORIZONTAL_SDP << nr);
++
++	scoped_guard(mutex, &dp->sdp_lock)
++		clear_bit(nr, dp->sdp_reg_bank);
+ }
+ 
+ static int dw_dp_send_vsc_sdp(struct dw_dp *dp)
+@@ -1396,7 +1409,7 @@ static int dw_dp_video_enable(struct dw_dp *dp)
+ 			   FIELD_PREP(VIDEO_STREAM_ENABLE, 1));
+ 
+ 	if (dw_dp_video_need_vsc_sdp(dp))
+-		dw_dp_send_vsc_sdp(dp);
++		dp->vsc_sdp_nr = dw_dp_send_vsc_sdp(dp);
+ 
+ 	return 0;
+ }
+@@ -1748,8 +1761,12 @@ static void dw_dp_bridge_atomic_disable(struct drm_bridge *bridge,
+ 
+ 	dw_dp_video_disable(dp);
+ 	dw_dp_link_disable(dp);
+-	scoped_guard(mutex, &dp->sdp_lock)
+-		bitmap_zero(dp->sdp_reg_bank, SDP_REG_BANK_SIZE);
++
++	if (dp->vsc_sdp_nr >= 0) {
++		dw_dp_clear_sdp(dp, dp->vsc_sdp_nr);
++		dp->vsc_sdp_nr = -1;
++	}
++
+ 	dw_dp_reset(dp);
+ 	pm_runtime_put_autosuspend(dp->dev);
+ }
+@@ -2338,6 +2355,8 @@ int dw_dp_probe(struct dw_dp *dp)
+ 	if (ret)
+ 		return ret;
+ 
++	dp->vsc_sdp_nr = -1;
++
+ 	bridge = &dp->bridge;
+ 	bridge->of_node = dev->of_node;
+ 	bridge->ops = DRM_BRIDGE_OP_DETECT | DRM_BRIDGE_OP_EDID | DRM_BRIDGE_OP_HPD;
+-- 
+2.53.0
+

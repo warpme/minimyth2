@@ -1,0 +1,115 @@
+From c39bdc2d506c04019b1d81de56cb972ed48253c9 Mon Sep 17 00:00:00 2001
+From: Maxime Ripard <mripard@kernel.org>
+Date: Fri, 19 Jun 2026 14:24:11 +0200
+Subject: [PATCH 008/172] [MERGED] drm/bridge: Add new atomic_create_state
+ callback
+
+Commit 47b5ac7daa46 ("drm/atomic: Add new atomic_create_state callback
+to drm_private_obj") introduced a new pattern for allocating drm object
+states: atomic_create_state, a dedicated hook that allocates and
+initializes a pristine state without any side effect.
+
+The bridge atomic_reset callback is already fallible and in practice
+only allocates and initializes state without touching hardware.
+However, the reset name does not make this contract clear: callers
+and implementers cannot tell from the name alone whether the hardware
+will be affected or when the hook is safe to call.
+
+Add an atomic_create_state callback to drm_bridge_funcs to make the
+contract explicit: allocate a pristine state, initialize it, no side
+effects. The core calls it when available, falling back to
+atomic_reset otherwise.
+
+Reviewed-by: Thomas Zimmermann <tzimmermann@suse.de>
+Reviewed-by: Luca Ceresoli <luca.ceresoli@bootlin.com>
+Tested-by: Luca Ceresoli <luca.ceresoli@bootlin.com> # imx8mp + sn65dsi84 + bridge hotplug
+Link: https://patch.msgid.link/20260619-drm-no-more-bridge-reset-v3-6-ff399263111b@kernel.org
+Signed-off-by: Maxime Ripard <mripard@kernel.org>
+---
+ drivers/gpu/drm/drm_atomic_state_helper.c |  5 +++--
+ drivers/gpu/drm/drm_bridge.c              |  8 ++++++--
+ include/drm/drm_bridge.h                  | 19 ++++++++++++++++++-
+ 3 files changed, 27 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/drm_atomic_state_helper.c b/drivers/gpu/drm/drm_atomic_state_helper.c
+index 2a694698aca..414acb6b4d2 100644
+--- a/drivers/gpu/drm/drm_atomic_state_helper.c
++++ b/drivers/gpu/drm/drm_atomic_state_helper.c
+@@ -820,8 +820,9 @@ EXPORT_SYMBOL(drm_atomic_helper_bridge_destroy_state);
+  * @state is assumed to be zeroed.
+  *
+  * Initializes the bridge state to default values. This is meant to be called
+- * by the bridge &drm_bridge_funcs.atomic_reset hook for bridges that subclass
+- * the bridge state.
++ * by the bridge &drm_bridge_funcs.atomic_create_state or
++ * &drm_bridge_funcs.atomic_reset hook for bridges that subclass the bridge
++ * state.
+  */
+ void __drm_atomic_helper_bridge_state_init(struct drm_bridge_state *state,
+ 					   struct drm_bridge *bridge)
+diff --git a/drivers/gpu/drm/drm_bridge.c b/drivers/gpu/drm/drm_bridge.c
+index 687b36eea0c..ef06c1aa509 100644
+--- a/drivers/gpu/drm/drm_bridge.c
++++ b/drivers/gpu/drm/drm_bridge.c
+@@ -500,7 +500,10 @@ drm_bridge_atomic_create_priv_state(struct drm_private_obj *obj)
+ 	struct drm_bridge *bridge = drm_priv_to_bridge(obj);
+ 	struct drm_bridge_state *state;
+ 
+-	state = bridge->funcs->atomic_reset(bridge);
++	if (bridge->funcs->atomic_create_state)
++		state = bridge->funcs->atomic_create_state(bridge);
++	else
++		state = bridge->funcs->atomic_reset(bridge);
+ 	if (IS_ERR(state))
+ 		return ERR_CAST(state);
+ 
+@@ -515,7 +518,8 @@ static const struct drm_private_state_funcs drm_bridge_priv_state_funcs = {
+ 
+ static bool drm_bridge_is_atomic(struct drm_bridge *bridge)
+ {
+-	return bridge->funcs->atomic_reset != NULL;
++	return (bridge->funcs->atomic_create_state ||
++		bridge->funcs->atomic_reset);
+ }
+ 
+ /**
+diff --git a/include/drm/drm_bridge.h b/include/drm/drm_bridge.h
+index 4ba3a5deef9..c0703af611b 100644
+--- a/include/drm/drm_bridge.h
++++ b/include/drm/drm_bridge.h
+@@ -530,6 +530,22 @@ struct drm_bridge_funcs {
+ 	 */
+ 	struct drm_bridge_state *(*atomic_reset)(struct drm_bridge *bridge);
+ 
++	/**
++	 * @atomic_create_state:
++	 *
++	 * Allocate a pristine, initialized, state for the bridge
++	 * object and return it. This callback must have no side
++	 * effects: in particular, the returned state must not be
++	 * assigned to the object's state pointer and it must not affect
++	 * the hardware state.
++	 *
++	 * RETURNS:
++	 *
++	 * A new, pristine, bridge state instance or an error pointer
++	 * on failure.
++	 */
++	struct drm_bridge_state *(*atomic_create_state)(struct drm_bridge *bridge);
++
+ 	/**
+ 	 * @detect:
+ 	 *
+@@ -1371,7 +1387,8 @@ drm_bridge_get_current_state(struct drm_bridge *bridge)
+ 	 * drm_atomic_private_obj_init(), so we need to make sure we're
+ 	 * working with one before we try to use the lock.
+ 	 */
+-	if (!bridge->funcs || !bridge->funcs->atomic_reset)
++	if (!bridge->funcs ||
++	    !(bridge->funcs->atomic_reset || bridge->funcs->atomic_create_state))
+ 		return NULL;
+ 
+ 	drm_modeset_lock_assert_held(&bridge->base.lock);
+-- 
+2.53.0
+

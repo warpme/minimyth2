@@ -1,0 +1,89 @@
+From c837884ebb2870a4babd177e5850088f744ee4f9 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Fri, 23 Jan 2026 23:10:22 +0100
+Subject: [PATCH 129/172] dt-bindings: display: rockchip: dw-dp: Fix sound DAI
+ cells
+
+The RK3588 and RK3576 DesignWare DisplayPort controllers both have two
+possible DAI interfaces: I2S and S/PDIF. Thus an argument is needed to
+to select the right interface.
+
+In addition to that the RK3576 DisplayPort controller is configured
+with Multi Stream Transport (MST) enabled for up to 3 displays and
+thus has a total of 6 DAI interfaces (I2S and S/PDIF for each possible
+stream). Meanwhile the RK3588 does not support MST and thus has only 2
+DAI interfaces.
+
+The binding update from this patch has only been tested with the simple
+single stream transport (SST) setup as the Linux driver does not yet
+support MST. Once MST support is added, the plan is to simply add more
+numbers to the argument, so that it looks like this for RK3576:
+
+0 = I2S on stream 0,
+1 = S/PDIF on stream 0
+2 = I2S on stream 1,
+3 = S/PDIF on stream 1
+4 = I2S on stream 2,
+5 = S/PDIF on stream 2
+
+As the arguments are not part of the binding itself the audio side
+is also ready for MST after this change.
+
+Switching '#sound-dai-cells' from 0 to 1 without keeping compatibility
+is an ABI break. The rationale for going that way is, that there is not
+a single known driver implementation for the current binding. It's also
+unclear how the current binding would be used (only support I2S or
+S/PDIF for stream 0?). The mainline rk3588 DTS include sets it to 0, but
+does not have any soundcard using the DAI. This will be fixed up
+separately. The RK3576 does not set it at all.
+
+Reviewed-by: Krzysztof Kozlowski <krzysztof.kozlowski@oss.qualcomm.com>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ .../bindings/display/rockchip/rockchip,dw-dp.yaml        | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/display/rockchip/rockchip,dw-dp.yaml b/Documentation/devicetree/bindings/display/rockchip/rockchip,dw-dp.yaml
+index 2b0d9e23e94..c4f8959dd65 100644
+--- a/Documentation/devicetree/bindings/display/rockchip/rockchip,dw-dp.yaml
++++ b/Documentation/devicetree/bindings/display/rockchip/rockchip,dw-dp.yaml
+@@ -25,7 +25,7 @@ description: |
+   * Supports up to 8/10 bits per color component
+   * Supports RBG, YCbCr4:4:4, YCbCr4:2:2, YCbCr4:2:0
+   * Pixel clock up to 594MHz
+-  * I2S, SPDIF audio interface
++  * I2S, S/PDIF audio interface
+ 
+ properties:
+   compatible:
+@@ -46,7 +46,7 @@ properties:
+       - description: DisplayPort AUX clock
+       - description: HDCP clock
+       - description: I2S interface clock
+-      - description: SPDIF interfce clock
++      - description: S/PDIF interfce clock
+ 
+   clock-names:
+     minItems: 3
+@@ -83,7 +83,8 @@ properties:
+     maxItems: 1
+ 
+   "#sound-dai-cells":
+-    const: 0
++    const: 1
++    description: 0 for I2S, 1 for S/PDIF
+ 
+ required:
+   - compatible
+@@ -144,7 +145,7 @@ examples:
+         resets = <&cru SRST_DP0>;
+         phys = <&usbdp_phy0 PHY_TYPE_DP>;
+         power-domains = <&power RK3588_PD_VO0>;
+-        #sound-dai-cells = <0>;
++        #sound-dai-cells = <1>;
+ 
+         ports {
+           #address-cells = <1>;
+-- 
+2.53.0
+

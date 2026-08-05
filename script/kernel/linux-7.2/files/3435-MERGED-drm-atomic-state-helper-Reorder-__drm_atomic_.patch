@@ -1,0 +1,87 @@
+From 1f0dabdb2df87b7ee05ef77fc4d90d2c41d5a3ec Mon Sep 17 00:00:00 2001
+From: Maxime Ripard <mripard@kernel.org>
+Date: Fri, 19 Jun 2026 14:24:09 +0200
+Subject: [PATCH 006/172] [MERGED] drm/atomic-state-helper: Reorder
+ __drm_atomic_helper_bridge_state_init() arguments
+
+The convention for state init helpers is to pass the state pointer
+as the first argument and the object pointer second.
+
+__drm_atomic_helper_bridge_state_init() has them in the opposite
+order. Swap the arguments to follow the convention, and update the
+cdns-mhdp8546 caller.
+
+Reviewed-by: Thomas Zimmermann <tzimmermann@suse.de>
+Reviewed-by: Laurent Pinchart <laurent.pinchart+renesas@ideasonboard.com>
+Reviewed-by: Luca Ceresoli <luca.ceresoli@bootlin.com>
+Tested-by: Luca Ceresoli <luca.ceresoli@bootlin.com> # imx8mp + sn65dsi84 + bridge hotplug
+Link: https://patch.msgid.link/20260619-drm-no-more-bridge-reset-v3-4-ff399263111b@kernel.org
+Signed-off-by: Maxime Ripard <mripard@kernel.org>
+---
+ drivers/gpu/drm/bridge/cadence/cdns-mhdp8546-core.c | 2 +-
+ drivers/gpu/drm/drm_atomic_state_helper.c           | 8 ++++----
+ include/drm/drm_atomic_state_helper.h               | 4 ++--
+ 3 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/cadence/cdns-mhdp8546-core.c b/drivers/gpu/drm/bridge/cadence/cdns-mhdp8546-core.c
+index 4e3015d10a9..063f073034c 100644
+--- a/drivers/gpu/drm/bridge/cadence/cdns-mhdp8546-core.c
++++ b/drivers/gpu/drm/bridge/cadence/cdns-mhdp8546-core.c
+@@ -1929,7 +1929,7 @@ cdns_mhdp_bridge_atomic_reset(struct drm_bridge *bridge)
+ 	if (!cdns_mhdp_state)
+ 		return NULL;
+ 
+-	__drm_atomic_helper_bridge_state_init(bridge, &cdns_mhdp_state->base);
++	__drm_atomic_helper_bridge_state_init(&cdns_mhdp_state->base, bridge);
+ 
+ 	return &cdns_mhdp_state->base;
+ }
+diff --git a/drivers/gpu/drm/drm_atomic_state_helper.c b/drivers/gpu/drm/drm_atomic_state_helper.c
+index f79d259fe55..17fe7b50916 100644
+--- a/drivers/gpu/drm/drm_atomic_state_helper.c
++++ b/drivers/gpu/drm/drm_atomic_state_helper.c
+@@ -814,15 +814,15 @@ EXPORT_SYMBOL(drm_atomic_helper_bridge_destroy_state);
+ /**
+  * __drm_atomic_helper_bridge_state_init() - Initialize a bridge state to its
+  *					default
+- * @bridge: the bridge this state refers to
+  * @state: bridge state to initialize
++ * @bridge: the bridge this state refers to
+  *
+  * Initializes the bridge state to default values. This is meant to be called
+  * by the bridge &drm_bridge_funcs.atomic_reset hook for bridges that subclass
+  * the bridge state.
+  */
+-void __drm_atomic_helper_bridge_state_init(struct drm_bridge *bridge,
+-				      struct drm_bridge_state *state)
++void __drm_atomic_helper_bridge_state_init(struct drm_bridge_state *state,
++					   struct drm_bridge *bridge)
+ {
+ 	memset(state, 0, sizeof(*state));
+ 	__drm_atomic_helper_private_obj_create_state(&bridge->base, &state->base);
+@@ -848,7 +848,7 @@ drm_atomic_helper_bridge_reset(struct drm_bridge *bridge)
+ 	if (!bridge_state)
+ 		return ERR_PTR(-ENOMEM);
+ 
+-	__drm_atomic_helper_bridge_state_init(bridge, bridge_state);
++	__drm_atomic_helper_bridge_state_init(bridge_state, bridge);
+ 	return bridge_state;
+ }
+ EXPORT_SYMBOL(drm_atomic_helper_bridge_reset);
+diff --git a/include/drm/drm_atomic_state_helper.h b/include/drm/drm_atomic_state_helper.h
+index 1e8f43814b6..d30bc18ebbe 100644
+--- a/include/drm/drm_atomic_state_helper.h
++++ b/include/drm/drm_atomic_state_helper.h
+@@ -96,7 +96,7 @@ struct drm_bridge_state *
+ drm_atomic_helper_bridge_duplicate_state(struct drm_bridge *bridge);
+ void drm_atomic_helper_bridge_destroy_state(struct drm_bridge *bridge,
+ 					    struct drm_bridge_state *state);
+-void __drm_atomic_helper_bridge_state_init(struct drm_bridge *bridge,
+-				      struct drm_bridge_state *state);
++void __drm_atomic_helper_bridge_state_init(struct drm_bridge_state *state,
++					   struct drm_bridge *bridge);
+ struct drm_bridge_state *
+ drm_atomic_helper_bridge_reset(struct drm_bridge *bridge);
+-- 
+2.53.0
+

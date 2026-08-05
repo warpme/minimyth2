@@ -1,0 +1,38 @@
+From d4012855440060b0b2b846edb862bf1c35d00912 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Fri, 19 Jun 2026 21:42:03 +0200
+Subject: [PATCH 050/172] phy: rockchip: usbdp: Handle missing clock-names DT
+ property gracefully
+
+The rk_udphy_clk_init() function would currently try to do a strncmp for
+a NULL pointer, if DT specifies 'clocks' property, but no 'clock-names'
+property. Fix this by making sure the clock has an id string set.
+
+Note that DT binding requires setting clock-names, so this is only a
+problem when booting a non-compliant device tree.
+
+Fixes: 2f70bbddeb45 ("phy: rockchip: add usbdp combo phy driver")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Closes: https://sashiko.dev/#/message/20260619154349.071321F000E9%40smtp.kernel.org
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index 8485e62e23f..22d070c2f85 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -431,6 +431,9 @@ static int rk_udphy_clk_init(struct rk_udphy *udphy, struct device *dev)
+ 
+ 	/* used for configure phy reference clock frequency */
+ 	for (i = 0; i < udphy->num_clks; i++) {
++		if (!udphy->clks[i].id)
++			continue;
++
+ 		if (!strncmp(udphy->clks[i].id, "refclk", 6)) {
+ 			udphy->refclk = udphy->clks[i].clk;
+ 			break;
+-- 
+2.53.0
+

@@ -1,0 +1,42 @@
+From 4d4185ce525e8a9f4aae09d693c9ff5fe981da16 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 29 Jul 2026 21:58:06 +0200
+Subject: [PATCH 116/172] drm/bridge: synopsys: dw-dp: Fix support for short
+ I2C reads
+
+The transfer functions returns the amount of bytes read for
+DP_AUX_I2C_READ. By returning -EBUSY for short reads, the caller has
+less information available what is going wrong and possibly simply
+resends the read request. On sinks not supporting long reads, this will
+simply run into the same issue again.
+
+Instead it makes more sense to return the data from the short read with
+the length information, which allows drm_dp_i2c_do_msg() to read data in
+smaller chunks and succeed in the end.
+
+Due to lack of a sink, which only supports short reads, this change is
+effectively untested.
+
+Fixes: 86eecc3a9c2e ("drm/bridge: synopsys: Add DW DPTX Controller support library")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 8b587a4c5e9..22a244de08a 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -1513,7 +1513,7 @@ static ssize_t dw_dp_aux_transfer(struct drm_dp_aux *aux,
+ 		if (msg->request & DP_AUX_I2C_READ) {
+ 			size_t count = FIELD_GET(AUX_BYTES_READ, value) - 1;
+ 
+-			if (count != msg->size)
++			if (!count || count > msg->size)
+ 				return -EBUSY;
+ 
+ 			ret = dw_dp_aux_read_data(dp, msg->buffer, count);
+-- 
+2.53.0
+

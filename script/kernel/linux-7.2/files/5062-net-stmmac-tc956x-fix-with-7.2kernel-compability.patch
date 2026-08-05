@@ -1,0 +1,82 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.1.3/drivers/net/ethernet/stmicro/stmmac/dwmac-tc956x.c linux-7.1.3/drivers/net/ethernet/stmicro/stmmac/dwmac-tc956x.c
+--- linux-7.1.3/drivers/net/ethernet/stmicro/stmmac/dwmac-tc956x.c	2026-07-10 12:42:50.572609529 +0200
++++ linux-7.1.3/drivers/net/ethernet/stmicro/stmmac/dwmac-tc956x.c	2026-07-10 12:42:20.385647880 +0200
+@@ -216,26 +216,40 @@
+ static struct irq_domain *
+ tc956x_msigen_irq_domain_instantiate(struct tc956x_data *td)
+ {
+-	struct irq_domain_chip_generic_info dgc_info;
+-	struct irq_domain_info info;
++	struct irq_domain *domain;
++	struct fwnode_handle *fwnode;
++	struct irq_chip_generic *gc;
+ 
+-	dgc_info.name = "tc956x-msigen";
+-	dgc_info.handler = handle_level_irq;
+-	dgc_info.irqs_per_chip = HWIRQ_COUNT;
+-	dgc_info.num_ct = 1;
+-	dgc_info.init = tc956x_msigen_irq_chip_init;
+-	dgc_info.exit = tc956x_msigen_irq_chip_exit;
++	fwnode = irq_domain_alloc_named_fwnode("tc956x-msigen-fwnode");
++	if (!fwnode) {
++		dev_err(td->dev, "Failed to allocate fwnode for MSIGEN\n");
++		return ERR_PTR(-ENOMEM);
++	}
+ 
+-	info.domain_flags = IRQ_DOMAIN_FLAG_DESTROY_GC;
+-	info.size = HWIRQ_COUNT;
+-	info.hwirq_max = HWIRQ_COUNT;
+-	info.ops = &irq_generic_chip_ops;
+-	info.host_data = td;
+-	info.dgc_info = &dgc_info;
+-	info.init = tc956x_msigen_irq_domain_init;
+-	info.exit = tc956x_msigen_irq_domain_exit;
++	domain = irq_domain_add_linear(to_of_node(fwnode), HWIRQ_COUNT,
++				       &irq_generic_chip_ops, td);
++	if (!domain) {
++		dev_err(td->dev, "Failed to add linear IRQ domain\n");
++		irq_domain_free_fwnode(fwnode);
++		return ERR_PTR(-ENOMEM);
++	}
+ 
+-	return devm_irq_domain_instantiate(td->dev, &info);
++	if (irq_alloc_domain_generic_chips(domain, HWIRQ_COUNT, 1,
++				           "tc956x-msigen", handle_level_irq,
++				           0, 0, IRQ_GC_INIT_MASK_CACHE)) {
++		dev_err(td->dev, "Failed to allocate generic chips\n");
++		irq_domain_remove(domain);
++		return ERR_PTR(-ENOMEM);
++	}
++
++	gc = irq_get_domain_generic_chip(domain, 0);
++	if (gc) {
++		tc956x_msigen_irq_chip_init(gc);
++	}
++
++	tc956x_msigen_irq_domain_init(domain);
++
++	return domain;
+ }
+ 
+ /**
+@@ -504,8 +518,7 @@
+ 	return priv->hw->phylink_pcs;
+ }
+ 
+-static void tc956x_fix_mac_speed(void *bsp_priv, phy_interface_t interface,
+-				 int speed, unsigned int mode)
++static void tc956x_fix_mac_speed(void *bsp_priv, phy_interface_t interface, int speed, unsigned int mode)
+ {
+ 	struct tc956x_data *td = bsp_priv;
+ 
+--
+
+MiniMyth2
+

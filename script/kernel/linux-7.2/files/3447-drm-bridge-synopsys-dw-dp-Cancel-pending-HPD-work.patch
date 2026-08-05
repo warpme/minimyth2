@@ -1,0 +1,51 @@
+From 68a8309d6587ba9619e36d8909e7078e85494c9c Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 23 Jul 2026 17:31:47 +0200
+Subject: [PATCH 112/172] drm/bridge: synopsys: dw-dp: Cancel pending HPD work
+
+There is a race condition during device removal: If the HPD interrupt
+started an HPD worker exactly when the device is removed, the worker
+thread might access invalid resources. Avoid this by stopping any
+pending work immediately after disabling the interrupt.
+
+Fixes: 86eecc3a9c2e ("drm/bridge: synopsys: Add DW DPTX Controller support library")
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index e332d66b805..278953a8549 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -8,6 +8,7 @@
+  */
+ #include <linux/bitfield.h>
+ #include <linux/clk.h>
++#include <linux/devm-helpers.h>
+ #include <linux/iopoll.h>
+ #include <linux/irq.h>
+ #include <linux/media-bus-format.h>
+@@ -2039,7 +2040,6 @@ struct dw_dp *dw_dp_probe(struct platform_device *pdev, const struct dw_dp_plat_
+ 	dp->plat_data.max_link_rate = plat_data->max_link_rate;
+ 
+ 	mutex_init(&dp->irq_lock);
+-	INIT_WORK(&dp->hpd_work, dw_dp_hpd_work);
+ 	init_completion(&dp->complete);
+ 
+ 	res = devm_platform_ioremap_resource(pdev, 0);
+@@ -2120,6 +2120,10 @@ struct dw_dp *dw_dp_probe(struct platform_device *pdev, const struct dw_dp_plat_
+ 	if (dp->irq < 0)
+ 		return ERR_PTR(dp->irq);
+ 
++	ret = devm_work_autocancel(dev, &dp->hpd_work, dw_dp_hpd_work);
++	if (ret)
++		return ERR_PTR(ret);
++
+ 	ret = devm_request_threaded_irq(dev, dp->irq, NULL, dw_dp_irq,
+ 					IRQF_ONESHOT, dev_name(dev), dp);
+ 	if (ret) {
+-- 
+2.53.0
+

@@ -1,0 +1,55 @@
+The driver uses a heuristic — checking if exactly one entry exists in
+'reset-gpios' — to decide whether to attempt reset controller API usage
+via devm_reset_control_get_optional_shared(). This is semantically
+incorrect and causes a permanent probe failure when CONFIG_RESET_GPIO
+is enabled.
+
+When CONFIG_RESET_GPIO=y, __of_reset_control_get() intercepts the
+'reset-gpios' DT property and attempts to register the GPIO as a reset
+controller via __reset_add_reset_gpio_device(). If the GPIO controller
+is not yet fully initialized at probe time, this returns -ENOENT instead
+of -EPROBE_DEFER, and the error path does not respect the 'optional'
+flag, causing pwrseq_simple to fail permanently rather than defer.
+This prevents mmc1 from probing on boards that use 'reset-gpios' for
+WiFi power sequencing, such as BananaPi M2 Magic with AP6212/BCM43430
+on Allwinner R16.
+
+The correct indicator of reset controller intent is the explicit presence
+of a 'resets' property in the device tree node, not the count of
+'reset-gpios' entries. A single 'reset-gpios' entry is just as likely
+to be a plain GPIO as multiple entries.
+
+Replace the ngpio == 1 heuristic with an explicit check for the 'resets'
+DT property, making the behavior unambiguous and immune to
+CONFIG_RESET_GPIO interference.
+
+Fixes: 73bf4b7381f7 ("mmc: pwrseq_simple: add support for one reset control")
+Signed-off-by: Sergey Suloev <sergey.suloev@xxxxxxxxx>
+---
+ drivers/mmc/core/pwrseq_simple.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/drivers/mmc/core/pwrseq_simple.c b/drivers/mmc/core/pwrseq_simple.c
+index 4b47e6c3b04b..780c8818a273 100644
+--- a/drivers/mmc/core/pwrseq_simple.c
++++ b/drivers/mmc/core/pwrseq_simple.c
+@@ -124,7 +124,6 @@ static int mmc_pwrseq_simple_probe(struct platform_device *pdev)
+ {
+ 	struct mmc_pwrseq_simple *pwrseq;
+ 	struct device *dev = &pdev->dev;
+-	int ngpio;
+ 
+ 	pwrseq = devm_kzalloc(dev, sizeof(*pwrseq), GFP_KERNEL);
+ 	if (!pwrseq)
+@@ -134,8 +133,7 @@ static int mmc_pwrseq_simple_probe(struct platform_device *pdev)
+ 	if (IS_ERR(pwrseq->ext_clk) && PTR_ERR(pwrseq->ext_clk) != -ENOENT)
+ 		return dev_err_probe(dev, PTR_ERR(pwrseq->ext_clk), "external clock not ready\n");
+ 
+-	ngpio = of_count_phandle_with_args(dev->of_node, "reset-gpios", "#gpio-cells");
+-	if (ngpio == 1) {
++	if (device_property_present(dev, "resets")) {
+ 		pwrseq->reset_ctrl = devm_reset_control_get_optional_shared(dev, NULL);
+ 		if (IS_ERR(pwrseq->reset_ctrl))
+ 			return dev_err_probe(dev, PTR_ERR(pwrseq->reset_ctrl),
+-- 
+2.43.0

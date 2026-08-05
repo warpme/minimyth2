@@ -1,0 +1,67 @@
+From c2d30d90bf1923a4753f8936d00498406115e1e6 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Mon, 29 Jun 2026 21:15:13 +0200
+Subject: [PATCH 075/172] phy: rockchip: usbdp: Add phy reset notification
+ support
+
+To resolve issues with running into permanent "cmn ana lcpll lock
+timeout" errors after a few device replugs, add support for reset
+notifications, which will be handled by the DWC3 driver to gracefully
+handle the PHY being disabled. This avoids corrupting the controller's
+internal state and the PIPE interface between the USB3 controller and
+the PHY, thus fixing the issue.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index e494bb31dd4..42d4c80042c 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -1004,24 +1004,39 @@ static int rk_udphy_power_on(struct rk_udphy *udphy, u8 mode)
+ 	}
+ 
+ 	if (udphy->status == UDPHY_MODE_NONE) {
++		phy_notify_reset(udphy->phy_u3, PHY_NOTIFY_PRE_RESET);
++
++		rk_udphy_u3_port_disable(udphy, true);
++		udelay(10);
++
+ 		ret = rk_udphy_setup(udphy);
+-		if (ret)
++		if (ret) {
++			phy_notify_reset(udphy->phy_u3, PHY_NOTIFY_POST_RESET);
+ 			return ret;
++		}
+ 
+ 		if (!udphy->hs && udphy->mode & UDPHY_MODE_USB)
+ 			rk_udphy_u3_port_disable(udphy, false);
+ 		udphy->phy_needs_reinit = false;
++
++		phy_notify_reset(udphy->phy_u3, PHY_NOTIFY_POST_RESET);
+ 	} else if (udphy->phy_needs_reinit) {
++		phy_notify_reset(udphy->phy_u3, PHY_NOTIFY_PRE_RESET);
++
+ 		rk_udphy_u3_port_disable(udphy, true);
+ 		udelay(10);
+ 
+ 		ret = rk_udphy_init(udphy);
+-		if (ret)
++		if (ret) {
++			phy_notify_reset(udphy->phy_u3, PHY_NOTIFY_POST_RESET);
+ 			return ret;
++		}
+ 
+ 		if (!udphy->hs && udphy->mode & UDPHY_MODE_USB)
+ 			rk_udphy_u3_port_disable(udphy, false);
+ 		udphy->phy_needs_reinit = false;
++
++		phy_notify_reset(udphy->phy_u3, PHY_NOTIFY_POST_RESET);
+ 	}
+ 
+ 	udphy->status |= mode;
+-- 
+2.53.0
+

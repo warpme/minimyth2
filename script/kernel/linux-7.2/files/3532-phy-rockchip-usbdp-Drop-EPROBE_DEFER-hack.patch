@@ -1,0 +1,43 @@
+From f0f03f7087a3508943c1ce4f3ec0228fdacb7c71 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Fri, 26 Jun 2026 20:38:19 +0200
+Subject: [PATCH 076/172] phy: rockchip: usbdp: Drop -EPROBE_DEFER hack
+
+The hack to return -EPROBE_DEFER when the lcpll lock timeouts is no
+longer needed. The driver now does a reset during its PHY init, which
+avoids the problem.
+
+Since rk_udphy_status_check() is called after the probe, it should not
+return -EPROBE_DEFER.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/phy/rockchip/phy-rockchip-usbdp.c | 12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-usbdp.c b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+index 42d4c80042c..f4518515a2e 100644
+--- a/drivers/phy/rockchip/phy-rockchip-usbdp.c
++++ b/drivers/phy/rockchip/phy-rockchip-usbdp.c
+@@ -749,17 +749,7 @@ static int rk_udphy_status_check(struct rk_udphy *udphy)
+ 					       (val & CMN_ANA_LCPLL_LOCK_DONE), 200, 100000);
+ 		if (ret) {
+ 			dev_err(udphy->dev, "cmn ana lcpll lock timeout\n");
+-			/*
+-			 * If earlier software (U-Boot) enabled USB once already
+-			 * the PLL may have problems locking on the first try.
+-			 * It will be successful on the second try, so for the
+-			 * time being a -EPROBE_DEFER will solve the issue.
+-			 *
+-			 * This requires further investigation to understand the
+-			 * root cause, especially considering that the driver is
+-			 * asserting all reset lines at probe time.
+-			 */
+-			return -EPROBE_DEFER;
++			return ret;
+ 		}
+ 
+ 		if (!udphy->flip) {
+-- 
+2.53.0
+

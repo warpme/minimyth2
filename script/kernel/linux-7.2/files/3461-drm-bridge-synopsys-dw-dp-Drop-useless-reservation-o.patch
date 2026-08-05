@@ -1,0 +1,39 @@
+From 04d51784883b6d54f793f8e060a4214c84b597c1 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 29 Jul 2026 20:52:19 +0200
+Subject: [PATCH 126/172] drm/bridge: synopsys: dw-dp: Drop useless reservation
+ of first slot
+
+The origin of this reservation is unclear, but it is a problem in the
+atomic_enable code since it potentially races with the audio SDP
+reservation once that feature is added. I suppose it was either meant to
+be bitmap_zero(), but that is obviously not needed (and would also be a
+problem for audio support) or some left-over development code before the
+VSC SDP slot was allocated automatically.
+
+From my tests SDP slot 0 works fine and can be used. If SDP slot 0
+really needs to be reserved for some reason, the bit should be set in
+the probe function to ensure there are no race conditions.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 19b6c11f672..05d3485a4d8 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -1706,9 +1706,6 @@ static void dw_dp_bridge_atomic_enable(struct drm_bridge *bridge,
+ 		return;
+ 	}
+ 
+-	scoped_guard(mutex, &dp->sdp_lock)
+-		set_bit(0, dp->sdp_reg_bank);
+-
+ 	ret = dw_dp_link_enable(dp);
+ 	if (ret < 0) {
+ 		dev_err(dp->dev, "failed to enable link: %d\n", ret);
+-- 
+2.53.0
+
