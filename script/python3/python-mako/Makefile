@@ -1,10 +1,11 @@
-GARNAME = python-Mako
-GARVERSION = 1.0.1
-CATEGORIES = python
-MASTER_SITES = https://pypi.io/packages/source/M/Mako/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
-LICENSE =
-DESCRIPTION = 
+
+GARNAME      = python-mako
+GARVERSION   = 1.3.12
+MASTER_SITES = https://files.pythonhosted.org/packages/00/62/791b31e69ae182791ec67f04850f2f062716bbd205483d63a215f3e062d3/
+CATEGORIES   = python
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      =
+DESCRIPTION  = 
 define BLURB
 endef
 
