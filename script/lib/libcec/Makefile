@@ -28,6 +28,8 @@ CMAKE_CONFIGURE_ARGS = \
 include ../../gar.mk
 
 post-install:
+	@sed -e "s|/usr|\$${CMAKE_SYSROOT}/usr|g" \
+	  -i $(DESTDIR)$(libdir)/cmake/libcec/libcec-noconfig.cmake
 	@rm -f $(DESTDIR)$(bindir)/cec-client
 	@mv -f $(DESTDIR)$(bindir)/cec-client-$(GARVERSION) $(DESTDIR)$(bindir)/cec-client
 	@$(MAKECOOKIE)
@@ -37,4 +39,5 @@ clean-all:
 	@rm -rf $(DESTDIR)$(bindir)/cecc-client
 	@rm -rf $(DESTDIR)$(libdir)/libcec.so*
 	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libcec.pc
+	@rm -rf $(DESTDIR)$(libdir)/cmake/libcec*
 	@rm -rf $(DESTDIR)$(includedir)/libcec*
