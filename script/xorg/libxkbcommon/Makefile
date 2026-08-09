@@ -1,9 +1,10 @@
 
 GARNAME      = libxkbcommon
-GARVERSION   = 1.0.3
+GARVERSION   = 1.13.2
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = http://xkbcommon.org/download/
-DISTFILES    = $(DISTNAME).tar.xz
+MASTER_SITES = https://github.com/xkbcommon/libxkbcommon/archive/refs/tags/
+DISTFILES    = xkbcommon-$(GARVERSION).tar.gz
+WORKSRC      = $(WORKDIR)/libxkbcommon-xkbcommon-$(GARVERSION)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
 DESCRIPTION =.
@@ -19,6 +20,7 @@ BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
-	-D enable-docs="false" \
+
+#	-D enable-docs="false" \
 
 include ../../gar.mk
