@@ -90,7 +90,7 @@ DEPENDS   =            \
 	lib/libtiff    \
 	lib/libwebp    \
 	lib/re2        \
-	lib/ffmpeg8.1  \
+	lib/ffmpeg  \
 	gtk/glib       \
 	gtk/harfbuzz   \
 	devel/zlib     \
