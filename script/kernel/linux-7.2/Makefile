@@ -340,8 +340,8 @@ PATCHFILES += 3311-arm64-dts-rockchip-rk3328-rk3566-add-cpu-gpu-overclock-overla
 #-- Rockchip 35x patches -----------------------------------------
 # rk35xx drivers additions
 PATCHFILES += 3400-Enable-rk356x-PCIe-controller.patch
-PATCHFILES += 3401-net-wireless-backport-aic8800-sdio-v2025_0926_91c9dae5-mm2.patch
-PATCHFILES += 3402-net-wireless-backport-aic8800-usb-v2025_0926_91c9dae5-mm2.patch
+PATCHFILES += 3401-net-wireless-backport-aic8800-sdio-v2026_0123_5f7be68d-mm2.patch
+PATCHFILES += 3402-net-wireless-backport-aic8800-usb-v2026_0123_5f7be68d-mm2.patch
 PATCHFILES += 3403-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
 PATCHFILES += 3404-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
 PATCHFILES += 3405-clk-composite-replace-open-coded-abs_diff.patch
