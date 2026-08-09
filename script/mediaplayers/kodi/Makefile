@@ -7,26 +7,27 @@ GARVERSION    = $(KODI_VERSION)
 CATEGORIES    = mediaplayers
 MASTER_SITES  = \
 		$(KODI_MASTER_SITES) \
-		https://download.videolan.org/pub/libdvdcss/1.4.3/ \
-		https://download.videolan.org/pub/videolan/libdvdnav/6.1.1/ \
-		https://download.videolan.org/pub/videolan/libdvdread/6.1.3/ \
-		https://download.videolan.org/pub/videolan/libudfread/1.1.2/ \
+		https://download.videolan.org/pub/videolan/libdvdcss/1.5.0/ \
+		https://download.videolan.org/pub/videolan/libdvdnav/7.0.0/ \
+		https://download.videolan.org/pub/videolan/libdvdread/7.0.1/ \
+		https://download.videolan.org/pub/videolan/libudfread/ \
 		http://mirrors.kodi.tv/build-deps/sources/ \
 
 DISTFILES     = \
 		$(GARVERSION).zip \
-		libdvdcss-1.4.3.tar.bz2 \
-		libdvdnav-6.1.1.tar.bz2 \
-		libdvdread-6.1.3.tar.bz2 \
-		libudfread-1.1.2.tar.gz \
+		libdvdcss-1.5.0.tar.xz \
+		libdvdnav-7.0.0.tar.xz \
+		libdvdread-7.0.1.tar.xz \
+		libudfread-1.2.0.tar.xz \
 
 PATCHFILES   += 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
 PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
+PATCHFILES   += 0050-pull28832-update-ffmpeg-to-9.0.patch
 PATCHFILES   += 0051-update-libdvdread-sha.patch
 PATCHFILES   += 0052-update-libdvdnav-sha.patch
 PATCHFILES   += 0053-stop-uncoditionally-building-udfread.patch
 PATCHFILES   += 0054-stop-detecting-clang.patch
-PATCHFILES   += 0055-stop-using-10bitRGB-for-gui-plane.patch
+#to check PATCHFILES   += 0055-stop-using-10bitRGB-for-gui-plane.patch
 PATCHFILES   += 0056-EGL_KHR_fix_partial_update.patch
 # to do
 #PATCHFILES   += 0100-fix-planes-detection.patch
@@ -165,10 +166,11 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DENABLE_INTERNAL_UDFREAD=OFF \
 	-DENABLE_INTERNAL_EXIV2=OFF \
-	-DLIBDVDCSS_URL=../../../download/libdvdcss-1.4.3.tar.bz2 \
-	-DLIBDVDNAV_URL=../../../download/libdvdnav-6.1.1.tar.bz2 \
-	-DLIBDVDREAD_URL=../../../download/libdvdread-6.1.3.tar.bz2 \
-	-DUDFREAD_URL=../../../download/libudfread-1.1.2.tar.gz \
+	-DENABLE_INTERNAL_TAGLIB=ON \
+	-DLIBDVDCSS_URL=../../../download/ibdvdcss-1.5.0.tar.xz \
+	-DLIBDVDNAV_URL=../../../download/libdvdnav-7.0.0.tar.xz \
+	-DLIBDVDREAD_URL=../../../download/libdvdread-7.0.1.tar.xz \
+	-DUDFREAD_URL=../../../download/libudfread-1.2.0.tar.xz \
 	$(if $(filter i386 x86_64, $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=x11 -DAPP_RENDER_SYSTEM=gl) \
 	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gles) \
 	-DCMAKE_VERBOSE_MAKEFILE=OFF \
