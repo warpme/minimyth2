@@ -35,5 +35,6 @@ CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
+	@rm -f $(DESTDIR)$(libdir)/libgnutls.la
+	@rm -f $(DESTDIR)$(libdir)/libgnutlsxx.la
 	@$(MAKECOOKIE)
