@@ -88,8 +88,14 @@ PATCHFILES += 0158-ffmpeg8-libavutil-add-extra-fourcc.patch
 PATCHFILES += 0159-ffmpeg8.1-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
+ifeq ($(FFMPEG_VER), 8.1)
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
 PATCHFILES += 0161-hack-hack-hack-ffmpeg8.1-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_1.patch
+endif
+ifeq ($(FFMPEG_VER), 9.0)
+# hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
+PATCHFILES += 0161-hack-hack-hack-ffmpeg9.0-libavcodec-v4l2-m2m-backport-rpi-seek-improvements.patch
+endif
 # rkvdec2 hevc long sps/rps support
 PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-control.patch
 # support for NV15 NV30
