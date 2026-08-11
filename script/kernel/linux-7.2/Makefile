@@ -813,6 +813,8 @@ post-install:
 	@echo "MiniMyth2 $(LINUX_FULL_VERSION) kernel " >> $(DESTDIR)/usr/share/supported-IR-remotes.txt
 	@echo "------------------------------------"    >> $(DESTDIR)/usr/share/supported-IR-remotes.txt
 	@ls -1 $(WORKSRC)/drivers/media/rc/keymaps/*.mod.c | sed -e "s/.*rc-//" -e "s/.mod.c//" >> $(DESTDIR)/usr/share/supported-IR-remotes.txt
+	@rm -rf ../.linux-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
+	@cp -rf ../linux-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION) ../.linux-$(LINUX_FULL_VERSION)
 	@$(MAKECOOKIE)
 
 clean-all:
