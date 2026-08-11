@@ -290,6 +290,14 @@ mm-all:
 		echo " " ; \
 		exit 1 ; \
 	fi
+	@echo "    mm_FFMPEG_VERSION"
+	@if [ ! "$(mm_FFMPEG_VERSION)" = "8.1" ] && \
+	    [ ! "$(mm_FFMPEG_VERSION)" = "9.0" ] ; then \
+		echo " " ; \
+		echo "error: mm_FFMPEG_VERSION=\"$(mm_FFMPEG_VERSION)\" is an invalid value." ; \
+		echo " " ; \
+		exit 1 ; \
+	fi
 	@echo "  build parameters ... done"
 	@# Check build system parameters.
 	@echo "  build system parameters ..."

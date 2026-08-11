@@ -277,6 +277,12 @@ mm_SHELL                  ?= busybox
 # Valid values are: '7.1' '7,2'
 mm_KERNEL_VERSION         ?= 7.1
 
+# The version of ffmpeg used by apps requiring ffmpeg.
+# As mm2 uses mythffmpeg as system ffmpeg, this version needs to be the same
+# like ffmpeg provided by mythtv.
+# Valid values are: '8.1' '9,0'
+mm_FFMPEG_VERSION         ?= 9.0
+
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
 # When not set, a built-in kernel configuration file will be used.

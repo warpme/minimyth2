@@ -7,6 +7,7 @@ GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://github.com/MythTV/mythtv/archive/
 DISTFILES    = $(MYTHTV_GIT_HASH).zip
+FFMPEG_VER   = $(mm_FFMPEG_VERSION)
 
 include ../../minimyth.conf.mk
 
@@ -69,6 +70,10 @@ PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
+ifeq ($(FFMPEG_VER), 9.0)
+# update to ffmpeg 9.0
+PATCHFILES += 0151-ffmpeg-update-to-ffmpeg9.0.patch
+endif
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg-add-v4l2_request-support-v4l2request-n8.1-15032026.patch
 # add support of old rpi hevc decoder
@@ -472,8 +477,8 @@ pre-configure:
 	@# stage, but mythffmpeg liba are not there yet. As workarround: install mainline ffmpeg
 	@# libs before building mythv and replace them to mythffmpeg after myth install (in
 	@# post-install rule)
-	@ echo "installing ffmpeg8.1 as libQt6WebEngineCore.so.6 needs it at myth linking stage ..."
-	@$(MAKE) -C ../../lib/ffmpeg8.1 reinstall
+	@ echo "installing ffmpeg as libQt6WebEngineCore.so.6 needs it at myth linking stage ..."
+	@$(MAKE) -C ../../lib/ffmpeg$(FFMPEG_VER) reinstall
 	@$(MAKECOOKIE)
 
 post-configure:
@@ -488,7 +493,7 @@ pre-install: post-configure
 post-install:
 	@$(MAKE) -C ../mythplugins install
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
-	@$(MAKE) -C ../../lib/ffmpeg reinstall
+	@$(MAKE) -C ../../lib/ffmpeg$(FFMPEG_VER)-mythtv reinstall
 	@$(MAKECOOKIE)
 
 clean-all:
