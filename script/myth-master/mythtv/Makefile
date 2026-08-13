@@ -12,12 +12,13 @@ FFMPEG_VER   = $(mm_FFMPEG_VERSION)
 include ../../minimyth.conf.mk
 
 PATCHFILES  =
-PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
-PATCHFILES += 0000-cmake-stop-checking-libx264.patch
-PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
+#PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
+#PATCHFILES += 0000-cmake-stop-checking-libx264.patch
+#PATCHFILES += 0000-cmake-hack-to-make-dvdread-compiling.patch
 
 # backend related patches
-PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
+PATCHFILES += 0001-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
+PATCHFILES += 0002-hack-to-make-dvdnav-compiling.patch
 PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
 PATCHFILES += 0004-mythbackend-mainserver-move-some-verbosities-to-debug.patch
 PATCHFILES += 0005-mythlib-eitscanner-increase-info-level-verbosities.patch
@@ -342,12 +343,17 @@ CONFIGURE_ARGS = \
 # cmake config para
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-	$(if $(filter qt6,$(mm_QT_VERSION)),--preset qt6,--preset qt5) \
+	$(if $(filter qt6,$(mm_QT_VERSION)), \
+		--preset qt6 \
+		-DQt6_DIR=$(DESTDIR)$(qt6prefix)/lib/cmake/Qt6 \
+	, \
+		--preset qt5 \
+		-DQt5_DIR=$(DESTDIR)$(qt5prefix)/lib/cmake/Qt5 \
+	) \
 	-DCMAKE_INSTALL_PREFIX=$(DESTDIR)$(prefix) \
 	-DCMAKE_INSTALL_LIBDIR='lib' \
 	-DCMAKE_BUILD_TYPE=$(if $(filter yes,$(mm_DEBUG)),Debug,Release) \
 	-DPLATFORM_CONFIGURE_ENV="$(CPPFLAGS)" \
-	-DQt5_DIR=$(DESTDIR)$(qt5prefix)/lib/cmake/Qt5 \
 	-DCMAKE_SYSTEM_PROCESSOR=$(GARCH_FAMILY) \
 	-DFF_USER_OPTS=' \
 		--arch=$(GARCH_FAMILY) \
@@ -421,7 +427,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_FIREWIRE="OFF" \
 	-DENABLE_SYSTEMD_NOTIFY="OFF" \
 	-DENABLE_SYSTEMD_JOURNAL="OFF" \
-	-DUSING_BINDINGS_PHP="OFF" \
+	-DENABLE_BINDINGS_PHP="OFF" \
 	-DENABLE_NVDEC="OFF" \
 	-DMYTH_RUN_PREFIX=$(prefix) \
 	-DMYTH_BINDINGS_INSTALL_ROOT=/ \
@@ -431,9 +437,6 @@ CMAKE_CONFIGURE_ARGS = \
 	-DPATCH_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/patch \
 	-DMESON_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/meson \
 	-DNINJA_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/ninja \
-	$(if $(filter qt6,$(mm_QT_VERSION)), \
-		-D_QTGUI_CONFIG=$(DESTDIR)$(qt6prefix)/include/QtGui/qtgui-config.h, \
-		-D_QTGUI_CONFIG=$(DESTDIR)$(qt5prefix)/include/QtGui/qtgui-config.h) \
 	-DENABLE_QTWEBENGINE="ON" \
 	-DPLATFORM_ARGS='--debug-find' \
 
