@@ -67,14 +67,14 @@ PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # some fixes to build on minimyth2
 PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
-# v4l2_m2m and v4l2_request patches
-ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
-# prepre mythtv's v4l2 infra for ffmpeg7
-PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 ifeq ($(FFMPEG_VER), 9.0)
 # update to ffmpeg 9.0
 PATCHFILES += 0151-ffmpeg-update-to-ffmpeg9.0.patch
 endif
+# v4l2_m2m and v4l2_request patches
+ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
+# prepre mythtv's v4l2 infra for ffmpeg7
+PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg-add-v4l2_request-support-v4l2request-n8.1-15032026.patch
 # add support of old rpi hevc decoder
