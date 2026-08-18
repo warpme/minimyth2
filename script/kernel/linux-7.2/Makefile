@@ -638,6 +638,7 @@ PATCHFILES += 5137-0145-drm-msm-dp-Fix-parity-calculation-for-multi-byte-pay.pat
 PATCHFILES += 5138-0179-drm-msm-dp-add-missing-drm_edid_connector_update-bef.patch
 PATCHFILES += 5139-0232-drm-msm-dsi-enable-continuous-clock-for-SC7280-DSI-P.patch
 PATCHFILES += 5141-0275-drm-msm-dpu-cap-DSPP-reservations-by-hardware-count.patch
+PATCHFILES += 5142-drm-msm-dp-revert-g5043357e75b-to-fix-non-working-cec.patch
 # network misc patches
 PATCHFILES += 5150-0069-net-phy-qca808x-add-DT-configurable-LED-preset-modes.patch
 PATCHFILES += 5151-0108-net-phy-qcom-qca808x-add-Wake-on-LAN-support.patch
