@@ -2,11 +2,13 @@
 # URL GIT: https://github.com/jwrdegoede/rtl8189ES_linux
 
 GARNAME      = rtl8189es
-# 26.09.2025
-GARVERSION   = 0a5d04114fac3c9f48a343cb905fbb6a3f9f5df5
+# 14.07.2026
+GARVERSION   = 2d9a8afb5d12de1cfc4ab5ad3d1a61e1937629bd
 CATEGORIES   = system
 MASTER_SITES = https://github.com/jwrdegoede/rtl8189ES_linux/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = 05-replace-removed-strncpy-for-linux7.2.patch \
+               06-ioctl_cfg80211-adapt-remain_on_channel-to-v7.2.patch
 WORKSRC      = $(WORKDIR)/rtl8189ES_linux-$(GARVERSION)
 
 LICENSE      = GPL2
