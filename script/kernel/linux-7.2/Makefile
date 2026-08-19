@@ -667,6 +667,7 @@ PATCHFILES += 5185-0231-iio-adc-qcom-spmi-adc5-add-ADC7-GPIO1-GPIO4.patch
 PATCHFILES += 5186-0245-usb-typec-tcpm-support-skipping-VSafe0V-check.patch
 PATCHFILES += 5187-0268-ufs-qcom-add-PA_TACTIVATE-quirk-for-Kioxia-THGJFGT1E.patch
 PATCHFILES += 5188-0308-HACK-disable-fake-battery-device-on-pmic-glink.patch
+PATCHFILES += 5189-platform-radxa-svc-add-discoverable-sensor-hwmon-support.patch
 #iris patches
 PATCHFILES += 5233-0216-media-qcom-iris-Add-Gen2-firmware-autodetect-and-fallback.patch
 PATCHFILES += 5234-0218-media-qcom-iris-Add-SC8280XP-platform-data.patch
