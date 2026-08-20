@@ -106,8 +106,6 @@ Allwinner H6    | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | wo
 Allwinner H6    | OrangePi-3 LTS   | not works (aw859a)                     | works     | works     | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313  | X96-Q(DDR3)      | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313  | X96-Q(LPDDR3)    | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H313  | X96-Q(LPDDR3v1.3)| works  (xr819@SDIO)                    | works     | n/a       | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H313  | X96-Q(DDR3Lv5.1) | works  (xr819@SDIO)                    | works     | n/a       | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313  | TanixTX1         | not works (9082@SDIO)                  | works     | n/a       | n/a       | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H616  | TanixTX6s-axp313 | works  (ap6330@SDIO)                   | not tested| n/a       | not tested| works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616  | TanixTX6s        | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
@@ -149,7 +147,7 @@ Rockchip 3588   | NanoPC-T6        | n.a                                    | wo
 Rockchip 3588   | NanoPC-T6-LTS    | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588   | Rock5 ITX        | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
 Qualcomm QCS6490| Dragon Q6A       | works  (aic8800@USB)                   | works     | works     | works     | n/a         | n/a         | not works                      | good prospects                |
-Qualcomm SC8280 | Dragon Q8B       | n/a                                    | not tested| works     | n/a       | works       | n/a         | not works                      | good prospects                |
+Qualcomm SC8280 | Dragon Q8B       | n/a                                    | not tested| works     | works     | works       | n/a         | not works                      | good prospects                |
 Amlogic s905    | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not tested| n/a       | wip       | works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic s912    | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | not tested| n/a       | wip       | works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic sm1     | X96-Air          | works  (rtl8189@SDIO)                  | works     | n/a       | works     | works       | WiP         | not works (firmware issue)     | support stalled               |
