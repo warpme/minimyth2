@@ -32,14 +32,21 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = vontar_h618_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = transpeed-8k618-t_defconfig
 
-
 GARNAME      = u-boot-aw
 GARVERSION   = 2026.07
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
 
-PATCHFILES  += 01-fix-compiling-clock_sun50i_h6.c.patch
+# boards with ac300 emac1 requiring special ac300 eth code to
+# get working netbooting
+AC300_BOARDS = \
+ x96_q_ddr3_defconfig \
+ orangepi_zero2w_defconfig \
+ vontar_h618_defconfig \
+ transpeed-8k618-t_defconfig \
+
+PATCHFILES  += 001-fix-compiling-clock_sun50i_h6.c.patch
 PATCHFILES  += 050-my-boards-defconfigs-enable-overlays.patch
 # h6 boards related patches
 PATCHFILES  += 052-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
@@ -51,12 +58,13 @@ PATCHFILES  += 058-enable-beelink-gs1-netbooting.patch
 PATCHFILES  += 101-unreliable-dram.patch
 PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
 PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
-PATCHFILES  += 110-sunxi-h616-configure-PWM5-EPHY-clock.patch
-PATCHFILES  += 112-pinctrl-add-emac1.patch
-PATCHFILES  += 114-PHY-add-code.patch
-PATCHFILES  += 115-emac-add-code.patch
-PATCHFILES  += 118-gpio-sunxi-Don-t-clear-pull-settings-when-setting-in.patch
-# dtsi
+# emac1 support
+PATCHFILES  += 110-sunsi-add-h616-internal-eth-phy-support-jameshilliard-ac300v4.patch
+ifneq ($(filter $(AC300_BOARDS),$(mm_U-BOOT_BOARD_DEFCONFIG)),)
+# hack to get eth working on ac300 boards
+PATCHFILES  += 111-hack-to-make-ac300-eth-working.patch
+endif
+# dtsi additions
 PATCHFILES  += 140-sun50i-h616.dtsi-add-emac1-nodes.patch
 # h616 boards aditions.
 PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
