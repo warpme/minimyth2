@@ -145,6 +145,8 @@ build: \
 	$(if $(filter yes,$(mm_DISTRIBUTION_RAM)),  $(top_build)/stage/ram-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2.md5) \
 	$(if $(filter yes,$(mm_DISTRIBUTION_NFS)),  $(top_build)/stage/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2)     \
 	$(if $(filter yes,$(mm_DISTRIBUTION_NFS)),  $(top_build)/stage/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2.md5) \
+	$(if $(filter yes,$(mm_INSTALL_ONLINE_UPDATES)),$(top_build)/stage/bootloaders.tar.bz2)                       \
+	$(if $(filter yes,$(mm_INSTALL_ONLINE_UPDATES)),$(top_build)/stage/bootloaders.tar.bz2.md5)                   \
 	$(if $(filter i386,$(mm_GARCH_FAMILY)),     $(top_build)/stage/kernel)                                        \
 	$(if $(filter x86_64,$(mm_GARCH_FAMILY)),   $(top_build)/stage/kernel)                                        \
 	$(top_build)/stage/boot                                                                                       \
@@ -915,6 +917,16 @@ $(top_build)/stage/boot: $(DESTDIR)/$(LINUX_DIR)
 	@touch $@~
 	@mv $@~ $@
 
+$(top_build)/stage/bootloaders: $(DESTDIR)/$(libdir)/u-boot
+	@echo "copying bootloaders files"
+	@mkdir -m 0755 -p $(@D)
+	@rm -rf $@ $@~
+	@cp -pdR $^ $@~
+	@find $@~ -depth -type d -exec chmod 0755 '{}' \;
+	@find $@~ -depth -type f -exec chmod 0644 '{}' \;
+	@touch $@~
+	@mv $@~ $@
+
 $(top_build)/stage/rootfs: $(top_build)/stage/image/rootfs $(top_build)/stage/image/rootfs.fakeroot
 	@echo "making the squashfs version of the root file system"
 	@mkdir -m 0755 -p $(@D)
@@ -966,6 +978,15 @@ $(top_build)/stage/extras.tar.bz2: $(top_build)/stage/image/extras
 
 $(top_build)/stage/themes.tar.bz2: $(top_build)/stage/image/themes
 	@echo "making the tarball version of the themes file system"
+	@mkdir -m 0755 -p $(@D)
+	@rm -rf $@ $@~
+	@fakeroot                sh -c "tar -C $(<D) --use-compress-program=$(lbzip2) -cf $@~ $(<F)"
+	@chmod 0644 $@~
+	@touch $@~
+	@mv $@~ $@
+
+$(top_build)/stage/bootloaders.tar.bz2: $(top_build)/stage/bootloaders
+	@echo "making the tarball version of the bootloaders"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
 	@fakeroot                sh -c "tar -C $(<D) --use-compress-program=$(lbzip2) -cf $@~ $(<F)"
@@ -1035,6 +1056,7 @@ $(top_build)/share: \
 		$(top_build)/stage/rootfs                                                               \
 		$(top_build)/stage/rootfs.tar.bz2                                                       \
 		$(top_build)/stage/extras.tar.bz2                                                       \
+		$(top_build)/stage/bootloaders.tar.bz2                                                  \
 		$(top_build)/stage/changelog.txt                                                        \
 		$(top_build)/stage/release-notes.txt                                                    \
 		$(top_build)/stage/supported-gfx-hardware.txt                                           \
@@ -1075,6 +1097,8 @@ install: build
 		cp -af $(top_build)/stage/rootfs.tar.bz2 $(mm_SHARE_FILES)/rootfs.tar.bz2                        ; \
 		echo '  copying extras'                                                                          ; \
 		cp -af $(top_build)/stage/extras.tar.bz2 $(mm_SHARE_FILES)/extras.tar.bz2                        ; \
+		echo '  copying bootloaders'                                                                     ; \
+		cp -af $(top_build)/stage/bootloaders.tar.bz2 $(mm_SHARE_FILES)/bootloaders.tar.bz2              ; \
 		echo '  copying changelog'                                                                       ; \
 		cp -af $(top_build)/stage/changelog.txt $(mm_SHARE_FILES)/changelog.txt                          ; \
 		echo '  copying release-notes'                                                                   ; \
@@ -1097,6 +1121,8 @@ install: build
 		echo '  copying rootfs files'                                                              ; \
 		mkdir -p $(mm_ONLINE_UPDATES)/root                                                         ; \
 		cp -a $(top_build)/stage/image/rootfs/* $(mm_ONLINE_UPDATES)/root/                         ; \
+		echo '  copying bootloaders'                                                               ; \
+		cp -a $(top_build)/stage/bootloaders.tar.bz2 $(mm_ONLINE_UPDATES)/bootloaders.tar.bz2      ; \
 		echo '  copying version file'                                                              ; \
 		cp -a $(top_build)/stage/version $(mm_ONLINE_UPDATES)/version                              ; \
 		echo '  creating examplary rsyncd.conf file'                                               ; \
@@ -1170,9 +1196,16 @@ install: build
 				if [  $(mm_GARCH_FAMILY) = arm ] ; then                                 \
 				        cp -a  $(top_build)/stage/boot                                  \
 				               $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/     ; \
+				               echo '  copying u-boot bins'                           ; \
+				        cp -a  $(DESTDIR)$(libdir)/u-boot                               \
+				               $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/boot/ ; \
 				elif [  $(mm_GARCH_FAMILY) = arm64 ] ; then                             \
 				        cp -a  $(top_build)/stage/boot                                  \
-				               $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/    ;  \
+				               $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/     ; \
+				               echo '  copying u-boot bins'                           ; \
+				               mkdir -p $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs/bootloaders ; \
+				        cp -a  $(DESTDIR)$(libdir)/u-boot/*                             \
+				               $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs/bootloaders/ ; \
 				else                                                                    \
 				        cp -a  $(top_build)/stage/kernel                                \
 				          $(mm_TFTP_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/kernel    ; \
