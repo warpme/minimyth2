@@ -27,6 +27,9 @@ swap_size="4096"
 # script log file
 log_file="/var/log/install-on-emmc.log"
 
+# bootloaders dir on NFS share
+bootloaders_dir="/initrd/bootloaders/"
+
 #-----------------------------
 
 
@@ -68,9 +71,9 @@ log_file="/var/log/install-on-emmc.log"
 
 
 
+. /etc/rc.d/functions
 
-
-ver=8.11
+ver=9.0
 
 command=$1
 
@@ -137,6 +140,13 @@ error() {
     exit 1
 }
 
+exit_now() {
+    echo " "
+    echo "$*"
+    echo " "
+    exit 1
+}
+
 do_cmd() {
     log "Executing $*"
 
@@ -186,6 +196,7 @@ clean_working_env() {
     log "clean working enviroment ..."
     umount_all_partitions
     rmdir -p ${src-BOOT} ${src-ROOT} ${dst-BOOT} ${dst-ROOT} 2>/dev/null
+    rm -rf /tmp/bootloaders 2>/dev/null
     do_cmd lsblk
     do_cmd blkid
     do_cmd mount
@@ -311,7 +322,9 @@ what_platform() {
     fi
 
     platform=$(tr -d '\0' < /sys/firmware/devicetree/base/compatible 2>/dev/null)
+    model=$(tr -d '\0' < /sys/firmware/devicetree/base/model 2>/dev/null)
     log "platform string: ${platform}"
+    log "model string: ${model}"
     echo "Ooo...you are running ${platform}"
 
     if [[ ${platform} =~ "allwinner" ]] ; then
@@ -533,23 +546,19 @@ write_target_bootX() {
 
 write_bootloader_to_target_rockchip() {
 
-    idbloader_blob="/boot/bootloader/idbloader.img"
-    uboot_blob="/boot/bootloader/u-boot.itb"
+    idbloader_blob="${bootloader_dir}/idbloader.img"
+    uboot_blob="${bootloader_dir}/u-boot.itb"
 
     if [ -e "${idbloader_blob}" ] ; then
-        msg "Will use idbloader from [/boot/bootloader/] ..."
+        msg "Will use idbloader from [${bootloader_dir}] ..."
     else
-        msg "No idbloader in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
-        do_cmd mkdir -p /boot/bootloader/
-        do_cmd dd if=/dev/${source_dev} of=${idbloader_blob} count=4031 skip=64
+        exit_now "No idbloader in [${bootloader_dir}]. Exiting ..."
     fi
 
     if [ -e "${uboot_blob}" ] ; then
-        msg "Will use u-boot from [/boot/bootloader/] ..."
+        msg "Will use u-boot from [${bootloader_dir}/] ..."
     else
-        msg "No u-boot in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
-        do_cmd mkdir -p /boot/bootloader/
-        do_cmd dd if=/dev/${source_dev} of=${uboot_blob} count=8191 skip=16384
+        exit_now "No u-boot in [${bootloader_dir}]. Exiting ..."
     fi
 
     write_target_bootX 0 ${idbloader_blob}
@@ -566,23 +575,19 @@ write_bootloader_to_target_rockchip() {
 
 write4096_bootloader_to_target() {
 
-    idbloader_blob="/boot/bootloader/idbloader.img"
-    uboot_blob="/boot/bootloader/u-boot.itb"
+    idbloader_blob="${bootloader_dir}/idbloader.img"
+    uboot_blob="${bootloader_dir}/u-boot.itb"
 
     if [ -e "${idbloader_blob}" ] ; then
-        msg "Will use idbloader from [/boot/bootloader/] ..."
+        msg "Will use idbloader from [${bootloader_dir}/] ..."
     else
-        msg "No idbloader.img found in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
-        do_cmd mkdir -p /boot/bootloader/
-        do_cmd dd if=/dev/${source_dev} of=${idbloader_blob} bs=4k skip=8 count=256
+        exit_now "No idbloader.img found in [${bootloader_dir}]. Exiting ..."
     fi
 
     if [ -e "${uboot_blob}" ] ; then
-        msg "Will use u-boot.itb from [/boot/bootloader/] ..."
+        msg "Will use u-boot.itb from [${bootloader_dir}/] ..."
     else
-        msg "No u-boot.itb found in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
-        do_cmd mkdir -p /boot/bootloader/
-        do_cmd dd if=/dev/${source_dev} of=${uboot_blob} bs=4k skip=2048 count=512
+        exit_now "No u-boot.itb found in [${bootloader_dir}]. Exiting ..."
     fi
 
     msg "Writing idbloader.img to boot0 ..."
@@ -601,14 +606,12 @@ write4096_bootloader_to_target() {
 
 write_bootloader_to_target_allwinner() {
 
-    uboot_blob="/boot/bootloader/u-boot-sunxi-with-spl.bin"
+    uboot_blob="${bootloader_dir}/u-boot-sunxi-with-spl.bin"
 
     if [ -e "${uboot_blob}" ] ; then
-        msg "Will use u-boot-sunxi-with-spl.bin from [/boot/bootloader/] ..."
+        msg "Will use u-boot-sunxi-with-spl.bin from [${bootloader_dir}/] ..."
     else
-        msg "No u-boot-sunxi-with-spl.bin found in [/boot/bootloader]. Will retrieve it from ${source_dev} ..."
-        do_cmd mkdir -p /boot/bootloader/
-        do_cmd dd if=/dev/${source_dev} of=${uboot_blob} count=4096 skip=16
+        exit_now "No u-boot-sunxi-with-spl.bin found in [${bootloader_dir}]. Exiting ..."
     fi
 
     msg "Writing u-boot-sunxi-with-spl.bin to boot0 ..."
@@ -624,10 +627,10 @@ write_bootloader_to_target_allwinner() {
 
 write_bootloader_to_target_amlogic() {
 
-    uboot_blob="/boot/bootloader/u-boot.bin"
+    uboot_blob="${bootloader_dir}/u-boot.bin"
 
     if [ ! -e "${uboot_blob}" ] ; then
-        msg "No u-boot found in [/boot/bootloader]. No any writes to ${source_dev} ..."
+        exit_now "No u-boot found in [${bootloader_dir}]. Exiting ..."
     else
 
         msg "Writing u-boot.bin to ${target_dev} ..."
@@ -671,43 +674,43 @@ write_bootloader_to_spi_target() {
 
     else
         # this is for usupported
-        msg "write_bootloader_to_spi_target: unsupported platform ..."
+        exit_now "write_bootloader_to_spi_target: unsupported platform ..."
     fi
 }
 
 write_bootloader_to_spi_target_rockchip() {
 
-    spi_uboot_blob="/boot/bootloader/u-boot-rockchip-spi.bin"
+    spi_uboot_blob="${bootloader_dir}/u-boot-rockchip-spi.bin"
 
     if [ -e "${spi_uboot_blob}" ] ; then
-        msg "Will use u-boot-rockchip-spi.bin from [/boot/bootloader/] ..."
+        msg "Will use u-boot-rockchip-spi.bin from [${bootloader_dir}/] ..."
         if [ -e "/dev/mtd0" ]; then
             msg "Writing u-boot-rockchip-spi.bin to /dev/mtd0 ..."
             flashcp -v ${spi_uboot_blob} /dev/mtd0
             check_return_code
         else
-            msg "No /dev/mtd0 present. Skipping write spi u-boot ..."
+            exit_now "No /dev/mtd0 device found. Exiting ..."
         fi
     else
-        msg "No u-boot-spi found in [/boot/bootloader] Skipping write spi u-boot ..."
+        exit_now "No u-boot-spi binary found in [${bootloader_dir}] Exiting ..."
     fi
 }
 
 write_bootloader_to_spi_target_allwinner() {
 
-    spi_uboot_blob="/boot/bootloader/u-boot-sunxi-with-spl.bin"
+    spi_uboot_blob="${bootloader_dir}/u-boot-sunxi-with-spl.bin"
 
     if [ -e "${spi_uboot_blob}" ] ; then
-        msg "Will use u-boot-sunxi-with-spl.bin from [/boot/bootloader/] ..."
+        msg "Will use u-boot-sunxi-with-spl.bin from [${bootloader_dir}/] ..."
         if [ -e "/dev/mtd0" ]; then
             msg "Writing u-boot-sunxi-with-spl.bin to /dev/mtd0 ..."
             flashcp -v ${spi_uboot_blob} /dev/mtd0
             check_return_code
         else
-            msg "No /dev/mtd0 present. Skipping write spi u-boot ..."
+            exit_now "No /dev/mtd0 device found. Exiting ..."
         fi
     else
-        msg "No u-boot-spi found in [/boot/bootloader] Skipping write spi u-boot ..."
+        exit_now "No u-boot-spi binary found in [${bootloader_dir}] Exiting ..."
     fi
 }
 
@@ -745,7 +748,7 @@ write_bootloader_to_target() {
 
     else
         # this is for usupported
-        msg "write_bootloader_to_target: unsupported platform ..."
+        exit_now "write_bootloader_to_target: unsupported platform. Exiting ..."
     fi
 }
 
@@ -787,11 +790,7 @@ check_presence_and_select_target() {
                 target_dev=${nvme_dev}
                 target_dev_name="NVME"
             else
-                echo " "
-                echo "No suitable target to install found!"
-                echo "Exiting ..."
-                echo " "
-                exit 1
+                exit_now "No suitable target to install found! Exiting ..."
             fi
         echo "==> Found target device: ${target_dev_name} (${target_dev})"
         echo " "
@@ -835,10 +834,7 @@ check_presence_and_select_target() {
             target_dev=${nvme_dev}
             target_dev_name="NVME"
         else
-            echo " "
-            echo "Wrong selection! Exiting ..."
-            echo " "
-            exit 1
+            exit_now "Wrong selection! Exiting ..."
         fi
         echo "==> Selectd target device: ${target_dev_name} (${target_dev})"
         echo " "
@@ -871,10 +867,7 @@ check_presence_and_select_source() {
             source_dev=${sdcard_dev}
             source_dev_name="SDcard"
         else
-            echo " "
-            echo "Wrong selection! Exiting ..."
-            echo " "
-            exit 1
+            exit_now "Wrong selection! Exiting ..."
         fi
 
         echo "==> Selectd source device: ${source_dev_name} (${source_dev})"
@@ -899,15 +892,72 @@ check_presence_and_select_source() {
             echo " "
             echo "No SDcard nor eMMC as source found!"
             echo "To install to eMMC, UFS, USB or NVME script requires system on SDcard (or eMMC) as source."
-            echo "Exiting ..."
-            echo " "
-            exit 1
+            exit_now "Exiting ..."
         fi
 
         echo "==> Found source device: ${source_dev_name} (${source_dev})"
         echo " "
 
     fi
+}
+
+get_bootloader_source_dir() {
+
+    if [ -n "$(ls -A "/boot/bootloader" 2>/dev/null)" ]; then
+        msg "Bootloader found in [/boot/bootloader] ..."
+        msg "Will use it for update ..."
+        bootloader_dir="/boot/bootloader"
+    else
+        msg "No any files in local storage [/boot/bootloader] ..."
+        msg "Trying to find in local NFS share [${bootloaders_dir}] ..."
+        if [ -z "$(ls -A "${bootloaders_dir}" 2>/dev/null)" ]; then
+            msg "No any files in local NFS share [${bootloaders_dir}] ..."
+            msg "Downloading from MiniMyth2 on-line updaes server ..."
+            mm_do_online_update getbootloaders
+            if [ ! -e "/tmp/bootloaders/bootloaders.tar.bz2" ]; then
+                exit_now "Can't download bootloaders.tar.bz2 from MiniMyth2 on-line updates server. Exiting ..."
+            else
+                msg "bootloaders.tar.bz2 downloaded. Unpacking ..."
+                tar -C /tmp/ -xjf /tmp/bootloaders/bootloaders.tar.bz2
+                rm -f /tmp/bootloaders/bootloaders.tar.bz2
+                bootloaders_dir="/tmp/bootloaders"
+            fi
+        fi
+
+        msg "Finding in [${bootloaders_dir}] potential bootloaders"
+        bootloaders_list=$(grep -rla "${model}" ${bootloaders_dir})
+
+        if [ -z "${bootloaders_list}" ] ; then
+            exit_now "No any bootloader found! Exiting ..."
+        fi
+
+        i=1
+        echo " "
+        echo "Bootloaders matching Your board:"
+        echo " "
+        for loc in ${bootloaders_list} ; do
+            eval "loc_${i}=\${loc}"
+            echo "(${i}) ${loc}"
+            i=$((${i} + 1))
+        done
+
+        echo " "
+        echo "Select source bootloader to use in update ..."
+        echo " "
+
+        read sel
+
+        eval "selected_bootloader=\$loc_${sel}"
+
+        if [ -z "${selected_bootloader}" ] ; then
+            exit_now "Wrong selection! Exiting ..."
+        fi
+
+        log "bootloader update will use: ${selected_bootloader}"
+        bootloader_dir=$(dirname ${selected_bootloader})
+    fi
+
+    echo "Script will use [${bootloader_dir}] for bootloader update ..."
 }
 
 rm -f ${log_file}
@@ -987,10 +1037,7 @@ echo " "
 what_platform
 # exit for anything (amlogic, rpi) as unsupported (yet)
 if [ "${platform_type}" = "unsupported" ] ; then
-    echo " "
-    echo "Unsupported (yet) platform! Exiting ..."
-    echo " "
-    exit 1
+    exit_now "Unsupported (yet) platform! Exiting ..."
 fi
 
 boot_dev_name="Unknown"
@@ -1016,7 +1063,8 @@ fi
 echo " "
 echo "Platform             : ${platform_type}"
 echo "Board/device         : ${platform}"
-echo " " 
+echo "Model                : ${model}"
+echo " "
 echo "SDcard device        : ${sdcard_dev}"
 echo "eMMC device          : ${emmc_dev}"
 echo "UFS device           : ${ufs_dev}"
@@ -1027,10 +1075,7 @@ echo "SPI device           : ${spi_dev}"
 echo "System booted from   : ${boot_dev_name} (${boot_dev})"
 
 if [ "${boot_dev}" = "" ]; then
-    echo " "
-    echo "Can't determine boot device! Exiting ..."
-    echo " "
-    exit 1
+    exit_now "Can't determine boot device! Exiting ..."
 fi
 
 if [ "${command}" = "erase" ] ; then
@@ -1083,9 +1128,7 @@ elif [ "${command}" = "erasespi" ] ; then
 
     if [ "${spi_dev}" = "N/A" ] ; then
         echo "It looks Your system don't have any SPI device ..."
-        echo "Script will exit now!"
-        echo " " 
-        exit 0
+        exit_now "Script will exit now!"
     fi
 
     msg "Erasing ${spi_dev} ..."
@@ -1108,9 +1151,7 @@ elif [ "${command}" = "bootloader" ] ; then
     check_presence_and_select_target
     skip_check_is_booted_from="no"
 
-    # turn-off checking spurces to allow installing bootloader
-    # from /boot/bootloader no matther what device provides this dir.
-    # check_presence_and_select_source
+    get_bootloader_source_dir
 
     confirm "to install/update bootloader on ${target_dev_name} (${target_dev})"
 
@@ -1127,7 +1168,9 @@ elif [ "${command}" = "bootloader" ] ; then
 
 elif [ "${command}" = "spibootloader" ] ; then
 
-    confirm "to install/update SPI bootloader from local [/boot/bootloader/] dir"
+    get_bootloader_source_dir
+
+    confirm "to install/update SPI bootloader from [${bootloader_dir}/]"
 
     write_bootloader_to_spi_target
 
