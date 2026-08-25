@@ -3,11 +3,11 @@
 # test bootloader will be in usr/lib/u-boot/test-<soc>
 
 # for h6 - rememnber also to rebuild crust...
-mm_U-BOOT_BOARD_TYPE = test-h6.
+# mm_U-BOOT_BOARD_TYPE = test-h6.
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6_defconfig
 # CRUST_CONFIG              = tanix_tx6_defconfig
-mm_U-BOOT_BOARD_DEFCONFIG = beelink_gs1_defconfig
-CRUST_CONFIG              = beelink_gs1_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = beelink_gs1_defconfig
+# CRUST_CONFIG              = beelink_gs1_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_3_lts_defconfig
 # CRUST_CONFIG              = orangepi_3_defconfig
 
