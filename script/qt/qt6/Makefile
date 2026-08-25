@@ -1,6 +1,6 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.11.1
+GARVERSION   = 6.11.2
 CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/6.11/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
@@ -8,6 +8,7 @@ PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-qtdoc-uncoditionally-stop-building.patch
 PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compiling-with-external-ffmpeg81.patch
+PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compiling-media-filters.patch
 
 DESCRIPTION = 
 define BLURB
