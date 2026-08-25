@@ -7,23 +7,97 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/arch/arm/dts/sun50i-h6-beelink-gs1.dts u-boot-2026.07/arch/arm/dts/sun50i-h6-beelink-gs1.dts
 --- u-boot-2026.07/arch/arm/dts/sun50i-h6-beelink-gs1.dts	2026-07-07 01:50:43.000000000 +0200
-+++ u-boot-2026.07/arch/arm/dts/sun50i-h6-beelink-gs1.dts	2026-07-29 12:44:05.369438500 +0200
-@@ -123,6 +123,11 @@
- 	ext_rgmii_phy: ethernet-phy@1 {
++++ u-boot-2026.07/arch/arm/dts/sun50i-h6-beelink-gs1.dts	2026-08-25 19:24:29.569568725 +0200
+@@ -6,8 +6,8 @@
+ #include "sun50i-h6.dtsi"
+ #include "sun50i-h6-cpu-opp.dtsi"
+ #include "sun50i-h6-gpu-opp.dtsi"
+-
+ #include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/leds/common.h>
+ 
+ / {
+ 	model = "Beelink GS1";
+@@ -45,9 +45,10 @@
+ 		compatible = "gpio-leds";
+ 
+ 		led {
+-			label = "beelink:white:power";
++			function = LED_FUNCTION_DISK_ACTIVITY;
++			label = "beelink:white:disk";
+ 			gpios = <&r_pio 0 4 GPIO_ACTIVE_HIGH>; /* PL4 */
+-			default-state = "on";
++			linux,default-trigger = "disk-activity";
+ 		};
+ 	};
+ 
+@@ -59,24 +60,6 @@
+ 		regulator-max-microvolt = <5000000>;
+ 		regulator-always-on;
+ 	};
+-
+-	sound-spdif {
+-		compatible = "simple-audio-card";
+-		simple-audio-card,name = "sun50i-h6-spdif";
+-
+-		simple-audio-card,cpu {
+-			sound-dai = <&spdif>;
+-		};
+-
+-		simple-audio-card,codec {
+-			sound-dai = <&spdif_out>;
+-		};
+-	};
+-
+-	spdif_out: spdif-out {
+-		#sound-dai-cells = <0>;
+-		compatible = "linux,spdif-dit";
+-	};
+ };
+ 
+ &cpu0 {
+@@ -120,9 +103,9 @@
+ };
+ 
+ &mdio {
+-	ext_rgmii_phy: ethernet-phy@1 {
++	ext_rgmii_phy: ethernet-phy@10 {
  		compatible = "ethernet-phy-ieee802.3-c22";
- 		reg = <1>;
-+
-+	/* Obsługa resetu PHY w U-Boot */
-+	reset-gpios = <&pio 2 14 GPIO_ACTIVE_LOW>; /* PC14 */
-+	reset-assert-us = <15000>;
-+	reset-deassert-us = <40000>;
+-		reg = <1>;
++		reg = <10>;
  	};
  };
  
+@@ -139,6 +122,7 @@
+ 	vqmmc-supply = <&reg_bldo2>;
+ 	non-removable;
+ 	cap-mmc-hw-reset;
++	mmc-hs200-1_8v;
+ 	bus-width = <8>;
+ 	status = "okay";
+ };
+@@ -159,7 +143,7 @@
+ 		compatible = "x-powers,axp805", "x-powers,axp806";
+ 		reg = <0x36>;
+ 		interrupt-parent = <&r_intc>;
+-		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
++		interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_LOW>;
+ 		interrupt-controller;
+ 		#interrupt-cells = <1>;
+ 		x-powers,self-working-mode;
+@@ -241,7 +225,7 @@
+ 			reg_dcdca: dcdca {
+ 				regulator-always-on;
+ 				regulator-min-microvolt = <810000>;
+-				regulator-max-microvolt = <1160000>;
++				regulator-max-microvolt = <1200000>;
+ 				regulator-ramp-delay = <2500>;
+ 				regulator-name = "vdd-cpu";
+ 			};
 diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/configs/beelink_gs1_defconfig u-boot-2026.07/configs/beelink_gs1_defconfig
---- u-boot-2026.07/configs/beelink_gs1_defconfig	2026-07-29 14:05:47.518506036 +0200
-+++ u-boot-2026.07/configs/beelink_gs1_defconfig	2026-07-29 14:04:00.955277985 +0200
-@@ -4,13 +4,44 @@
+--- u-boot-2026.07/configs/beelink_gs1_defconfig	2026-08-25 21:05:31.303415249 +0200
++++ u-boot-2026.07/configs/beelink_gs1_defconfig	2026-08-25 21:09:45.280476174 +0200
+@@ -4,13 +4,47 @@
  CONFIG_SPL=y
  CONFIG_MACH_SUN50I_H6=y
  CONFIG_SUNXI_DRAM_H6_LPDDR3=y
@@ -32,7 +106,7 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/configs
 -CONFIG_SPL_SUNXI_LED_STATUS=y
 -CONFIG_SPL_SUNXI_LED_STATUS_GPIO=356
 -# CONFIG_PSCI_RESET is not set
- # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
+-# CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
 -CONFIG_LED=y
 -CONFIG_LED_GPIO=y
 +CONFIG_SPL_STACK=0x118000
@@ -44,17 +118,20 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/configs
  CONFIG_USB_EHCI_HCD=y
  CONFIG_USB_OHCI_HCD=y
 +CONFIG_USB_DWC3=y
-+# CONFIG_USB_DWC3_GADGET is not set
++CONFIG_DM_PMIC=y
++CONFIG_DM_REGULATOR=y
++CONFIG_DM_REGULATOR_AXP=y
++CONFIG_AXP_PMIC=y
 +CONFIG_R_I2C_ENABLE=y
 +CONFIG_SPL_I2C=y
 +CONFIG_SPL_I2C_SUPPORT=y
 +CONFIG_SPL_SYS_I2C_LEGACY=y
-+CONFIG_OF_LIBFDT_OVERLAY=y
++CONFIG_SYS_I2C_MVTWSI=y
++CONFIG_I2C0_ENABLE=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
 +CONFIG_NETDEVICES=y
-+CONFIG_PHY_ETHERNET_ID=y
 +CONFIG_SUN8I_EMAC=y
 +CONFIG_PHY_REALTEK=y
-+CONFIG_PHY_MOTORCOMM=y
 +CONFIG_PHYLIB=y
 +CONFIG_DM_ETH=y
 +CONFIG_NET=y
@@ -67,12 +144,13 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2026.07/configs
 +CONFIG_CMD_WGET=y
 +CONFIG_CMD_NFS=y
 +CONFIG_CMD_PING=y
- CONFIG_OF_LIBFDT_OVERLAY=y
++CONFIG_CMD_MII=y
++CONFIG_CMD_WGET_LWIP=y
 +CONFIG_LIB_RAND=y
 +CONFIG_NET_LWIP=y
-+CONFIG_CMD_WGET_LWIP=y
 +CONFIG_BOOTCOMMAND="if dhcp ${scriptaddr} /PXEclient/pxelinux.cfg/sun50i-h6-beelink-gs1.scr; then source ${scriptaddr}; fi; run distro_bootcmd"
-+CONFIG_CMD_MII=y
++CONFIG_LTO=y
++CONFIG_SPL_LTO=y
 --
 
 MiniMyth2
