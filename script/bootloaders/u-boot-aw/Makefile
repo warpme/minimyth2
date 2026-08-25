@@ -52,7 +52,6 @@ PATCHFILES  += 050-my-boards-defconfigs-enable-overlays.patch
 PATCHFILES  += 052-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 PATCHFILES  += 054-sunxi-Add-OrangePi-3-LTS-board.patch
 PATCHFILES  += 055-h6-tanix-tx6-improvements.patch
-PATCHFILES  += 057-enable-opi3lts-netbooting.patch
 PATCHFILES  += 058-enable-beelink-gs1-netbooting.patch
 # h616 patches
 PATCHFILES  += 101-unreliable-dram.patch
