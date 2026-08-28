@@ -41,7 +41,11 @@
 # export QT_QPA_EGLFS_DEBUG=1
 # export QT_DEBUG_PLUGINS=1
 
+# for debuging qtwebengine
+# export QT_LOGGING_RULES="qt.webenginecontext=true;qt.webengine.compositor=true"
 
+# for widewine
+# export QTWEBENGINE_CHROMIUM_FLAGS=--widevine-path="/some path/libwidevinecdm.so"
 
 
 
