@@ -1,14 +1,21 @@
 
+# Uncomment to replace Qt's webengine code with sources downloaded from
+# line 12
+# REPLACE_QTWEBENGINE=yes
+
 GARNAME      = qt-everywhere-src
 GARVERSION   = 6.11.2
+# v23.08.2026
+WEBENGINE_GITHASH = efffa8cc22531e8c09aff50d52f99ecbb1d3c3c5
 CATEGORIES   = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/6.11/$(GARVERSION)/single/
-DISTFILES    = $(DISTNAME).tar.xz
+MASTER_SITES = http://download.qt.io/official_releases/qt/6.11/$(GARVERSION)/single/ \
+               https://github.com/qt/qtwebengine-chromium/archive/
+DISTFILES    = $(DISTNAME).tar.xz $(WEBENGINE_GITHASH).zip
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-qtdoc-uncoditionally-stop-building.patch
-PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compiling-with-external-ffmpeg81.patch
-PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compiling-media-filters.patch
+#PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compiling-with-external-ffmpeg81.patch
+#PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compiling-media-filters.patch
 
 DESCRIPTION = 
 define BLURB
@@ -200,8 +207,7 @@ CONFIGURE_ARGS = \
 	-DQT_FEATURE_openssl=ON \
 	-DQT_FEATURE_openssl_linked=ON \
 	-DINPUT_openssl=linked \
-	-DQT_FEATURE_webengine_system_ffmpeg=ON \
-	-DWEBENGINE_USE_SYSTEM_FFMPEG=ON \
+	-DQT_FEATURE_webengine_system_ffmpeg=OFF \
 	-DQT_FEATURE_webengine_proprietary_codecs=ON \
 	-DQT_FEATURE_webengine_spellchecker=OFF \
 
@@ -307,9 +313,21 @@ CREATE_PLATFORM   = \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir))
 
+ifeq ($(REPLACE_QTWEBENGINE),yes)
+extract-$(WEBENGINE_GITHASH).zip:
+ifneq ($(DESTIMG),build)
+	@echo "replacing qtwebengine with external one ..."
+	@rm -rf $(WORKSRC)/qtwebengine/src/3rdparty/*
+	@mkdir -p $(WORKSRC)/qtwebengine/src/3rdparty
+	@unzip $(DOWNLOADDIR)/$(WEBENGINE_GITHASH).zip -d $(WORKSRC)/qtwebengine/src >/dev/null
+	@mv $(WORKSRC)/qtwebengine/src/qtwebengine-chromium-$(WEBENGINE_GITHASH)/* $(WORKSRC)/qtwebengine/src/3rdparty/
+endif
+	@$(MAKECOOKIE)
+endif
+
 pre-configure:
 ifneq ($(DESTIMG),build)
-	@echo "removing uneeded modules" ; \
+	@echo "removing uneeded modules ..." ; \
 	 for file in $(QT_MODULES_TO_REMOVE) ; do \
 	   echo "removing $(WORKSRC)/$${file}" ; \
 	   if [ -e $(WORKSRC)/$${file} ] ; then \
