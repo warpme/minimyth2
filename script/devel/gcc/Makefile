@@ -1,7 +1,7 @@
 
 GARNAME       = gcc
 GARVERSION    = $(GCC_VERSION)
-GITHASH       = 16062026-10962b0810b
+GITHASH       = 07082026-78d4ac73d
 CATEGORIES    = devel
 MASTER_SITES  = git://gcc.gnu.org/git/gcc.git/
 DISTFILES     = $(DISTNAME).tar.bz2
