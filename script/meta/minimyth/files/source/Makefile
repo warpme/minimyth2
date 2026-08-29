@@ -145,8 +145,8 @@ build: \
 	$(if $(filter yes,$(mm_DISTRIBUTION_RAM)),  $(top_build)/stage/ram-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2.md5) \
 	$(if $(filter yes,$(mm_DISTRIBUTION_NFS)),  $(top_build)/stage/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2)     \
 	$(if $(filter yes,$(mm_DISTRIBUTION_NFS)),  $(top_build)/stage/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2.md5) \
-	$(if $(filter yes,$(mm_INSTALL_ONLINE_UPDATES)),$(top_build)/stage/bootloaders.tar.bz2)                       \
-	$(if $(filter yes,$(mm_INSTALL_ONLINE_UPDATES)),$(top_build)/stage/bootloaders.tar.bz2.md5)                   \
+	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),$(if $(filter yes,$(mm_INSTALL_ONLINE_UPDATES)),$(top_build)/stage/bootloaders.tar.bz2))     \
+	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),$(if $(filter yes,$(mm_INSTALL_ONLINE_UPDATES)),$(top_build)/stage/bootloaders.tar.bz2.md5)) \
 	$(if $(filter i386,$(mm_GARCH_FAMILY)),     $(top_build)/stage/kernel)                                        \
 	$(if $(filter x86_64,$(mm_GARCH_FAMILY)),   $(top_build)/stage/kernel)                                        \
 	$(top_build)/stage/boot                                                                                       \
@@ -1056,7 +1056,7 @@ $(top_build)/share: \
 		$(top_build)/stage/rootfs                                                               \
 		$(top_build)/stage/rootfs.tar.bz2                                                       \
 		$(top_build)/stage/extras.tar.bz2                                                       \
-		$(top_build)/stage/bootloaders.tar.bz2                                                  \
+		$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),$(top_build)/stage/bootloaders.tar.bz2)     \
 		$(top_build)/stage/changelog.txt                                                        \
 		$(top_build)/stage/release-notes.txt                                                    \
 		$(top_build)/stage/supported-gfx-hardware.txt                                           \
@@ -1097,8 +1097,10 @@ install: build
 		cp -af $(top_build)/stage/rootfs.tar.bz2 $(mm_SHARE_FILES)/rootfs.tar.bz2                        ; \
 		echo '  copying extras'                                                                          ; \
 		cp -af $(top_build)/stage/extras.tar.bz2 $(mm_SHARE_FILES)/extras.tar.bz2                        ; \
-		echo '  copying bootloaders'                                                                     ; \
-		cp -af $(top_build)/stage/bootloaders.tar.bz2 $(mm_SHARE_FILES)/bootloaders.tar.bz2              ; \
+		if [  $(mm_GARCH_FAMILY) = arm64 ] ; then                                                          \
+			 echo '  copying bootloaders'                                                            ; \
+			 cp -af $(top_build)/stage/bootloaders.tar.bz2 $(mm_SHARE_FILES)/bootloaders.tar.bz2     ; \
+		fi                                                                                               ; \
 		echo '  copying changelog'                                                                       ; \
 		cp -af $(top_build)/stage/changelog.txt $(mm_SHARE_FILES)/changelog.txt                          ; \
 		echo '  copying release-notes'                                                                   ; \
@@ -1121,8 +1123,10 @@ install: build
 		echo '  copying rootfs files'                                                              ; \
 		mkdir -p $(mm_ONLINE_UPDATES)/root                                                         ; \
 		cp -a $(top_build)/stage/image/rootfs/* $(mm_ONLINE_UPDATES)/root/                         ; \
-		echo '  copying bootloaders'                                                               ; \
-		cp -a $(top_build)/stage/bootloaders.tar.bz2 $(mm_ONLINE_UPDATES)/bootloaders.tar.bz2      ; \
+		if [  $(mm_GARCH_FAMILY) = arm64 ] ; then                                                    \
+			 echo '  copying bootloaders'                                                      ; \
+			 cp -af $(top_build)/stage/bootloaders.tar.bz2 $(mm_ONLINE_UPDATES)/bootloaders.tar.bz2 ; \
+		fi                                                                                         ; \
 		echo '  copying version file'                                                              ; \
 		cp -a $(top_build)/stage/version $(mm_ONLINE_UPDATES)/version                              ; \
 		echo '  creating examplary rsyncd.conf file'                                               ; \
