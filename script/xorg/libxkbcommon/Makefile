@@ -11,7 +11,7 @@ DESCRIPTION =.
 define BLURB
 endef
 
-DEPENDS = lang/c wayland/wayland-core wayland/wayland-protocols
+DEPENDS = lang/c wayland/wayland-core wayland/wayland-protocols xorg/xkeyboard-config
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
