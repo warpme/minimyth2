@@ -32,4 +32,7 @@ include ../../gar.mk
 
 post-install:
 	@mv $(DESTDIR)$(datadir)/pkgconfig/xkeyboard-config.pc $(DESTDIR)$(libdir)/pkgconfig/xkeyboard-config.pc
+	@echo "dealing with bug of symlinking xkeyboard-config-2 to host /usr/share/"
+	@rm -f $(DESTDIR)$(datadir)/X11/xkb
+	@ln -srf $(DESTDIR)$(datadir)/xkeyboard-config-2 $(DESTDIR)$(datadir)/X11/xkb
 	@$(MAKECOOKIE)
