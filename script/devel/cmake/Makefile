@@ -1,6 +1,6 @@
 
 GARNAME      = cmake
-GARVERSION   = 4.3.0
+GARVERSION   = 4.3.4
 CATEGORIES   = devel
 MASTER_SITES = http://www.cmake.org/files/v4.3/
 DISTFILES    = $(DISTNAME).tar.gz
