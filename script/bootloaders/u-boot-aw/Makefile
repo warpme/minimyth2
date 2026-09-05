@@ -34,6 +34,8 @@
 
 # mm_U-BOOT_BOARD_TYPE = test-a523.
 # mm_U-BOOT_BOARD_DEFCONFIG = radxa-cubie-a5e_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi_4a_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = x96q_pro_plus_defconfig
 
 GARNAME      = u-boot-aw
 GARVERSION   = 2026.07
@@ -84,6 +86,8 @@ PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
 PATCHFILES  += 164-add-tx1-v1.2-defconfig.patch
 PATCHFILES  += 165-transpeed-8k618-t-improvements.patch
 PATCHFILES  += 166-a527-cubie-a5e-enable-netbooting.patch
+PATCHFILES  += 167-t527-orangepi-4a-enable-netbooting.patch
+PATCHFILES  += 168-h728-x96qpro_plus-enable-netbooting.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
@@ -131,7 +135,7 @@ INSTALL_PREF = h618
 BL31         = $(DESTDIR)$(libdir)/u-boot/h618/bl31.bin
 DEFCONFIG    = generic-h618_defconfig
 endif
-ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = a523
 BL31         = $(DESTDIR)$(libdir)/u-boot/a523/bl31.bin
 DEFCONFIG    = generic-a523_defconfig
@@ -146,7 +150,7 @@ BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
 $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin:
-ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
 	@echo "Building A523 ATF as dependency ..."
 	@$(MAKE) clean install -C ../arm-trusted-firmware-a523
 else
@@ -170,7 +174,7 @@ ifneq (,$(findstring h6.,$(mm_U-BOOT_BOARD_TYPE)))
 		       $(WORKSRC)/scp.bin ; \
 	fi
 endif
-ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
 	@echo "Copying A523 scp.bin to u-boot tree ..." ; \
 		cp -pd ../arm-trusted-firmware-a523/files/scp.bin \
 		       $(WORKSRC)/scp.bin
