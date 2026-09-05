@@ -32,6 +32,9 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = vontar_h618_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = transpeed-8k618-t_defconfig
 
+# mm_U-BOOT_BOARD_TYPE = test-a523.
+# mm_U-BOOT_BOARD_DEFCONFIG = radxa-cubie-a5e_defconfig
+
 GARNAME      = u-boot-aw
 GARVERSION   = 2026.07
 CATEGORIES   = bootloaders
@@ -80,6 +83,7 @@ PATCHFILES  += 161-dts-zero2w-improvements.patch
 PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
 PATCHFILES  += 164-add-tx1-v1.2-defconfig.patch
 PATCHFILES  += 165-transpeed-8k618-t-improvements.patch
+PATCHFILES  += 166-a527-cubie-a5e-enable-netbooting.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
@@ -142,8 +146,13 @@ BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
 $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin:
+ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE)))
+	@echo "Building A523 ATF as dependency ..."
+	@$(MAKE) clean install -C ../arm-trusted-firmware-a523
+else
 	@echo "Building ATF as dependency ..."
 	@$(MAKE) clean install -C ../arm-trusted-firmware
+endif
 	@#clean current uboot as it depends on just built ATF
 	@$(MAKE) clean
 	@#for h6 boards also build and install crust scp.bin
