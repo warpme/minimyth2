@@ -135,7 +135,7 @@ INSTALL_PREF = h618
 BL31         = $(DESTDIR)$(libdir)/u-boot/h618/bl31.bin
 DEFCONFIG    = generic-h618_defconfig
 endif
-ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = a523
 BL31         = $(DESTDIR)$(libdir)/u-boot/a523/bl31.bin
 DEFCONFIG    = generic-a523_defconfig
@@ -150,7 +150,7 @@ BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
 $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin:
-ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
 	@echo "Building A523 ATF as dependency ..."
 	@$(MAKE) clean install -C ../arm-trusted-firmware-a523
 else
@@ -174,7 +174,7 @@ ifneq (,$(findstring h6.,$(mm_U-BOOT_BOARD_TYPE)))
 		       $(WORKSRC)/scp.bin ; \
 	fi
 endif
-ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
 	@echo "Copying A523 scp.bin to u-boot tree ..." ; \
 		cp -pd ../arm-trusted-firmware-a523/files/scp.bin \
 		       $(WORKSRC)/scp.bin
