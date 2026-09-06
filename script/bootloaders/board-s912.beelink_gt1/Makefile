@@ -1,47 +1,16 @@
 
-GARNAME      = bootfiles-s912.beelink_gt1
-GARVERSION   = 2025-11-13
+GARNAME      = bootfiles-board-s912.beelink_gt1
+GARVERSION   = 2026-09-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
-DISTFILES    = s905_autoscript \
-               aml_autoscript \
-               uEnv.ini \
+DISTFILES    = \
                minimyth.conf \
+               extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = p212_defconfig
+export SOC_TYPE                  = s912
+export mm_U-BOOT_BOARD_TYPE      = board-s912.beelink_gt1
+export mm_U-BOOT_BOARD_DEFCONFIG = beelink-gt1_defconfig
+# it looks my gt1 needs p212 fip. with beelink_gt1 it fails at dram init...
+export FIP_BOARD                 = p212
 
-WORKSRC      = $(WORKDIR)
-
-LICENSE = GPL2
-
-DESCRIPTION =
-define BLURB
-endef
-
-BUILD_SCRIPTS   = bootloader
-INSTALL_SCRIPTS = bootloader
-CLEAN_SCRIPTS   = bootloader
-
-include ../../gar.mk
-
-# Skipping U-Boot build as we are using vendor U-Boot
-build-bootloader:
-#	@$(MAKE) clean -C ../u-boot-amlogic
-#	@$(MAKE) install -C ../u-boot-amlogic
-	@$(MAKECOOKIE)
-
-install-bootloader:
-	@mkdir -p $(DESTDIR)/boot
-	@cp -f $(WORKSRC)/s905_autoscript                       $(DESTDIR)/boot/s905_autoscript
-	@cp -f $(WORKSRC)/aml_autoscript                        $(DESTDIR)/boot/aml_autoscript
-	@cp -f $(WORKSRC)/uEnv.ini                              $(DESTDIR)/boot/uEnv.ini
-	@cp -f $(WORKSRC)/minimyth.conf                         $(DESTDIR)/boot/minimyth.conf
-	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
-
-clean-bootloader:
-	@rm -f $(DESTDIR)/boot/s905_autoscript
-	@rm -f $(DESTDIR)/boot/aml_autoscript
-	@rm -f $(DESTDIR)/boot/uEnv.ini
-	@rm -f $(DESTDIR)/boot/minimyth.conf
-
-clean-all: clean-bootloader cookieclean downloadclean
+include ../bootloader/install-board-bootloader-aml.mk
