@@ -143,11 +143,11 @@ PATCHFILES += 1711-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
 PATCHFILES += 1712-net-wireless-broadcom-add-sdio-ID-43342.patch
 PATCHFILES += 1713-gpu-panfrost-add-meson-s4-support.patch
 PATCHFILES += 1714-thermal-amlogic-add-meson-s4-variant.patch
-# v7 https://patchwork.linuxtv.org/project/linux-media/list/?series=29002
-PATCHFILES += 1715-firmware-meson-sm-Add-video-firmware-loading-SMC-call-v7.patch
-PATCHFILES += 1716-firmware-meson-sm-video-firmware-loading-via-secure-monitor-v7.patch
-PATCHFILES += 1717-media-dt-bindings-Add-Amlogic-V4L2-video-decoder-v7.patch
-PATCHFILES += 1718-decoder-Add-V4L2-stateless-H.264-decoder-driver-v7.patch
+# v8 https://patchwork.linuxtv.org/project/linux-media/list/?series=29680
+PATCHFILES += 1715-firmware-meson-sm-Add-video-firmware-loading-SMC-call-v8.patch
+PATCHFILES += 1716-firmware-meson-sm-video-firmware-loading-via-secure-monitor-v8.patch
+PATCHFILES += 1717-media-dt-bindings-Add-Amlogic-V4L2-video-decoder-v8.patch
+PATCHFILES += 1718-decoder-Add-V4L2-stateless-H.264-decoder-driver-v8.patch
 # s4/sc2 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
