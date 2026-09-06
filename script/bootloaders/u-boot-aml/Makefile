@@ -79,12 +79,14 @@ endif
 # Mainline U-boot
 GARNAME      = u-boot-aml
 
-# mainline 2026.07-rc2 - fails with sd/emmc reading
-# GARVERSION   = 5732bd0f457b4c671e46574d64d4acb099c0f0a5
+# mainline 2026.10-rc3
+# GARVERSION   = 964ad5b5c91b7be56e443e899d7f873e6aa8c9fc
+# mainline 2026.07 GA
+GARVERSION   = ece349ade2973e220f524ce59e59711cc919263f
 # mainline 2026.04 GA - fails with sd/emmc reading
 # GARVERSION   = 88dc2788777babfd6322fa655df549a019aa1e69
 # mainline 2026.01 GA
-GARVERSION   = 127a42c7257a6ffbbd1575ed1cbaa8f5408a44b3
+# GARVERSION   = 127a42c7257a6ffbbd1575ed1cbaa8f5408a44b3
 # mainline 2025.10 GA
 # GARVERSION   = e50b1e8715011def8aff1588081a2649a2c6cd47
 # mainline 2025.04 GA
