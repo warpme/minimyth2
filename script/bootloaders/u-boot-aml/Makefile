@@ -5,7 +5,7 @@
 ifeq (0,1)
 # s905 generic device
 SOC_TYPE                  = s905
-mm_U-BOOT_BOARD_TYPE      = board-xxx
+mm_U-BOOT_BOARD_TYPE      = board-s905w.tx3-mini
 mm_U-BOOT_BOARD_DEFCONFIG = p201_defconfig
 FIP_BOARD                 = p201
 endif
@@ -13,9 +13,10 @@ endif
 ifeq (0,1)
 # s912 generic device
 SOC_TYPE                  = s912
-mm_U-BOOT_BOARD_TYPE      = board-xxx
-mm_U-BOOT_BOARD_DEFCONFIG = sei610_defconfig
-FIP_BOARD                 = q200
+mm_U-BOOT_BOARD_TYPE      = board-s912.beelink_gt1
+mm_U-BOOT_BOARD_DEFCONFIG = beelink-gt1_defconfig
+# it looks my gt1 needs p212 fip. with beelink_gt1 it fails at dram init...
+FIP_BOARD                 = p212
 endif
 
 ifeq (0,1)
@@ -74,8 +75,6 @@ mm_U-BOOT_BOARD_DEFCONFIG = t.b.d
 FIP_BOARD                 = t.b.d
 endif
 
-
-
 # Mainline U-boot
 GARNAME      = u-boot-aml
 
@@ -101,9 +100,11 @@ PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
                03-sm1-khadas-vim3l-add-http-netboot-support.patch \
                04-sm1-add-tanix-tx5plus_defconfig.patch \
                05-sm1-add-x96-air_defconfig.patch \
+               06-gxm-add-beelink-gt1_defconfig.patch \
                50-amlogic-boot-fip-add-enc-bins-support.patch \
                51-amlogic-boot-fip-add-x96-air-support.patch \
-               52-amlogic-boot-fip-add-tanix-tx5plus-support.patch
+               52-amlogic-boot-fip-add-tanix-tx5plus-support.patch \
+
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKSRC)/amlogic-boot-fip
 
