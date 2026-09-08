@@ -2,7 +2,7 @@
 # For test builds.
 # By default - khadas vim3 is build
 
-ifeq (1,1)
+ifeq (0,1)
 # s905 generic device
 SOC_TYPE                  = s905
 mm_U-BOOT_BOARD_TYPE      = board-s905w.tx3-mini
