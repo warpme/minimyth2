@@ -2,12 +2,12 @@
 # For test builds.
 # By default - khadas vim3 is build
 
-ifeq (0,1)
+ifeq (1,1)
 # s905 generic device
 SOC_TYPE                  = s905
 mm_U-BOOT_BOARD_TYPE      = board-s905w.tx3-mini
-mm_U-BOOT_BOARD_DEFCONFIG = p201_defconfig
-FIP_BOARD                 = p201
+mm_U-BOOT_BOARD_DEFCONFIG = tanix-tx3mini_defconfig
+FIP_BOARD                 = tanix-tx3-mini
 endif
 
 ifeq (0,1)
@@ -101,9 +101,11 @@ PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
                04-sm1-add-tanix-tx5plus_defconfig.patch \
                05-sm1-add-x96-air_defconfig.patch \
                06-gxm-add-beelink-gt1_defconfig.patch \
+               07-gxl-add-tanix-tx3mini_defconfig.patch \
                50-amlogic-boot-fip-add-enc-bins-support.patch \
                51-amlogic-boot-fip-add-x96-air-support.patch \
                52-amlogic-boot-fip-add-tanix-tx5plus-support.patch \
+               53-amlogic-boot-fip-add-tanix-tx3mini-support.patch \
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKSRC)/amlogic-boot-fip
@@ -166,7 +168,10 @@ build-custom:
 	@$(MAKECOOKIE)
 
 install-custom:
-	@echo "Patching FIP ..."
+	@echo "Cleanup +x rights on FIP sources ..."
+	@find $(FIPSRC) -type f -name "aml_encrypt_*" -exec chmod +x {} +
+	@find $(FIPSRC) -type f -name "*.py" -exec chmod +x {} +
+	@find $(FIPSRC) -type f -name "*.sh" -exec chmod +x {} +
 	@echo "----- FIP start ----------------------------------------------------------------"
 	@echo "Running FIP in $(FIPSRC) for $(FIP_BOARD) ..."
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)"
