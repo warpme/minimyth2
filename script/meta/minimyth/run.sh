@@ -57,7 +57,7 @@ mm_NFS_ROOT=`grep "^mm_NFS_ROOT" ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 mm_GARCH_FAMILY=`grep "^mm_GARCH" ${mm_conf_file} | sed -e 's/.*\?=*\s//' -e 's/armv7/arm/' -e 's/armv8/arm64/'  -e 's/x86-64/x86_64/'`
 mm_VERSION=`grep "^mm_VERSION" ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 mm_MYTH_VERSION=`grep "^mm_MYTH_VERSION" ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
-nfs_top_dir=$(eval echo "${mm_NFS_ROOT}nfs-${mm_GARCH_FAMILY}-minimyth2-${mm_MYTH_VERSION}-${mm_VERSION}")
+nfs_top_dir=$(eval echo "${mm_NFS_ROOT}/nfs-${mm_GARCH_FAMILY}-minimyth2-${mm_MYTH_VERSION}-${mm_VERSION}")
 nfs_devel_script="rootfs/usr/bin/devel-update-component.sh"
 
 selection=$1
