@@ -1,70 +1,88 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From f028a5ea2b80a4ad9072231f362e3721ed14204e Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Mon, 29 Sep 2025 22:10:39 +0200
-Subject: drm/sun4i: Add planes driver
+Subject: [PATCH 13/33] drm/sun4i: Add planes driver
 
 This driver serves just as planes sharing manager, needed for Display
 Engine 3.3 and newer.
 
 Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
- drivers/gpu/drm/sun4i/Kconfig         |   8 +
- drivers/gpu/drm/sun4i/Makefile        |   1 +
- drivers/gpu/drm/sun4i/sun50i_planes.c | 205 ++++++++++
- drivers/gpu/drm/sun4i/sun50i_planes.h |  43 ++
- 4 files changed, 257 insertions(+)
+ drivers/gpu/drm/sun4i/Makefile        |   3 +-
+ drivers/gpu/drm/sun4i/sun50i_planes.c | 206 ++++++++++++++++++++++++++
+ drivers/gpu/drm/sun4i/sun50i_planes.h |  43 ++++++
+ 3 files changed, 251 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/gpu/drm/sun4i/sun50i_planes.c
+ create mode 100644 drivers/gpu/drm/sun4i/sun50i_planes.h
 
-diff --git a/drivers/gpu/drm/sun4i/Kconfig b/drivers/gpu/drm/sun4i/Kconfig
-index 111111111111..222222222222 100644
---- a/drivers/gpu/drm/sun4i/Kconfig
-+++ b/drivers/gpu/drm/sun4i/Kconfig
-@@ -85,4 +85,12 @@ config DRM_SUN8I_TCON_TOP
- 	  TCON TOP is responsible for configuring display pipeline for
- 	  HDMI, TVE and LCD.
- 
-+config DRM_SUN50I_PLANES
-+	tristate
-+	default DRM_SUN4I if DRM_SUN8I_MIXER!=n
-+	help
-+	  Chose this option if you have an Allwinner Soc with the
-+	  Display Engine 3.3 or newer. Planes are shared resource
-+	  between multiple mixers.
-+
- endif
 diff --git a/drivers/gpu/drm/sun4i/Makefile b/drivers/gpu/drm/sun4i/Makefile
-index 111111111111..222222222222 100644
+index bad7497a0..501e3d867 100644
 --- a/drivers/gpu/drm/sun4i/Makefile
 +++ b/drivers/gpu/drm/sun4i/Makefile
-@@ -38,3 +38,4 @@ obj-$(CONFIG_DRM_SUN6I_DSI)	+= sun6i_mipi_dsi.o
- obj-$(CONFIG_DRM_SUN8I_DW_HDMI)	+= sun8i-drm-hdmi.o
- obj-$(CONFIG_DRM_SUN8I_MIXER)	+= sun8i-mixer.o
- obj-$(CONFIG_DRM_SUN8I_TCON_TOP) += sun8i_tcon_top.o
-+obj-$(CONFIG_DRM_SUN50I_PLANES)	+= sun50i_planes.o
+@@ -16,7 +16,8 @@ sun8i-drm-hdmi-y		+= sun8i_hdmi_phy_clk.o
+ 
+ sun8i-mixer-y			+= sun8i_mixer.o sun8i_ui_layer.o \
+ 				   sun8i_vi_layer.o sun8i_ui_scaler.o \
+-				   sun8i_vi_scaler.o sun8i_csc.o
++				   sun8i_vi_scaler.o sun8i_csc.o \
++				   sun50i_planes.o
+ 
+ sun4i-tcon-y			+= sun4i_crtc.o
+ sun4i-tcon-y			+= sun4i_tcon_dclk.o
 diff --git a/drivers/gpu/drm/sun4i/sun50i_planes.c b/drivers/gpu/drm/sun4i/sun50i_planes.c
 new file mode 100644
-index 000000000000..111111111111
+index 000000000..2463b5752
 --- /dev/null
 +++ b/drivers/gpu/drm/sun4i/sun50i_planes.c
-@@ -0,0 +1,205 @@
+@@ -0,0 +1,206 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/* Copyright (c) 2025 Jernej Skrabec <jernej.skrabec@gmail.com> */
 +
++#include <drm/drm_device.h>
++
 +#include <linux/device.h>
 +#include <linux/io.h>
-+#include <linux/mfd/syscon.h>
 +#include <linux/module.h>
 +#include <linux/of.h>
 +#include <linux/of_graph.h>
++#include <linux/of_platform.h>
 +#include <linux/platform_device.h>
++#include <linux/regmap.h>
 +
 +#include "sun50i_planes.h"
 +#include "sun8i_ui_layer.h"
 +#include "sun8i_vi_layer.h"
 +
-+static bool sun50i_planes_node_is_planes(struct device_node *node)
-+{
-+	return !!of_match_node(sun50i_planes_of_table, node);
-+}
++static const struct sun50i_planes_quirks sun50i_h616_planes_quirks = {
++	.def_map = {
++		{
++			.map = {0, 6, 7},
++			.num_ch = 3,
++		},
++		{
++			.map = {1, 2, 8},
++			.num_ch = 3,
++		},
++	},
++	.cfg = {
++		.de_type	= SUN8I_MIXER_DE33,
++		/*
++		 * TODO: All planes support scaling, but driver needs
++		 * improvements to properly support it.
++		 */
++		.scaler_mask    = 0,
++		.scanline_yuv	= 4096,
++	},
++};
++
++static const struct of_device_id sun50i_planes_of_table[] = {
++	{
++		.compatible = "allwinner,sun50i-h616-de33-planes",
++		.data = &sun50i_h616_planes_quirks
++	},
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sun50i_planes_of_table);
 +
 +struct drm_plane **
 +sun50i_planes_setup(struct device *dev, struct drm_device *drm,
@@ -76,19 +94,19 @@ index 000000000000..111111111111
 +	const struct default_map *map;
 +	unsigned int i;
 +
-+	if (!sun50i_planes_node_is_planes(dev->of_node)) {
++	if (!of_match_node(sun50i_planes_of_table, dev->of_node)) {
 +		dev_err(dev, "Device is not planes driver!\n");
-+		return NULL;
++		return ERR_PTR(-EINVAL);
 +	}
 +
 +	if (!planes) {
 +		dev_err(dev, "Planes driver is not loaded yet!\n");
-+		return NULL;
++		return ERR_PTR(-EINVAL);
 +	}
 +
 +	if (mixer > 1) {
 +		dev_err(dev, "Mixer index is too high!\n");
-+		return NULL;
++		return ERR_PTR(-EINVAL);
 +	}
 +
 +	quirks = planes->quirks;
@@ -129,7 +147,6 @@ index 000000000000..111111111111
 +
 +	return drm_planes;
 +}
-+EXPORT_SYMBOL(sun50i_planes_setup);
 +
 +static void sun50i_planes_init_mapping(struct sun50i_planes *planes)
 +{
@@ -173,23 +190,34 @@ index 000000000000..111111111111
 +
 +static int sun50i_planes_probe(struct platform_device *pdev)
 +{
++	struct platform_device *clk_pdev;
 +	struct device *dev = &pdev->dev;
 +	struct sun50i_planes *planes;
++	struct device_node *np;
 +	void __iomem *regs;
 +
 +	planes = devm_kzalloc(dev, sizeof(*planes), GFP_KERNEL);
 +	if (!planes)
 +		return -ENOMEM;
 +
-+	planes->quirks = of_device_get_match_data(&pdev->dev);
++	planes->quirks = of_device_get_match_data(dev);
 +	if (!planes->quirks)
 +		return dev_err_probe(dev, -EINVAL, "Unable to get quirks\n");
 +
-+	planes->mapping = syscon_regmap_lookup_by_phandle(dev->of_node,
-+							  "allwinner,plane-mapping");
-+	if (IS_ERR(planes->mapping))
-+		return dev_err_probe(dev, PTR_ERR(planes->mapping),
-+				     "Unable to get mapping\n");
++	np = of_parse_phandle(dev->of_node,
++			      "allwinner,plane-mapping", 0);
++	clk_pdev = of_find_device_by_node(np);
++	of_node_put(np);
++	if (!clk_pdev)
++		return dev_err_probe(dev, -EPROBE_DEFER, "Unable to get mapping\n");
++
++	planes->mapping = dev_get_regmap(&clk_pdev->dev, NULL);
++	platform_device_put(clk_pdev);
++	if (!planes->mapping)
++		return dev_err_probe(dev, -EINVAL, "Unable to get regmap\n");
++
++	if(!device_link_add(dev, &clk_pdev->dev, DL_FLAG_AUTOREMOVE_CONSUMER))
++		return dev_err_probe(dev, -EINVAL, "Failed to create link\n");
 +
 +	regs = devm_platform_ioremap_resource(pdev, 0);
 +	if (IS_ERR(regs))
@@ -199,61 +227,23 @@ index 000000000000..111111111111
 +	if (IS_ERR(planes->regs))
 +		return PTR_ERR(planes->regs);
 +
-+	dev_set_drvdata(dev, planes);
-+
 +	sun50i_planes_init_mapping(planes);
++
++	dev_set_drvdata(dev, planes);
 +
 +	return 0;
 +}
 +
-+static const struct sun50i_planes_quirks sun50i_h616_planes_quirks = {
-+	.def_map = {
-+		{
-+			.map = {0, 6, 7},
-+			.num_ch = 3,
-+		},
-+		{
-+			.map = {1, 2, 8},
-+			.num_ch = 3,
-+		},
-+	},
-+	.cfg = {
-+		.de_type	= SUN8I_MIXER_DE33,
-+		/*
-+		 * TODO: All planes support scaling, but driver needs
-+		 * improvements to properly support it.
-+		 */
-+		.scaler_mask    = 0,
-+		.scanline_yuv	= 4096,
-+	},
-+};
-+
-+/* sun4i_drv uses this list to check if a device node is a plane */
-+const struct of_device_id sun50i_planes_of_table[] = {
-+	{
-+		.compatible = "allwinner,sun50i-h616-de33-planes",
-+		.data = &sun50i_h616_planes_quirks
-+	},
-+	{ }
-+};
-+MODULE_DEVICE_TABLE(of, sun50i_planes_of_table);
-+EXPORT_SYMBOL(sun50i_planes_of_table);
-+
-+static struct platform_driver sun50i_planes_platform_driver = {
++struct platform_driver sun50i_planes_platform_driver = {
 +	.probe		= sun50i_planes_probe,
 +	.driver		= {
 +		.name		= "sun50i-planes",
 +		.of_match_table	= sun50i_planes_of_table,
 +	},
 +};
-+module_platform_driver(sun50i_planes_platform_driver);
-+
-+MODULE_AUTHOR("Jernej Skrabec <jernej.skrabec@gmail.com>");
-+MODULE_DESCRIPTION("Allwinner DE33 planes driver");
-+MODULE_LICENSE("GPL");
 diff --git a/drivers/gpu/drm/sun4i/sun50i_planes.h b/drivers/gpu/drm/sun4i/sun50i_planes.h
 new file mode 100644
-index 000000000000..111111111111
+index 000000000..7be969491
 --- /dev/null
 +++ b/drivers/gpu/drm/sun4i/sun50i_planes.h
 @@ -0,0 +1,43 @@
@@ -262,9 +252,6 @@ index 000000000000..111111111111
 +
 +#ifndef _SUN50I_PLANES_H_
 +#define _SUN50I_PLANES_H_
-+
-+#include <drm/drm_device.h>
-+#include <linux/regmap.h>
 +
 +#include "sun8i_mixer.h"
 +
@@ -276,6 +263,9 @@ index 000000000000..111111111111
 +#define MAX_DISP	2
 +#define MAX_CHANNELS	8
 +#define UI_PLANE_OFFSET	6
++
++struct regmap;
++struct drm_device;
 +
 +struct default_map {
 +	unsigned int map[MAX_CHANNELS];
@@ -293,13 +283,13 @@ index 000000000000..111111111111
 +	const struct sun50i_planes_quirks	*quirks;
 +};
 +
-+extern const struct of_device_id sun50i_planes_of_table[];
-+
 +struct drm_plane **
 +sun50i_planes_setup(struct device *dev, struct drm_device *drm,
 +		    unsigned int mixer);
 +
++extern struct platform_driver sun50i_planes_platform_driver;
++
 +#endif /* _SUN50I_PLANES_H_ */
 -- 
-Armbian
+2.53.0
 

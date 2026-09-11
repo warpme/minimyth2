@@ -119,6 +119,8 @@ PATCHFILES += 1301-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards
 PATCHFILES += 1302-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 1303-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
+# statefull vdec fixes https://github.com/gusbourg/linux/commits/vim3-dt-v7.3-rc2/
+PATCHFILES += 1410-media-amlogic-vde-fixes-gusbourg-10092026-g11d22d5.patch
 # g12/sm1 dtsi additions
 PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 # g12/sm1 board dts additions
@@ -182,13 +184,15 @@ PATCHFILES += 2005-drivers-h616-wip-add-usb-emac2-support.patch
 PATCHFILES += 2008-pwm-Add-Allwinner-s-D1-T113-S3-R329-SoCs-PWM-support.patch
 PATCHFILES += 2009-pwm-sun20i-modify-for-h616-support.patch
 PATCHFILES += 2010-pwm-sun20i-Add-support-for-bypass.patch
-PATCHFILES += 2015-net-wireless-add-xr819-support-07072021.patch
-PATCHFILES += 2017-drm-sun4i-Add-support-for-DE33-CSC.patch
-PATCHFILES += 2018-drm-sun4i-vi_layer-Limit-formats-for-DE33.patch
-PATCHFILES += 2019-clk-sunxi-ng-de2-Export-register-regmap-for-DE33.patch
-PATCHFILES += 2020-drm-sun4i-Add-planes-driver.patch
-PATCHFILES += 2021-drm-sun4i-switch-DE33-to-new-bindings.patch
-PATCHFILES += 2024-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
+PATCHFILES += 2011-net-wireless-add-xr819-support-07072021.patch
+# drm 
+PATCHFILES += 2014-clk-sunxi-ng-de2-Fix-Display-Engine-3.3-definitions.patch
+PATCHFILES += 2015-clk-sunxi-ng-de2-Export-register-regmap-for-DE33.patch
+PATCHFILES += 2016-drm-sun4i-Add-support-for-DE33-CSC.patch
+PATCHFILES += 2017-drm-sun4i-vi_layer-Limit-formats-for-DE33.patch
+PATCHFILES += 2018-drm-sun4i-Add-planes-driver.patch
+PATCHFILES += 2019-drm-sun4i-switch-DE33-to-new-bindings.patch
+# other fixes
 PATCHFILES += 2025-asoc-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 2030-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 2031-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
@@ -229,12 +233,17 @@ PATCHFILES += 2310-arm64-dts-allwinner-add-orangepi-3-lts.patch
 # h616 drivers additions
 PATCHFILES += 2401-drivers-thermal-allwinner-add-h616-ths-support.patch
 PATCHFILES += 2403-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
-PATCHFILES += 2405-drm-sun4i-Add-H616-TCON-TV-support.patch
-PATCHFILES += 2406-srm-sun4i-Add-support-for-H616-HDMI-PHY.patch
-PATCHFILES += 2407-drm-sun4i-Add-compatible-for-H616-display-engine.patch
+# drm
+PATCHFILES += 2405-drm-sun4i-Add-support-for-H616-TCON-TOP.patch
+PATCHFILES += 2406-drm-sun4i-tcon-Add-support-for-R40-LCD.patch
+PATCHFILES += 2407-drm-sun4i-Add-H616-TCON-TV-support.patch
+PATCHFILES += 2408-drm-sun4i-Add-support-for-H616-HDMI-PHY.patch
+PATCHFILES += 2409-drm-sun4i-Add-compatible-for-H616-display-engine.patch
+# audio
 PATCHFILES += 2410-sound-soc-sunxi-add-codec-driver-for-h616.patch
 PATCHFILES += 2411-sound-soc-add-sunxi_v2-for-h616-ahub.patch
 PATCHFILES += 2412-sound-soc-sunxi-hack-to-fix-oops-on-cards-caps-query.patch
+# other fixes
 PATCHFILES += 2413-net-wireless-add-uwe5622-support-v20231020.patch
 PATCHFILES += 2414-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 2415-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
@@ -286,14 +295,24 @@ PATCHFILES += 2703-add-initial-cpufreq-support.patch
 PATCHFILES += 2704-net-drivers-stmmac-add-25M-phy-clock-support.patch
 PATCHFILES += 2705-clk-sunxi-ng-ccu-sun55i-make-mmc-high-speed-working.patch
 PATCHFILES += 2706-pinctrl-sunxi-A523-fix-voltage-withstand-encoding.patch
+# hdmi
+PATCHFILES += 2720-drm-sun4i-planes-Add-A523-plane-driver-compatible.patch
+PATCHFILES += 2721-drm-sun4i-mixer-Add-A523-mixer-compatible.patch
+PATCHFILES += 2722-drm-sun4i-tcon-top-Add-A523-TCON-TOP-support.patch
+PATCHFILES += 2723-drm-sun4i-tcon-Add-A523-TCON-LCD-and-TV-compatibles.patch
+PATCHFILES += 2724-drm-sun4i-Add-A523-HDMI-PHY-driver.patch
+PATCHFILES += 2725-drm-sun4i-Add-A523-dw-hdmi-compatible.patch
+PATCHFILES += 2726-drm-sun4i-Add-compatible-for-A523-display-engine.patch
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
+# PATCHFILES += 2803-arm64-dtsi-allwinner-a523-Add-display-pipeline.patch
 # a523 board dts additions
 PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch
 PATCHFILES += 2902-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch
+# PATCHFILES += 2903-arm64-dts-allwinner-a527-Enable-HDMI-on-Radxa-Cubie-.patch
 #------------------------------------------------------------
 endif
 
@@ -349,7 +368,6 @@ PATCHFILES += 3406-mfd-rk8xx-Fix-shutdown-handler.patch
 PATCHFILES += 3407-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 3408-net-phy-realtek-Reset-after-clock-enable.patch
 PATCHFILES += 3409-net-phy-realtek-re-init-after-reset.patch
-PATCHFILES += 3410-clk-rockchip-rk3588-Don-t-change-PLL-rates-w.patch
 # drm enhacements from collabora 4.08.2026
 # https://gitlab.collabora.com/hardware-enablement/rockchip-3588/linux/-/tree/615c36edeadcf36c1f62e7faf1c923a177405333
 PATCHFILES += 3430-MERGED-drm-bridge-synopsys-dw-dp-Support-unregisteri.patch

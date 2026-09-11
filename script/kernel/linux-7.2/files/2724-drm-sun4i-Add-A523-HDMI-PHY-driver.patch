@@ -1,0 +1,683 @@
+From 1bbec92e04181b82664d4f4f7cbc3bc35a8707b6 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Fri, 22 May 2026 16:48:33 +0000
+Subject: [PATCH 29/33] drm/sun4i: Add A523 HDMI PHY driver
+
+The Allwinner A523/A527/T527 HDMI block embeds an Innosilicon HDMI 2.0
+TX PHY at offset 0x10000 from the HDMI controller base. The PHY has a
+custom register layout (8-bit registers, separate pre-PLL / post-PLL
+blocks and per-channel driver / LDO / current bias controls) that
+diverges enough from the existing Synopsys-style variants to warrant a
+dedicated file.
+
+Add sun55i_hdmi_phy.c with a small MPLL programming table covering the
+common HDMI TMDS clocks, a three-range electrical drive table, and the
+configuration / disable callbacks plumbed in through the existing
+dw_hdmi phy_ops mechanism. Wire the new variant into
+sun8i_hdmi_phy_of_table and stash a __iomem pointer on sun8i_hdmi_phy
+for the byte-wide register accesses that the Innosilicon PHY requires.
+
+The MPLL coefficients and drive-strength values come directly from the
+A/T527 vendor BSP and are sufficient to drive 1080p60 and 4K30; 4K60
+support requires an additional termination calibration step which is
+also included.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/gpu/drm/sun4i/Makefile          |   1 +
+ drivers/gpu/drm/sun4i/sun55i_hdmi_phy.c | 585 ++++++++++++++++++++++++
+ drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h   |   1 +
+ drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c  |   7 +
+ 4 files changed, 594 insertions(+)
+ create mode 100644 drivers/gpu/drm/sun4i/sun55i_hdmi_phy.c
+
+diff --git a/drivers/gpu/drm/sun4i/Makefile b/drivers/gpu/drm/sun4i/Makefile
+index 501e3d867..31cf323a3 100644
+--- a/drivers/gpu/drm/sun4i/Makefile
++++ b/drivers/gpu/drm/sun4i/Makefile
+@@ -13,6 +13,7 @@ sun4i-drm-hdmi-y		+= sun4i_hdmi_tmds_clk.o
+ sun8i-drm-hdmi-y		+= sun8i_dw_hdmi.o
+ sun8i-drm-hdmi-y		+= sun8i_hdmi_phy.o
+ sun8i-drm-hdmi-y		+= sun8i_hdmi_phy_clk.o
++sun8i-drm-hdmi-y		+= sun55i_hdmi_phy.o
+ 
+ sun8i-mixer-y			+= sun8i_mixer.o sun8i_ui_layer.o \
+ 				   sun8i_vi_layer.o sun8i_ui_scaler.o \
+diff --git a/drivers/gpu/drm/sun4i/sun55i_hdmi_phy.c b/drivers/gpu/drm/sun4i/sun55i_hdmi_phy.c
+new file mode 100644
+index 000000000..6276d812b
+--- /dev/null
++++ b/drivers/gpu/drm/sun4i/sun55i_hdmi_phy.c
+@@ -0,0 +1,585 @@
++// SPDX-License-Identifier: GPL-2.0+
++/* Copyright (c) 2026 Jernej Skrabec <jernej.skrabec@gmail.com> */
++
++/*
++ * Allwinner A523/A527/T527 HDMI PHY (Innosilicon HDMI 2.0 TX PHY).
++ *
++ * The PHY is hosted in the same MMIO region as the Synopsys DesignWare
++ * HDMI controller, starting at offset 0x10000. Register width is 8-bit.
++ */
++
++#include <linux/bitfield.h>
++#include <linux/bits.h>
++#include <linux/delay.h>
++#include <linux/io.h>
++#include <linux/iopoll.h>
++
++#include <drm/bridge/dw_hdmi.h>
++#include <drm/drm_modes.h>
++
++#include "sun8i_dw_hdmi.h"
++
++#define SUN55I_HDMI_PHY_TIMEOUT_US		10000
++
++#define SUN55I_HDMI_PHY_CTL0_0			0x00
++#define  SUN55I_HDMI_PHY_CTL0_0_RST_AN		BIT(7)
++#define  SUN55I_HDMI_PHY_CTL0_0_RST_DI		BIT(6)
++
++#define SUN55I_HDMI_PHY_CTL0_2			0x02
++#define  SUN55I_HDMI_PHY_CTL0_2_DATA_SY_CTL	BIT(0)
++
++#define SUN55I_HDMI_PHY_PLL0_0			0xA0
++#define  SUN55I_HDMI_PHY_PLL0_0_PREPLL_POW	BIT(0)
++#define  SUN55I_HDMI_PHY_PLL0_0_PIX_CLK_BP	BIT(1)
++#define SUN55I_HDMI_PHY_PLL0_1			0xA1
++#define SUN55I_HDMI_PHY_PLL0_2			0xA2
++#define  SUN55I_HDMI_PHY_PLL0_2_FBDIV1_MASK	GENMASK(3, 0)
++#define  SUN55I_HDMI_PHY_PLL0_2_FRA_CTL_MASK	GENMASK(5, 4)
++#define SUN55I_HDMI_PHY_PLL0_3			0xA3
++#define SUN55I_HDMI_PHY_PLL1_0			0xA4
++#define  SUN55I_HDMI_PHY_PLL1_0_LINKTMDS_MASK	GENMASK(1, 0)
++#define  SUN55I_HDMI_PHY_PLL1_0_LINKCLK_MASK	GENMASK(3, 2)
++#define  SUN55I_HDMI_PHY_PLL1_0_TMDSCLK_MASK	GENMASK(5, 4)
++#define SUN55I_HDMI_PHY_PLL1_1			0xA5
++#define  SUN55I_HDMI_PHY_PLL1_1_MAINCLK_MASK	GENMASK(1, 0)
++#define  SUN55I_HDMI_PHY_PLL1_1_AUXCLK_MASK	GENMASK(6, 2)
++#define SUN55I_HDMI_PHY_PLL1_2			0xA6
++#define  SUN55I_HDMI_PHY_PLL1_2_RECLK_MASK	GENMASK(1, 0)
++#define  SUN55I_HDMI_PHY_PLL1_2_PIXCLK_MASK	GENMASK(6, 2)
++#define SUN55I_HDMI_PHY_PLL2_1			0xA9
++#define  SUN55I_HDMI_PHY_PLL2_1_PREPLL_LOCK	BIT(0)
++#define SUN55I_HDMI_PHY_PLL2_2			0xAA
++#define  SUN55I_HDMI_PHY_PLL2_2_POSTPLL_POW	BIT(0)
++#define  SUN55I_HDMI_PHY_PLL2_2_POSTPLL_POSTDIV_EN	GENMASK(3, 2)
++#define SUN55I_HDMI_PHY_PLL2_3			0xAB
++#define  SUN55I_HDMI_PHY_PLL2_3_POSTPLL_PRED_DIV_MASK	GENMASK(4, 0)
++#define SUN55I_HDMI_PHY_PLL3_0			0xAC
++#define SUN55I_HDMI_PHY_PLL3_1			0xAD
++#define  SUN55I_HDMI_PHY_PLL3_1_POSTPLL_POSTDIV_MASK	GENMASK(2, 0)
++#define  SUN55I_HDMI_PHY_PLL3_1_POSTPLL_FBDIV1		BIT(4)
++#define SUN55I_HDMI_PHY_PLL3_3			0xAF
++#define  SUN55I_HDMI_PHY_PLL3_3_POSTPLL_LOCK	BIT(0)
++
++#define SUN55I_HDMI_PHY_DR0_0			0xB0
++#define  SUN55I_HDMI_PHY_DR0_0_REFRES		BIT(1)
++#define  SUN55I_HDMI_PHY_DR0_0_BIAS_EN		BIT(2)
++#define SUN55I_HDMI_PHY_DR0_2			0xB2
++#define  SUN55I_HDMI_PHY_DR0_2_CH0_DR_EN	BIT(0)
++#define  SUN55I_HDMI_PHY_DR0_2_CH1_DR_EN	BIT(1)
++#define  SUN55I_HDMI_PHY_DR0_2_CH2_DR_EN	BIT(2)
++#define  SUN55I_HDMI_PHY_DR0_2_CLK_DR_EN	BIT(3)
++#define SUN55I_HDMI_PHY_DR0_3			0xB3
++#define SUN55I_HDMI_PHY_DR1_0			0xB4
++#define  SUN55I_HDMI_PHY_DR1_0_CH0_LDO_EN	BIT(0)
++#define  SUN55I_HDMI_PHY_DR1_0_CH1_LDO_EN	BIT(1)
++#define  SUN55I_HDMI_PHY_DR1_0_CH2_LDO_EN	BIT(2)
++#define  SUN55I_HDMI_PHY_DR1_0_CLK_LDO_EN	BIT(3)
++#define SUN55I_HDMI_PHY_DR1_1			0xB5
++#define SUN55I_HDMI_PHY_DR1_2			0xB6
++#define SUN55I_HDMI_PHY_DR1_3			0xB7
++#define SUN55I_HDMI_PHY_DR2_0			0xB8
++#define SUN55I_HDMI_PHY_DR2_1			0xB9
++#define  SUN55I_HDMI_PHY_DR2_1_CH0_LDO_CUR	BIT(0)
++#define  SUN55I_HDMI_PHY_DR2_1_CH1_LDO_CUR	BIT(1)
++#define  SUN55I_HDMI_PHY_DR2_1_CH2_LDO_CUR	BIT(2)
++#define SUN55I_HDMI_PHY_DR2_3			0xBB
++#define SUN55I_HDMI_PHY_DR3_0			0xBC
++#define SUN55I_HDMI_PHY_DR3_1			0xBD
++#define SUN55I_HDMI_PHY_DR3_2			0xBE
++#define  SUN55I_HDMI_PHY_DR3_2_CH0_SERI_EN	BIT(4)
++#define  SUN55I_HDMI_PHY_DR3_2_CH1_SERI_EN	BIT(5)
++#define  SUN55I_HDMI_PHY_DR3_2_CH2_SERI_EN	BIT(6)
++#define SUN55I_HDMI_PHY_DR3_3			0xBF
++#define SUN55I_HDMI_PHY_DR4_0			0xC0
++#define SUN55I_HDMI_PHY_DR5_1			0xC5
++#define  SUN55I_HDMI_PHY_DR5_1_TERRESCAL_CLKDIV1_MASK	GENMASK(6, 0)
++#define  SUN55I_HDMI_PHY_DR5_1_TERRESCAL_BP	BIT(7)
++#define SUN55I_HDMI_PHY_DR5_2			0xC6
++#define SUN55I_HDMI_PHY_DR5_3			0xC7
++#define  SUN55I_HDMI_PHY_DR5_3_TERRES_VAL_MASK	GENMASK(2, 1)
++#define  SUN55I_HDMI_PHY_DR5_3_CH0_TERRESCAL	BIT(4)
++#define  SUN55I_HDMI_PHY_DR5_3_CH1_TERRESCAL	BIT(5)
++#define  SUN55I_HDMI_PHY_DR5_3_CH2_TERRESCAL	BIT(6)
++
++#define SUN55I_HDMI_PHY_RXSEN_ESD_0		0xCC
++#define  SUN55I_HDMI_PHY_RXSEN_ESD_0_CH0_EN	BIT(0)
++#define  SUN55I_HDMI_PHY_RXSEN_ESD_0_CH1_EN	BIT(1)
++#define  SUN55I_HDMI_PHY_RXSEN_ESD_0_CH2_EN	BIT(2)
++#define  SUN55I_HDMI_PHY_RXSEN_ESD_0_CLK_EN	BIT(3)
++#define SUN55I_HDMI_PHY_RXSEN_ESD_1		0xCD
++#define  SUN55I_HDMI_PHY_RXSEN_ESD_1_CH0_LOCKED	GENMASK(1, 0)
++#define  SUN55I_HDMI_PHY_RXSEN_ESD_1_CH1_LOCKED	GENMASK(3, 2)
++#define  SUN55I_HDMI_PHY_RXSEN_ESD_1_CH2_LOCKED	GENMASK(5, 4)
++#define  SUN55I_HDMI_PHY_RXSEN_ESD_1_CLK_LOCKED	GENMASK(7, 6)
++
++#define SUN55I_HDMI_PHY_PLL_FRA_1		0xD1
++#define SUN55I_HDMI_PHY_PLL_FRA_2		0xD2
++#define SUN55I_HDMI_PHY_PLL_FRA_3		0xD3
++
++/*
++ * MPLL programming table; values originate from the Allwinner BSP.
++ * Packed columns mirror the BSP register grouping so the layout is easy
++ * to compare against the vendor driver.
++ *
++ *  prepll_div:   (fbdiv1 << 16) | (fbdiv0 << 8) | prediv
++ *  prepll_clk_div:  (tmdsclk_div << 16) | (linkclk_div << 8) | linktmdsclk_div
++ *  prepll_clk_div1: (auxclk_div << 8) | mainclk_div
++ *  prepll_clk_div2: (pix_clk_bp << 16) | (pixclk_div << 8) | reclk_div
++ *  prepll_fra:   (fra_ctl << 24) | (fra_div0 << 16) | (fra_div1 << 8) | fra_div2
++ *  postpll:      (postdiv_en << 24) | (fbdiv0 << 16) | (fbdiv1 << 8) | pred_div
++ */
++struct sun55i_hdmi_mpll {
++	u32 tmds_clk_khz;
++	u32 prepll_div;
++	u32 prepll_clk_div;
++	u32 prepll_clk_div1;
++	u32 prepll_clk_div2;
++	u32 prepll_fra;
++	u32 postpll;
++	u8  postpll_postdiv;
++};
++
++static const struct sun55i_hdmi_mpll sun55i_hdmi_mpll_table[] = {
++	{  25200, 0x00002a01, 0x00010103, 0x00000103, 0x00000403, 0x03000000, 0x03280000, 0x03 },
++	{  27000, 0x00003601, 0x00020202, 0x00000603, 0x00000403, 0x03000000, 0x03280000, 0x03 },
++	{  74250, 0x00006301, 0x00020201, 0x00000102, 0x00000403, 0x03000000, 0x03140001, 0x01 },
++	{ 148500, 0x00006301, 0x00010101, 0x00000102, 0x00000202, 0x03000000, 0x030a0001, 0x00 },
++	{ 297000, 0x00006301, 0x00000001, 0x00000102, 0x00000101, 0x03000000, 0x03140002, 0x00 },
++	{ 594000, 0x00006301, 0x00000200, 0x00000100, 0x00000101, 0x03000000, 0x00140004, 0x00 },
++};
++
++struct sun55i_hdmi_drive {
++	u32 min_khz;
++	u32 max_khz;
++	u32 cur_bias;
++	u32 vlevel;
++	u32 pre_empl;
++	u32 post_empl;
++};
++
++static const struct sun55i_hdmi_drive sun55i_hdmi_drive_table[] = {
++	{  25000, 165000, 0x00020202, 0x1c1c1c1c, 0x00000000, 0x00000000 },
++	{ 165000, 340000, 0x02060708, 0x1c1c1c1c, 0x00000000, 0x03030300 },
++	{ 340000, 600000, 0x020f0f0f, 0x1c1c1c1c, 0x00000000, 0x03030300 },
++};
++
++static inline u8 sun55i_byte(u32 val, unsigned int idx)
++{
++	return (val >> (idx * 8)) & 0xff;
++}
++
++static void sun55i_phy_set(struct sun8i_hdmi_phy *phy, u32 reg, u8 set)
++{
++	writeb(readb(phy->base + reg) | set, phy->base + reg);
++}
++
++static void sun55i_phy_clr(struct sun8i_hdmi_phy *phy, u32 reg, u8 clr)
++{
++	writeb(readb(phy->base + reg) & ~clr, phy->base + reg);
++}
++
++static void sun55i_phy_mask(struct sun8i_hdmi_phy *phy, u32 reg, u8 mask, u8 val)
++{
++	u8 cur = readb(phy->base + reg);
++
++	writeb((cur & ~mask) | (val & mask), phy->base + reg);
++}
++
++static const struct sun55i_hdmi_mpll *sun55i_phy_find_mpll(u32 tmds_khz)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(sun55i_hdmi_mpll_table); i++)
++		if (sun55i_hdmi_mpll_table[i].tmds_clk_khz >= tmds_khz)
++			return &sun55i_hdmi_mpll_table[i];
++
++	return &sun55i_hdmi_mpll_table[ARRAY_SIZE(sun55i_hdmi_mpll_table) - 1];
++}
++
++static const struct sun55i_hdmi_drive *sun55i_phy_find_drive(u32 tmds_khz)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(sun55i_hdmi_drive_table); i++) {
++		const struct sun55i_hdmi_drive *d = &sun55i_hdmi_drive_table[i];
++
++		if (tmds_khz >= d->min_khz && tmds_khz < d->max_khz)
++			return d;
++	}
++
++	return NULL;
++}
++
++static void sun55i_phy_drivers(struct sun8i_hdmi_phy *phy, bool enable)
++{
++	u8 mask = SUN55I_HDMI_PHY_DR0_2_CH0_DR_EN |
++		  SUN55I_HDMI_PHY_DR0_2_CH1_DR_EN |
++		  SUN55I_HDMI_PHY_DR0_2_CH2_DR_EN |
++		  SUN55I_HDMI_PHY_DR0_2_CLK_DR_EN;
++
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR0_2, mask, enable ? mask : 0);
++}
++
++static void sun55i_phy_serializers(struct sun8i_hdmi_phy *phy, bool enable)
++{
++	u8 mask = SUN55I_HDMI_PHY_DR3_2_CH0_SERI_EN |
++		  SUN55I_HDMI_PHY_DR3_2_CH1_SERI_EN |
++		  SUN55I_HDMI_PHY_DR3_2_CH2_SERI_EN;
++
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR3_2, mask, enable ? mask : 0);
++}
++
++static void sun55i_phy_ldos(struct sun8i_hdmi_phy *phy, bool enable)
++{
++	u8 ldo_mask = SUN55I_HDMI_PHY_DR1_0_CH0_LDO_EN |
++		      SUN55I_HDMI_PHY_DR1_0_CH1_LDO_EN |
++		      SUN55I_HDMI_PHY_DR1_0_CH2_LDO_EN |
++		      SUN55I_HDMI_PHY_DR1_0_CLK_LDO_EN;
++	u8 cur_mask = SUN55I_HDMI_PHY_DR2_1_CH0_LDO_CUR |
++		      SUN55I_HDMI_PHY_DR2_1_CH1_LDO_CUR |
++		      SUN55I_HDMI_PHY_DR2_1_CH2_LDO_CUR;
++
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR1_0, ldo_mask,
++			enable ? ldo_mask : 0);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR2_1, cur_mask,
++			enable ? cur_mask : 0);
++}
++
++static void sun55i_phy_plls(struct sun8i_hdmi_phy *phy, bool enable)
++{
++	if (enable) {
++		sun55i_phy_clr(phy, SUN55I_HDMI_PHY_PLL0_0,
++			       SUN55I_HDMI_PHY_PLL0_0_PREPLL_POW);
++		sun55i_phy_clr(phy, SUN55I_HDMI_PHY_PLL2_2,
++			       SUN55I_HDMI_PHY_PLL2_2_POSTPLL_POW);
++	} else {
++		sun55i_phy_set(phy, SUN55I_HDMI_PHY_PLL0_0,
++			       SUN55I_HDMI_PHY_PLL0_0_PREPLL_POW);
++		sun55i_phy_set(phy, SUN55I_HDMI_PHY_PLL2_2,
++			       SUN55I_HDMI_PHY_PLL2_2_POSTPLL_POW);
++	}
++}
++
++static void sun55i_phy_rxsense(struct sun8i_hdmi_phy *phy, bool enable)
++{
++	u8 mask = SUN55I_HDMI_PHY_RXSEN_ESD_0_CH0_EN |
++		  SUN55I_HDMI_PHY_RXSEN_ESD_0_CH1_EN |
++		  SUN55I_HDMI_PHY_RXSEN_ESD_0_CH2_EN |
++		  SUN55I_HDMI_PHY_RXSEN_ESD_0_CLK_EN;
++
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_RXSEN_ESD_0, mask,
++			enable ? mask : 0);
++}
++
++static void sun55i_phy_bias(struct sun8i_hdmi_phy *phy, bool enable)
++{
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR0_0,
++			SUN55I_HDMI_PHY_DR0_0_BIAS_EN,
++			enable ? SUN55I_HDMI_PHY_DR0_0_BIAS_EN : 0);
++}
++
++static void sun55i_phy_off(struct sun8i_hdmi_phy *phy)
++{
++	sun55i_phy_drivers(phy, false);
++	sun55i_phy_serializers(phy, false);
++	sun55i_phy_ldos(phy, false);
++	sun55i_phy_plls(phy, false);
++	sun55i_phy_rxsense(phy, false);
++	sun55i_phy_bias(phy, false);
++}
++
++static void sun55i_phy_reset_analog(struct sun8i_hdmi_phy *phy)
++{
++	sun55i_phy_clr(phy, SUN55I_HDMI_PHY_CTL0_0,
++		       SUN55I_HDMI_PHY_CTL0_0_RST_AN);
++	mdelay(10);
++	sun55i_phy_set(phy, SUN55I_HDMI_PHY_CTL0_0,
++		       SUN55I_HDMI_PHY_CTL0_0_RST_AN);
++}
++
++static void sun55i_phy_reset_digital(struct sun8i_hdmi_phy *phy)
++{
++	sun55i_phy_clr(phy, SUN55I_HDMI_PHY_CTL0_0,
++		       SUN55I_HDMI_PHY_CTL0_0_RST_DI);
++	mdelay(10);
++	sun55i_phy_set(phy, SUN55I_HDMI_PHY_CTL0_0,
++		       SUN55I_HDMI_PHY_CTL0_0_RST_DI);
++}
++
++static int sun55i_phy_wait_locked(struct sun8i_hdmi_phy *phy)
++{
++	u8 val;
++	int ret;
++
++	ret = readb_poll_timeout(phy->base + SUN55I_HDMI_PHY_RXSEN_ESD_1, val,
++				 FIELD_GET(SUN55I_HDMI_PHY_RXSEN_ESD_1_CH0_LOCKED, val) &&
++				 FIELD_GET(SUN55I_HDMI_PHY_RXSEN_ESD_1_CH1_LOCKED, val) &&
++				 FIELD_GET(SUN55I_HDMI_PHY_RXSEN_ESD_1_CH2_LOCKED, val) &&
++				 FIELD_GET(SUN55I_HDMI_PHY_RXSEN_ESD_1_CLK_LOCKED, val),
++				 100, SUN55I_HDMI_PHY_TIMEOUT_US);
++	if (ret)
++		dev_warn(phy->dev, "rxsense lock timeout (0x%02x)\n", val);
++
++	return ret;
++}
++
++static int sun55i_phy_wait_pll(struct sun8i_hdmi_phy *phy)
++{
++	u8 val;
++	int ret;
++
++	ret = readb_poll_timeout(phy->base + SUN55I_HDMI_PHY_PLL2_1, val,
++				 val & SUN55I_HDMI_PHY_PLL2_1_PREPLL_LOCK,
++				 100, SUN55I_HDMI_PHY_TIMEOUT_US);
++	if (ret) {
++		dev_err(phy->dev, "pre-PLL lock timeout\n");
++		return ret;
++	}
++
++	ret = readb_poll_timeout(phy->base + SUN55I_HDMI_PHY_PLL3_3, val,
++				 val & SUN55I_HDMI_PHY_PLL3_3_POSTPLL_LOCK,
++				 100, SUN55I_HDMI_PHY_TIMEOUT_US);
++	if (ret)
++		dev_err(phy->dev, "post-PLL lock timeout\n");
++
++	return ret;
++}
++
++static void sun55i_phy_config_mpll(struct sun8i_hdmi_phy *phy,
++				   const struct sun55i_hdmi_mpll *cfg)
++{
++	/* prepll prediv / fbdiv */
++	writeb(sun55i_byte(cfg->prepll_div, 0), phy->base + SUN55I_HDMI_PHY_PLL0_1);
++	writeb(sun55i_byte(cfg->prepll_div, 1), phy->base + SUN55I_HDMI_PHY_PLL0_3);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL0_2,
++			SUN55I_HDMI_PHY_PLL0_2_FBDIV1_MASK,
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL0_2_FBDIV1_MASK,
++				   sun55i_byte(cfg->prepll_div, 2)));
++
++	/* prepll link / tmds / link-tmds dividers */
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL1_0,
++			SUN55I_HDMI_PHY_PLL1_0_LINKTMDS_MASK |
++			SUN55I_HDMI_PHY_PLL1_0_LINKCLK_MASK |
++			SUN55I_HDMI_PHY_PLL1_0_TMDSCLK_MASK,
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL1_0_LINKTMDS_MASK,
++				   sun55i_byte(cfg->prepll_clk_div, 0)) |
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL1_0_LINKCLK_MASK,
++				   sun55i_byte(cfg->prepll_clk_div, 1)) |
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL1_0_TMDSCLK_MASK,
++				   sun55i_byte(cfg->prepll_clk_div, 2)));
++
++	/* main / aux dividers */
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL1_1,
++			SUN55I_HDMI_PHY_PLL1_1_MAINCLK_MASK |
++			SUN55I_HDMI_PHY_PLL1_1_AUXCLK_MASK,
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL1_1_MAINCLK_MASK,
++				   sun55i_byte(cfg->prepll_clk_div1, 0)) |
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL1_1_AUXCLK_MASK,
++				   sun55i_byte(cfg->prepll_clk_div1, 1)));
++
++	/* reclk / pixclk / pix_clk_bp */
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL1_2,
++			SUN55I_HDMI_PHY_PLL1_2_RECLK_MASK |
++			SUN55I_HDMI_PHY_PLL1_2_PIXCLK_MASK,
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL1_2_RECLK_MASK,
++				   sun55i_byte(cfg->prepll_clk_div2, 0)) |
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL1_2_PIXCLK_MASK,
++				   sun55i_byte(cfg->prepll_clk_div2, 1)));
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL0_0,
++			SUN55I_HDMI_PHY_PLL0_0_PIX_CLK_BP,
++			sun55i_byte(cfg->prepll_clk_div2, 2) ?
++				SUN55I_HDMI_PHY_PLL0_0_PIX_CLK_BP : 0);
++
++	/* fractional divider */
++	writeb(sun55i_byte(cfg->prepll_fra, 0), phy->base + SUN55I_HDMI_PHY_PLL_FRA_1);
++	writeb(sun55i_byte(cfg->prepll_fra, 1), phy->base + SUN55I_HDMI_PHY_PLL_FRA_2);
++	writeb(sun55i_byte(cfg->prepll_fra, 2), phy->base + SUN55I_HDMI_PHY_PLL_FRA_3);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL0_2,
++			SUN55I_HDMI_PHY_PLL0_2_FRA_CTL_MASK,
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL0_2_FRA_CTL_MASK,
++				   sun55i_byte(cfg->prepll_fra, 3)));
++
++	/* post-PLL */
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL2_3,
++			SUN55I_HDMI_PHY_PLL2_3_POSTPLL_PRED_DIV_MASK,
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL2_3_POSTPLL_PRED_DIV_MASK,
++				   sun55i_byte(cfg->postpll, 0)));
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL3_1,
++			SUN55I_HDMI_PHY_PLL3_1_POSTPLL_POSTDIV_MASK |
++			SUN55I_HDMI_PHY_PLL3_1_POSTPLL_FBDIV1,
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL3_1_POSTPLL_POSTDIV_MASK,
++				   cfg->postpll_postdiv) |
++			(sun55i_byte(cfg->postpll, 1) ?
++				SUN55I_HDMI_PHY_PLL3_1_POSTPLL_FBDIV1 : 0));
++	writeb(sun55i_byte(cfg->postpll, 2), phy->base + SUN55I_HDMI_PHY_PLL3_0);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_PLL2_2,
++			SUN55I_HDMI_PHY_PLL2_2_POSTPLL_POSTDIV_EN,
++			FIELD_PREP(SUN55I_HDMI_PHY_PLL2_2_POSTPLL_POSTDIV_EN,
++				   sun55i_byte(cfg->postpll, 3)));
++
++	sun55i_phy_plls(phy, true);
++}
++
++static void sun55i_phy_config_drive(struct sun8i_hdmi_phy *phy,
++				    const struct sun55i_hdmi_drive *d)
++{
++	/* current bias: ch0, ch1 in 0xC0; ch2, clk in 0xBF */
++	writeb((sun55i_byte(d->cur_bias, 0) & 0xf) |
++	       ((sun55i_byte(d->cur_bias, 1) & 0xf) << 4),
++	       phy->base + SUN55I_HDMI_PHY_DR4_0);
++	writeb((sun55i_byte(d->cur_bias, 2) & 0xf) |
++	       ((sun55i_byte(d->cur_bias, 3) & 0xf) << 4),
++	       phy->base + SUN55I_HDMI_PHY_DR3_3);
++
++	/* vlevel: clk in 0xB5; ch2 in 0xB6; ch1 in 0xB7; ch0 in 0xB8 */
++	writeb(sun55i_byte(d->vlevel, 0), phy->base + SUN55I_HDMI_PHY_DR1_1);
++	writeb(sun55i_byte(d->vlevel, 1), phy->base + SUN55I_HDMI_PHY_DR1_2);
++	writeb(sun55i_byte(d->vlevel, 2), phy->base + SUN55I_HDMI_PHY_DR1_3);
++	writeb(sun55i_byte(d->vlevel, 3), phy->base + SUN55I_HDMI_PHY_DR2_0);
++
++	/* pre-emphasis: clk in 0xB3[0:2]; ch2 in 0xBB[0:2]; ch1 in 0xBC[0:2]; ch0 in 0xBD[0:2] */
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR0_3, GENMASK(2, 0),
++			sun55i_byte(d->pre_empl, 0));
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR2_3, GENMASK(2, 0),
++			sun55i_byte(d->pre_empl, 1));
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR3_0, GENMASK(2, 0),
++			sun55i_byte(d->pre_empl, 2));
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR3_1, GENMASK(2, 0),
++			sun55i_byte(d->pre_empl, 3));
++
++	/* post-emphasis: same registers, bits [7:4] */
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR0_3, GENMASK(7, 4),
++			sun55i_byte(d->post_empl, 0) << 4);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR2_3, GENMASK(7, 4),
++			sun55i_byte(d->post_empl, 1) << 4);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR3_0, GENMASK(7, 4),
++			sun55i_byte(d->post_empl, 2) << 4);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR3_1, GENMASK(7, 4),
++			sun55i_byte(d->post_empl, 3) << 4);
++}
++
++static void sun55i_phy_config_4k(struct sun8i_hdmi_phy *phy)
++{
++	/* termination resistor calibration for 594 MHz TMDS */
++	writeb(0xF0, phy->base + SUN55I_HDMI_PHY_DR5_2);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR5_1,
++			SUN55I_HDMI_PHY_DR5_1_TERRESCAL_CLKDIV1_MASK, 0);
++	sun55i_phy_mask(phy, SUN55I_HDMI_PHY_DR5_3,
++			SUN55I_HDMI_PHY_DR5_3_TERRES_VAL_MASK, 0);
++	sun55i_phy_set(phy, SUN55I_HDMI_PHY_DR5_3,
++		       SUN55I_HDMI_PHY_DR5_3_CH0_TERRESCAL |
++		       SUN55I_HDMI_PHY_DR5_3_CH1_TERRESCAL |
++		       SUN55I_HDMI_PHY_DR5_3_CH2_TERRESCAL);
++	sun55i_phy_set(phy, SUN55I_HDMI_PHY_DR5_1,
++		       SUN55I_HDMI_PHY_DR5_1_TERRESCAL_BP);
++	udelay(5);
++	sun55i_phy_clr(phy, SUN55I_HDMI_PHY_DR5_1,
++		       SUN55I_HDMI_PHY_DR5_1_TERRESCAL_BP);
++}
++
++static int sun55i_phy_config(struct dw_hdmi *hdmi, void *data,
++			     const struct drm_display_info *display,
++			     const struct drm_display_mode *mode)
++{
++	struct sun8i_hdmi_phy *phy = data;
++	const struct sun55i_hdmi_mpll *mpll;
++	const struct sun55i_hdmi_drive *drv;
++	u32 tmds_khz = mode->crtc_clock;
++	int ret;
++
++	mpll = sun55i_phy_find_mpll(tmds_khz);
++	drv = sun55i_phy_find_drive(tmds_khz);
++	if (!drv) {
++		dev_err(phy->dev, "no drive table entry for %u kHz TMDS\n",
++			tmds_khz);
++		return -EINVAL;
++	}
++
++	/* dw_hdmi will reset the PHY around us, but we still want a clean slate. */
++	sun55i_phy_off(phy);
++	mdelay(1);
++
++	sun55i_phy_reset_analog(phy);
++	sun55i_phy_reset_digital(phy);
++
++	sun55i_phy_bias(phy, true);
++
++	/* select on-chip 50 ohm termination */
++	sun55i_phy_clr(phy, SUN55I_HDMI_PHY_DR0_0,
++		       SUN55I_HDMI_PHY_DR0_0_REFRES);
++
++	sun55i_phy_rxsense(phy, true);
++	mdelay(1);
++
++	ret = sun55i_phy_wait_locked(phy);
++	if (ret)
++		return ret;
++
++	if (mpll->tmds_clk_khz == 594000)
++		sun55i_phy_config_4k(phy);
++
++	sun55i_phy_config_mpll(phy, mpll);
++
++	ret = sun55i_phy_wait_pll(phy);
++	if (ret)
++		return ret;
++
++	sun55i_phy_ldos(phy, true);
++	sun55i_phy_serializers(phy, true);
++	sun55i_phy_drivers(phy, true);
++
++	sun55i_phy_config_drive(phy, drv);
++
++	sun55i_phy_reset_digital(phy);
++
++	/* toggle data sync */
++	sun55i_phy_clr(phy, SUN55I_HDMI_PHY_CTL0_2,
++		       SUN55I_HDMI_PHY_CTL0_2_DATA_SY_CTL);
++	mdelay(1);
++	sun55i_phy_set(phy, SUN55I_HDMI_PHY_CTL0_2,
++		       SUN55I_HDMI_PHY_CTL0_2_DATA_SY_CTL);
++
++	return 0;
++}
++
++static void sun55i_phy_disable(struct dw_hdmi *hdmi, void *data)
++{
++	struct sun8i_hdmi_phy *phy = data;
++
++	sun55i_phy_off(phy);
++}
++
++static enum drm_connector_status
++sun55i_phy_read_hpd(struct dw_hdmi *hdmi, void *data)
++{
++	return dw_hdmi_phy_read_hpd(hdmi, data);
++}
++
++static void sun55i_phy_update_hpd(struct dw_hdmi *hdmi, void *data,
++				  bool force, bool disabled, bool rxsense)
++{
++	dw_hdmi_phy_update_hpd(hdmi, data, force, disabled, rxsense);
++}
++
++static void sun55i_phy_setup_hpd(struct dw_hdmi *hdmi, void *data)
++{
++	dw_hdmi_phy_setup_hpd(hdmi, data);
++}
++
++const struct dw_hdmi_phy_ops sun55i_hdmi_phy_ops = {
++	.init		= sun55i_phy_config,
++	.disable	= sun55i_phy_disable,
++	.read_hpd	= sun55i_phy_read_hpd,
++	.update_hpd	= sun55i_phy_update_hpd,
++	.setup_hpd	= sun55i_phy_setup_hpd,
++};
++
++static void sun55i_phy_init(struct sun8i_hdmi_phy *phy)
++{
++	/* Nothing to do at module load time. */
++}
++
++const struct sun8i_hdmi_phy_variant sun55i_a523_hdmi_phy = {
++	.phy_ops	= &sun55i_hdmi_phy_ops,
++	.phy_init	= sun55i_phy_init,
++};
+diff --git a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
+index ab80d52a7..4d6927369 100644
+--- a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
++++ b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
+@@ -166,6 +166,7 @@ struct sun8i_hdmi_phy {
+ 	struct device			*dev;
+ 	unsigned int			rcal;
+ 	struct regmap			*regs;
++	void __iomem			*base;
+ 	struct reset_control		*rst_phy;
+ 	const struct sun8i_hdmi_phy_variant *variant;
+ };
+diff --git a/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c b/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c
+index e02cf3136..c365111b3 100644
+--- a/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c
++++ b/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c
+@@ -693,6 +693,8 @@ static const struct sun8i_hdmi_phy_variant sun50i_h616_hdmi_phy = {
+ 	.phy_init = &sun50i_hdmi_phy_init_h6,
+ };
+ 
++extern const struct sun8i_hdmi_phy_variant sun55i_a523_hdmi_phy;
++
+ static const struct of_device_id sun8i_hdmi_phy_of_table[] = {
+ 	{
+ 		.compatible = "allwinner,sun8i-a83t-hdmi-phy",
+@@ -718,6 +720,10 @@ static const struct of_device_id sun8i_hdmi_phy_of_table[] = {
+ 		.compatible = "allwinner,sun50i-h616-hdmi-phy",
+ 		.data = &sun50i_h616_hdmi_phy,
+ 	},
++	{
++		.compatible = "allwinner,sun55i-a523-hdmi-phy",
++		.data = &sun55i_a523_hdmi_phy,
++	},
+ 	{ /* sentinel */ }
+ };
+ 
+@@ -760,6 +766,7 @@ static int sun8i_hdmi_phy_probe(struct platform_device *pdev)
+ 		return dev_err_probe(dev, PTR_ERR(regs),
+ 				     "Couldn't map the HDMI PHY registers\n");
+ 
++	phy->base = regs;
+ 	phy->regs = devm_regmap_init_mmio(dev, regs,
+ 					  &sun8i_hdmi_phy_regmap_config);
+ 	if (IS_ERR(phy->regs))
+-- 
+2.53.0
+

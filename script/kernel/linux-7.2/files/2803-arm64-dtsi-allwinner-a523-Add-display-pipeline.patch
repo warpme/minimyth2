@@ -1,60 +1,69 @@
-From 79c6550e6bf1be1c337fc2136fe39364855882e7 Mon Sep 17 00:00:00 2001
+From f32d0782609c9fa49858f35bdcc86c015f87dd72 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
-Date: Tue, 23 Sep 2025 17:08:11 +0200
-Subject: [PATCH 22/33] arm64: dts: allwinner: h616: Add display pipeline
+Date: Fri, 22 May 2026 20:44:06 +0000
+Subject: [PATCH 32/33] arm64: dts: allwinner: a523: Add display pipeline
 
-H616 contains a display engine 3.3 with two mixers and four TCONs.
-Add the display pipeline DT nodes for it.
+Wire up the A523 / A527 / T527 display engine pipeline: the DE bus
+at 0x05000000 with two mixers and the planes mapping device, the
+display interface top at 0x05500000 routing both mixers to all
+TCONs, the three LCD TCONs (LCD0/LCD1 in VO0, LCD2 in VO1), the
+two TV TCONs feeding the HDMI mux, the Synopsys DesignWare HDMI
+controller at 0x05520000 and the Innosilicon HDMI PHY at
+0x05530000.
+
+The pipeline is left disabled at the dtsi level; boards opt in by
+enabling the &de node together with the desired output.
 
 Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
- .../arm64/boot/dts/allwinner/sun50i-h616.dtsi | 416 ++++++++++++++++++
- 1 file changed, 416 insertions(+)
+ .../arm64/boot/dts/allwinner/sun55i-a523.dtsi | 477 ++++++++++++++++++
+ 1 file changed, 477 insertions(+)
 
-diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-index b116d3c12..291f17870 100644
---- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-+++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -7,8 +7,11 @@
- #include <dt-bindings/clock/sun50i-h616-ccu.h>
- #include <dt-bindings/clock/sun50i-h6-r-ccu.h>
+diff --git a/arch/arm64/boot/dts/allwinner/sun55i-a523.dtsi b/arch/arm64/boot/dts/allwinner/sun55i-a523.dtsi
+index 5afa8d92a..6ed78d4a8 100644
+--- a/arch/arm64/boot/dts/allwinner/sun55i-a523.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun55i-a523.dtsi
+@@ -3,9 +3,12 @@
+ 
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
  #include <dt-bindings/clock/sun6i-rtc.h>
 +#include <dt-bindings/clock/sun8i-de2.h>
 +#include <dt-bindings/clock/sun8i-tcon-top.h>
- #include <dt-bindings/reset/sun50i-h616-ccu.h>
- #include <dt-bindings/reset/sun50i-h6-r-ccu.h>
+ #include <dt-bindings/clock/sun55i-a523-ccu.h>
+ #include <dt-bindings/clock/sun55i-a523-mcu-ccu.h>
+ #include <dt-bindings/clock/sun55i-a523-r-ccu.h>
 +#include <dt-bindings/reset/sun8i-de2.h>
- #include <dt-bindings/thermal/thermal.h>
- 
- / {
-@@ -94,6 +97,12 @@ l2_cache: l2-cache {
- 		};
+ #include <dt-bindings/reset/sun55i-a523-ccu.h>
+ #include <dt-bindings/reset/sun55i-a523-mcu-ccu.h>
+ #include <dt-bindings/reset/sun55i-a523-r-ccu.h>
+@@ -104,6 +107,12 @@ timer {
+ 			     <GIC_PPI 10 IRQ_TYPE_LEVEL_HIGH>;
  	};
  
 +	de: display-engine {
-+		compatible = "allwinner,sun50i-h616-display-engine";
++		compatible = "allwinner,sun55i-a523-display-engine";
 +		allwinner,pipelines = <&mixer0>, <&mixer1>;
 +		status = "disabled";
 +	};
 +
- 	reserved-memory {
- 		#address-cells = <2>;
- 		#size-cells = <2>;
-@@ -150,6 +159,84 @@ soc {
- 		#size-cells = <1>;
- 		ranges = <0x0 0x0 0x0 0x40000000>;
+ 	soc {
+ 		compatible = "simple-bus";
+ 		#address-cells = <1>;
+@@ -858,6 +867,474 @@ gmac1_mtl_tx_setup: tx-queues-config {
+ 			};
+ 		};
  
-+		bus@1000000 {
-+			compatible = "allwinner,sun50i-h616-de33",
++		bus@5000000 {
++			compatible = "allwinner,sun55i-a523-de35",
 +				     "allwinner,sun50i-a64-de2";
-+			reg = <0x1000000 0x400000>;
-+			allwinner,sram = <&sram_c 1>;
++			reg = <0x5000000 0x400000>;
 +			#address-cells = <1>;
 +			#size-cells = <1>;
-+			ranges = <0 0x1000000 0x400000>;
++			ranges = <0 0x5000000 0x400000>;
 +
 +			display_clocks: clock@8000 {
-+				compatible = "allwinner,sun50i-h616-de33-clk";
++				compatible = "allwinner,sun55i-a523-de35-clk",
++					     "allwinner,sun50i-h616-de33-clk";
 +				reg = <0x8000 0x100>;
 +				clocks = <&ccu CLK_BUS_DE>, <&ccu CLK_DE>;
 +				clock-names = "bus", "mod";
@@ -64,13 +73,13 @@ index b116d3c12..291f17870 100644
 +			};
 +
 +			planes: planes@100000 {
-+				compatible = "allwinner,sun50i-h616-de33-planes";
++				compatible = "allwinner,sun55i-a523-de35-planes";
 +				reg = <0x100000 0x180000>;
 +				allwinner,plane-mapping = <&display_clocks>;
 +			};
 +
 +			mixer0: mixer@280000 {
-+				compatible = "allwinner,sun50i-h616-de33-mixer-0";
++				compatible = "allwinner,sun55i-a523-de35-mixer-0";
 +				reg = <0x280000 0x20000>,
 +				      <0x8100 0x40>;
 +				reg-names = "display", "top";
@@ -79,7 +88,6 @@ index b116d3c12..291f17870 100644
 +				clock-names = "bus", "mod";
 +				resets = <&display_clocks RST_MIXER0>;
 +				allwinner,planes = <&planes>;
-+				iommus = <&iommu 0>;
 +
 +				ports {
 +					#address-cells = <1>;
@@ -96,7 +104,7 @@ index b116d3c12..291f17870 100644
 +			};
 +
 +			mixer1: mixer@2a0000 {
-+				compatible = "allwinner,sun50i-h616-de33-mixer-0";
++				compatible = "allwinner,sun55i-a523-de35-mixer-0";
 +				reg = <0x2a0000 0x20000>,
 +				      <0x8140 0x40>;
 +				reg-names = "display", "top";
@@ -105,7 +113,6 @@ index b116d3c12..291f17870 100644
 +				clock-names = "bus", "mod";
 +				resets = <&display_clocks RST_MIXER1>;
 +				allwinner,planes = <&planes>;
-+				iommus = <&iommu 0>;
 +
 +				ports {
 +					#address-cells = <1>;
@@ -122,73 +129,20 @@ index b116d3c12..291f17870 100644
 +			};
 +		};
 +
- 		gpu: gpu@1800000 {
- 			compatible = "allwinner,sun50i-h616-mali",
- 				     "arm,mali-bifrost";
-@@ -955,6 +1040,337 @@ ohci3: usb@5311400 {
- 			status = "disabled";
- 		};
- 
-+		hdmi: hdmi@6000000 {
-+			compatible = "allwinner,sun50i-h616-dw-hdmi",
-+				     "allwinner,sun50i-h6-dw-hdmi";
-+			reg = <0x06000000 0x10000>;
-+			reg-io-width = <1>;
-+			interrupts = <GIC_SPI 63 IRQ_TYPE_LEVEL_HIGH>;
-+			clocks = <&ccu CLK_BUS_HDMI>, <&ccu CLK_HDMI_SLOW>,
-+				 <&ccu CLK_HDMI>, <&ccu CLK_HDMI_CEC>,
-+				 <&ccu CLK_HDCP>, <&ccu CLK_BUS_HDCP>;
-+			clock-names = "iahb", "isfr", "tmds", "cec", "hdcp",
-+				      "hdcp-bus";
-+			resets = <&ccu RST_BUS_HDMI>, <&ccu RST_BUS_HDCP>;
-+			reset-names = "ctrl", "hdcp";
-+			phys = <&hdmi_phy>;
-+			phy-names = "phy";
-+			status = "disabled";
-+
-+			ports {
-+				#address-cells = <1>;
-+				#size-cells = <0>;
-+
-+				hdmi_in: port@0 {
-+					reg = <0>;
-+
-+					hdmi_in_tcon_top: endpoint {
-+						remote-endpoint = <&tcon_top_hdmi_out_hdmi>;
-+					};
-+				};
-+
-+				hdmi_out: port@1 {
-+					reg = <1>;
-+				};
-+			};
-+		};
-+
-+		hdmi_phy: hdmi-phy@6010000 {
-+			compatible = "allwinner,sun50i-h616-hdmi-phy";
-+			reg = <0x06010000 0x10000>;
-+			clocks = <&ccu CLK_BUS_HDMI>, <&ccu CLK_HDMI_SLOW>;
-+			clock-names = "bus", "mod";
-+			resets = <&ccu RST_BUS_HDMI_SUB>;
-+			reset-names = "phy";
-+			#phy-cells = <0>;
-+		};
-+
-+		tcon_top: tcon-top@6510000 {
-+			compatible = "allwinner,sun50i-h616-tcon-top";
-+			reg = <0x06510000 0x1000>;
-+			clocks = <&ccu CLK_BUS_TCON_TOP>,
++		tcon_top: tcon-top@5500000 {
++			compatible = "allwinner,sun55i-a523-tcon-top";
++			reg = <0x5500000 0x1000>;
++			clocks = <&ccu CLK_BUS_DISPLAY0_TOP>,
 +				 <&ccu CLK_TCON_TV0>,
-+				 <&ccu CLK_TVE0>,
-+				 <&ccu CLK_TCON_TV1>;
-+			clock-names = "bus",
-+				      "tcon-tv0",
-+				      "tve0",
-+				      "tcon-tv1";
++				 <&ccu CLK_TCON_TV1>,
++				 <&ccu CLK_MIPI_DSI0>;
++			clock-names = "bus", "tcon-tv0", "tcon-tv1", "dsi";
 +			clock-output-names = "tcon-top-tv0",
-+					     "tcon-top-tv1";
-+			resets = <&ccu RST_BUS_TCON_TOP>;
++					     "tcon-top-tv1",
++					     "tcon-top-dsi";
++			resets = <&ccu RST_BUS_DISPLAY0_TOP>;
 +			#clock-cells = <1>;
++			power-domains = <&pck600 PD_VO0>;
 +
 +			ports {
 +				#address-cells = <1>;
@@ -229,6 +183,11 @@ index b116d3c12..291f17870 100644
 +						reg = <3>;
 +						remote-endpoint = <&tcon_tv1_in_tcon_top_mixer0>;
 +					};
++
++					tcon_top_mixer0_out_tcon_lcd2: endpoint@4 {
++						reg = <4>;
++						remote-endpoint = <&tcon_lcd2_in_tcon_top_mixer0>;
++					};
 +				};
 +
 +				tcon_top_mixer1_in: port@2 {
@@ -266,6 +225,11 @@ index b116d3c12..291f17870 100644
 +						reg = <3>;
 +						remote-endpoint = <&tcon_tv1_in_tcon_top_mixer1>;
 +					};
++
++					tcon_top_mixer1_out_tcon_lcd2: endpoint@4 {
++						reg = <4>;
++						remote-endpoint = <&tcon_lcd2_in_tcon_top_mixer1>;
++					};
 +				};
 +
 +				tcon_top_hdmi_in: port@4 {
@@ -294,17 +258,18 @@ index b116d3c12..291f17870 100644
 +			};
 +		};
 +
-+		tcon_lcd0: lcd-controller@6511000 {
-+			compatible = "allwinner,sun50i-h616-tcon-lcd",
++		tcon_lcd0: lcd-controller@5501000 {
++			compatible = "allwinner,sun55i-a523-tcon-lcd",
 +				     "allwinner,sun8i-r40-tcon-lcd";
-+			reg = <0x06511000 0x1000>;
-+			interrupts = <GIC_SPI 64 IRQ_TYPE_LEVEL_HIGH>;
++			reg = <0x5501000 0x1000>;
++			interrupts = <GIC_SPI 90 IRQ_TYPE_LEVEL_HIGH>;
 +			clocks = <&ccu CLK_BUS_TCON_LCD0>, <&ccu CLK_TCON_LCD0>;
 +			clock-names = "ahb", "tcon-ch0";
 +			clock-output-names = "tcon-data-clock";
 +			#clock-cells = <0>;
-+			resets = <&ccu RST_BUS_TCON_LCD0>, <&ccu RST_BUS_LVDS>;
++			resets = <&ccu RST_BUS_TCON_LCD0>, <&ccu RST_BUS_LVDS0>;
 +			reset-names = "lcd", "lvds";
++			power-domains = <&pck600 PD_VO0>;
 +			status = "disabled";
 +
 +			ports {
@@ -333,17 +298,18 @@ index b116d3c12..291f17870 100644
 +			};
 +		};
 +
-+		tcon_lcd1: lcd-controller@6512000 {
-+			compatible = "allwinner,sun50i-h616-tcon-lcd",
++		tcon_lcd1: lcd-controller@5502000 {
++			compatible = "allwinner,sun55i-a523-tcon-lcd",
 +				     "allwinner,sun8i-r40-tcon-lcd";
-+			reg = <0x06512000 0x1000>;
-+			interrupts = <GIC_SPI 65 IRQ_TYPE_LEVEL_HIGH>;
++			reg = <0x5502000 0x1000>;
++			interrupts = <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>;
 +			clocks = <&ccu CLK_BUS_TCON_LCD1>, <&ccu CLK_TCON_LCD1>;
 +			clock-names = "ahb", "tcon-ch0";
 +			clock-output-names = "tcon-data-clock";
 +			#clock-cells = <0>;
-+			resets = <&ccu RST_BUS_TCON_LCD1>, <&ccu RST_BUS_LVDS>;
++			resets = <&ccu RST_BUS_TCON_LCD1>, <&ccu RST_BUS_LVDS0>;
 +			reset-names = "lcd", "lvds";
++			power-domains = <&pck600 PD_VO0>;
 +			status = "disabled";
 +
 +			ports {
@@ -372,16 +338,17 @@ index b116d3c12..291f17870 100644
 +			};
 +		};
 +
-+		tcon_tv0: lcd-controller@6515000 {
-+			compatible = "allwinner,sun50i-h616-tcon-tv";
-+			reg = <0x06515000 0x1000>;
-+			interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>;
++		tcon_tv0: lcd-controller@5503000 {
++			compatible = "allwinner,sun55i-a523-tcon-tv",
++				     "allwinner,sun50i-h616-tcon-tv";
++			reg = <0x5503000 0x1000>;
++			interrupts = <GIC_SPI 91 IRQ_TYPE_LEVEL_HIGH>;
 +			clocks = <&ccu CLK_BUS_TCON_TV0>,
 +				 <&tcon_top CLK_TCON_TOP_TV0>;
-+			clock-names = "ahb",
-+				      "tcon-ch1";
++			clock-names = "ahb", "tcon-ch1";
 +			resets = <&ccu RST_BUS_TCON_TV0>;
 +			reset-names = "lcd";
++			power-domains = <&pck600 PD_VO0>;
 +
 +			ports {
 +				#address-cells = <1>;
@@ -416,16 +383,18 @@ index b116d3c12..291f17870 100644
 +			};
 +		};
 +
-+		tcon_tv1: lcd-controller@6516000 {
-+			compatible = "allwinner,sun50i-h616-tcon-tv";
-+			reg = <0x06516000 0x1000>;
-+			interrupts = <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>;
++		tcon_tv1: lcd-controller@5504000 {
++			compatible = "allwinner,sun55i-a523-tcon-tv",
++				     "allwinner,sun50i-h616-tcon-tv";
++			reg = <0x5504000 0x1000>;
++			interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_HIGH>;
 +			clocks = <&ccu CLK_BUS_TCON_TV1>,
 +				 <&tcon_top CLK_TCON_TOP_TV1>;
-+			clock-names = "ahb",
-+				      "tcon-ch1";
++			clock-names = "ahb", "tcon-ch1";
 +			resets = <&ccu RST_BUS_TCON_TV1>;
 +			reset-names = "lcd";
++			power-domains = <&pck600 PD_VO0>;
++			status = "disabled";
 +
 +			ports {
 +				#address-cells = <1>;
@@ -460,9 +429,101 @@ index b116d3c12..291f17870 100644
 +			};
 +		};
 +
- 		rtc: rtc@7000000 {
- 			compatible = "allwinner,sun50i-h616-rtc";
- 			reg = <0x07000000 0x400>;
++		tcon_top1: tcon-top@5730000 {
++			compatible = "allwinner,sun55i-a523-tcon-top1";
++			reg = <0x5730000 0x1000>;
++			clocks = <&ccu CLK_BUS_DISPLAY1_TOP>;
++			clock-names = "bus";
++			resets = <&ccu RST_BUS_DISPLAY1_TOP>;
++			power-domains = <&pck600 PD_VO1>;
++		};
++
++		tcon_lcd2: lcd-controller@5731000 {
++			compatible = "allwinner,sun55i-a523-tcon-lcd",
++				     "allwinner,sun8i-r40-tcon-lcd";
++			reg = <0x5731000 0x1000>;
++			interrupts = <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_TCON_LCD2>, <&ccu CLK_TCON_LCD2>;
++			clock-names = "ahb", "tcon-ch0";
++			clock-output-names = "tcon-data-clock";
++			#clock-cells = <0>;
++			resets = <&ccu RST_BUS_TCON_LCD2>, <&ccu RST_BUS_LVDS1>;
++			reset-names = "lcd", "lvds";
++			power-domains = <&pck600 PD_VO1>;
++			status = "disabled";
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				tcon_lcd2_in: port@0 {
++					#address-cells = <1>;
++					#size-cells = <0>;
++					reg = <0>;
++
++					tcon_lcd2_in_tcon_top_mixer0: endpoint@0 {
++						reg = <0>;
++						remote-endpoint = <&tcon_top_mixer0_out_tcon_lcd2>;
++					};
++
++					tcon_lcd2_in_tcon_top_mixer1: endpoint@1 {
++						reg = <1>;
++						remote-endpoint = <&tcon_top_mixer1_out_tcon_lcd2>;
++					};
++				};
++
++				tcon_lcd2_out: port@1 {
++					reg = <1>;
++				};
++			};
++		};
++
++		hdmi: hdmi@5520000 {
++			compatible = "allwinner,sun55i-a523-dw-hdmi";
++			reg = <0x5520000 0x10000>;
++			reg-io-width = <1>;
++			interrupts = <GIC_SPI 93 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_HDMI>, <&ccu CLK_HDMI_24M>,
++				 <&ccu CLK_HDMI_24M>, <&ccu CLK_HDMI_CEC>;
++			clock-names = "iahb", "isfr", "tmds", "cec";
++			resets = <&ccu RST_BUS_HDMI_MAIN>;
++			reset-names = "ctrl";
++			phys = <&hdmi_phy>;
++			phy-names = "phy";
++			power-domains = <&pck600 PD_VO0>;
++			status = "disabled";
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				hdmi_in: port@0 {
++					reg = <0>;
++
++					hdmi_in_tcon_top: endpoint {
++						remote-endpoint = <&tcon_top_hdmi_out_hdmi>;
++					};
++				};
++
++				hdmi_out: port@1 {
++					reg = <1>;
++				};
++			};
++		};
++
++		hdmi_phy: hdmi-phy@5530000 {
++			compatible = "allwinner,sun55i-a523-hdmi-phy";
++			reg = <0x5530000 0x10000>;
++			clocks = <&ccu CLK_BUS_HDMI>, <&ccu CLK_HDMI_24M>;
++			clock-names = "bus", "mod";
++			resets = <&ccu RST_BUS_HDMI_SUB>;
++			reset-names = "phy";
++			#phy-cells = <0>;
++		};
++
+ 		ppu: power-controller@7001400 {
+ 			compatible = "allwinner,sun55i-a523-ppu";
+ 			reg = <0x07001400 0x400>;
 -- 
 2.53.0
 

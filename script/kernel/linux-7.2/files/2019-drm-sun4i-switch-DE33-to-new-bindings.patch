@@ -1,18 +1,18 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From 51c04497994907a7b4ba9a402afbee315e6677a0 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Sat, 27 Sep 2025 11:04:09 +0200
-Subject: drm/sun4i: switch DE33 to new bindings
+Subject: [PATCH 15/33] drm/sun4i: switch DE33 to new bindings
 
 Now that everything is in place, switch DE33 to new bindings.
 
 Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
- drivers/gpu/drm/sun4i/sun8i_mixer.c | 130 +++++-----
+ drivers/gpu/drm/sun4i/sun8i_mixer.c | 180 ++++++++++++++++++----------
  drivers/gpu/drm/sun4i/sun8i_mixer.h |  10 +-
- 2 files changed, 71 insertions(+), 69 deletions(-)
+ 2 files changed, 120 insertions(+), 70 deletions(-)
 
 diff --git a/drivers/gpu/drm/sun4i/sun8i_mixer.c b/drivers/gpu/drm/sun4i/sun8i_mixer.c
-index 111111111111..222222222222 100644
+index 4071ab38b..7cd72dd6f 100644
 --- a/drivers/gpu/drm/sun4i/sun8i_mixer.c
 +++ b/drivers/gpu/drm/sun4i/sun8i_mixer.c
 @@ -13,6 +13,7 @@
@@ -23,7 +23,7 @@ index 111111111111..222222222222 100644
  #include <linux/platform_device.h>
  #include <linux/reset.h>
  
-@@ -24,6 +25,7 @@
+@@ -25,6 +26,7 @@
  #include <drm/drm_probe_helper.h>
  
  #include "sun4i_drv.h"
@@ -31,7 +31,7 @@ index 111111111111..222222222222 100644
  #include "sun8i_mixer.h"
  #include "sun8i_ui_layer.h"
  #include "sun8i_vi_layer.h"
-@@ -256,7 +258,6 @@ static void sun8i_mixer_commit(struct sunxi_engine *engine,
+@@ -257,7 +259,6 @@ static void sun8i_mixer_commit(struct sunxi_engine *engine,
  {
  	struct sun8i_mixer *mixer = engine_to_sun8i_mixer(engine);
  	u32 bld_base = sun8i_blender_base(mixer);
@@ -39,7 +39,7 @@ index 111111111111..222222222222 100644
  	struct drm_plane_state *plane_state;
  	struct drm_plane *plane;
  	u32 route = 0, pipe_en = 0;
-@@ -293,16 +294,16 @@ static void sun8i_mixer_commit(struct sunxi_engine *engine,
+@@ -294,16 +295,16 @@ static void sun8i_mixer_commit(struct sunxi_engine *engine,
  		route |= layer->index << SUN8I_MIXER_BLEND_ROUTE_PIPE_SHIFT(zpos);
  		pipe_en |= SUN8I_MIXER_BLEND_PIPE_CTL_EN(zpos);
  
@@ -60,15 +60,15 @@ index 111111111111..222222222222 100644
  		     pipe_en | SUN8I_MIXER_BLEND_PIPE_CTL_FC_EN(0));
  
  	if (mixer->cfg->de_type != SUN8I_MIXER_DE33)
-@@ -317,7 +318,6 @@ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
+@@ -318,7 +319,6 @@ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
  	struct sun8i_mixer *mixer = engine_to_sun8i_mixer(engine);
  	int plane_cnt = mixer->cfg->ui_num + mixer->cfg->vi_num;
  	enum drm_plane_type type;
 -	unsigned int phy_index;
  	int i;
  
- 	planes = devm_kcalloc(drm->dev, plane_cnt, sizeof(*planes), GFP_KERNEL);
-@@ -332,12 +332,8 @@ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
+ 	planes = devm_kcalloc(drm->dev, plane_cnt + 1, sizeof(*planes), GFP_KERNEL);
+@@ -333,12 +333,8 @@ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
  		else
  			type = DRM_PLANE_TYPE_OVERLAY;
  
@@ -82,7 +82,7 @@ index 111111111111..222222222222 100644
  						&mixer->cfg->lay_cfg);
  		if (IS_ERR(layer)) {
  			dev_err(drm->dev,
-@@ -357,12 +353,8 @@ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
+@@ -358,12 +354,8 @@ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
  		else
  			type = DRM_PLANE_TYPE_OVERLAY;
  
@@ -96,7 +96,7 @@ index 111111111111..222222222222 100644
  						&mixer->cfg->lay_cfg);
  		if (IS_ERR(layer)) {
  			dev_err(drm->dev, "Couldn't initialize %s plane\n",
-@@ -376,16 +368,25 @@ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
+@@ -377,16 +369,34 @@ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
  	return planes;
  }
  
@@ -104,11 +104,20 @@ index 111111111111..222222222222 100644
 +					     struct sunxi_engine *engine)
 +{
 +	struct sun8i_mixer *mixer = engine_to_sun8i_mixer(engine);
++	unsigned int base = sun8i_blender_base(mixer);
++	struct drm_plane **planes;
++	int i;
 +
-+	if (IS_ENABLED(CONFIG_DRM_SUN50I_PLANES))
-+		return sun50i_planes_setup(mixer->planes_dev, drm, engine->id);
++	planes = sun50i_planes_setup(mixer->planes_dev, drm, engine->id);
++	if (IS_ERR(planes))
++		return planes;
 +
-+	return NULL;
++	for (i = 0; planes[i]; i++)
++		regmap_write(engine->regs,
++			     SUN8I_MIXER_BLEND_MODE(base, i),
++			     SUN8I_MIXER_BLEND_MODE_DEF);
++
++	return planes;
 +}
 +
  static void sun8i_mixer_mode_set(struct sunxi_engine *engine,
@@ -124,7 +133,7 @@ index 111111111111..222222222222 100644
  	interlaced = !!(mode->flags & DRM_MODE_FLAG_INTERLACE);
  	size = SUN8I_MIXER_SIZE(mode->hdisplay, mode->vdisplay);
  
-@@ -397,14 +398,14 @@ static void sun8i_mixer_mode_set(struct sunxi_engine *engine,
+@@ -398,14 +408,14 @@ static void sun8i_mixer_mode_set(struct sunxi_engine *engine,
  	else
  		regmap_write(mixer->engine.regs, SUN8I_MIXER_GLOBAL_SIZE, size);
  
@@ -141,7 +150,7 @@ index 111111111111..222222222222 100644
  			   SUN8I_MIXER_BLEND_OUTCTL_INTERLACED, val);
  
  	DRM_DEBUG_DRIVER("Switching display mixer interlaced mode %s\n",
-@@ -417,8 +418,14 @@ static const struct sunxi_engine_ops sun8i_engine_ops = {
+@@ -418,8 +428,14 @@ static const struct sunxi_engine_ops sun8i_engine_ops = {
  	.mode_set	= sun8i_mixer_mode_set,
  };
  
@@ -157,7 +166,7 @@ index 111111111111..222222222222 100644
  	.reg_bits	= 32,
  	.val_bits	= 32,
  	.reg_stride	= 4,
-@@ -433,14 +440,6 @@ static const struct regmap_config sun8i_top_regmap_config = {
+@@ -434,14 +450,6 @@ static const struct regmap_config sun8i_top_regmap_config = {
  	.max_register	= 0x3c,
  };
  
@@ -172,7 +181,7 @@ index 111111111111..222222222222 100644
  static int sun8i_mixer_of_get_id(struct device_node *node)
  {
  	struct device_node *ep, *remote;
-@@ -463,17 +462,14 @@ static int sun8i_mixer_of_get_id(struct device_node *node)
+@@ -464,17 +472,14 @@ static int sun8i_mixer_of_get_id(struct device_node *node)
  
  static void sun8i_mixer_init(struct sun8i_mixer *mixer)
  {
@@ -193,7 +202,7 @@ index 111111111111..222222222222 100644
  
  	/* Enable the mixer */
  	regmap_write(top_regs, SUN8I_MIXER_GLOBAL_CTL,
-@@ -483,25 +479,25 @@ static void sun8i_mixer_init(struct sun8i_mixer *mixer)
+@@ -484,25 +489,29 @@ static void sun8i_mixer_init(struct sun8i_mixer *mixer)
  		regmap_write(top_regs, SUN50I_MIXER_GLOBAL_CLK, 1);
  
  	/* Set background color to black */
@@ -212,6 +221,10 @@ index 111111111111..222222222222 100644
 +	regmap_write(mixer->engine.regs, SUN8I_MIXER_BLEND_ATTR_FCOLOR(base, 0),
  		     SUN8I_MIXER_BLEND_COLOR_BLACK);
  
++	/*
++	 * plane_cnt is 0 for DE33. Blend mode will be initialized in
++	 * layer init function, where the number of planes is known.
++	 */
  	plane_cnt = mixer->cfg->vi_num + mixer->cfg->ui_num;
  	for (i = 0; i < plane_cnt; i++)
 -		regmap_write(disp_regs,
@@ -224,15 +237,15 @@ index 111111111111..222222222222 100644
  			   SUN8I_MIXER_BLEND_PIPE_CTL_EN_MSK, 0);
  }
  
-@@ -532,7 +528,6 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
+@@ -533,7 +542,6 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
  	if (!mixer)
  		return -ENOMEM;
  	dev_set_drvdata(dev, mixer);
 -	mixer->engine.ops = &sun8i_engine_ops;
  	mixer->engine.node = dev->of_node;
  
- 	if (of_property_present(dev->of_node, "iommus")) {
-@@ -562,6 +557,11 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
+ 	/*
+@@ -566,6 +574,11 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
  	if (!mixer->cfg)
  		return -EINVAL;
  
@@ -244,7 +257,7 @@ index 111111111111..222222222222 100644
  	regs = devm_platform_ioremap_resource(pdev, 0);
  	if (IS_ERR(regs))
  		return PTR_ERR(regs);
-@@ -584,17 +584,6 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
+@@ -588,17 +601,6 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
  			dev_err(dev, "Couldn't create the top regmap\n");
  			return PTR_ERR(mixer->top_regs);
  		}
@@ -262,12 +275,13 @@ index 111111111111..222222222222 100644
  	}
  
  	mixer->reset = devm_reset_control_get(dev, NULL);
-@@ -634,6 +623,33 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
+@@ -638,6 +640,40 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
  
  	clk_prepare_enable(mixer->mod_clk);
  
 +	if (mixer->cfg->de_type == SUN8I_MIXER_DE33) {
 +		struct platform_device *pdev;
++		struct device_link *link;
 +		struct device_node *np;
 +		void *data;
 +
@@ -283,29 +297,47 @@ index 111111111111..222222222222 100644
 +			ret = -EPROBE_DEFER;
 +			goto err_disable_mod_clk;
 +		}
++		mixer->planes_dev = &pdev->dev;
 +
 +		data = platform_get_drvdata(pdev);
 +		if (!data) {
-+			put_device(&pdev->dev);
-+			return -EPROBE_DEFER;
++			ret = -EPROBE_DEFER;
++			goto err_put_device;
 +		}
 +
-+		mixer->planes_dev = &pdev->dev;
++		link = device_link_add(dev, &pdev->dev,
++				       DL_FLAG_AUTOREMOVE_CONSUMER);
++		if (!link) {
++			ret = -EINVAL;
++			goto err_put_device;
++		}
 +	}
 +
  	list_add_tail(&mixer->engine.list, &drv->engine_list);
  
  	/* Reset registers and disable unused sub-engines */
-@@ -668,6 +684,8 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
+@@ -672,6 +708,10 @@ static int sun8i_mixer_bind(struct device *dev, struct device *master,
  
  	return 0;
  
++err_put_device:
++	put_device(mixer->planes_dev);
 +err_disable_mod_clk:
 +	clk_disable_unprepare(mixer->mod_clk);
  err_disable_bus_clk:
  	clk_disable_unprepare(mixer->bus_clk);
  err_assert_reset:
-@@ -863,16 +881,8 @@ static const struct sun8i_mixer_cfg sun50i_h6_mixer0_cfg = {
+@@ -686,6 +726,9 @@ static void sun8i_mixer_unbind(struct device *dev, struct device *master,
+ 
+ 	list_del(&mixer->engine.list);
+ 
++	if (mixer->cfg->de_type == SUN8I_MIXER_DE33)
++		put_device(mixer->planes_dev);
++
+ 	clk_disable_unprepare(mixer->mod_clk);
+ 	clk_disable_unprepare(mixer->bus_clk);
+ 	reset_control_assert(mixer->reset);
+@@ -867,16 +910,8 @@ static const struct sun8i_mixer_cfg sun50i_h6_mixer0_cfg = {
  };
  
  static const struct sun8i_mixer_cfg sun50i_h616_mixer0_cfg = {
@@ -322,17 +354,73 @@ index 111111111111..222222222222 100644
  };
  
  static const struct of_device_id sun8i_mixer_of_table[] = {
+@@ -940,7 +975,30 @@ static struct platform_driver sun8i_mixer_platform_driver = {
+ 		.of_match_table	= sun8i_mixer_of_table,
+ 	},
+ };
+-module_platform_driver(sun8i_mixer_platform_driver);
++
++static int __init sun8i_mixer_module_init(void)
++{
++	int ret;
++
++	ret = platform_driver_register(&sun50i_planes_platform_driver);
++	if (ret)
++		return ret;
++
++	ret = platform_driver_register(&sun8i_mixer_platform_driver);
++	if (ret)
++		platform_driver_unregister(&sun50i_planes_platform_driver);
++
++	return ret;
++}
++
++static void __exit sun8i_mixer_module_exit(void)
++{
++	platform_driver_unregister(&sun8i_mixer_platform_driver);
++	platform_driver_unregister(&sun50i_planes_platform_driver);
++}
++
++module_init(sun8i_mixer_module_init);
++module_exit(sun8i_mixer_module_exit);
+ 
+ MODULE_AUTHOR("Icenowy Zheng <icenowy@aosc.io>");
+ MODULE_DESCRIPTION("Allwinner DE2 Mixer driver");
 diff --git a/drivers/gpu/drm/sun4i/sun8i_mixer.h b/drivers/gpu/drm/sun4i/sun8i_mixer.h
-index 111111111111..222222222222 100644
+index e2f83301a..7abc88c89 100644
 --- a/drivers/gpu/drm/sun4i/sun8i_mixer.h
 +++ b/drivers/gpu/drm/sun4i/sun8i_mixer.h
-@@ -216,7 +215,8 @@ struct sun8i_mixer {
+@@ -202,7 +202,6 @@ struct sun8i_mixer_cfg {
+ 	int			ui_num;
+ 	unsigned int		de_type;
+ 	unsigned long		mod_rate;
+-	unsigned int		map[6];
+ };
+ 
+ struct sun8i_mixer {
+@@ -216,7 +215,7 @@ struct sun8i_mixer {
  	struct clk			*mod_clk;
  
  	struct regmap			*top_regs;
 -	struct regmap			*disp_regs;
-+	struct regmap			*disp_regs;
 +	struct device			*planes_dev;
  };
  
  enum {
+@@ -252,13 +251,6 @@ sun8i_blender_base(struct sun8i_mixer *mixer)
+ 	return mixer->cfg->de_type == SUN8I_MIXER_DE3 ? DE3_BLD_BASE : DE2_BLD_BASE;
+ }
+ 
+-static inline struct regmap *
+-sun8i_blender_regmap(struct sun8i_mixer *mixer)
+-{
+-	return mixer->cfg->de_type == SUN8I_MIXER_DE33 ?
+-		mixer->disp_regs : mixer->engine.regs;
+-}
+-
+ static inline u32
+ sun8i_channel_base(struct sun8i_layer *layer)
+ {
+-- 
+2.53.0
+
