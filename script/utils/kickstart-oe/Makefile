@@ -31,6 +31,8 @@ DISTFILES    = \
 	h618-generic.wks \
 	a523-generic.conf \
 	a523-generic.wks \
+	a733-generic.conf \
+	a733-generic.wks \
 	rk3328-generic.conf \
 	rk3328-generic.wks \
 	rk3399-generic.conf \
@@ -155,11 +157,15 @@ H618_BOARDS_LIST= \
 	board-h618.transpeed-8k618-t \
 	board-h618.orangepi_zero2w   \
 
-# Allwinner H618 boards
+# Allwinner A523 boards
 A523_BOARDS_LIST= \
-	board-h728.x96q_pro_plus \
-	board-t527.orangepi_4a \
-	board-a527.cubie_a5e   \
+	board-a523.x96q_pro_plus \
+	board-a523.orangepi_4a   \
+	board-a523.cubie_a5e     \
+
+# Allwinner A733 boards
+A733_BOARDS_LIST= \
+	board-a733.cubie_a7a   \
 
 # Rockchip RK3328 boards
 RK3328_BOARDS_LIST = \
@@ -253,7 +259,7 @@ DEPENDS = \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
-INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12a_boards g12b_boards sm1_boards s4_boards sc2_boards t7_boards
+INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards a733_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12a_boards g12b_boards sm1_boards s4_boards sc2_boards t7_boards
 
 include ../../gar.mk
 
@@ -302,6 +308,9 @@ install-h618_boards:
 
 install-a523_boards:
 	@$(call COPY_FILES, $(A523_BOARDS_LIST), a523-generic)
+
+install-a733_boards:
+	@$(call COPY_FILES, $(A733_BOARDS_LIST), a733-generic)
 
 install-rk3328_boards:
 	@$(call COPY_FILES, $(RK3328_BOARDS_LIST), rk3328-generic)
