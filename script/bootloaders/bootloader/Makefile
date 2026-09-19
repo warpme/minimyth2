@@ -304,16 +304,20 @@ ifneq (,$(filter board-h618.orangepi_zero2w,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h618.orangepi_zero2w
 endif
 
-ifneq (,$(filter board-h728.x96q_pro_plus,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-h728.x96q_pro_plus
+ifneq (,$(filter board-a523.x96q_pro_plus,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-a523.x96q_pro_plus
 endif
 
-ifneq (,$(filter board-t527.orangepi_4a,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-t527.orangepi_4a
+ifneq (,$(filter board-a523.orangepi_4a,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-a523.orangepi_4a
 endif
 
-ifneq (,$(filter board-a527.cubie_a5e,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-a527.cubie_a5e
+ifneq (,$(filter board-a523.cubie_a5e,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-a523.cubie_a5e
+endif
+
+ifneq (,$(filter board-a733.cubie_a7a,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-a733.cubie_a7a
 endif
 
 ifneq (,$(filter board-h618.vontar_h618,$(mm_BOARD_TYPE)))
