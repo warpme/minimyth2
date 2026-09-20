@@ -1,15 +1,15 @@
 
 GARNAME      = linux-firmware-meson
-GARVERSION   = 908a4c034ca77617f77c030d6ee4a6c41cfbf8d6
+GARVERSION   = f23e523ba82e3fd0701f995896c7776b388e4f74
 CATEGORIES   = firmware
-MASTER_SITES = https://github.com/chewitt/meson-firmware/archive/
+MASTER_SITES = https://github.com/jefflessard/meson-vdec-extra/archive/
 DISTFILES    = $(GARVERSION).zip
 LICENSE      =
 DESCRIPTION  =
 define BLURB
 endef
 
-WORKSRC = $(WORKDIR)/meson-firmware-908a4c034ca77617f77c030d6ee4a6c41cfbf8d6/meson/vdec
+WORKSRC = $(WORKDIR)/meson-vdec-extra-$(GARVERSION)/firmware/meson/vdec-new
 
 DEPENDS = lang/c
 
@@ -26,3 +26,4 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all: clean
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/
