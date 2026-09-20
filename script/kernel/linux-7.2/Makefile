@@ -119,8 +119,9 @@ PATCHFILES += 1301-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards
 PATCHFILES += 1302-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 1303-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
-# statefull vdec fixes https://github.com/gusbourg/linux/commits/vim3-dt-v7.3-rc2/
-PATCHFILES += 1410-media-amlogic-vde-fixes-gusbourg-10092026-g11d22d5.patch
+# stateless vdec 20.09.2026 https://github.com/gusbourg/vim3-vdec-stateless
+PATCHFILES += 1410-media-add-MESON_AM21C-fourcc.patch
+PATCHFILES += 1411-media-amlogic-stateless-vdec-gusbourg-20092026-g4eae00d0.patch
 # g12/sm1 dtsi additions
 PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 # g12/sm1 board dts additions
@@ -296,6 +297,7 @@ PATCHFILES += 2704-net-drivers-stmmac-add-25M-phy-clock-support.patch
 PATCHFILES += 2705-clk-sunxi-ng-ccu-sun55i-make-mmc-high-speed-working.patch
 PATCHFILES += 2706-pinctrl-sunxi-A523-fix-voltage-withstand-encoding.patch
 # hdmi
+ifeq (0,1)
 PATCHFILES += 2720-drm-sun4i-planes-Add-A523-plane-driver-compatible.patch
 PATCHFILES += 2721-drm-sun4i-mixer-Add-A523-mixer-compatible.patch
 PATCHFILES += 2722-drm-sun4i-tcon-top-Add-A523-TCON-TOP-support.patch
@@ -303,11 +305,12 @@ PATCHFILES += 2723-drm-sun4i-tcon-Add-A523-TCON-LCD-and-TV-compatibles.patch
 PATCHFILES += 2724-drm-sun4i-Add-A523-HDMI-PHY-driver.patch
 PATCHFILES += 2725-drm-sun4i-Add-A523-dw-hdmi-compatible.patch
 PATCHFILES += 2726-drm-sun4i-Add-compatible-for-A523-display-engine.patch
+endif
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
-# PATCHFILES += 2803-arm64-dtsi-allwinner-a523-Add-display-pipeline.patch
+PATCHFILES += 2803-arm64-dtsi-allwinner-a523-Add-display-pipeline.patch
 # a523 board dts additions
 PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch
@@ -370,9 +373,6 @@ PATCHFILES += 3408-net-phy-realtek-Reset-after-clock-enable.patch
 PATCHFILES += 3409-net-phy-realtek-re-init-after-reset.patch
 # drm enhacements from collabora 4.08.2026
 # https://gitlab.collabora.com/hardware-enablement/rockchip-3588/linux/-/tree/615c36edeadcf36c1f62e7faf1c923a177405333
-PATCHFILES += 3430-MERGED-drm-bridge-synopsys-dw-dp-Support-unregisteri.patch
-PATCHFILES += 3431-MERGED-drm-rockchip-dw_dp-Add-missing-newline-in-dev.patch
-PATCHFILES += 3432-MERGED-drm-rockchip-dw_dp-Release-core-resources.patch
 PATCHFILES += 3433-MERGED-drm-rockchip-Remove-dependency-on-DRM-simple-.patch
 PATCHFILES += 3434-MERGED-drm-atomic-state-helper-Rename-__drm_atomic_h.patch
 PATCHFILES += 3435-MERGED-drm-atomic-state-helper-Reorder-__drm_atomic_.patch
@@ -473,9 +473,6 @@ PATCHFILES += 3535-phy-rockchip-usbdp-Re-init-PHY-on-mux-change.patch
 PATCHFILES += 3536-phy-rockchip-usbdp-Add-USB-C-state-without-DP-enable.patch
 PATCHFILES += 3537-usb-typec-tcpm-Also-use-SNK_WAIT_CAPABILITIES_TIMEOU.patch
 PATCHFILES += 3538-usb-typec-tcpm-log-when-VDM-AMS-state-machine-is-can.patch
-PATCHFILES += 3539-phy-rockchip-samsung-hdptx-Fix-rate-recalculation-fo.patch
-PATCHFILES += 3540-phy-rockchip-samsung-hdptx-Handle-uncommitted-PHY-co.patch
-PATCHFILES += 3541-phy-rockchip-samsung-hdptx-Drop-TMDS-rate-setup-work.patch
 PATCHFILES += 3542-phy-rockchip-samsung-hdptx-Drop-restrict_rate_change.patch
 PATCHFILES += 3543-phy-rockchip-samsung-hdptx-Simplify-GRF-access-with-.patch
 PATCHFILES += 3544-phy-rockchip-samsung-hdptx-Consistently-use-bitfield.patch
@@ -524,7 +521,6 @@ PATCHFILES += 3650-arm64-dts-rockchip-rk3588-add-useful-overlays.patch
 # rk35xx board dts additions
 PATCHFILES += 3700-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
 PATCHFILES += 3701-arm64-dts-rockchip-add-dts-for-x96-x6.patch
-#todo PATCHFILES += 3702-arm64-dts-rockchip-improve-dts-for-rock3b.patch
 PATCHFILES += 3703-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
 PATCHFILES += 3704-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
 PATCHFILES += 3705-arm64-dts-rockchip-rock3a-fix-mdio-reset-disable-uart-bt.patch
@@ -628,10 +624,7 @@ PATCHFILES += 5076-0053-clk-qcom-clk-rcg2-calculate-timeout-based-on-clock-f.pat
 PATCHFILES += 5077-0054-clk-qcom-clk-rcg2-fix-set_duty_cycle-integer-overflo.patch
 PATCHFILES += 5078-0055-clk-qcom-gcc-sc7280-switch-GP-clocks-to-clk_rcg2_gp_.patch
 # remoteproc patches
-PATCHFILES += 5085-0003-remoteproc-core-Attach-rproc-asynchronously-in-rproc.patch
 PATCHFILES += 5086-0004-remoteproc-qcom-Check-glink-edge-in-glink_subdev_sto.patch
-PATCHFILES += 5087-0006-remoteproc-qcom-pas-Add-late-attach-support-for-subs.patch
-PATCHFILES += 5088-0276-remoteproc-qcom_q6v5_pas-attach-to-preloaded-firmwar.patch
 # firmware patches
 PATCHFILES += 5100-0008-dt-bindings-firmware-qcom-scm-Add-qcom-shm-bridge-vm.patch
 PATCHFILES += 5101-0009-wip-firmware-qcom-tzmem-Use-self-owner-bits-when-run.patch
@@ -653,7 +646,6 @@ PATCHFILES += 5134-0142-drm-msm-dp-Keep-branch-sink-count-in-sync.patch
 PATCHFILES += 5135-0143-drm-msm-dpu-Reassert-core-clock-rate-on-runtime-resu.patch
 PATCHFILES += 5136-0144-drm-msm-dpu-Clear-stale-DSC-resources-during-modeset.patch
 PATCHFILES += 5137-0145-drm-msm-dp-Fix-parity-calculation-for-multi-byte-pay.patch
-PATCHFILES += 5138-0179-drm-msm-dp-add-missing-drm_edid_connector_update-bef.patch
 PATCHFILES += 5139-0232-drm-msm-dsi-enable-continuous-clock-for-SC7280-DSI-P.patch
 PATCHFILES += 5141-0275-drm-msm-dpu-cap-DSPP-reservations-by-hardware-count.patch
 PATCHFILES += 5142-drm-msm-dp-revert-g5043357e75b-to-fix-non-working-cec.patch
@@ -696,8 +688,6 @@ PATCHFILES += 5245-0296-media-qcom-iris-allocate-partial-decode-buffer-only-.pat
 PATCHFILES += 5320-arm64-dtsi-qcom-kodiak-Add-I2C-aliases-for-CCI.patch
 PATCHFILES += 5321-arm64-dtsi-qcom-kodiak-Mark-secondary-USB-controller-as-wakeup-source.patch
 PATCHFILES += 5322-arm64-dtsi-qcom-sc7280-Fix-PDC-reg-size-to-single-APSS-DRV-region.patch
-PATCHFILES += 5323-arm64-dts-qcom-sm8250-sort-out-Iris-power-domains.patch
-PATCHFILES += 5324-arm64-dts-qcom-sm8250-correct-frequencies-in-the-Iri.patch
 # sc8280 dtsi additions
 PATCHFILES += 5350-arm64-dtsi-qcom-sc8280xp-improvements-for-dragon-q8b.patch
 PATCHFILES += 5351-arm64-dtsi-qcom-sc8280xp-reduce-cpufreqs-levels-to-get-stats-working.patch
