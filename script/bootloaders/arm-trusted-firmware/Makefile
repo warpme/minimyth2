@@ -4,6 +4,7 @@
 # mm_U-BOOT_BOARD_TYPE = test-h313.
 # mm_U-BOOT_BOARD_TYPE = test-h616.
 # mm_U-BOOT_BOARD_TYPE = test-a523.
+# mm_U-BOOT_BOARD_TYPE = test-a733.
 # mm_U-BOOT_BOARD_TYPE = test-rk3328.
 # mm_U-BOOT_BOARD_TYPE = test-rk3399.
 # mm_U-BOOT_BOARD_TYPE = test-rk3528.
@@ -83,6 +84,12 @@ BUILD_BIN    = sun50i_a523/debug/bl31.bin
 INSTALL_PREF = a523
 endif
 
+ifneq (,$(findstring a733.,$(mm_U-BOOT_BOARD_TYPE)))
+PLATFORM     = sun60i_a733
+BUILD_BIN    = sun60i_a733/debug/bl31.bin
+INSTALL_PREF = a733
+endif
+
 ifneq (,$(findstring rk3328.,$(mm_U-BOOT_BOARD_TYPE)))
 PLATFORM     = rk3328
 BUILD_BIN    = rk3328/debug/bl31/bl31.elf
@@ -148,7 +155,7 @@ BUILD_ARGS = \
 build-custom:
 	@echo " "
 	@echo "---------------------------------------------------------------"
-	@echo "Building BL31 ..."
+	@echo "Building BL31 for $(INSTALL_PREF) ..."
 	@echo " "
 	@echo "  -mm_U-BOOT_BOARD_TYPE : $(mm_U-BOOT_BOARD_TYPE)"
 	@echo "  -BL31 for plat.       : $(PLATFORM)"
