@@ -247,8 +247,8 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "7.1"            ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "7.2"            ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "7.2"            ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "7.3"            ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.12"       ] ; then \
 		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
@@ -430,9 +430,10 @@ mm-all:
 		   [ ! "$${board}" = "board-h618.orangepi_zero3"  ] && \
 		   [ ! "$${board}" = "board-h618.vontar_h618"     ] && \
 		   [ ! "$${board}" = "board-h618.transpeed-8k618-t" ] && \
-		   [ ! "$${board}" = "board-t527.orangepi_4a"     ] && \
-		   [ ! "$${board}" = "board-a527.cubie_a5e"       ] && \
-		   [ ! "$${board}" = "board-h728.x96q_pro_plus"   ] && \
+		   [ ! "$${board}" = "board-a523.orangepi_4a"     ] && \
+		   [ ! "$${board}" = "board-a523.cubie_a5e"       ] && \
+		   [ ! "$${board}" = "board-a523.x96q_pro_plus"   ] && \
+		   [ ! "$${board}" = "board-a733.cubie_a7a"       ] && \
 		   [ ! "$${board}" = "board-h618.orangepi_zero2w" ] && \
 		   [ ! "$${board}" = "board-h313.x96_q"           ] && \
 		   [ ! "$${board}" = "board-h313.x96_q_v5.1"      ] && \
