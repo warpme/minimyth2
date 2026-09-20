@@ -37,6 +37,9 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_4a_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = x96q_pro_plus_defconfig
 
+# mm_U-BOOT_BOARD_TYPE = test-a733.
+# mm_U-BOOT_BOARD_DEFCONFIG = radxa-cubie-a7a_defconfig
+
 GARNAME      = u-boot-aw
 GARVERSION   = 2026.07
 CATEGORIES   = bootloaders
@@ -51,43 +54,43 @@ AC300_BOARDS = \
  vontar_h618_defconfig \
  transpeed-8k618-t_defconfig \
 
-PATCHFILES  += 001-fix-compiling-clock_sun50i_h6.c.patch
-PATCHFILES  += 050-my-boards-defconfigs-enable-overlays.patch
+PATCHFILES  += 0001-fix-compiling-clock_sun50i_h6.c.patch
+PATCHFILES  += 0002-my-boards-defconfigs-enable-overlays.patch
 # h6 boards related patches
-PATCHFILES  += 052-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
-PATCHFILES  += 054-sunxi-Add-OrangePi-3-LTS-board.patch
-PATCHFILES  += 055-h6-tanix-tx6-improvements.patch
-PATCHFILES  += 058-enable-beelink-gs1-netbooting.patch
+PATCHFILES  += 0003-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
+PATCHFILES  += 0004-sunxi-Add-OrangePi-3-LTS-board.patch
+PATCHFILES  += 0005-h6-tanix-tx6-improvements.patch
+PATCHFILES  += 0006-enable-beelink-gs1-netbooting.patch
 # h616 patches
-PATCHFILES  += 101-unreliable-dram.patch
-PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
-PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
-# emac1 support
-PATCHFILES  += 110-sunsi-add-h616-internal-eth-phy-support-jameshilliard-ac300v4.patch
+PATCHFILES  += 0007-unreliable-dram.patch
+PATCHFILES  += 0008-sunxi-add-led-on-at-poweron.patch
+PATCHFILES  += 0009-mtd-spi-nor-add-zbit-zb25vq128.patch
+# h616 emac1 support
+PATCHFILES  += 0010-sunsi-add-h616-internal-eth-phy-support-jameshilliard-ac300v4.patch
 ifneq ($(filter $(AC300_BOARDS),$(mm_U-BOOT_BOARD_DEFCONFIG)),)
 # hack to get eth working on ac300 boards
-PATCHFILES  += 111-hack-to-make-ac300-eth-working.patch
+PATCHFILES  += 0011-hack-to-make-ac300-eth-working.patch
 endif
 # dtsi additions
-PATCHFILES  += 140-sun50i-h616.dtsi-add-emac1-nodes.patch
+PATCHFILES  += 0140-sun50i-h616.dtsi-add-emac1-nodes.patch
 # h616 boards aditions.
-PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
-PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
-PATCHFILES  += 152-add-tanix-tx6s-defconfig.patch
-PATCHFILES  += 153-add-tanix_tx6s_axp313_defconfig.patch
-PATCHFILES  += 154-dts-zero2-improvements.patch
-PATCHFILES  += 155-dts-zero3-improvements.patch
-PATCHFILES  += 157-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
-PATCHFILES  += 158-add-pendoo-x12pro-defconfig.patch
-PATCHFILES  += 159-add-x96-q-lpddr3-v1.3-defconfig.patch
-PATCHFILES  += 160-add-vontar-h618-defconfig.patch
-PATCHFILES  += 161-dts-zero2w-improvements.patch
-PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
-PATCHFILES  += 164-add-tx1-v1.2-defconfig.patch
-PATCHFILES  += 165-transpeed-8k618-t-improvements.patch
-PATCHFILES  += 166-a527-cubie-a5e-enable-netbooting.patch
-PATCHFILES  += 167-t527-orangepi-4a-enable-netbooting.patch
-PATCHFILES  += 168-h728-x96qpro_plus-enable-netbooting.patch
+PATCHFILES  += 0150-add-x96-q-lpddr3-defconfig.patch
+PATCHFILES  += 0151-add-x96-q-ddr3-defconfig.patch
+PATCHFILES  += 0152-add-tanix-tx6s-defconfig.patch
+PATCHFILES  += 0153-add-tanix_tx6s_axp313_defconfig.patch
+PATCHFILES  += 0154-dts-zero2-improvements.patch
+PATCHFILES  += 0155-dts-zero3-improvements.patch
+PATCHFILES  += 0157-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
+PATCHFILES  += 0158-add-pendoo-x12pro-defconfig.patch
+PATCHFILES  += 0159-add-x96-q-lpddr3-v1.3-defconfig.patch
+PATCHFILES  += 0160-add-vontar-h618-defconfig.patch
+PATCHFILES  += 0161-dts-zero2w-improvements.patch
+PATCHFILES  += 0163-add-x96-q-ddr3-v5.1-defconfig.patch
+PATCHFILES  += 0164-add-tx1-v1.2-defconfig.patch
+PATCHFILES  += 0165-transpeed-8k618-t-improvements.patch
+PATCHFILES  += 0166-a527-cubie-a5e-enable-netbooting.patch
+PATCHFILES  += 0167-t527-orangepi-4a-enable-netbooting.patch
+PATCHFILES  += 0168-h728-x96qpro_plus-enable-netbooting.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
@@ -135,10 +138,17 @@ INSTALL_PREF = h618
 BL31         = $(DESTDIR)$(libdir)/u-boot/h618/bl31.bin
 DEFCONFIG    = generic-h618_defconfig
 endif
-ifneq (,$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = a523
 BL31         = $(DESTDIR)$(libdir)/u-boot/a523/bl31.bin
+LIBDRAM      = $(DESTDIR)$(libdir)/u-boot/a523/libdram
 DEFCONFIG    = generic-a523_defconfig
+endif
+ifneq (,$(findstring a733.,$(mm_U-BOOT_BOARD_TYPE)))
+INSTALL_PREF = a733
+BL31         = $(DESTDIR)$(libdir)/u-boot/a733/bl31.bin
+LIBDRAM      = $(DESTDIR)$(libdir)/u-boot/a733/libdram
+DEFCONFIG    = generic-a733_defconfig
 endif
 
 ifeq ($(mm_U-BOOT_BOARD_DEFCONFIG),)
@@ -149,22 +159,24 @@ CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_DEFCONFIG)
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
-$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin:
-ifneq (,$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
-	@echo "Building A523 ATF as dependency ..."
-	@$(MAKE) clean install -C ../arm-trusted-firmware-a523
+$(BL31):
+ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE))$(findstring a733.,$(mm_U-BOOT_BOARD_TYPE)))
+	@echo "Building A523/A733 ATF as dependency ..."
+	@$(MAKE) clean install -C ../arm-trusted-firmware-aw
 else
 	@echo "Building ATF as dependency ..."
 	@$(MAKE) clean install -C ../arm-trusted-firmware
 endif
-	@#clean current uboot as it depends on just built ATF
-	@$(MAKE) clean
-	@#for h6 boards also build and install crust scp.bin
 	@$(MAKECOOKIE)
 
-pre-everything: $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin
+$(LIBDRAM):
+	@echo "Building A523/A733 libdram as dependency ..."
+	@$(MAKE) clean install -C ../allwinner-dramlib
+
+pre-everything: $(BL31) $(LIBDRAM)
 
 pre-configure:
+# handling h6 scp
 ifneq (,$(findstring h6.,$(mm_U-BOOT_BOARD_TYPE)))
 	@echo "Building crust with $(CRUST_CONFIG) config ..."
 	@$(MAKE) clean install -C ../crust
@@ -173,11 +185,6 @@ ifneq (,$(findstring h6.,$(mm_U-BOOT_BOARD_TYPE)))
 		cp -pd $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin \
 		       $(WORKSRC)/scp.bin ; \
 	fi
-endif
-ifneq (,$(findstring a527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring t527.,$(mm_U-BOOT_BOARD_TYPE))$(findstring h728.,$(mm_U-BOOT_BOARD_TYPE)))
-	@echo "Copying A523 scp.bin to u-boot tree ..." ; \
-		cp -pd ../arm-trusted-firmware-a523/files/scp.bin \
-		       $(WORKSRC)/scp.bin
 endif
 
 configure-custom:
@@ -188,6 +195,7 @@ configure-custom:
 	@echo "  -mm_U-BOOT_BOARD_TYPE      : $(mm_U-BOOT_BOARD_TYPE)"
 	@echo "  -mm_U-BOOT_BOARD_DEFCONFIG : $(mm_U-BOOT_BOARD_DEFCONFIG)"
 	@echo "  -BL31                      : $(BL31)"
+	@echo "  -libdram                   : $(LIBDRAM)"
 	@echo "  -building defconfig        : $(mm_U-BOOT_BOARD_DEFCONFIG)"
 	@echo "  -Install dir               : [$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)]"
 	@echo "-----------------------------------------------------------------"
@@ -198,7 +206,7 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=$(BL31) all
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=$(BL31) SUNXI_LIBDRAM=$(LIBDRAM) all
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 
