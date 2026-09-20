@@ -1,0 +1,172 @@
+From 9660a18c6741e0f68ea7bf45c2de249925a6f843 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 5 Sep 2026 00:43:24 +0200
+Subject: [PATCH 186/211] arm64: dts: allwinner: a733: Add HDMI
+
+Describe the second video output island: the top that gates the path from
+the first TV timing controller to HDMI and picks its clock source, the
+timing controller itself, the DesignWare HDMI controller and the Synopsys
+PHY behind it. The pipeline now runs from the mixer through the top to the
+timing controller and back out through the top to HDMI, the same shape the
+older generations use.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ .../arm64/boot/dts/allwinner/sun60i-a733.dtsi | 119 +++++++++++++++++-
+ 1 file changed, 115 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi b/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
+index 49267e0e55..f150117c31 100644
+--- a/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
+@@ -219,9 +219,10 @@ mixer0_out: port@1 {
+ 						#size-cells = <0>;
+ 						reg = <1>;
+ 
+-						mixer0_out_tcon_tv0: endpoint@0 {
++						mixer0_out_tcon_top_mixer0: endpoint@0 {
+ 							reg = <0>;
+-							remote-endpoint = <&tcon_tv0_in_mixer0>;
++							remote-endpoint =
++								<&tcon_top_mixer0_in_mixer0>;
+ 						};
+ 
+ 						mixer0_out_writeback: endpoint@1 {
+@@ -1097,6 +1098,106 @@ r_i2c2: i2c@7085000 {
+ 			#size-cells = <0>;
+ 		};
+ 
++		tcon_top: tcon-top@5510000 {
++			compatible = "allwinner,sun60i-a733-tcon-top";
++			reg = <0x05510000 0x1000>;
++			clocks = <&ccu CLK_BUS_DPSS_TOP1>;
++			clock-names = "bus";
++			resets = <&ccu RST_BUS_DPSS_TOP1>,
++				 <&ccu RST_BUS_VIDEO_OUT1>;
++			power-domains = <&pck600 PD_VO1>;
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				tcon_top_mixer0_in: port@0 {
++					#address-cells = <1>;
++					#size-cells = <0>;
++					reg = <0>;
++
++					tcon_top_mixer0_in_mixer0: endpoint@0 {
++						reg = <0>;
++						remote-endpoint = <&mixer0_out_tcon_top_mixer0>;
++					};
++				};
++
++				tcon_top_mixer0_out: port@1 {
++					#address-cells = <1>;
++					#size-cells = <0>;
++					reg = <1>;
++
++					tcon_top_mixer0_out_tcon_tv0: endpoint@2 {
++						reg = <2>;
++						remote-endpoint = <&tcon_tv0_in_tcon_top_mixer0>;
++					};
++				};
++
++				tcon_top_hdmi_in: port@4 {
++					#address-cells = <1>;
++					#size-cells = <0>;
++					reg = <4>;
++
++					tcon_top_hdmi_in_tcon_tv0: endpoint@0 {
++						reg = <0>;
++						remote-endpoint = <&tcon_tv0_out_tcon_top>;
++					};
++				};
++
++				tcon_top_hdmi_out: port@5 {
++					reg = <5>;
++
++					tcon_top_hdmi_out_hdmi: endpoint {
++						remote-endpoint = <&hdmi_in_tcon_top>;
++					};
++				};
++			};
++		};
++
++		hdmi: hdmi@5520000 {
++			compatible = "allwinner,sun60i-a733-dw-hdmi";
++			reg = <0x05520000 0x10000>;
++			reg-io-width = <1>;
++			interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_HDMI_TV>, <&ccu CLK_HDMI_SFR>,
++				 <&ccu CLK_HDMI_TV>, <&ccu CLK_HDMI_CEC>;
++			clock-names = "iahb", "isfr", "tmds", "cec";
++			resets = <&ccu RST_BUS_HDMI_MAIN>;
++			reset-names = "ctrl";
++			phys = <&hdmi_phy>;
++			phy-names = "phy";
++			power-domains = <&pck600 PD_VO1>;
++			status = "disabled";
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				hdmi_in: port@0 {
++					reg = <0>;
++
++					hdmi_in_tcon_top: endpoint {
++						remote-endpoint = <&tcon_top_hdmi_out_hdmi>;
++					};
++				};
++
++				hdmi_out: port@1 {
++					reg = <1>;
++				};
++			};
++		};
++
++		hdmi_phy: hdmi-phy@5600000 {
++			compatible = "allwinner,sun60i-a733-hdmi-phy";
++			reg = <0x05600000 0x10000>;
++			clocks = <&ccu CLK_BUS_HDMI_TV>, <&ccu CLK_HDMI_TV>;
++			clock-names = "bus", "mod";
++			resets = <&ccu RST_BUS_HDMI_SUB>;
++			reset-names = "phy";
++			power-domains = <&pck600 PD_VO1>;
++			#phy-cells = <0>;
++		};
++
+ 		tcon_tv0: lcd-controller@5730000 {
+ 			compatible = "allwinner,sun60i-a733-tcon-tv",
+ 				     "allwinner,sun50i-h616-tcon-tv";
+@@ -1113,15 +1214,25 @@ ports {
+ 				#size-cells = <0>;
+ 
+ 				tcon_tv0_in: port@0 {
++					#address-cells = <1>;
++					#size-cells = <0>;
+ 					reg = <0>;
+ 
+-					tcon_tv0_in_mixer0: endpoint {
+-						remote-endpoint = <&mixer0_out_tcon_tv0>;
++					tcon_tv0_in_tcon_top_mixer0: endpoint@0 {
++						reg = <0>;
++						remote-endpoint = <&tcon_top_mixer0_out_tcon_tv0>;
+ 					};
+ 				};
+ 
+ 				tcon_tv0_out: port@1 {
++					#address-cells = <1>;
++					#size-cells = <0>;
+ 					reg = <1>;
++
++					tcon_tv0_out_tcon_top: endpoint@1 {
++						reg = <1>;
++						remote-endpoint = <&tcon_top_hdmi_in_tcon_tv0>;
++					};
+ 				};
+ 			};
+ 		};
+-- 
+2.53.0
+

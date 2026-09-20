@@ -1,0 +1,89 @@
+From d09607105be2fd0d2592965d9f809140e474b513 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 13 Aug 2026 16:48:53 +0200
+Subject: [PATCH 071/293] usb: dwc3: rockchip: fix USB-C reconnect in gadget
+ mode
+
+When USB-C is configured in gadget mode and the cable is unplugged
+the USB controller is suspended. After plugging in the cable again,
+the USB controller stays suspended and thus the port status remains
+not-attached.
+
+Fix this by triggering a runtime PM resume when the role is changed.
+The Runtime PM reference counter is immediately decreased again - the
+auto-suspend time is big enough to detect the connection status, which
+will then keep its own reference.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/dwc3/dwc3-rockchip.c | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/drivers/usb/dwc3/dwc3-rockchip.c b/drivers/usb/dwc3/dwc3-rockchip.c
+index 9e91e5f7e..246d7dcaf 100644
+--- a/drivers/usb/dwc3/dwc3-rockchip.c
++++ b/drivers/usb/dwc3/dwc3-rockchip.c
+@@ -25,8 +25,17 @@ struct dwc3_rockchip {
+ 	struct dwc3		dwc;
+ 	struct dwc3_rk_phy_nb	usb3_phy_nb[DWC3_USB3_MAX_PORTS];
+ 	u8			phy_reset_active;
++	enum usb_role		role;
+ };
+ 
++static void dwc3_rockchip_vbus_handler(struct dwc3 *dwc, bool present)
++{
++	if (!dwc->gadget || !dwc->gadget_driver)
++		return;
++
++	usb_udc_vbus_handler(dwc->gadget, present);
++}
++
+ static int dwc3_usb3_phy_notify(struct notifier_block *nb,
+ 				unsigned long action, void *data)
+ {
+@@ -57,6 +66,8 @@ static int dwc3_usb3_phy_notify(struct notifier_block *nb,
+ 		if (!ret)
+ 			return NOTIFY_OK;
+ 
++		dwc3_rockchip_vbus_handler(dwc, false);
++
+ 		/*
+ 		 * Assert USB3 PHY soft reset within DWC3 before the external
+ 		 * PHY resets. This disconnects the PIPE interface, preventing
+@@ -69,6 +80,7 @@ static int dwc3_usb3_phy_notify(struct notifier_block *nb,
+ 		reg |= DWC3_GUSB3PIPECTL_PHYSOFTRST;
+ 		dwc3_writel(dwc, DWC3_GUSB3PIPECTL(port), reg);
+ 		spin_unlock_irqrestore(&dwc->lock, flags);
++
+ 		break;
+ 
+ 	case PHY_NOTIFY_POST_RESET:
+@@ -89,6 +101,8 @@ static int dwc3_usb3_phy_notify(struct notifier_block *nb,
+ 		dwc3_writel(dwc, DWC3_GUSB3PIPECTL(port), reg);
+ 		spin_unlock_irqrestore(&dwc->lock, flags);
+ 
++		dwc3_rockchip_vbus_handler(dwc, dwc_rk->role == USB_ROLE_DEVICE);
++
+ 		pm_runtime_put_autosuspend(dwc->dev);
+ 		break;
+ 	}
+@@ -130,7 +144,16 @@ static int dwc3_rk_phy_register_notifiers(struct dwc3 *dwc)
+ 	return devm_add_action_or_reset(dwc->dev, dwc3_rk_phy_unregister_notifiers, dwc_rk);
+ }
+ 
++static void dwc3_rockchip_set_role(struct dwc3 *dwc, enum usb_role role)
++{
++	struct dwc3_rockchip *dwc_rk = container_of(dwc, struct dwc3_rockchip, dwc);
++
++	dwc_rk->role = role;
++	dwc3_rockchip_vbus_handler(dwc, role == USB_ROLE_DEVICE);
++}
++
+ static struct dwc3_glue_ops dwc3_rockchip_glue_ops = {
++	.pre_set_role = dwc3_rockchip_set_role,
+ 	.post_phy_registration = dwc3_rk_phy_register_notifiers,
+ };
+ 
+-- 
+2.53.0
+

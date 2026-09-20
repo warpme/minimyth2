@@ -1,0 +1,304 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc3/drivers/phy/allwinner/Kconfig linux-7.3-rc3/drivers/phy/allwinner/Kconfig
+--- linux-7.3-rc3/drivers/phy/allwinner/Kconfig	2026-09-16 21:48:58.942166562 +0200
++++ linux-7.3-rc3/drivers/phy/allwinner/Kconfig	2026-09-16 21:48:05.619510120 +0200
+@@ -66,3 +66,15 @@
+ 	  Enable this to support the Ethernet PHY operation of the AC200
+ 	  mixed signal chip. This driver just enables and configures the
+ 	  PHY, the PHY itself is supported by a standard driver.
++
++config PHY_SUN60I_A733_COMBOPHY
++	tristate "Allwinner A733 SerDes combo PHY driver"
++	depends on ARCH_SUNXI || COMPILE_TEST
++	depends on HAS_IOMEM
++	select GENERIC_PHY
++	select MFD_SYSCON
++	help
++	  Enable this to support the combo PHY of the Allwinner A733 SerDes
++	  subsystem. The PHY is a Cadence design behind an Allwinner wrapper
++	  and sits between the PCIe controller and the M.2 or mini PCIe slot
++	  of the board. Say Y here if you want to use PCIe on such a board.
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc3/drivers/phy/allwinner/Makefile linux-7.3-rc3/drivers/phy/allwinner/Makefile
+--- linux-7.3-rc3/drivers/phy/allwinner/Makefile	2026-09-16 21:48:58.942211302 +0200
++++ linux-7.3-rc3/drivers/phy/allwinner/Makefile	2026-09-16 21:48:33.484842525 +0200
+@@ -4,3 +4,4 @@
+ obj-$(CONFIG_PHY_SUN9I_USB)		+= phy-sun9i-usb.o
+ obj-$(CONFIG_PHY_SUN50I_USB3)		+= phy-sun50i-usb3.o
+ obj-$(CONFIG_AC200_PHY_CTL)		+= ac200-ephy-ctl.o
++obj-$(CONFIG_PHY_SUN60I_A733_COMBOPHY)	+= phy-sun60i-a733-combophy.o
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc3/drivers/phy/allwinner/phy-sun60i-a733-combophy.c linux-7.3-rc3/drivers/phy/allwinner/phy-sun60i-a733-combophy.c
+--- linux-7.3-rc3/drivers/phy/allwinner/phy-sun60i-a733-combophy.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.3-rc3/drivers/phy/allwinner/phy-sun60i-a733-combophy.c	2026-09-16 21:45:23.050400931 +0200
+@@ -0,0 +1,262 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Allwinner A733 SerDes combo PHY driver
++ *
++ * Copyright (C) 2026 Jernej Skrabec <jernej.skrabec@gmail.com>
++ *
++ * The A733 has two Cadence combo PHYs behind an Allwinner wrapper. This
++ * driver handles the second one in its PCIe mode, the register values are
++ * the ones the vendor kernel programs.
++ */
++
++#include <linux/clk.h>
++#include <linux/delay.h>
++#include <linux/io.h>
++#include <linux/iopoll.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/phy/phy.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++
++/* Wrapper registers of the PHY */
++#define LINK_CTRL0			0x000
++#define   LINK_RESET_N			BIT(0)
++#define LINK_CTRL1			0x004
++#define   LINK_EN_REFCLK		BIT(28)
++#define LANE0_CTRL0			0x100
++#define   LANE0_MODE_MASK		GENMASK(5, 4)
++#define   LANE0_RESET_N_SW		BIT(0)
++#define LINK_STATUS0			0x900
++#define   LINK_PMA_CMN_READY		BIT(0)
++
++/* Lane routing registers of the SerDes subsystem */
++#define PIPE_TXDATA_MAP_CTRL		0xc44
++#define   PIPE_TXDATA_MAP_PCIE		0x1
++
++/* SerDes subsystem debug control register */
++#define SERDES_DBG_CTL			0x0f0
++#define   COMBO1_AUTOGATING_DISABLE	BIT(29)
++
++struct sun60i_combophy {
++	struct device *dev;
++	void __iomem *top;
++	void __iomem *phy;
++	void __iomem *pipe;
++	struct regmap *serdes;
++	struct clk *cfg_clk;
++	struct clk *ref_clk;
++};
++
++struct sun60i_combophy_reg {
++	u32 reg;
++	u16 val;
++};
++
++/* PCIe mode setup of the Cadence PHY, taken from the vendor kernel */
++static const struct sun60i_combophy_reg sun60i_combophy_pcie_cmn[] = {
++	{ 0x00044, 0x1a }, { 0x00054, 0x34 }, { 0x00058, 0xda },
++	{ 0x00064, 0x34 }, { 0x00068, 0xda }, { 0x000c8, 0x82 },
++	{ 0x000ca, 0x82 }, { 0x000e8, 0x1a }, { 0x00208, 0x20 },
++	{ 0x0020a, 0x07 }, { 0x00218, 0x20 }, { 0x0021a, 0x07 },
++	{ 0x00228, 0x30c }, { 0x0022a, 0x07 }, { 0x00248, 0x07 },
++	{ 0x0024a, 0x03 }, { 0x0024c, 0x0f }, { 0x00250, 0x132 },
++	{ 0x08180, 0x208 }, { 0x08184, 0x9c }, { 0x10088, 0x1a },
++	{ 0x1008a, 0x82 }, { 0x10098, 0x1a }, { 0x1009a, 0x82 },
++	{ 0x08246, 0xa28 },
++};
++
++static const struct sun60i_combophy_reg sun60i_combophy_pcie_lane[] = {
++	{ 0x00128, 0x04 }, { 0x00148, 0x04 }, { 0x001a8, 0x04 },
++	{ 0x00348, 0x509 }, { 0x00368, 0x509 }, { 0x00388, 0x509 },
++	{ 0x0034a, 0xf00 }, { 0x0036a, 0xf00 }, { 0x0038a, 0xf00 },
++	{ 0x0034c, 0xf08 }, { 0x0036c, 0xf08 }, { 0x0038c, 0xf08 },
++	{ 0x00120, 0x180 }, { 0x00140, 0x133 }, { 0x001a0, 0x133 },
++	{ 0x00122, 0x9d8a }, { 0x00142, 0xb13b }, { 0x001a2, 0xb13b },
++	{ 0x00124, 0x02 }, { 0x00144, 0x02 }, { 0x001a4, 0x02 },
++	{ 0x00126, 0x102 }, { 0x00146, 0xce }, { 0x001a6, 0xce },
++	{ 0x00340, 0x22 }, { 0x00360, 0x22 }, { 0x00380, 0x22 },
++	{ 0x00130, 0x01 }, { 0x00150, 0x01 }, { 0x001b0, 0x01 },
++	{ 0x00132, 0x45f }, { 0x00152, 0x2f0 }, { 0x001b2, 0x399 },
++	{ 0x00134, 0x6b }, { 0x00154, 0x68 }, { 0x001b4, 0x68 },
++	{ 0x00136, 0x04 }, { 0x00156, 0x04 }, { 0x001b6, 0x04 },
++	{ 0x00108, 0x104 }, { 0x00188, 0x104 }, { 0x0010a, 0x05 },
++	{ 0x0018a, 0x05 }, { 0x0010c, 0x337 }, { 0x0018c, 0x337 },
++	{ 0x00110, 0x3dbe }, { 0x00190, 0x3dbe }, { 0x00104, 0x03 },
++	{ 0x00184, 0x03 }, { 0x00138, 0x14 }, { 0x001b8, 0x14 },
++	{ 0x0013c, 0x192 }, { 0x001bc, 0x192 }, { 0x0013e, 0x06 },
++	{ 0x001be, 0x06 }, { 0x103c0, 0x00 }, { 0x102e2, 0x19 },
++	{ 0x102e4, 0x19 }, { 0x103fe, 0x01 },
++};
++
++static void sun60i_combophy_write_table(struct sun60i_combophy *cphy,
++					const struct sun60i_combophy_reg *table,
++					unsigned int count)
++{
++	unsigned int i;
++
++	for (i = 0; i < count; i++)
++		writew(table[i].val, cphy->phy + table[i].reg);
++}
++
++static void sun60i_combophy_set_refclk_sel(struct sun60i_combophy *cphy,
++					   u32 reg)
++{
++	u32 val;
++
++	val = readl(cphy->phy + reg);
++	val &= ~GENMASK(1, 0);
++	val |= 0x2;
++	writel(val, cphy->phy + reg);
++}
++
++static int sun60i_combophy_pcie_init(struct phy *phy)
++{
++	struct sun60i_combophy *cphy = phy_get_drvdata(phy);
++	u32 val;
++	int ret;
++
++	ret = clk_set_rate(cphy->cfg_clk, 100000000);
++	if (ret)
++		return ret;
++
++	ret = clk_prepare_enable(cphy->cfg_clk);
++	if (ret)
++		return ret;
++
++	ret = clk_prepare_enable(cphy->ref_clk);
++	if (ret)
++		goto err_disable_cfg;
++
++	regmap_set_bits(cphy->serdes, SERDES_DBG_CTL, COMBO1_AUTOGATING_DISABLE);
++	writel(PIPE_TXDATA_MAP_PCIE, cphy->pipe + PIPE_TXDATA_MAP_CTRL);
++
++	writel(0x01100001, cphy->top + LINK_CTRL1);
++	sun60i_combophy_write_table(cphy, sun60i_combophy_pcie_cmn,
++				    ARRAY_SIZE(sun60i_combophy_pcie_cmn));
++
++	val = readl(cphy->top + LANE0_CTRL0);
++	val &= ~LANE0_MODE_MASK;
++	writel(val, cphy->top + LANE0_CTRL0);
++
++	sun60i_combophy_write_table(cphy, sun60i_combophy_pcie_lane,
++				    ARRAY_SIZE(sun60i_combophy_pcie_lane));
++
++	sun60i_combophy_set_refclk_sel(cphy, 0x98);
++	sun60i_combophy_set_refclk_sel(cphy, 0xa8);
++	sun60i_combophy_set_refclk_sel(cphy, 0xd8);
++
++	writel(readl(cphy->top + LINK_CTRL0) | LINK_RESET_N,
++	       cphy->top + LINK_CTRL0);
++	writel(readl(cphy->top + LANE0_CTRL0) | LANE0_RESET_N_SW,
++	       cphy->top + LANE0_CTRL0);
++
++	ret = readl_poll_timeout(cphy->top + LINK_STATUS0, val,
++				 val & LINK_PMA_CMN_READY, 100, 100000);
++	if (ret) {
++		dev_err(cphy->dev, "PHY did not become ready\n");
++		goto err_disable_ref;
++	}
++
++	writew(0x270, cphy->phy + 0xa0);
++	writew(readw(cphy->phy + 0x98) | BIT(4), cphy->phy + 0x98);
++	writew(readw(cphy->phy + 0x18000) | BIT(0), cphy->phy + 0x18000);
++	writel(readl(cphy->top + LINK_CTRL1) | LINK_EN_REFCLK,
++	       cphy->top + LINK_CTRL1);
++
++	return 0;
++
++err_disable_ref:
++	clk_disable_unprepare(cphy->ref_clk);
++err_disable_cfg:
++	clk_disable_unprepare(cphy->cfg_clk);
++	return ret;
++}
++
++static int sun60i_combophy_pcie_exit(struct phy *phy)
++{
++	struct sun60i_combophy *cphy = phy_get_drvdata(phy);
++
++	writel(readl(cphy->top + LINK_CTRL0) & ~LINK_RESET_N,
++	       cphy->top + LINK_CTRL0);
++	clk_disable_unprepare(cphy->ref_clk);
++	clk_disable_unprepare(cphy->cfg_clk);
++
++	return 0;
++}
++
++static const struct phy_ops sun60i_combophy_pcie_ops = {
++	.init		= sun60i_combophy_pcie_init,
++	.exit		= sun60i_combophy_pcie_exit,
++	.owner		= THIS_MODULE,
++};
++
++static int sun60i_combophy_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct phy_provider *provider;
++	struct sun60i_combophy *cphy;
++	struct phy *phy;
++
++	cphy = devm_kzalloc(dev, sizeof(*cphy), GFP_KERNEL);
++	if (!cphy)
++		return -ENOMEM;
++
++	cphy->dev = dev;
++
++	cphy->top = devm_platform_ioremap_resource_byname(pdev, "top");
++	if (IS_ERR(cphy->top))
++		return PTR_ERR(cphy->top);
++
++	cphy->phy = devm_platform_ioremap_resource_byname(pdev, "phy");
++	if (IS_ERR(cphy->phy))
++		return PTR_ERR(cphy->phy);
++
++	cphy->pipe = devm_platform_ioremap_resource_byname(pdev, "pipe");
++	if (IS_ERR(cphy->pipe))
++		return PTR_ERR(cphy->pipe);
++
++	cphy->serdes = syscon_regmap_lookup_by_phandle(dev->of_node,
++						       "allwinner,serdes");
++	if (IS_ERR(cphy->serdes))
++		return dev_err_probe(dev, PTR_ERR(cphy->serdes),
++				     "failed to get the SerDes subsystem registers\n");
++
++	cphy->cfg_clk = devm_clk_get(dev, "cfg");
++	if (IS_ERR(cphy->cfg_clk))
++		return PTR_ERR(cphy->cfg_clk);
++
++	cphy->ref_clk = devm_clk_get(dev, "ref");
++	if (IS_ERR(cphy->ref_clk))
++		return PTR_ERR(cphy->ref_clk);
++
++	phy = devm_phy_create(dev, NULL, &sun60i_combophy_pcie_ops);
++	if (IS_ERR(phy))
++		return PTR_ERR(phy);
++
++	phy_set_drvdata(phy, cphy);
++
++	provider = devm_of_phy_provider_register(dev, of_phy_simple_xlate);
++
++	return PTR_ERR_OR_ZERO(provider);
++}
++
++static const struct of_device_id sun60i_combophy_of_match[] = {
++	{ .compatible = "allwinner,sun60i-a733-combophy" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sun60i_combophy_of_match);
++
++static struct platform_driver sun60i_combophy_driver = {
++	.probe	= sun60i_combophy_probe,
++	.driver	= {
++		.name		= "sun60i-a733-combophy",
++		.of_match_table	= sun60i_combophy_of_match,
++	},
++};
++module_platform_driver(sun60i_combophy_driver);
++
++MODULE_DESCRIPTION("Allwinner A733 SerDes combo PHY driver");
++MODULE_AUTHOR("Jernej Skrabec <jernej.skrabec@gmail.com>");
++MODULE_LICENSE("GPL");
+--
+
+MiniMyth2
+

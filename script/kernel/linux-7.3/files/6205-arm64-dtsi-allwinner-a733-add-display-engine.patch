@@ -1,0 +1,145 @@
+From cc5919250dd77b563afc91a37c0c6755d0e2a907 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Fri, 4 Sep 2026 13:18:34 +0200
+Subject: [PATCH 173/211] arm64: dts: allwinner: a733: add the display engine
+ and the TV timing controller
+
+Describe the display engine with its clock block, plane space and first
+mixer, and wire that mixer to the timing controller driving the TV outputs.
+Both the engine and the timing controller sit behind their own power domain.
+
+The output side of the timing controller stays open until the HDMI
+transmitter is described.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ .../arm64/boot/dts/allwinner/sun60i-a733.dtsi | 87 +++++++++++++++++++
+ 1 file changed, 87 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi b/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
+index 859aa8fe5f..73e67e2ec9 100644
+--- a/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
+@@ -4,11 +4,13 @@
+ #include <dt-bindings/thermal/thermal.h>
+ #include <dt-bindings/clock/sun6i-rtc.h>
+ #include <dt-bindings/clock/sun60i-a733-ccu.h>
++#include <dt-bindings/clock/sun8i-de2.h>
+ #include <dt-bindings/clock/sun60i-a733-cpu-ccu.h>
+ #include <dt-bindings/clock/sun60i-a733-r-ccu.h>
+ #include <dt-bindings/clock/sun60i-a733-serdes-ccu.h>
+ #include <dt-bindings/power/allwinner,sun60i-a733-pck-600.h>
+ #include <dt-bindings/reset/sun60i-a733-ccu.h>
++#include <dt-bindings/reset/sun8i-de2.h>
+ #include <dt-bindings/reset/sun60i-a733-r-ccu.h>
+ #include <dt-bindings/reset/sun60i-a733-serdes-ccu.h>
+ 
+@@ -96,6 +98,12 @@ cpu7: cpu@700 {
+ 		};
+ 	};
+ 
++	de: display-engine {
++		compatible = "allwinner,sun60i-a733-display-engine";
++		allwinner,pipelines = <&mixer0>;
++		status = "disabled";
++	};
++
+ 	osc26M: osc26M-clk {
+ 		#clock-cells = <0>;
+ 		compatible = "fixed-clock";
+@@ -138,6 +146,56 @@ gpu: gpu@1800000 {
+ 			status = "disabled";
+ 		};
+ 
++		bus@5000000 {
++			compatible = "simple-bus";
++			#address-cells = <1>;
++			#size-cells = <1>;
++			ranges = <0 0x05000000 0x400000>;
++
++			display_clocks: clock@8000 {
++				compatible = "allwinner,sun60i-a733-de33-clk",
++					     "allwinner,sun50i-h616-de33-clk";
++				reg = <0x8000 0x100>;
++				clocks = <&ccu CLK_BUS_DE0>, <&ccu CLK_DE0>;
++				clock-names = "bus", "mod";
++				resets = <&ccu RST_BUS_DE0>;
++				#clock-cells = <1>;
++				#reset-cells = <1>;
++			};
++
++			planes: planes@100000 {
++				compatible = "allwinner,sun60i-a733-de33-planes";
++				reg = <0x100000 0x180000>;
++				allwinner,plane-mapping = <&display_clocks>;
++			};
++
++			mixer0: mixer@280000 {
++				compatible = "allwinner,sun60i-a733-de33-mixer-0";
++				reg = <0x280000 0x20000>,
++				      <0x8100 0x40>;
++				reg-names = "display", "top";
++				clocks = <&display_clocks CLK_BUS_MIXER0>,
++					 <&display_clocks CLK_MIXER0>;
++				clock-names = "bus", "mod";
++				resets = <&display_clocks RST_MIXER0>;
++				allwinner,planes = <&planes>;
++				power-domains = <&pck600 PD_DE_SYS>;
++
++				ports {
++					#address-cells = <1>;
++					#size-cells = <0>;
++
++					mixer0_out: port@1 {
++						reg = <1>;
++
++						mixer0_out_tcon_tv0: endpoint {
++							remote-endpoint = <&tcon_tv0_in_mixer0>;
++						};
++					};
++				};
++			};
++		};
++
+ 		pio: pinctrl@2000000 {
+ 			compatible = "allwinner,sun60i-a733-pinctrl";
+ 			reg = <0x02000000 0x600>;
+@@ -1002,6 +1060,35 @@ r_i2c2: i2c@7085000 {
+ 			#size-cells = <0>;
+ 		};
+ 
++		tcon_tv0: lcd-controller@5730000 {
++			compatible = "allwinner,sun60i-a733-tcon-tv",
++				     "allwinner,sun50i-h616-tcon-tv";
++			reg = <0x05730000 0x1000>;
++			interrupts = <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_TCON_TV0>, <&ccu CLK_HDMI_TV>;
++			clock-names = "ahb", "tcon-ch1";
++			resets = <&ccu RST_BUS_TCON_TV0>;
++			reset-names = "lcd";
++			power-domains = <&pck600 PD_VO1>;
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				tcon_tv0_in: port@0 {
++					reg = <0>;
++
++					tcon_tv0_in_mixer0: endpoint {
++						remote-endpoint = <&mixer0_out_tcon_tv0>;
++					};
++				};
++
++				tcon_tv0_out: port@1 {
++					reg = <1>;
++				};
++			};
++		};
++
+ 		rtc: rtc@7090000 {
+ 			compatible = "allwinner,sun60i-a733-rtc",
+ 				     "allwinner,sun50i-r329-rtc";
+-- 
+2.53.0
+

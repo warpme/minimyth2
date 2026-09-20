@@ -1,0 +1,45 @@
+From c3c9ccb5fc30f27b6d05e06350d824a291acca3a Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Thu, 3 Sep 2026 08:44:18 +0200
+Subject: [PATCH 065/211] clk: sunxi-ng: a733: feed the GPU bus gate from the
+ GPU AHB gate
+
+The GPU register block only answers once both the GPU bus gate (0xb24) and
+the GPU AHB sub-system gate (0x5c0 bit 7) are open. Nothing references the
+AHB gate, so clk_disable_unused() closes it and the powervr driver then
+reads an all-zero BVNC and gives up.
+
+Make the AHB gate the parent of the bus gate so enabling the "sys" clock
+opens both, the same way the SerDes AHB gate sits in front of the SerDes
+sub-system clocks.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/clk/sunxi-ng/ccu-sun60i-a733.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+index ca25c9b4a3..1a434fdf15 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
++++ b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+@@ -509,6 +509,7 @@ static SUNXI_CCU_GATE_HWS(ahb_npu_clk, "ahb-npu", ahb_hws,
+ 			  0x5c0, BIT(6), 0);
+ static SUNXI_CCU_GATE_HWS(ahb_gpu0_clk, "ahb-gpu0", ahb_hws,
+ 			  0x5c0, BIT(7), 0);
++static const struct clk_hw *ahb_gpu0_hws[] = { &ahb_gpu0_clk.common.hw };
+ static SUNXI_CCU_GATE_HWS(ahb_serdes_clk, "ahb-serdes", ahb_hws,
+ 			  0x5c0, BIT(8), 0);
+ /* Bus fabric in front of the USB controllers, nothing references it. */
+@@ -837,7 +838,8 @@ static struct ccu_div gpu0_clk = {
+ 							   &ccu_div_ops, 0),
+ 	}
+ };
+-static SUNXI_CCU_GATE_HWS(bus_gpu0_clk, "bus-gpu0", ahb_hws, 0xb24, BIT(0), 0);
++static SUNXI_CCU_GATE_HWS(bus_gpu0_clk, "bus-gpu0", ahb_gpu0_hws, 0xb24,
++			  BIT(0), 0);
+ 
+ static const struct clk_parent_data dram_parents[] = {
+ 	{ .hw = &pll_ddr_clk.common.hw, },
+-- 
+2.53.0
+

@@ -1,0 +1,100 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sun55i-a523-r.c linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sun55i-a523-r.c
+--- linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sun55i-a523-r.c	2026-09-16 22:03:58.072596050 +0200
++++ linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sun55i-a523-r.c	2026-09-16 22:02:07.946076248 +0200
+@@ -30,17 +30,33 @@
+ 	.pin_base = PL_BASE,
+ };
+ 
++static struct sunxi_pinctrl_desc a733_r_pinctrl_data = {
++	.irq_banks = ARRAY_SIZE(a523_r_irq_bank_map),
++	.irq_bank_map = a523_r_irq_bank_map,
++	.io_bias_cfg_variant = BIAS_VOLTAGE_PIO_POW_MODE_SEL_2BIT,
++	.pin_base = PL_BASE,
++};
++
+ static int a523_r_pinctrl_probe(struct platform_device *pdev)
+ {
++	struct sunxi_pinctrl_desc *desc;
++
++	desc = (struct sunxi_pinctrl_desc *)of_device_get_match_data(&pdev->dev);
++
+ 	return sunxi_pinctrl_dt_table_init(pdev, a523_r_nr_bank_pins,
+-					   a523_r_irq_bank_muxes,
+-					   &a523_r_pinctrl_data,
++					   a523_r_irq_bank_muxes, desc,
+ 					   SUNXI_PINCTRL_NCAT2_REG_LAYOUT);
+ }
+ 
+ static const struct of_device_id a523_r_pinctrl_match[] = {
+-	{ .compatible = "allwinner,sun55i-a523-r-pinctrl", },
+-	{ .compatible = "allwinner,sun60i-a733-r-pinctrl", },
++	{
++		.compatible = "allwinner,sun55i-a523-r-pinctrl",
++		.data = &a523_r_pinctrl_data,
++	},
++	{
++		.compatible = "allwinner,sun60i-a733-r-pinctrl",
++		.data = &a733_r_pinctrl_data,
++	},
+ 	{}
+ };
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sun60i-a733.c linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sun60i-a733.c
+--- linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sun60i-a733.c	2026-09-16 22:03:58.088453181 +0200
++++ linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sun60i-a733.c	2026-09-16 22:02:07.946132298 +0200
+@@ -24,7 +24,7 @@
+ static struct sunxi_pinctrl_desc a733_pinctrl_data = {
+ 	.irq_banks = 10,
+ 	.irq_read_needs_mux = true,
+-	.io_bias_cfg_variant = BIAS_VOLTAGE_PIO_POW_MODE_SEL,
++	.io_bias_cfg_variant = BIAS_VOLTAGE_PIO_POW_MODE_SEL_2BIT,
+ };
+ 
+ static int a733_pinctrl_probe(struct platform_device *pdev)
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sunxi.c linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+--- linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sunxi.c	2026-09-16 22:03:58.104334813 +0200
++++ linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sunxi.c	2026-09-16 22:02:07.946221198 +0200
+@@ -795,6 +795,17 @@
+ 		       pctl->membase + pctl->pow_mod_sel_offset);
+ 		raw_spin_unlock_irqrestore(&pctl->lock, flags);
+ 		return 0;
++	case BIAS_VOLTAGE_PIO_POW_MODE_SEL_2BIT:
++		/* 0b10 selects 3.3V, 0b11 selects 1.8V, 0b01 auto-detection */
++		val = uV <= 1800000 ? 3 : 2;
++
++		raw_spin_lock_irqsave(&pctl->lock, flags);
++		reg = readl(pctl->membase + pctl->pow_mod_sel_offset);
++		reg &= ~(3 << (2 * bank));
++		writel(reg | val << (2 * bank),
++		       pctl->membase + pctl->pow_mod_sel_offset);
++		raw_spin_unlock_irqrestore(&pctl->lock, flags);
++		return 0;
+ 	default:
+ 		return -EINVAL;
+ 	}
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sunxi.h linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+--- linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sunxi.h	2026-09-16 22:03:58.120269554 +0200
++++ linux-7.3-rc3/drivers/pinctrl/sunxi/pinctrl-sunxi.h	2026-09-16 22:03:28.080800097 +0200
+@@ -132,6 +132,11 @@
+ 	 */
+ 	BIAS_VOLTAGE_PIO_POW_MODE_CTL,
+ 	BIAS_VOLTAGE_PIO_POW_MODE_CTL_INV,
++	/*
++	 * Bias voltage is set through PIO_POW_MOD_SEL_REG, with a
++	 * two bit field per bank, as seen on the A733 SoC.
++	 */
++	BIAS_VOLTAGE_PIO_POW_MODE_SEL_2BIT,
+ };
+ 
+ struct sunxi_desc_function {
+--
+
+MiniMyth2
+

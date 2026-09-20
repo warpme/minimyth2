@@ -1,0 +1,98 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2-rc6/drivers/gpu/drm/drm_atomic.c linux-7.2-rc6/drivers/gpu/drm/drm_atomic.c
+--- linux-7.2-rc6/drivers/gpu/drm/drm_atomic.c	2026-08-04 18:29:24.484628704 +0200
++++ linux-7.2-rc6/drivers/gpu/drm/drm_atomic.c	2026-08-04 18:28:53.258676080 +0200
+@@ -471,7 +471,7 @@
+ 	drm_printf_indent(p, 1, "active_changed=%d\n", state->active_changed);
+ 	drm_printf_indent(p, 1, "connectors_changed=%d\n", state->connectors_changed);
+ 	drm_printf_indent(p, 1, "color_mgmt_changed=%d\n", state->color_mgmt_changed);
+-	drm_printf_indent(p, 1, "plane_mask=%x\n", state->plane_mask);
++	drm_printf_indent(p, 1, "plane_mask=%llx\n", state->plane_mask);
+ 	drm_printf_indent(p, 1, "connector_mask=%x\n", state->connector_mask);
+ 	drm_printf_indent(p, 1, "encoder_mask=%x\n", state->encoder_mask);
+ 	drm_printf_indent(p, 1, "mode: " DRM_MODE_FMT "\n", DRM_MODE_ARG(&state->mode));
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2-rc6/drivers/gpu/drm/drm_framebuffer.c linux-7.2-rc6/drivers/gpu/drm/drm_framebuffer.c
+--- linux-7.2-rc6/drivers/gpu/drm/drm_framebuffer.c	2026-08-03 01:24:24.000000000 +0200
++++ linux-7.2-rc6/drivers/gpu/drm/drm_framebuffer.c	2026-08-04 18:25:54.257087452 +0200
+@@ -1005,7 +1005,7 @@
+ 	struct drm_connector *conn __maybe_unused;
+ 	struct drm_connector_state *conn_state;
+ 	int i, ret;
+-	unsigned plane_mask;
++	u64 plane_mask;
+ 	bool disable_crtcs = false;
+ 
+ retry_disable:
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2-rc6/drivers/gpu/drm/drm_mode_config.c linux-7.2-rc6/drivers/gpu/drm/drm_mode_config.c
+--- linux-7.2-rc6/drivers/gpu/drm/drm_mode_config.c	2026-08-03 01:24:24.000000000 +0200
++++ linux-7.2-rc6/drivers/gpu/drm/drm_mode_config.c	2026-08-04 18:25:54.257170622 +0200
+@@ -679,7 +679,7 @@
+ 	struct drm_encoder *encoder;
+ 	struct drm_crtc *crtc;
+ 	struct drm_plane *plane;
+-	u32 primary_with_crtc = 0, cursor_with_crtc = 0;
++	u64 primary_with_crtc = 0, cursor_with_crtc = 0;
+ 	unsigned int num_primary = 0;
+ 
+ 	if (!drm_core_check_feature(dev, DRIVER_MODESET))
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2-rc6/drivers/gpu/drm/drm_plane.c linux-7.2-rc6/drivers/gpu/drm/drm_plane.c
+--- linux-7.2-rc6/drivers/gpu/drm/drm_plane.c	2026-08-03 01:24:24.000000000 +0200
++++ linux-7.2-rc6/drivers/gpu/drm/drm_plane.c	2026-08-04 18:25:54.257265172 +0200
+@@ -376,7 +376,7 @@
+ 	int ret;
+ 
+ 	/* plane index is used with 32bit bitmasks */
+-	if (WARN_ON(config->num_total_plane >= 32))
++	if (WARN_ON(config->num_total_plane >= 64))
+ 		return -EINVAL;
+ 
+ 	/*
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2-rc6/drivers/gpu/drm/imx/ipuv3/ipuv3-crtc.c linux-7.2-rc6/drivers/gpu/drm/imx/ipuv3/ipuv3-crtc.c
+--- linux-7.2-rc6/drivers/gpu/drm/imx/ipuv3/ipuv3-crtc.c	2026-08-03 01:24:24.000000000 +0200
++++ linux-7.2-rc6/drivers/gpu/drm/imx/ipuv3/ipuv3-crtc.c	2026-08-04 18:25:54.257361542 +0200
+@@ -230,7 +230,7 @@
+ {
+ 	struct drm_crtc_state *crtc_state = drm_atomic_get_new_crtc_state(state,
+ 									  crtc);
+-	u32 primary_plane_mask = drm_plane_mask(crtc->primary);
++	u64 primary_plane_mask = drm_plane_mask(crtc->primary);
+ 
+ 	if (crtc_state->active && (primary_plane_mask & crtc_state->plane_mask) == 0)
+ 		return -EINVAL;
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2-rc6/include/drm/drm_crtc.h linux-7.2-rc6/include/drm/drm_crtc.h
+--- linux-7.2-rc6/include/drm/drm_crtc.h	2026-08-03 01:24:24.000000000 +0200
++++ linux-7.2-rc6/include/drm/drm_crtc.h	2026-08-04 18:25:54.257457822 +0200
+@@ -192,7 +192,7 @@
+ 	 * @plane_mask: Bitmask of drm_plane_mask(plane) of planes attached to
+ 	 * this CRTC.
+ 	 */
+-	u32 plane_mask;
++	u64 plane_mask;
+ 
+ 	/**
+ 	 * @connector_mask: Bitmask of drm_connector_mask(connector) of
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2-rc6/include/drm/drm_plane.h linux-7.2-rc6/include/drm/drm_plane.h
+--- linux-7.2-rc6/include/drm/drm_plane.h	2026-08-04 18:29:27.448595325 +0200
++++ linux-7.2-rc6/include/drm/drm_plane.h	2026-08-04 18:25:54.257657142 +0200
+@@ -976,9 +976,9 @@
+  * drm_plane_mask - find the mask of a registered plane
+  * @plane: plane to find mask for
+  */
+-static inline u32 drm_plane_mask(const struct drm_plane *plane)
++static inline u64 drm_plane_mask(const struct drm_plane *plane)
+ {
+-	return 1 << drm_plane_index(plane);
++	return 1ULL << drm_plane_index(plane);
+ }
+ 
+ struct drm_plane * drm_plane_from_index(struct drm_device *dev, int idx);
+--
+
+MiniMyth2
+

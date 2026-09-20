@@ -1,0 +1,62 @@
+
+From: Jonas Karlman <jonas@kwiboo.se>
+
+The current remove() path calls rkvdec_v4l2_cleanup() and
+pm_runtime_disable() before pm_runtime_dont_use_autosuspend(), and
+frees the empty IOMMU domain after that. With autosuspend still
+armed when the domain goes away, the VDPU381 can be left in a dirty
+state across module reload and suspend/resume cycles.
+
+On RK3588 this surfaces as a VP9 inter-prediction bug: from the
+second ALTREF frame onward, motion blocks decode with U=V=0 (BT.709
+green), while intra and static blocks stay correct. Reordering the
+teardown to dont_use_autosuspend() -> iommu_domain_free() ->
+pm_runtime_disable() -> v4l2_cleanup() makes the symptom go away.
+
+Tested on a Radxa Rock 5B+ (RK3588, 8 GB LPDDR5) with both the
+libva-v4l2-request mpv pipeline and Chromium's V4L2 stateless
+decoder. With the fix, 300 random pixel samples on VP9 Profile 0
+clips at 1080p and 1440p match a libvpx software reference exactly
+(worst delta 0). Without it, the same 1080p sample at frame 4,
+pixel (960, 270) reads HW=(0,112,0) vs SW=(204,147,116). HEVC and
+H.264 stateless decoding via mpv keep running on hardware with no
+fallback.
+
+Fixes: ff8c5622f9f7 ("media: rkvdec: Restore iommu addresses on errors")
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+Tested-by: Francesco Saverio Pavone <pavone.lawyer@gmail.com>
+Signed-off-by: Francesco Saverio Pavone <pavone.lawyer@gmail.com>
+---
+Changes in v2:
+ - Add Cc: <stable@vger.kernel.org>; media-CI flagged that the
+   Fixes: target (ff8c5622f9f7) is present in the 6.17, 6.18, 6.19
+   and 7.0 stable branches, so the fix should reach them too.
+   Link to v1: https://lore.kernel.org/all/20260518105413.42147-1-pavone.lawyer@gmail.com/
+   Media-CI report: https://linux-media.pages.freedesktop.org/-/users/patchwork/-/jobs/100124849/artifacts/report.htm
+
+ drivers/media/platform/rockchip/rkvdec/rkvdec.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+index 6f5f0422d317..bb95b090a25b 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+@@ -2066,12 +2066,13 @@ static void rkvdec_remove(struct platform_device *pdev)
+ 
+ 	cancel_delayed_work_sync(&rkvdec->watchdog_work);
+ 
+-	rkvdec_v4l2_cleanup(rkvdec);
+-	pm_runtime_disable(&pdev->dev);
+ 	pm_runtime_dont_use_autosuspend(&pdev->dev);
+ 
+ 	if (rkvdec->empty_domain)
+ 		iommu_domain_free(rkvdec->empty_domain);
++
++	pm_runtime_disable(&pdev->dev);
++	rkvdec_v4l2_cleanup(rkvdec);
+ }
+ 
+ #ifdef CONFIG_PM
+-- 
+2.45.0

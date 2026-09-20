@@ -1,0 +1,108 @@
+From b9639d1b831188f15c17a184ffba7f0318f2f5ac Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 5 Mar 2026 18:12:53 +0100
+Subject: [PATCH 105/293] drm/bridge: synopsys: dw-dp: Add follow-up bridge
+ support
+
+Add support to use USB-C connectors with the DP altmode helper code on
+devicetree based platforms. To get this working there must be a DRM
+bridge chain from the DisplayPort controller to the USB-C connector.
+E.g. on Rockchip RK3576:
+
+root@rk3576 # cat /sys/kernel/debug/dri/0/encoder-0/bridges
+bridge[0]: dw_dp_bridge_funcs
+        refcount: 7
+        type: [10] DP
+        OF: /soc/dp@27e40000:rockchip,rk3576-dp
+        ops: [0x47] detect edid hpd
+bridge[1]: drm_aux_bridge_funcs
+        refcount: 4
+        type: [0] Unknown
+        OF: /soc/phy@2b010000:rockchip,rk3576-usbdp-phy
+        ops: [0x0]
+bridge[2]: drm_aux_hpd_bridge_funcs
+        refcount: 5
+        type: [10] DP
+        OF: /soc/i2c@2ac50000/typec-portc@22/connector:usb-c-connector
+        ops: [0x4] hpd
+
+It's fine to fatally error out when there is no follow-up bridge
+as the Rockchip Designware Displayport controller is the only
+user of the bridge helper and has the port marked as required
+in its binding.
+
+Reviewed-by: Chaoyi Chen <chaoyi.chen@rock-chips.com>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 33 +++++++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 00f8a92da..7c5338b72 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -328,6 +328,7 @@ struct dw_dp {
+ 
+ 	struct dw_dp_link link;
+ 	struct dw_dp_plat_data plat_data;
++	struct drm_bridge *next_bridge;
+ 	u8 pixel_mode;
+ 
+ 	DECLARE_BITMAP(sdp_reg_bank, SDP_REG_BANK_SIZE);
+@@ -1894,7 +1895,22 @@ static int dw_dp_bridge_attach(struct drm_bridge *bridge,
+ 
+ 	enable_irq(dp->irq);
+ 
++	ret = drm_bridge_attach(encoder, dp->next_bridge, bridge,
++				DRM_BRIDGE_ATTACH_NO_CONNECTOR);
++	if (ret) {
++		dev_err(dev, "Failed to attach next bridge: %d\n", ret);
++		goto err_disable_irq;
++	}
++
+ 	return 0;
++
++err_disable_irq:
++	disable_irq(dp->irq);
++	cancel_work_sync(&dp->hpd_work);
++
++	drm_dp_aux_unregister(&dp->aux);
++
++	return ret;
+ }
+ 
+ static void dw_dp_bridge_detach(struct drm_bridge *bridge)
+@@ -2060,6 +2076,13 @@ void dw_dp_unbind(struct dw_dp *dp)
+ }
+ EXPORT_SYMBOL_GPL(dw_dp_unbind);
+ 
++static void dw_dp_put_next_bridge(void *data)
++{
++	struct dw_dp *dp = data;
++
++	drm_bridge_put(dp->next_bridge);
++}
++
+ static void dw_dp_phy_exit(void *data)
+ {
+ 	struct dw_dp *dp = data;
+@@ -2155,6 +2178,16 @@ struct dw_dp *dw_dp_probe(struct platform_device *pdev, const struct dw_dp_plat_
+ 	if (ret)
+ 		return ERR_PTR(ret);
+ 
++	dp->next_bridge = of_drm_get_bridge_by_endpoint(dev->of_node, 1, 0);
++	if (IS_ERR(dp->next_bridge)) {
++		dev_err_probe(dev, PTR_ERR(dp->next_bridge), "failed to get follow-up bridge\n");
++		return ERR_CAST(dp->next_bridge);
++	}
++
++	ret = devm_add_action_or_reset(dev, dw_dp_put_next_bridge, dp);
++	if (ret)
++		return ERR_PTR(ret);
++
+ 	dw_dp_init_hw(dp);
+ 
+ 	ret = phy_init(dp->phy);
+-- 
+2.53.0
+

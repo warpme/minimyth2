@@ -1,0 +1,42 @@
+From 9e9741a0fd1c6407de7b503a76182c9541cb58f5 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Wed, 2 Sep 2026 22:12:07 +0200
+Subject: [PATCH 047/211] clk: sunxi-ng: a733: the USB reference clocks have a
+ gate
+
+USB0_USB1_REF_CLK_REG and USB2_U2_REF_CLK_REG carry a gate in bit 31
+next to the source mux. The first one is enabled out of reset, which
+hid the omission; the second one is not, so the USB2 PHY of the USB3
+controller never got its reference clock.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/clk/sunxi-ng/ccu-sun60i-a733.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+index a5bd51b152..ca25c9b4a3 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
++++ b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+@@ -1244,9 +1244,16 @@ static const struct clk_parent_data usb01_ref_parents[] = {
+ 	{ .hw = &sys_24M_clk.hw },
+ 	{ .fw_name = "hosc" },
+ };
+-static SUNXI_CCU_MUX_DATA(usb01_ref_clk, "usb01-ref", usb01_ref_parents, 0x1340, 24, 3, 0);
+ 
+-static SUNXI_CCU_MUX_DATA(usb2_u2_ref_clk, "usb2-u2-ref", usb01_ref_parents, 0x1348, 24, 3, 0);
++static SUNXI_CCU_MUX_DATA_WITH_GATE(usb01_ref_clk, "usb01-ref", usb01_ref_parents, 0x1340,
++				    24, 3,	/* mux */
++				    BIT(31),	/* gate */
++				    0);
++
++static SUNXI_CCU_MUX_DATA_WITH_GATE(usb2_u2_ref_clk, "usb2-u2-ref", usb01_ref_parents, 0x1348,
++				    24, 3,	/* mux */
++				    BIT(31),	/* gate */
++				    0);
+ 
+ static const struct clk_parent_data usb2_suspend_parents[] = {
+ 	{ .fw_name = "losc" },
+-- 
+2.53.0
+

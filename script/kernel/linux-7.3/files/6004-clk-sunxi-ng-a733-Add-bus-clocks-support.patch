@@ -1,0 +1,160 @@
+From 48531d8a2d6fa9e1f5317228ad8bc91bf928166c Mon Sep 17 00:00:00 2001
+From: Junhui Liu <junhui.liu@pigmoral.tech>
+Date: Sat, 11 Jul 2026 16:10:31 +0800
+Subject: [PATCH 005/211] clk: sunxi-ng: a733: Add bus clocks support
+
+Add the essential bus clocks in the Allwinner A733 CCU, including AHB,
+APB0, APB1, APB_UART, and MBUS. These buses are necessary for many other
+functional modules. An additional trace clock is also added as it fall
+within the register address range of the bus clocks, even though it is
+not strictly bus clocks.
+
+The MBUS clock is marked as critical to ensure the memory bus remains
+operational at all times. And the hardware requires an update bit
+(bit 27) to be set so that the configuration takes effect and the
+updated parameters can be correctly read back for the MBUS clock.
+
+Tested-by: Jerome Brunet <jbrunet@baylibre.com>
+Signed-off-by: Junhui Liu <junhui.liu@pigmoral.tech>
+---
+ drivers/clk/sunxi-ng/ccu-sun60i-a733.c | 91 ++++++++++++++++++++++++++
+ 1 file changed, 91 insertions(+)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+index f80db6ab1a..c42619afb5 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
++++ b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+@@ -19,6 +19,7 @@
+ #include "ccu_common.h"
+ 
+ #include "ccu_div.h"
++#include "ccu_mp.h"
+ #include "ccu_mult.h"
+ #include "ccu_nkmp.h"
+ #include "ccu_nm.h"
+@@ -69,6 +70,16 @@ static const struct clk_hw *pll_ref_hws[] = {
+ 	&pll_ref_clk.common.hw
+ };
+ 
++/*
++ * There is a non-software-configurable mux selecting between the DCXO and the
++ * PLL_REF in hardware, whose output is fed to the sys-24M clock. Although both
++ * sys-24M and pll-ref are fixed at 24 MHz, define a 1:1 fixed factor clock to
++ * provide logical separation:
++ * - pll-ref is dedicated to feeding other PLLs
++ * - sys-24M serves as reference clock for downstream functional modules
++ */
++static CLK_FIXED_FACTOR_HWS(sys_24M_clk, "sys-24M", pll_ref_hws, 1, 1, 0);
++
+ #define SUN60I_A733_PLL_DDR_REG		0x020
+ static struct ccu_nkmp pll_ddr_clk = {
+ 	.enable		= BIT(27),
+@@ -375,6 +386,73 @@ static SUNXI_CCU_M_HWS(pll_de_4x_clk, "pll-de-4x", pll_de_hws,
+ static SUNXI_CCU_M_HWS(pll_de_3x_clk, "pll-de-3x", pll_de_hws,
+ 		       SUN60I_A733_PLL_DE_REG, 16, 3, 0);
+ 
++/**************************************************************************
++ *                           bus clocks                                   *
++ **************************************************************************/
++
++static const struct clk_parent_data ahb_apb_parents[] = {
++	{ .hw = &sys_24M_clk.hw },
++	{ .fw_name = "losc" },
++	{ .fw_name = "iosc" },
++	{ .hw = &pll_periph0_600M_clk.hw },
++};
++
++static SUNXI_CCU_M_DATA_WITH_MUX(ahb_clk, "ahb", ahb_apb_parents, 0x500,
++				 0, 5,		/* M */
++				 24, 2,		/* mux */
++				 0);
++
++static SUNXI_CCU_M_DATA_WITH_MUX(apb0_clk, "apb0", ahb_apb_parents, 0x510,
++				 0, 5,		/* M */
++				 24, 2,		/* mux */
++				 0);
++
++static SUNXI_CCU_M_DATA_WITH_MUX(apb1_clk, "apb1", ahb_apb_parents, 0x518,
++				 0, 5,		/* M */
++				 24, 2,		/* mux */
++				 0);
++
++static const struct clk_parent_data apb_uart_parents[] = {
++	{ .hw = &sys_24M_clk.hw },
++	{ .fw_name = "losc" },
++	{ .fw_name = "iosc" },
++	{ .hw = &pll_periph0_600M_clk.hw },
++	{ .hw = &pll_periph0_480M_clk.common.hw },
++};
++static SUNXI_CCU_M_DATA_WITH_MUX(apb_uart_clk, "apb-uart", apb_uart_parents, 0x538,
++				 0, 5,		/* M */
++				 24, 3,		/* mux */
++				 0);
++
++static const struct clk_parent_data trace_parents[] = {
++	{ .hw = &sys_24M_clk.hw },
++	{ .fw_name = "losc" },
++	{ .fw_name = "iosc" },
++	{ .hw = &pll_periph0_300M_clk.hw },
++	{ .hw = &pll_periph0_400M_clk.hw },
++};
++static SUNXI_CCU_M_DATA_WITH_MUX_GATE(trace_clk, "trace", trace_parents, 0x540,
++				 0, 5,		/* M */
++				 24, 3,		/* mux */
++				 BIT(31),	/* gate */
++				 0);
++
++static const struct clk_parent_data mbus_parents[] = {
++	{ .hw = &sys_24M_clk.hw },
++	{ .hw = &pll_periph1_600M_clk.hw },
++	{ .hw = &pll_ddr_clk.common.hw },
++	{ .hw = &pll_periph1_480M_clk.common.hw },
++	{ .hw = &pll_periph1_400M_clk.hw },
++	{ .hw = &pll_npu_clk.common.hw },
++};
++static SUNXI_CCU_MP_DATA_WITH_MUX_GATE_FEAT(mbus_clk, "mbus", mbus_parents, 0x588,
++					    0, 5,	/* M */
++					    0, 0,	/* no P */
++					    24, 3,	/* mux */
++					    BIT(31),	/* gate */
++					    CLK_IS_CRITICAL,
++					    CCU_FEATURE_UPDATE_BIT);
++
+ /*
+  * Contains all clocks that are controlled by a hardware register. They
+  * have a (sunxi) .common member, which needs to be initialised by the common
+@@ -411,11 +489,18 @@ static struct ccu_common *sun60i_a733_ccu_clks[] = {
+ 	&pll_de_12x_clk.common,
+ 	&pll_de_4x_clk.common,
+ 	&pll_de_3x_clk.common,
++	&ahb_clk.common,
++	&apb0_clk.common,
++	&apb1_clk.common,
++	&apb_uart_clk.common,
++	&trace_clk.common,
++	&mbus_clk.common,
+ };
+ 
+ static struct clk_hw_onecell_data sun60i_a733_hw_clks = {
+ 	.hws	= {
+ 		[CLK_PLL_REF]		= &pll_ref_clk.common.hw,
++		[CLK_SYS_24M]		= &sys_24M_clk.hw,
+ 		[CLK_PLL_DDR]		= &pll_ddr_clk.common.hw,
+ 		[CLK_PLL_PERIPH0_4X]	= &pll_periph0_4x_clk.common.hw,
+ 		[CLK_PLL_PERIPH0_2X]	= &pll_periph0_2x_clk.common.hw,
+@@ -457,6 +542,12 @@ static struct clk_hw_onecell_data sun60i_a733_hw_clks = {
+ 		[CLK_PLL_DE_12X]	= &pll_de_12x_clk.common.hw,
+ 		[CLK_PLL_DE_4X]		= &pll_de_4x_clk.common.hw,
+ 		[CLK_PLL_DE_3X]		= &pll_de_3x_clk.common.hw,
++		[CLK_AHB]		= &ahb_clk.common.hw,
++		[CLK_APB0]		= &apb0_clk.common.hw,
++		[CLK_APB1]		= &apb1_clk.common.hw,
++		[CLK_APB_UART]		= &apb_uart_clk.common.hw,
++		[CLK_TRACE]		= &trace_clk.common.hw,
++		[CLK_MBUS]		= &mbus_clk.common.hw,
+ 	},
+ 	.num	= CLK_FANOUT3 + 1,
+ };
+-- 
+2.53.0
+

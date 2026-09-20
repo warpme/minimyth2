@@ -1,0 +1,38 @@
+From 37fb25639be32540884472b7879ab9c132d7f005 Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Thu, 21 Aug 2025 01:42:26 +0100
+Subject: [PATCH 013/211] pinctrl: sunxi: only use PortK special handling on
+ A523
+
+The Allwinner A523 pinctrl IP requires an exception for addressing PortK,
+since the registers for this GPIO bank did not fit anymore in the
+existing MMIO frame. Since the A523 was also the first SoC to actually
+implement PortK, we just enabled this quirk unconditionally.
+Now the new Allwinner A733 changed the MMIO frame layout, so PortK can
+and must be handled without any special code.
+
+Mark the special casing for PortK with the ELEVEN_BANKS quirk flag we
+introduced, so that it will only be used on SoCs using the A523 pinctrl
+IP.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/pinctrl/sunxi/pinctrl-sunxi.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.c b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+index 931b6d6b76..5b1499af68 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+@@ -67,7 +67,7 @@ static u32 sunxi_bank_offset(const struct sunxi_pinctrl *pctl, u32 pin)
+ {
+ 	u32 offset = 0;
+ 
+-	if (pin >= PK_BASE) {
++	if (pin >= PK_BASE && (pctl->flags & SUNXI_PINCTRL_ELEVEN_BANKS)) {
+ 		pin -= PK_BASE;
+ 		offset = PIO_BANK_K_OFFSET;
+ 	}
+-- 
+2.53.0
+

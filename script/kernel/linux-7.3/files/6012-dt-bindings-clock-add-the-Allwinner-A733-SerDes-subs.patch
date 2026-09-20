@@ -1,0 +1,145 @@
+From 4b879609702a7f47ef3b94a142c1088094ba85d5 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Wed, 2 Sep 2026 22:12:08 +0200
+Subject: [PATCH 048/211] dt-bindings: clock: add the Allwinner A733 SerDes
+ subsystem CCU
+
+The SerDes subsystem of the A733 hosts the USB3 and the PCIe controller.
+Its top level registers gate their bus clocks, select whether the USB3
+controller takes its PIPE clock from the combo PHY or from the USB2 side
+and hold the reset of the USB2 PHY that belongs to the USB3 controller.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ .../allwinner,sun60i-a733-serdes-ccu.yaml     | 79 +++++++++++++++++++
+ .../clock/sun60i-a733-serdes-ccu.h            | 13 +++
+ .../reset/sun60i-a733-serdes-ccu.h            | 11 +++
+ 3 files changed, 103 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/clock/allwinner,sun60i-a733-serdes-ccu.yaml
+ create mode 100644 include/dt-bindings/clock/sun60i-a733-serdes-ccu.h
+ create mode 100644 include/dt-bindings/reset/sun60i-a733-serdes-ccu.h
+
+diff --git a/Documentation/devicetree/bindings/clock/allwinner,sun60i-a733-serdes-ccu.yaml b/Documentation/devicetree/bindings/clock/allwinner,sun60i-a733-serdes-ccu.yaml
+new file mode 100644
+index 0000000000..b92d670d7a
+--- /dev/null
++++ b/Documentation/devicetree/bindings/clock/allwinner,sun60i-a733-serdes-ccu.yaml
+@@ -0,0 +1,79 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/clock/allwinner,sun60i-a733-serdes-ccu.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Allwinner A733 SerDes Subsystem Clock Controller
++
++maintainers:
++  - Jernej Skrabec <jernej.skrabec@gmail.com>
++
++description:
++  The SerDes subsystem of the A733 hosts the USB3 controller and the
++  PCIe controller. Its top level registers gate the bus clocks of those
++  controllers, select the source of the USB3 PIPE clock and hold the
++  reset of the USB2 PHY of the USB3 controller.
++
++properties:
++  "#clock-cells":
++    const: 1
++
++  "#reset-cells":
++    const: 1
++
++  compatible:
++    const: allwinner,sun60i-a733-serdes-ccu
++
++  reg:
++    maxItems: 1
++
++  clocks:
++    items:
++      - description: SerDes AHB clock
++      - description: SerDes MBUS clock
++      - description: SerDes PHY configuration clock
++      - description: USB2 PIPE clock, the internal USB3 PIPE clock source
++      - description: USB3 PIPE clock from the combo PHY
++    minItems: 4
++
++  clock-names:
++    items:
++      - const: ahb
++      - const: mbus
++      - const: cfg
++      - const: u2-pipe
++      - const: pipe
++    minItems: 4
++
++  resets:
++    maxItems: 1
++
++required:
++  - "#clock-cells"
++  - "#reset-cells"
++  - compatible
++  - reg
++  - clocks
++  - clock-names
++  - resets
++
++additionalProperties: false
++
++examples:
++  - |
++    #include <dt-bindings/clock/sun60i-a733-ccu.h>
++    #include <dt-bindings/reset/sun60i-a733-ccu.h>
++
++    clock-controller@6c00000 {
++        compatible = "allwinner,sun60i-a733-serdes-ccu";
++        reg = <0x06c00000 0x1000>;
++        clocks = <&ccu CLK_AHB_SERDES>, <&ccu CLK_MBUS_SERDES>,
++                 <&ccu CLK_SERDES_PHY>, <&ccu CLK_USB2_U2_PIPE>;
++        clock-names = "ahb", "mbus", "cfg", "u2-pipe";
++        resets = <&ccu RST_BUS_SERDES>;
++        #clock-cells = <1>;
++        #reset-cells = <1>;
++    };
++
++...
+diff --git a/include/dt-bindings/clock/sun60i-a733-serdes-ccu.h b/include/dt-bindings/clock/sun60i-a733-serdes-ccu.h
+new file mode 100644
+index 0000000000..a9f5492d38
+--- /dev/null
++++ b/include/dt-bindings/clock/sun60i-a733-serdes-ccu.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: (GPL-2.0-only OR MIT) */
++/*
++ * Copyright (C) 2026 Jernej Skrabec <jernej.skrabec@gmail.com>
++ */
++
++#ifndef _DT_BINDINGS_CLK_SUN60I_A733_SERDES_CCU_H_
++#define _DT_BINDINGS_CLK_SUN60I_A733_SERDES_CCU_H_
++
++#define CLK_SERDES_USB3_HCLK	0
++#define CLK_SERDES_USB3_ACLK	1
++#define CLK_SERDES_USB3_PIPE	2
++
++#endif /* _DT_BINDINGS_CLK_SUN60I_A733_SERDES_CCU_H_ */
+diff --git a/include/dt-bindings/reset/sun60i-a733-serdes-ccu.h b/include/dt-bindings/reset/sun60i-a733-serdes-ccu.h
+new file mode 100644
+index 0000000000..f3db1445ec
+--- /dev/null
++++ b/include/dt-bindings/reset/sun60i-a733-serdes-ccu.h
+@@ -0,0 +1,11 @@
++/* SPDX-License-Identifier: (GPL-2.0-only OR MIT) */
++/*
++ * Copyright (C) 2026 Jernej Skrabec <jernej.skrabec@gmail.com>
++ */
++
++#ifndef _DT_BINDINGS_RST_SUN60I_A733_SERDES_CCU_H_
++#define _DT_BINDINGS_RST_SUN60I_A733_SERDES_CCU_H_
++
++#define RST_SERDES_USB3_USB2_PHY	0
++
++#endif /* _DT_BINDINGS_RST_SUN60I_A733_SERDES_CCU_H_ */
+-- 
+2.53.0
+

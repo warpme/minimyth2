@@ -1,0 +1,42 @@
+From 4e9d2c3505655c82920f2abe28740dfb314b8b1d Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 23 Aug 2026 15:23:11 +0200
+Subject: [PATCH 081/211] mmc: sunxi: Double the module clock for UHS DDR50
+
+The new timing mode requires a doubled module clock for every DDR
+timing, but the internal divider was only set up for MMC DDR52. Cover
+UHS DDR50 as well, so the delay-chain tuning path clocks it correctly
+once boards enable signal voltage switching.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/mmc/host/sunxi-mmc.c | 12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/mmc/host/sunxi-mmc.c b/drivers/mmc/host/sunxi-mmc.c
+index 35ebc9d90c..243180a6d7 100644
+--- a/drivers/mmc/host/sunxi-mmc.c
++++ b/drivers/mmc/host/sunxi-mmc.c
+@@ -781,14 +781,12 @@ static int sunxi_mmc_clk_set_rate(struct sunxi_mmc_host *host,
+ 	 * Under the old timing mode, 8 bit DDR requires the module
+ 	 * clock to be double the card clock. Under the new timing
+ 	 * mode, all DDR modes require a doubled module clock.
+-	 *
+-	 * We currently only support the standard MMC DDR52 mode.
+-	 * This block should be updated once support for other DDR
+-	 * modes is added.
+ 	 */
+-	if (ios->timing == MMC_TIMING_MMC_DDR52 &&
+-	    (host->use_new_timings ||
+-	     ios->bus_width == MMC_BUS_WIDTH_8)) {
++	if ((ios->timing == MMC_TIMING_MMC_DDR52 &&
++	     ios->bus_width == MMC_BUS_WIDTH_8) ||
++	    (host->use_new_timings &&
++	     (ios->timing == MMC_TIMING_MMC_DDR52 ||
++	      ios->timing == MMC_TIMING_UHS_DDR50))) {
+ 		div = 2;
+ 		clock <<= 1;
+ 	}
+-- 
+2.53.0
+

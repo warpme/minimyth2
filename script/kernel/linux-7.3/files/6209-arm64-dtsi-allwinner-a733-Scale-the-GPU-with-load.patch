@@ -1,0 +1,109 @@
+From c51e4633777c5bf9f5fc06716c110672ef34d1e7 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 5 Sep 2026 06:22:15 +0200
+Subject: [PATCH 204/211] arm64: dts: allwinner: a733: Scale the GPU with load
+
+Add the vendor's four GPU operating points, at the highest voltage any
+speed bin asks for so every part is safe until the bins are read out, and
+let the GPU thermal zone throttle it.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ .../arm64/boot/dts/allwinner/sun60i-a733.dtsi | 66 ++++++++++++++++++-
+ 1 file changed, 64 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi b/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
+index f2fabfb5a4..000bb68cc2 100644
+--- a/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun60i-a733.dtsi
+@@ -143,6 +143,8 @@ gpu: gpu@1800000 {
+ 			power-domains = <&pck600 PD_GPU_TOP>, <&pck600 PD_GPU_CORE>;
+ 			power-domain-names = "a", "b";
+ 			resets = <&ccu RST_BUS_GPU0>;
++			operating-points-v2 = <&gpu_opp_table>;
++			#cooling-cells = <2>;
+ 			status = "disabled";
+ 		};
+ 
+@@ -1279,6 +1281,34 @@ cpu_ccu: clock-controller@8870000 {
+ 		};
+ 	};
+ 
++	/*
++	 * Voltages are the highest the vendor asks of any speed bin, so every
++	 * part is safe until the bins are read out.
++	 */
++	gpu_opp_table: opp-table-gpu {
++		compatible = "operating-points-v2";
++
++		opp-400000000 {
++			opp-hz = /bits/ 64 <400000000>;
++			opp-microvolt = <800000>;
++		};
++
++		opp-600000000 {
++			opp-hz = /bits/ 64 <600000000>;
++			opp-microvolt = <800000>;
++		};
++
++		opp-800000000 {
++			opp-hz = /bits/ 64 <800000000>;
++			opp-microvolt = <840000>;
++		};
++
++		opp-1008000000 {
++			opp-hz = /bits/ 64 <1008000000>;
++			opp-microvolt = <960000>;
++		};
++	};
++
+ 	thermal-zones {
+ 		cpub-thermal {
+ 			polling-delay-passive = <500>;
+@@ -1369,9 +1399,41 @@ map1 {
+ 		};
+ 
+ 		gpu-thermal {
+-			polling-delay-passive = <0>;
+-			polling-delay = <0>;
++			polling-delay-passive = <500>;
++			polling-delay = <1000>;
+ 			thermal-sensors = <&ths 4>;
++
++			trips {
++				gpu_hot: gpu-hot {
++					temperature = <70000>;
++					hysteresis = <2000>;
++					type = "passive";
++				};
++
++				gpu_very_hot: gpu-very-hot {
++					temperature = <90000>;
++					hysteresis = <2000>;
++					type = "passive";
++				};
++
++				gpu-critical {
++					temperature = <110000>;
++					hysteresis = <0>;
++					type = "critical";
++				};
++			};
++
++			cooling-maps {
++				map0 {
++					trip = <&gpu_hot>;
++					cooling-device = <&gpu THERMAL_NO_LIMIT 1>;
++				};
++
++				map1 {
++					trip = <&gpu_very_hot>;
++					cooling-device = <&gpu 2 THERMAL_NO_LIMIT>;
++				};
++			};
+ 		};
+ 	};
+ };
+-- 
+2.53.0
+

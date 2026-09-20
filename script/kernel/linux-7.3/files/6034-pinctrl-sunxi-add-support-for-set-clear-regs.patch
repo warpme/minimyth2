@@ -1,0 +1,88 @@
+From a18e2d2270e9fae1bd0df88b497fb18bf2d5d493 Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Thu, 21 Aug 2025 01:42:29 +0100
+Subject: [PATCH 016/211] pinctrl: sunxi: add support for set/clear regs
+
+The Allwinner pinctrl/GPIO IP so far features just a single GPIO data
+register, which holds the logic level for every output pin on each port.
+To set or clear the level of a single pin, we need to do a
+read/modify/write operation, which needs to be protected by a lock.
+
+The new pinctrl IP introduced with the Allwinner A733 now supports two
+extra registers, the value of which will be ORed in respectively NANDed
+out from the current value when being written. This allows for lockless
+single writes to set or clear GPIO pins.
+
+Add support for this feature to the sunxi pinctrl code, by adding a quirk
+bit and checking this when writing to the data register. If the new
+registers are available, skip the lock and read/modify/write operation,
+and just write the mask directly to the respective register.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/pinctrl/sunxi/pinctrl-sunxi.c | 27 +++++++++++++++------------
+ drivers/pinctrl/sunxi/pinctrl-sunxi.h |  3 +++
+ 2 files changed, 18 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.c b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+index be2394dc92..34ed34fb88 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+@@ -1023,18 +1023,21 @@ static int sunxi_pinctrl_gpio_set(struct gpio_chip *chip, unsigned int offset,
+ 
+ 	sunxi_data_reg(pctl, offset, &reg, &shift, &mask);
+ 
+-	raw_spin_lock_irqsave(&pctl->lock, flags);
+-
+-	val = readl(pctl->membase + reg);
+-
+-	if (value)
+-		val |= mask;
+-	else
+-		val &= ~mask;
+-
+-	writel(val, pctl->membase + reg);
+-
+-	raw_spin_unlock_irqrestore(&pctl->lock, flags);
++	if (pctl->flags & SUNXI_PINCTRL_HAS_SET_CLEAR_REGS) {
++		if (value)
++			writel(mask, pctl->membase + reg + DATA_SET_OFFSET);
++		else
++			writel(mask, pctl->membase + reg + DATA_CLR_OFFSET);
++	} else {
++		raw_spin_lock_irqsave(&pctl->lock, flags);
++		val = readl(pctl->membase + reg);
++		if (value)
++			val |= mask;
++		else
++			val &= ~mask;
++		writel(val, pctl->membase + reg);
++		raw_spin_unlock_irqrestore(&pctl->lock, flags);
++	}
+ 
+ 	return 0;
+ }
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.h b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+index d09467ed43..699ae8850c 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi.h
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+@@ -43,6 +43,8 @@
+ #define MUX_REGS_OFFSET		0x0
+ #define MUX_FIELD_WIDTH		4
+ #define DATA_REGS_OFFSET	0x10
++#define DATA_SET_OFFSET			0x04
++#define DATA_CLR_OFFSET			0x08
+ #define DATA_FIELD_WIDTH	1
+ #define DLEVEL_REGS_OFFSET	0x14
+ #define DLEVEL_FIELD_WIDTH	2
+@@ -101,6 +103,7 @@
+ #define SUNXI_PINCTRL_PORTF_SWITCH	BIT(9)
+ #define SUNXI_PINCTRL_ELEVEN_BANKS	BIT(10)
+ #define SUNXI_PINCTRL_NCAT3_REG_LAYOUT	BIT(11)
++#define SUNXI_PINCTRL_HAS_SET_CLEAR_REGS	BIT(12)
+ 
+ #define PIO_NCAT3_POW_MOD_SEL_REG	0x040
+ #define PIO_POW_MOD_SEL_REG		0x340
+-- 
+2.53.0
+

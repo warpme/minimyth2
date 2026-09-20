@@ -1,0 +1,76 @@
+From ff874976a94c73e114715543356e1a3bc278fbe8 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 19 Jul 2026 15:00:16 +0200
+Subject: [PATCH 136/211] clk: sunxi-ng: de2: Allow H616 writeback routing
+ register access
+
+The DE33 display clock block also contains the writeback input routing
+register. Extend the exported regmap window so the writeback driver can
+program its source mux, and update the comment accordingly.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/clk/sunxi-ng/ccu-sun8i-de2.c |   7 +-
+ drivers/gpu/drm/sun4i/sun4i_drv.c    |  12 +-
+ drivers/gpu/drm/sun4i/sun50i_wb.c    | 365 ++++++++++++++++++++++++---
+ 3 files changed, 340 insertions(+), 44 deletions(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun8i-de2.c b/drivers/clk/sunxi-ng/ccu-sun8i-de2.c
+index f17570efaf..7fbc5f0473 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun8i-de2.c
++++ b/drivers/clk/sunxi-ng/ccu-sun8i-de2.c
+@@ -285,17 +285,18 @@ static const struct sunxi_ccu_desc sun50i_h616_de33_clk_desc = {
+ };
+ 
+ /*
+- * Add a regmap for the DE33 plane driver to access plane
+- * mapping registers.
++ * Add a regmap for the DE33 plane and writeback drivers to access
++ * routing registers.
+  * Only these registers are allowed to be written, to prevent
+  * overriding clock and reset configuration.
+  */
+ 
++#define SUN50I_DE33_RTWB_MUX_REG 0x20
+ #define SUN50I_DE33_CHN2CORE_REG 0x24
+ #define SUN50I_DE33_PORT12CHN_REG 0x2c
+ 
+ static const struct regmap_range sun8i_de2_ccu_regmap_accessible_ranges[] = {
+-	regmap_reg_range(SUN50I_DE33_CHN2CORE_REG, SUN50I_DE33_PORT12CHN_REG),
++	regmap_reg_range(SUN50I_DE33_RTWB_MUX_REG, SUN50I_DE33_PORT12CHN_REG),
+ };
+ 
+ static const struct regmap_access_table sun8i_de2_ccu_regmap_accessible_table = {
+diff --git a/drivers/gpu/drm/sun4i/sun4i_drv.c b/drivers/gpu/drm/sun4i/sun4i_drv.c
+index 319d2ecba8..0461f1b388 100644
+--- a/drivers/gpu/drm/sun4i/sun4i_drv.c
++++ b/drivers/gpu/drm/sun4i/sun4i_drv.c
+@@ -210,7 +210,8 @@ static bool sun4i_drv_node_is_tcon_top(struct device_node *node)
+ 
+ static bool sun4i_drv_node_is_writeback(struct device_node *node)
+ {
+-	return of_device_is_compatible(node, "allwinner,sun50i-h6-de3-wb");
++	return of_device_is_compatible(node, "allwinner,sun50i-h6-de3-wb") ||
++	       of_device_is_compatible(node, "allwinner,sun50i-h616-de33-wb");
+ }
+ 
+ /*
+@@ -425,6 +426,15 @@ static int sun4i_drv_probe(struct platform_device *pdev)
+ 				count++;
+ 			}
+ 		}
++
++		for_each_compatible_node(wb, NULL,
++					 "allwinner,sun50i-h616-de33-wb") {
++			if (of_device_is_available(wb)) {
++				component_match_add(&pdev->dev, &match,
++						    component_compare_of, wb);
++				count++;
++			}
++		}
+ 	}
+ 
+ 	if (count)
+-- 
+2.53.0
+

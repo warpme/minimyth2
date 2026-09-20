@@ -1,0 +1,203 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc4/arch/arm64/boot/dts/allwinner/sun55i-h728-x96qpro+.dts linux-6.16-rc4/arch/arm64/boot/dts/allwinner/sun55i-h728-x96qpro+.dts
+--- linux-6.16-rc4/arch/arm64/boot/dts/allwinner/sun55i-h728-x96qpro+.dts	2025-06-29 22:09:04.000000000 +0200
++++ linux-6.16-rc4/arch/arm64/boot/dts/allwinner/sun55i-h728-x96qpro+.dts	2025-07-07 11:38:37.008228881 +0200
+@@ -1,24 +1,51 @@
+ // SPDX-License-Identifier: (GPL-2.0-only OR MIT)
+-// Copyright (C) 2024 Arm Ltd.
+ 
++/*
++ * Author: piotr.oniszczuk@gmail.com
++ */
++ 
+ /dts-v1/;
+ 
+ #include "sun55i-a523.dtsi"
++#include "sun55i-a523-cpu-opp.dtsi"
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ 
+ / {
+ 	model = "X96Q Pro+";
+-	compatible = "amediatech,x96q-pro-plus", "allwinner,sun55i-h728";
++	compatible = "hechuang,x96-pro-plus", "allwinner,sun55i-t527";
+ 
+ 	aliases {
+ 		serial0 = &uart0;
++		mmc0 = &mmc0;
++		mmc1 = &mmc1;
++		mmc2 = &mmc2;
++		ethernet0 = &gmac1;
++		ethernet1 = &wlan;
+ 	};
+ 
+ 	chosen {
+ 		stdout-path = "serial0:115200n8";
+ 	};
+ 
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		/* 128 KiB reserved for Trusted Firmware-A (BL31). */
++		secmon@48000000 {
++			reg = <0x0 0x48000000 0x0 0x20000>;
++			no-map;
++		};
++
++		/* 256 KiB reserved for the SCP. */
++		secmon@48100000 {
++			reg = <0x0 0x48100000 0x0 0x40000>;
++			no-map;
++		};
++	};
++
+ 	ext_osc32k: ext-osc32k-clk {
+ 		#clock-cells = <0>;
+ 		compatible = "fixed-clock";
+@@ -35,15 +61,40 @@
+ 		regulator-always-on;
+ 	};
+ 
+-	reg_vcc3v3: vcc3v3 {
+-		/* 3.3V dummy supply for the SD card */
++	reg_vcc3v3: vcc3v3-wifi {
+ 		compatible = "regulator-fixed";
+-		regulator-name = "vcc-3v3";
++		regulator-name = "vcc-3v3-wifi";
+ 		regulator-min-microvolt = <3300000>;
+ 		regulator-max-microvolt = <3300000>;
+-		vin-supply = <&reg_vcc5v>;
+ 		regulator-always-on;
+ 	};
++
++	wifi_pwrseq: pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		reset-gpios = <&r_pio 1 1 GPIO_ACTIVE_LOW>; /* PM1 */
++		post-power-on-delay-ms = <200>;
++	};
++
++	openvfd {
++		compatible = "open,vfd";
++		dev_name = "openvfd";
++		openvfd_gpio_clk = <&pio 1 2 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
++		openvfd_gpio_dat = <&pio 1 1 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
++		openvfd_gpio_stb = <&pio 1 3 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
++		vfd_gpio_chip_name = "2000000.pinctrl";
++		openvfd_chars = [04 00 01 02 03];
++		openvfd_dot_bits = [00 01 02 03 04 05 06];
++		openvfd_display_type = <0x02010005>; 
++		status = "okay";
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc1>;
++};
++
++&cpu4 {
++	cpu-supply = <&reg_dcdc1_323>;
+ };
+ 
+ &ehci0 {
+@@ -54,12 +105,53 @@
+ 	status = "okay";
+ };
+ 
++&mmc1_pins {
++	drive-strength = <40>;
++};
++
++&gmac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rgmii1_pins>, <&rgmii1_25m_pin>;
++	phy-mode = "rgmii-id";
++	phy-handle = <&ext_rgmii_phy>;
++	phy-supply = <&reg_cldo3>;
++
++	tx-internal-delay-ps = <200>;
++	rx-internal-delay-ps = <500>;
++	use-25m-clk;
++
++	status = "okay";
++};
++
++&mdio1 {
++	ext_rgmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++		reset-gpios = <&pio 9 16 GPIO_ACTIVE_LOW>;
++		reset-assert-us = <10000>;
++		reset-deassert-us = <150000>;
++	};
++};
++
+ &mmc0 {
++	vmmc-supply = <&reg_cldo3>;
++	cd-gpios = <&pio 5 6 (GPIO_ACTIVE_LOW | GPIO_PULL_DOWN)>; /* PF6 */
++	bus-width = <4>;
++	max-frequency = <35000000>;
++	status = "okay";
++};
++
++&mmc1 {
+ 	vmmc-supply = <&reg_vcc3v3>;
+-	cd-gpios = <&pio 5 6 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>; /* PF6 */
++	mmc-pwrseq = <&wifi_pwrseq>;
+ 	bus-width = <4>;
+-	disable-wp;
++	non-removable;
++	max-frequency = <15000000>;
+ 	status = "okay";
++
++	wlan: wifi@1 {
++		reg = <1>;
++	};
+ };
+ 
+ &mmc2 {
+@@ -70,6 +162,7 @@
+ 	cap-mmc-hw-reset;
+ 	mmc-ddr-1_8v;
+ 	mmc-hs200-1_8v;
++	max-frequency = <25000000>;
+ 	status = "okay";
+ };
+ 
+@@ -250,8 +350,12 @@
+ 			};
+ 
+ 			/* DCDC2 is polyphased with DCDC1 */
++			reg_dcdc2_323: dcdc2 {
++				x-powers,force-polyfase-mode;
++			};
+ 
+-			reg_dcdc3_323: dcdc3 {
++			/* Some RISC-V management core related voltage */
++			reg_dcdc3_323: dcdc3 { /* reset: 900mV, BSP: 1050mV */
+ 				regulator-always-on;
+ 				regulator-min-microvolt = <1050000>;
+ 				regulator-max-microvolt = <1050000>;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun55i-h728-x96qpro+.dts linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun55i-h728-x96qpro+.dts
+--- linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun55i-h728-x96qpro+.dts	2025-07-08 10:22:13.264941840 +0200
++++ linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun55i-h728-x96qpro+.dts	2025-07-08 10:25:09.688271368 +0200
+@@ -388,3 +388,8 @@
+ &usbphy {
+ 	status = "okay";
+ };
++
++&gpu {
++	mali-supply = <&reg_dcdc2>;
++	status = "okay";
++};
+--
+
+MiniMyth2
+

@@ -1,0 +1,136 @@
+From e0ce63477ee8f9538f84cf9c1cd45315e8c9f70a Mon Sep 17 00:00:00 2001
+From: Enzo Adriano <enzo.adriano.code@gmail.com>
+Date: Fri, 3 Jul 2026 23:08:21 -0400
+Subject: [PATCH 026/211] pinctrl: sunxi: fix EINT bank indexing for SoCs with
+ empty leading banks
+
+The DT-table init assigns interrupt bank indices by incrementing on
+every bank transition, starting from bank 0 - correct only when bank
+A actually has pins. On the A733 bank A is empty, so every EINT bank
+got an index one too high: the per-bank parent interrupt was taken
+from the next bank's slot in the DT list (bank K falling off the end
+entirely), while the EINT registers were still addressed correctly
+only because the shifted index happened to coincide with the pin-bank
+number under the NCAT3 layout.
+
+Assign 0-based indices over the IRQ-capable banks that actually have
+pins, record the pin bank each index refers to in an irq_bank_map,
+and honour that map in the NCAT3 register-base formula the same way
+the legacy layout already does.
+
+On the Cubie A7S this makes a PB EINT consumer raise its events on
+GPIOB's interrupt line instead of GPIOC's - the previously observed
+'bank-B IRQ storm' with gpio-keys was the unclaimed GPIOB line
+screaming while the handler listened one bank up.
+
+Assisted-by: Claude-Code:claude-fable-5
+Signed-off-by: Enzo Adriano <enzo.adriano.code@gmail.com>
+Link: https://lore.kernel.org/r/20260704030821.561389-1-enzo.adriano.code@gmail.com
+---
+ drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c | 34 +++++++++++++++++-------
+ drivers/pinctrl/sunxi/pinctrl-sunxi.h    |  5 ++--
+ 2 files changed, 28 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c b/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c
+index 50a16f3bd1..48bb5fc9f7 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c
+@@ -143,12 +143,14 @@ static struct sunxi_desc_pin *init_pins_table(struct device *dev,
+  */
+ static int prepare_function_table(struct device *dev, struct device_node *pnode,
+ 				  struct sunxi_desc_pin *pins, int npins,
+-				  unsigned pin_base, const u8 *irq_bank_muxes)
++				  unsigned int pin_base, const u8 *irq_bank_muxes,
++				  struct sunxi_pinctrl_desc *desc)
+ {
+ 	struct device_node *node;
+ 	struct property *prop;
+ 	struct sunxi_desc_function *func;
+-	int num_funcs, irq_bank, last_bank, i;
++	unsigned int *irq_bank_map;
++	int num_funcs, irq_bank, last_irq_bank, i;
+ 
+ 	/*
+ 	 * We need at least three functions per pin:
+@@ -207,8 +209,20 @@ static int prepare_function_table(struct device *dev, struct device_node *pnode,
+ 	 * Assign the function's memory and fill in GPIOs, IRQ and a sentinel.
+ 	 * The extra functions will be filled in later.
+ 	 */
+-	irq_bank = 0;
+-	last_bank = 0;
++	/*
++	 * The interrupt bank index selects both the per-bank parent
++	 * interrupt (the DT lists one per IRQ-capable bank, in order)
++	 * and, through irq_bank_map, the pin bank holding the EINT
++	 * registers. The first IRQ-capable bank with any pins must get
++	 * index 0 even when lower banks (like PA here) have no pins.
++	 */
++	irq_bank_map = devm_kcalloc(dev, SUNXI_PINCTRL_MAX_BANKS,
++				    sizeof(*irq_bank_map), GFP_KERNEL);
++	if (!irq_bank_map)
++		return -ENOMEM;
++
++	irq_bank = -1;
++	last_irq_bank = -1;
+ 	for (i = 0; i < npins; i++) {
+ 		struct sunxi_desc_pin *pin = &pins[i];
+ 		int bank = (pin->pin.number - pin_base) / PINS_PER_BANK;
+@@ -221,17 +235,17 @@ static int prepare_function_table(struct device *dev, struct device_node *pnode,
+ 		func[1].muxval = 1;
+ 
+ 		if (irq_mux) {
+-			if (bank > last_bank)
++			if (bank != last_irq_bank) {
+ 				irq_bank++;
++				irq_bank_map[irq_bank] = bank;
++				last_irq_bank = bank;
++			}
+ 			func[lastfunc].muxval = irq_mux;
+ 			func[lastfunc].irqbank = irq_bank;
+ 			func[lastfunc].irqnum = pin->pin.number % PINS_PER_BANK;
+ 			func[lastfunc].name = "irq";
+ 		}
+ 
+-		if (bank > last_bank)
+-			last_bank = bank;
+-
+ 		pin->functions = func;
+ 
+ 		/* Skip over the other needed functions and the sentinel. */
+@@ -244,6 +258,8 @@ static int prepare_function_table(struct device *dev, struct device_node *pnode,
+ 		pin->variant = 2;
+ 	}
+ 
++	desc->irq_bank_map = irq_bank_map;
++
+ 	return 0;
+ }
+ 
+@@ -352,7 +368,7 @@ int sunxi_pinctrl_dt_table_init(struct platform_device *pdev,
+ 		return PTR_ERR(pins);
+ 
+ 	ret = prepare_function_table(&pdev->dev, pnode, pins, desc->npins,
+-				     desc->pin_base, irq_bank_muxes);
++				     desc->pin_base, irq_bank_muxes, desc);
+ 	if (ret)
+ 		return ret;
+ 
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.h b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+index 699ae8850c..9aab946019 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi.h
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+@@ -252,8 +252,9 @@ static inline u32 sunxi_irq_hw_bank_num(const struct sunxi_pinctrl_desc *desc,
+ static inline u32 sunxi_irq_base_reg(const struct sunxi_pinctrl *pctl, u16 bank)
+ {
+ 	if (pctl->flags & SUNXI_PINCTRL_NCAT3_REG_LAYOUT)
+-		return pctl->bank_offset + bank * pctl->bank_mem_size +
+-		       A733_IRQ_REGS_OFFSET;
++		return pctl->bank_offset +
++		       sunxi_irq_hw_bank_num(pctl->desc, bank) *
++		       pctl->bank_mem_size + A733_IRQ_REGS_OFFSET;
+ 
+ 	return IRQ_REGS_OFFSET +
+ 	       sunxi_irq_hw_bank_num(pctl->desc, bank) * IRQ_MEM_SIZE;
+-- 
+2.53.0
+

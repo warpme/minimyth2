@@ -1,0 +1,41 @@
+From d2f90bcf71b692fbc87c8a5348cd9832ae88cf3b Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Wed, 2 Sep 2026 14:00:58 +0200
+Subject: [PATCH 025/211] clk: sunxi-ng: a733: mark the CPUS bus gate as
+ critical
+
+The ahb-cpus gate is the only way from the application processors into
+the CPUS domain, and nothing in the device tree claims it, so it goes
+away with the other unused clocks late in boot. From then on every access
+to that domain hangs the bus. The one that matters is TF-A's: the CPU
+power controller lives there, so the first PSCI CPU_OFF stops the whole
+machine, and the watchdog behind SYSTEM_RESET does the same.
+
+Keep the gate open, the way the A523 keeps its bus-r-cpucfg.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/clk/sunxi-ng/ccu-sun60i-a733.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+index ff64c35206..835737493f 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
++++ b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+@@ -510,8 +510,12 @@ static SUNXI_CCU_GATE_HWS(ahb_msi_lite0_clk, "ahb-msi-lite0", ahb_hws,
+ 			  0x5c0, BIT(16), 0);
+ static SUNXI_CCU_GATE_HWS(ahb_store_clk, "ahb-store", ahb_hws,
+ 			  0x5c0, BIT(24), CLK_IS_CRITICAL);
++/*
++ * This is the AP's only path into the CPUS domain, which holds the CPU power
++ * controller that the firmware drives for PSCI CPU_ON/CPU_OFF.
++ */
+ static SUNXI_CCU_GATE_HWS(ahb_cpus_clk, "ahb-cpus", ahb_hws,
+-			  0x5c0, BIT(28), 0);
++			  0x5c0, BIT(28), CLK_IS_CRITICAL);
+ 
+ static SUNXI_CCU_GATE_HWS(mbus_iommu0_clk, "mbus-iommu0", mbus_hws,
+ 			  0x5e0, BIT(0), 0);
+-- 
+2.53.0
+

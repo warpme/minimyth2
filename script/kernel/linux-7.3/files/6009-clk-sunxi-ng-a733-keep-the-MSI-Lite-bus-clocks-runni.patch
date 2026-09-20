@@ -1,0 +1,67 @@
+From a3e01d0395fdf98d8d0697f8323a3c793ba8adfd Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Wed, 2 Sep 2026 19:35:07 +0200
+Subject: [PATCH 041/211] clk: sunxi-ng: a733: keep the MSI-Lite bus clocks
+ running
+
+The MSI-Lite blocks are the bus fabric in front of GMAC0, DMAC0, CE, USB
+and PCIe. Nothing references their clocks, so clk_disable_unused() gates
+them and register accesses to the peripherals behind them return zeros:
+DMA transfers time out and the GMAC MDIO bus reads 0x0000 for every PHY
+register. Mark the MSI-Lite bus, AHB and MBUS gates as critical.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/clk/sunxi-ng/ccu-sun60i-a733.c | 19 +++++++++++++------
+ 1 file changed, 13 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+index 835737493f..747aff4fe8 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
++++ b/drivers/clk/sunxi-ng/ccu-sun60i-a733.c
+@@ -478,9 +478,16 @@ static SUNXI_CCU_GATE_HWS(mbus_iommu0_sys_clk, "mbus-iommu0-sys", mbus_hws, 0x58
+ static SUNXI_CCU_GATE_HWS(apb_iommu0_sys_clk, "apb-iommu0-sys", apb0_hws, 0x58c, BIT(1), 0);
+ static SUNXI_CCU_GATE_HWS(ahb_iommu0_sys_clk, "ahb-iommu0-sys", ahb_hws, 0x58c, BIT(2), 0);
+ 
+-static SUNXI_CCU_GATE_DATA(bus_msi_lite0_clk, "bus-msi-lite0", hosc, 0x594, BIT(0), 0);
+-static SUNXI_CCU_GATE_DATA(bus_msi_lite1_clk, "bus-msi-lite1", hosc, 0x59c, BIT(0), 0);
+-static SUNXI_CCU_GATE_DATA(bus_msi_lite2_clk, "bus-msi-lite2", hosc, 0x5a4, BIT(0), 0);
++/*
++ * The MSI-Lite blocks are the bus fabric in front of GMAC, DMA, CE, USB and
++ * PCIe. They have no driver, so keep their clocks running.
++ */
++static SUNXI_CCU_GATE_DATA(bus_msi_lite0_clk, "bus-msi-lite0", hosc,
++			   0x594, BIT(0), CLK_IS_CRITICAL);
++static SUNXI_CCU_GATE_DATA(bus_msi_lite1_clk, "bus-msi-lite1", hosc,
++			   0x59c, BIT(0), CLK_IS_CRITICAL);
++static SUNXI_CCU_GATE_DATA(bus_msi_lite2_clk, "bus-msi-lite2", hosc,
++			   0x5a4, BIT(0), CLK_IS_CRITICAL);
+ 
+ static SUNXI_CCU_GATE_HWS(mbus_iommu1_sys_clk, "mbus-iommu1-sys", mbus_hws, 0x5b4, BIT(0), 0);
+ static SUNXI_CCU_GATE_HWS(apb_iommu1_sys_clk, "apb_iommu1-sys", apb0_hws, 0x5b4, BIT(1), 0);
+@@ -507,7 +514,7 @@ static SUNXI_CCU_GATE_HWS(ahb_serdes_clk, "ahb-serdes", ahb_hws,
+ static SUNXI_CCU_GATE_HWS(ahb_usb_sys_clk, "ahb-usb-sys", ahb_hws,
+ 			  0x5c0, BIT(9), 0);
+ static SUNXI_CCU_GATE_HWS(ahb_msi_lite0_clk, "ahb-msi-lite0", ahb_hws,
+-			  0x5c0, BIT(16), 0);
++			  0x5c0, BIT(16), CLK_IS_CRITICAL);
+ static SUNXI_CCU_GATE_HWS(ahb_store_clk, "ahb-store", ahb_hws,
+ 			  0x5c0, BIT(24), CLK_IS_CRITICAL);
+ /*
+@@ -536,11 +543,11 @@ static SUNXI_CCU_GATE_HWS(mbus_vid_in_clk, "mbus-vid-in", mbus_hws,
+ static SUNXI_CCU_GATE_HWS(mbus_serdes_clk, "mbus-serdes", mbus_hws,
+ 			  0x5e0, BIT(28), 0);
+ static SUNXI_CCU_GATE_HWS(mbus_msi_lite0_clk, "mbus-msi-lite0", mbus_hws,
+-			  0x5e0, BIT(29), 0);
++			  0x5e0, BIT(29), CLK_IS_CRITICAL);
+ static SUNXI_CCU_GATE_HWS(mbus_store_clk, "mbus-store", mbus_hws,
+ 			  0x5e0, BIT(30), CLK_IS_CRITICAL);
+ static SUNXI_CCU_GATE_HWS(mbus_msi_lite2_clk, "mbus-msi-lite2", mbus_hws,
+-			  0x5e0, BIT(31), 0);
++			  0x5e0, BIT(31), CLK_IS_CRITICAL);
+ 
+ static SUNXI_CCU_GATE_HWS(mbus_dma0_clk, "mbus-dma0", mbus_hws,
+ 			  0x5e4, BIT(0), 0);
+-- 
+2.53.0
+

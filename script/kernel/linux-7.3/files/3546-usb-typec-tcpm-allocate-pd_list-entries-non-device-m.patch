@@ -1,0 +1,40 @@
+From f64560aae8398f7fea046ccf37a8c01b2695dde6 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Mon, 17 Aug 2026 17:40:34 +0200
+Subject: [PATCH 124/293] usb: typec: tcpm: allocate pd_list entries non device
+ managed
+
+The data is free'd manually, so there is no need for the device
+managed overhead. At the same time it conflicts when the TCPM
+itself is registered device managed (not yet supported).
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/usb/typec/tcpm/tcpm.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/usb/typec/tcpm/tcpm.c b/drivers/usb/typec/tcpm/tcpm.c
+index 63f2ff5e6..45ec23b69 100644
+--- a/drivers/usb/typec/tcpm/tcpm.c
++++ b/drivers/usb/typec/tcpm/tcpm.c
+@@ -8074,7 +8074,7 @@ static void tcpm_port_unregister_pd(struct tcpm_port *port)
+ 	for (i = 0; i < port->pd_count; i++) {
+ 		usb_power_delivery_unregister_capabilities(port->pd_list[i]->sink_cap);
+ 		usb_power_delivery_unregister_capabilities(port->pd_list[i]->source_cap);
+-		devm_kfree(port->dev, port->pd_list[i]);
++		kfree(port->pd_list[i]);
+ 		port->pd_list[i] = NULL;
+ 		usb_power_delivery_unregister(port->pds[i]);
+ 		port->pds[i] = NULL;
+@@ -8373,7 +8373,7 @@ static int tcpm_fw_get_caps(struct tcpm_port *port, struct fwnode_handle *fwnode
+ 	}
+ 
+ 	for (i = 0; i < port->pd_count; i++) {
+-		port->pd_list[i] = devm_kzalloc(port->dev, sizeof(struct pd_data), GFP_KERNEL);
++		port->pd_list[i] = kzalloc_obj(*port->pd_list[i]);
+ 		if (!port->pd_list[i]) {
+ 			ret = -ENOMEM;
+ 			goto put_capabilities;
+-- 
+2.53.0
+

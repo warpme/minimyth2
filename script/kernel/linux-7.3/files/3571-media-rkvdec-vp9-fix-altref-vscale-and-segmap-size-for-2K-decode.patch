@@ -1,0 +1,61 @@
+From efebff0d73440ca14aa2e046e7def2a53b67e1d0 Mon Sep 17 00:00:00 2001
+From: Sav <62543096+dongioia@users.noreply.github.com>
+Date: Tue, 7 Apr 2026 12:15:34 +0000
+Subject: [PATCH] media: rkvdec: vp9: fix altref vscale and segmap size for 2K+
+ decode
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Fix two bugs in the VP9 VDPU381 backend causing visual artifacts at
+resolutions above 1080p:
+
+1. Altref vertical scale register (reg93) was incorrectly set to hscale
+   instead of vscale — a copy-paste error from the horizontal scale
+   assignment. Cases 0 (lastref) and 1 (goldenref) correctly used vscale.
+   This caused incorrect reference frame scaling when the altref had
+   different dimensions, which VP9 streams commonly do at high resolutions.
+
+2. RKVDEC_VP9_MAX_SEGMAP_SIZE was 73728, only sufficient up to ~1440p.
+   At 4K (3840x2160) the required segmap is 130,560 bytes. Increased to
+   524288 to safely cover up to 8K, matching the VDPU381 declared max
+   resolution of 65472x65472.
+
+Tested on Rock 5B+ (RK3588) with Chromium V4L2 stateless decode.
+
+Fixes: fd0b1b17cbdf ("media: rkvdec: Add VP9 support for VDPU381 variant")
+Cc: D.V.A.B. Sarma <vdarbha0473@gmail.com>
+Signed-off-by: Sav <62543096+dongioia@users.noreply.github.com>
+(cherry picked from commit 75d2d8291849c9ff4591538b484be10f3794223f)
+---
+ .../platform/rockchip/rkvdec/rkvdec-vdpu381-vp9.c      | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-vp9.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-vp9.c
+index d8f0f5fa063d..4b593befd7c8 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-vp9.c
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-vp9.c
+@@ -31,7 +31,13 @@
+ 
+ #define RKVDEC_VP9_PROBE_SIZE		4864
+ #define RKVDEC_VP9_COUNT_SIZE		13208
+-#define RKVDEC_VP9_MAX_SEGMAP_SIZE	73728
++/*
++ * VP9 segmap size: ceil(width/64) * ceil(height/64) * 256 / 4
++ * For 4K (3840x2160): 60 * 34 * 64 = 130,560 bytes
++ * For 8K (7680x4320): 120 * 68 * 64 = 522,240 bytes
++ * Use 8K-safe value to cover all supported resolutions.
++ */
++#define RKVDEC_VP9_MAX_SEGMAP_SIZE	524288
+ 
+ struct rkvdec_vp9_intra_mode_probs {
+     u8 y_mode[105];
+@@ -706,7 +712,7 @@ static void config_registers(struct rkvdec_ctx *ctx,
+                 break;
+             case 2:
+                 regs->vp9_param.reg92.vp9_aref_hor_scale = hscale;
+-                regs->vp9_param.reg93.vp9_aref_ver_scale = hscale;
++                regs->vp9_param.reg93.vp9_aref_ver_scale = vscale;
+                 break;
+         }
+ 

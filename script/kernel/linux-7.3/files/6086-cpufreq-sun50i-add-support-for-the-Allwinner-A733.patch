@@ -1,0 +1,112 @@
+From 480db4dc2a14f27ac8c3e1332c2571503d2f5602 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Thu, 3 Sep 2026 10:48:00 +0200
+Subject: [PATCH 073/211] cpufreq: sun50i: add support for the Allwinner A733
+
+The A733 stores a DVFS code in bits 8-15 of its efuse word, with a copy
+in bits 16-23 that is used when the first field is blank. The vendor
+kernel maps the codes to nine voltage tables, which become the speed bin
+index here; the two codes without a table of their own share the one of
+their base code.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/cpufreq/cpufreq-dt-platdev.c   |  1 +
+ drivers/cpufreq/sun50i-cpufreq-nvmem.c | 48 ++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+)
+
+diff --git a/drivers/cpufreq/cpufreq-dt-platdev.c b/drivers/cpufreq/cpufreq-dt-platdev.c
+index 371ca1fe90..3aa71a366f 100644
+--- a/drivers/cpufreq/cpufreq-dt-platdev.c
++++ b/drivers/cpufreq/cpufreq-dt-platdev.c
+@@ -114,6 +114,7 @@ static const struct of_device_id blocklist[] __initconst = {
+ 	{ .compatible = "allwinner,sun50i-h616", },
+ 	{ .compatible = "allwinner,sun50i-h618", },
+ 	{ .compatible = "allwinner,sun50i-h700", },
++	{ .compatible = "allwinner,sun60i-a733", },
+ 
+ 	{ .compatible = "apple,arm-platform", },
+ 
+diff --git a/drivers/cpufreq/sun50i-cpufreq-nvmem.c b/drivers/cpufreq/sun50i-cpufreq-nvmem.c
+index 9261d148a1..16c9a7d88f 100644
+--- a/drivers/cpufreq/sun50i-cpufreq-nvmem.c
++++ b/drivers/cpufreq/sun50i-cpufreq-nvmem.c
+@@ -124,6 +124,46 @@ static u32 sun50i_h616_efuse_xlate(u32 speedbin)
+ 	return value;
+ }
+ 
++/*
++ * The A733 carries a DVFS code in bits 8-15 of its efuse word, with a copy in
++ * bits 16-23 that is used when the first one is blank. The vendor kernel maps
++ * the codes to nine voltage tables; codes 0x11 and 0x12 have no table of their
++ * own there and share the one of 0x01 and 0x02 respectively.
++ */
++static u32 sun60i_a733_efuse_xlate(u32 speedbin)
++{
++	u32 code = (speedbin >> 8) & 0xff;
++
++	if (!code)
++		code = (speedbin >> 16) & 0xff;
++
++	switch (code) {
++	case 0x00:
++		return 0;
++	case 0x01:
++	case 0x11:
++		return 1;
++	case 0x02:
++	case 0x12:
++		return 2;
++	case 0x03:
++		return 3;
++	case 0x04:
++		return 4;
++	case 0x14:
++		return 5;
++	case 0x05:
++		return 6;
++	case 0x15:
++		return 7;
++	case 0x06:
++		return 8;
++	default:
++		pr_warn("unknown DVFS code 0x%x, using table 0\n", code);
++		return 0;
++	}
++}
++
+ static struct sunxi_cpufreq_data sun50i_h6_cpufreq_data = {
+ 	.efuse_xlate = sun50i_h6_efuse_xlate,
+ };
+@@ -136,6 +176,10 @@ static struct sunxi_cpufreq_data sun50i_h616_cpufreq_data = {
+ 	.efuse_xlate = sun50i_h616_efuse_xlate,
+ };
+ 
++static struct sunxi_cpufreq_data sun60i_a733_cpufreq_data = {
++	.efuse_xlate = sun60i_a733_efuse_xlate,
++};
++
+ static const struct of_device_id cpu_opp_match_list[] = {
+ 	{ .compatible = "allwinner,sun50i-h6-operating-points",
+ 	  .data = &sun50i_h6_cpufreq_data,
+@@ -146,6 +190,9 @@ static const struct of_device_id cpu_opp_match_list[] = {
+ 	{ .compatible = "allwinner,sun50i-h616-operating-points",
+ 	  .data = &sun50i_h616_cpufreq_data,
+ 	},
++	{ .compatible = "allwinner,sun60i-a733-operating-points",
++	  .data = &sun60i_a733_cpufreq_data,
++	},
+ 	{}
+ };
+ 
+@@ -327,6 +374,7 @@ static const struct of_device_id sun50i_cpufreq_match_list[] = {
+ 	{ .compatible = "allwinner,sun50i-h616" },
+ 	{ .compatible = "allwinner,sun50i-h618" },
+ 	{ .compatible = "allwinner,sun50i-h700" },
++	{ .compatible = "allwinner,sun60i-a733" },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, sun50i_cpufreq_match_list);
+-- 
+2.53.0
+

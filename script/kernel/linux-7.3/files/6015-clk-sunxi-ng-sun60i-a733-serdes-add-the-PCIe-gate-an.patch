@@ -1,0 +1,108 @@
+From 1a0b6dabfe145a16fc0766171d15405322a37e47 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Thu, 3 Sep 2026 07:01:31 +0200
+Subject: [PATCH 058/211] clk: sunxi-ng: sun60i-a733-serdes: add the PCIe gate
+ and register a syscon
+
+The three PCIe gating bits are always switched together, so model them
+as one gate. Register the register block as a syscon from the driver,
+because the generic syscon path cannot map a region a clock driver
+already claimed.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/clk/sunxi-ng/ccu-sun60i-a733-serdes.c | 28 ++++++++++++++++++-
+ 1 file changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun60i-a733-serdes.c b/drivers/clk/sunxi-ng/ccu-sun60i-a733-serdes.c
+index a22df6bfea..dd516c0bad 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun60i-a733-serdes.c
++++ b/drivers/clk/sunxi-ng/ccu-sun60i-a733-serdes.c
+@@ -5,8 +5,10 @@
+ 
+ #include <linux/clk.h>
+ #include <linux/clk-provider.h>
++#include <linux/mfd/syscon.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
++#include <linux/regmap.h>
+ #include <linux/reset.h>
+ 
+ #include <dt-bindings/clock/sun60i-a733-serdes-ccu.h>
+@@ -18,6 +20,7 @@
+ #include "ccu_gate.h"
+ #include "ccu_mux.h"
+ 
++#define SERDES_PCIE_BGR_REG	0x04
+ #define SERDES_USB3_BGR_REG	0x08
+ 
+ static const struct clk_parent_data ahb_parent[] = {
+@@ -28,6 +31,10 @@ static const struct clk_parent_data mbus_parent[] = {
+ 	{ .fw_name = "mbus" },
+ };
+ 
++/* One gate covers the PCIe controller's AHB, AXI and auxiliary clocks. */
++static SUNXI_CCU_GATE_DATA(pcie_clk, "pcie", ahb_parent,
++			   SERDES_PCIE_BGR_REG, GENMASK(18, 16), 0);
++
+ static SUNXI_CCU_GATE_DATA(usb3_hclk_clk, "usb3-hclk", ahb_parent,
+ 			   SERDES_USB3_BGR_REG, BIT(16), 0);
+ static SUNXI_CCU_GATE_DATA(usb3_aclk_clk, "usb3-aclk", mbus_parent,
+@@ -49,6 +56,7 @@ static struct ccu_common *sun60i_a733_serdes_ccu_clks[] = {
+ 	&usb3_hclk_clk.common,
+ 	&usb3_aclk_clk.common,
+ 	&usb3_pipe_clk.common,
++	&pcie_clk.common,
+ };
+ 
+ static struct clk_hw_onecell_data sun60i_a733_serdes_hw_clks = {
+@@ -56,8 +64,9 @@ static struct clk_hw_onecell_data sun60i_a733_serdes_hw_clks = {
+ 		[CLK_SERDES_USB3_HCLK]	= &usb3_hclk_clk.common.hw,
+ 		[CLK_SERDES_USB3_ACLK]	= &usb3_aclk_clk.common.hw,
+ 		[CLK_SERDES_USB3_PIPE]	= &usb3_pipe_clk.common.hw,
++		[CLK_SERDES_PCIE]	= &pcie_clk.common.hw,
+ 	},
+-	.num = CLK_SERDES_USB3_PIPE + 1,
++	.num = CLK_SERDES_PCIE + 1,
+ };
+ 
+ static struct ccu_reset_map sun60i_a733_serdes_ccu_resets[] = {
+@@ -74,11 +83,19 @@ static const struct sunxi_ccu_desc sun60i_a733_serdes_ccu_desc = {
+ 	.num_resets	= ARRAY_SIZE(sun60i_a733_serdes_ccu_resets),
+ };
+ 
++static const struct regmap_config sun60i_a733_serdes_regmap_config = {
++	.reg_bits	= 32,
++	.val_bits	= 32,
++	.reg_stride	= 4,
++	.max_register	= 0x3fc,
++};
++
+ static int sun60i_a733_serdes_ccu_probe(struct platform_device *pdev)
+ {
+ 	struct device *dev = &pdev->dev;
+ 	struct reset_control *rst;
+ 	struct clk_bulk_data *clks;
++	struct regmap *regmap;
+ 	void __iomem *reg;
+ 	int ret, num;
+ 
+@@ -86,6 +103,15 @@ static int sun60i_a733_serdes_ccu_probe(struct platform_device *pdev)
+ 	if (IS_ERR(reg))
+ 		return PTR_ERR(reg);
+ 
++	/* The combo PHY driver pokes a few of the subsystem registers. */
++	regmap = devm_regmap_init_mmio(dev, reg, &sun60i_a733_serdes_regmap_config);
++	if (IS_ERR(regmap))
++		return PTR_ERR(regmap);
++
++	ret = of_syscon_register_regmap(dev->of_node, regmap);
++	if (ret)
++		return dev_err_probe(dev, ret, "failed to register the syscon\n");
++
+ 	num = devm_clk_bulk_get_all_enabled(dev, &clks);
+ 	if (num < 0)
+ 		return dev_err_probe(dev, num, "failed to enable the bus clocks\n");
+-- 
+2.53.0
+
