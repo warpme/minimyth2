@@ -1,0 +1,119 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request.c mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request.c
+index 36eec85..81ad4d4 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request.c
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request.c
+@@ -146,8 +146,10 @@ static int v4l2_request_queue_buffer(V4L2RequestContext *ctx,
+     // Mark the buffer as queued
+     if (V4L2_TYPE_IS_OUTPUT(buffer->type))
+         ctx->queued_output |= 1 << buffer->index;
+-    else
++    else {
+         ctx->queued_capture |= 1 << buffer->index;
++        ctx->capture_error &= ~(UINT64_C(1) << buffer->index);
++    }
+ 
+     return 0;
+ }
+@@ -200,8 +202,11 @@ static int v4l2_request_dequeue_buffer(V4L2RequestContext *ctx,
+     // Mark the buffer as dequeued
+     if (V4L2_TYPE_IS_OUTPUT(buffer.type))
+         ctx->queued_output &= ~(1 << buffer.index);
+-    else
++    else {
+         ctx->queued_capture &= ~(1 << buffer.index);
++        if (buffer.flags & V4L2_BUF_FLAG_ERROR)
++            ctx->capture_error |= UINT64_C(1) << buffer.index;
++    }
+ 
+     return 0;
+ }
+@@ -218,7 +223,8 @@ static inline int v4l2_request_dequeue_completed_buffers(V4L2RequestContext *ctx
+     return ret;
+ }
+ 
+-static int v4l2_request_wait_on_capture(V4L2RequestContext *ctx, uint32_t index)
++static int v4l2_request_wait_on_capture(V4L2RequestContext *ctx, uint32_t index,
++                                        bool *decode_error)
+ {
+     enum v4l2_buf_type type = ctx->fctxi->capture.format.type;
+     struct pollfd pollfd = {
+@@ -228,6 +234,9 @@ static int v4l2_request_wait_on_capture(V4L2RequestContext *ctx, uint32_t index)
+ 
+     ff_mutex_lock(&ctx->mutex);
+ 
++    if (decode_error)
++        *decode_error = false;
++
+     // Dequeue all completed CAPTURE buffers
+     if (ctx->queued_capture)
+         v4l2_request_dequeue_completed_buffers(ctx, type);
+@@ -243,6 +252,8 @@ static int v4l2_request_wait_on_capture(V4L2RequestContext *ctx, uint32_t index)
+             goto fail;
+     }
+ 
++    if (decode_error)
++        *decode_error = !!(ctx->capture_error & (UINT64_C(1) << index));
+     ff_mutex_unlock(&ctx->mutex);
+     return 0;
+ 
+@@ -371,7 +382,7 @@ static int v4l2_request_queue_decode(AVCodecContext *avctx,
+          * FFmpeg may reuse an AVFrame early, i.e. when no output frame was
+          * produced prior time, and a synchronization is necessary.
+          */
+-        ret = v4l2_request_wait_on_capture(ctx, pic->capture_index);
++        ret = v4l2_request_wait_on_capture(ctx, pic->capture_index, NULL);
+         if (ret < 0)
+             return ret;
+     }
+@@ -495,9 +506,18 @@ static int v4l2_request_post_process(void *logctx, AVFrame *frame)
+     uint32_t index = v4l2_request_frameindex(frame);
+     FrameDecodeData *fdd = frame->private_ref;
+     V4L2RequestContext *ctx = fdd->hwaccel_priv;
++    bool decode_error;
++    int ret;
+ 
+     // Wait on CAPTURE buffer before returning the frame to application
+-    return v4l2_request_wait_on_capture(ctx, index);
++    ret = v4l2_request_wait_on_capture(ctx, index, &decode_error);
++    if (ret < 0)
++        return ret;
++    if (decode_error) {
++        av_log(logctx, AV_LOG_ERROR, "driver decode error\n");
++        frame->decode_error_flags |= FF_DECODE_ERROR_INVALID_BITSTREAM;
++    }
++    return 0;
+ }
+ 
+ int ff_v4l2_request_reset_picture(AVCodecContext *avctx, V4L2RequestPictureContext *pic)
+@@ -527,7 +547,7 @@ int ff_v4l2_request_start_frame(AVCodecContext *avctx,
+         return ret;
+ 
+     // Ensure CAPTURE buffer is dequeued before reuse
+-    ret = v4l2_request_wait_on_capture(ctx, index);
++    ret = v4l2_request_wait_on_capture(ctx, index, NULL);
+     if (ret)
+         return ret;
+ 
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request.h mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request.h
+index 53759f2..135a458 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request.h
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request.h
+@@ -50,6 +50,7 @@ typedef struct V4L2RequestContext {
+     uint32_t queued_output;
+     uint32_t queued_request;
+     uint64_t queued_capture;
++    uint64_t capture_error;
+     struct v4l2_ext_control *init_controls;
+     int nb_init_controls;
+ } V4L2RequestContext;
+--
+
+MiniMyth2
+

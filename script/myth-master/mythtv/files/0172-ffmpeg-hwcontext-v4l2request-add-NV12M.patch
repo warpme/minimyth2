@@ -1,0 +1,52 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
+@@ -66,6 +66,9 @@
+     uint32_t bit_depth;
+ } v4l2request_capture_pixelformats[] = {
+     { V4L2_PIX_FMT_NV12, AV_PIX_FMT_NV12, DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, 8 },
++#if defined(V4L2_PIX_FMT_NV12M)
++    { V4L2_PIX_FMT_NV12M, AV_PIX_FMT_NV12, DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, 8 },
++#endif
+ #if defined(V4L2_PIX_FMT_NV12_32L32)
+     { V4L2_PIX_FMT_NV12_32L32, AV_PIX_FMT_YUV420P, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED, 8 },
+ #endif
+@@ -162,6 +165,15 @@
+         layer->planes[1].pitch = layer->planes[0].pitch;
+     }
+ 
++#if defined(V4L2_PIX_FMT_NV12M)
++    // NV12M holds each plane in a separate buffer, not at an offset into one
++    if (pixelformat == V4L2_PIX_FMT_NV12M) {
++        layer->planes[1].object_index = 1;
++        layer->planes[1].offset = 0;
++        layer->planes[1].pitch = format->fmt.pix_mp.plane_fmt[1].bytesperline;
++    }
++#endif
++
+ #if defined(V4L2_PIX_FMT_NV12MT_COL128) && defined(V4L2_PIX_FMT_NV12MT_10_COL128)
+     // Raspberry Pi formats need special handling
+     if (pixelformat == V4L2_PIX_FMT_NV12MT_COL128 ||
+@@ -237,6 +249,12 @@
+         format.fmt.pix_mp.pixelformat = pixelformat;
+         format.fmt.pix_mp.plane_fmt[0].sizeimage = buffersize;
+         format.fmt.pix_mp.num_planes = 1;
++#if defined(V4L2_PIX_FMT_NV12M)
++        if (pixelformat == V4L2_PIX_FMT_NV12M) {
++            format.fmt.pix_mp.num_planes = 2;
++            format.fmt.pix_mp.plane_fmt[1].sizeimage = 0;
++        }
++#endif
+     } else {
+         format.fmt.pix.width = hwfc->width;
+         format.fmt.pix.height = hwfc->height;
+--
+
+MiniMyth2
+
