@@ -22,8 +22,10 @@ checksum-$(DISTNAME).tar.bz2:
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/meson/vdec
-	@cp -Rdf $(WORKSRC)/g12a_h264_multi.bin $(DESTDIR)$(elibdir)/firmware/meson/vdec/
+	@cp -Rdf $(WORKSRC)/g12a_h264_multi.bin  $(DESTDIR)$(elibdir)/firmware/meson/vdec/
+	@cp -Rdf $(WORKSRC)/gxl_mpeg12_multi.bin $(DESTDIR)$(elibdir)/firmware/meson/vdec/
 	@$(MAKECOOKIE)
 
 clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/g12a_h264_multi.bin
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/gxl_mpeg12_multi.bin
