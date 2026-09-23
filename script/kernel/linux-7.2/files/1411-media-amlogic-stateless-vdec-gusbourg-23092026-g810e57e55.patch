@@ -1,6 +1,13 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.c linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.c	2026-09-23 08:36:19.000000000 +0200
 @@ -4,22 +4,64 @@
   * Author: Maxime Jourdan <mjourdan@baylibre.com>
   */
@@ -303,7 +310,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	/* Buffer for the H.264 references MV */
  	void      *ref_vaddr;
-@@ -140,6 +399,78 @@
+@@ -140,6 +399,81 @@
  	void      *sei_vaddr;
  	dma_addr_t sei_paddr;
  
@@ -340,7 +347,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	struct h264_slice_refs multi_request_picture;
 +	bool multi_geometry_valid;
 +	u32 multi_geometry_width_mbs, multi_geometry_height_mbs;
-+	const u8 *multi_slice_data; /* retained OUTPUT; immutable until completion */
++	const u8 *multi_slice_data; /* cached copy of the AU; immutable until completion */
++	u8        *multi_src_vaddr;  /* the OUTPUT buffer itself, which the VLD reads */
++	u8        *scan_copy;        /* see codec_h264_scan_copy() */
++	u32        scan_copy_size;
 +	u32 multi_slice_size, multi_slice_cursor, multi_slice_count;
 +	u32 multi_slice_type_mask, multi_slice_mv_offset;
 +	bool multi_slice_uniform;
@@ -382,7 +392,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	u32 mb_width;
  	u32 mb_height;
  	u32 max_refs;
-@@ -147,6 +478,15 @@
+@@ -147,6 +481,15 @@
  
  static int codec_h264_can_recycle(struct amvdec_core *core)
  {
@@ -398,7 +408,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	return !amvdec_read_dos(core, AV_SCRATCH_7) ||
  	       !amvdec_read_dos(core, AV_SCRATCH_8);
  }
-@@ -161,6 +501,1998 @@
+@@ -161,6 +504,2001 @@
  		amvdec_write_dos(core, AV_SCRATCH_7, buf_idx + 1);
  	else
  		amvdec_write_dos(core, AV_SCRATCH_8, buf_idx + 1);
@@ -1251,13 +1261,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	struct amvdec_core *core = sess->core;
 +	u32 now_crc;
 +
-+	if (!h264 || h264->multi_poison_warned || !h264->multi_slice_data ||
++	if (!h264 || h264->multi_poison_warned || !h264->multi_src_vaddr ||
 +	    h264->multi_pic_count != 1 || status != H264_SEARCH_BUFEMPTY ||
 +	    bit_count || !level)
 +		return;
 +
 +	h264->multi_poison_warned = true;
-+	now_crc = crc32_le(0, h264->multi_slice_data, h264->multi_src_payload);
++	/* The queue-time CRC came from the copy, which equalled the OUTPUT
++	 * buffer then; compare against the OUTPUT buffer as it is now.
++	 */
++	now_crc = crc32_le(0, h264->multi_src_vaddr, h264->multi_src_payload);
 +	dev_warn(core->dev_dec,
 +		 "H264_MULTI_POISON first-picture status=%#x bit_count=%#x level=%#x src=%pad payload=%u crc_queue=%08x crc_now=%08x workspace=%pad lmem=%pad aux=%pad colocate=%pad ext=%pad start=%#x rp=%#x wp=%#x\n",
 +		 status, bit_count, level, &h264->multi_src_dma,
@@ -2397,7 +2410,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  
  static int codec_h264_start(struct amvdec_session *sess)
-@@ -168,10 +2500,20 @@
+@@ -168,10 +2506,20 @@
  	u32 workspace_offset;
  	struct amvdec_core *core = sess->core;
  	struct codec_h264 *h264 = sess->priv;
@@ -2419,7 +2432,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  				   &h264->workspace_paddr, GFP_KERNEL);
  	if (!h264->workspace_vaddr)
  		return -ENOMEM;
-@@ -182,13 +2524,95 @@
+@@ -182,13 +2530,95 @@
  	if (!h264->sei_vaddr)
  		return -ENOMEM;
  
@@ -2518,7 +2531,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	/* Enable "error correction" */
  	amvdec_write_dos(core, AV_SCRATCH_F,
-@@ -197,6 +2621,22 @@
+@@ -197,6 +2627,22 @@
  
  	amvdec_write_dos(core, MDEC_PIC_DC_THRESH, 0x404038aa);
  
@@ -2541,7 +2554,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	return 0;
  }
  
-@@ -205,12 +2645,33 @@
+@@ -205,12 +2651,33 @@
  	struct codec_h264 *h264 = sess->priv;
  	struct amvdec_core *core = sess->core;
  
@@ -2577,7 +2590,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  				  h264->workspace_vaddr, h264->workspace_paddr);
  
  	if (h264->ref_vaddr)
-@@ -221,23 +2682,53 @@
+@@ -221,31 +2688,88 @@
  		dma_free_coherent(core->dev, SIZE_SEI,
  				  h264->sei_vaddr, h264->sei_paddr);
  
@@ -2635,7 +2648,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  						&h264->ext_fw_paddr,
  						GFP_KERNEL);
  	if (!h264->ext_fw_vaddr) {
-@@ -245,7 +2736,33 @@
++		kvfree(h264->scan_copy);
+ 		kfree(h264);
  		return -ENOMEM;
  	}
  
@@ -2670,7 +2684,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	sess->priv = h264;
  
  	return 0;
-@@ -282,18 +2799,129 @@
+@@ -282,18 +2806,129 @@
  	sess->pixelaspect = par_table[ar_idc];
  }
  
@@ -2805,7 +2819,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	/* Align to a multiple of 4 macroblocks */
  	mb_width = ALIGN(h264->mb_width, 4);
-@@ -314,7 +2942,7 @@
+@@ -314,7 +2949,7 @@
  	amvdec_write_dos(core, AV_SCRATCH_4, h264->ref_paddr + h264->ref_size);
  
  	amvdec_write_dos(core, AV_SCRATCH_0, (h264->max_refs << 24) |
@@ -2814,7 +2828,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  					     ((h264->max_refs - 1) << 8));
  }
  
-@@ -337,6 +2965,11 @@
+@@ -337,6 +2972,11 @@
  	mb_total = (parsed_info >> MB_TOTAL_BIT) & MB_TOTAL_MASK;
  	/* Number of macroblocks per line */
  	h264->mb_width = parsed_info & MB_WIDTH_MASK;
@@ -2826,7 +2840,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	/* Number of macroblock lines */
  	h264->mb_height = mb_total / h264->mb_width;
  
-@@ -346,14 +2979,31 @@
+@@ -346,14 +2986,31 @@
  	crop_bottom = (crop_infor & 0xff);
  	crop_right = (crop_infor >> 16) & 0xff;
  
@@ -2859,7 +2873,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  
  /*
-@@ -382,7 +3032,7 @@
+@@ -382,7 +3039,7 @@
  	error_count = amvdec_read_dos(core, AV_SCRATCH_D);
  	num_frames = (status >> 8) & 0xff;
  	if (error_count) {
@@ -2868,7 +2882,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  			 "decoder error(s) happened, count %d\n", error_count);
  		amvdec_write_dos(core, AV_SCRATCH_D, 0);
  	}
-@@ -404,6 +3054,9 @@
+@@ -404,12 +3061,16 @@
  			dev_dbg(core->dev, "Buffer %d decode error\n",
  				buffer_index);
  
@@ -2878,7 +2892,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		if (pic_struct == PIC_TOP_BOT)
  			field = V4L2_FIELD_INTERLACED_TB;
  		else if (pic_struct == PIC_BOT_TOP)
-@@ -417,12 +3070,196 @@
+ 			field = V4L2_FIELD_INTERLACED_BT;
+ 
+ 		offset |= get_offset_msb(core, i);
++		amvdec_trace(sess, AMVDEC_TR_DONE, offset, buffer_index, field);
+ 		amvdec_dst_buf_done_idx(sess, buffer_index, offset, field);
+ 	}
+ }
+@@ -417,12 +3078,201 @@
  static irqreturn_t codec_h264_threaded_isr(struct amvdec_session *sess)
  {
  	struct amvdec_core *core = sess->core;
@@ -2894,6 +2915,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		u32 bit_count = amvdec_read_dos(core, VIFF_BIT_CNT);
 +
 +		status = amvdec_read_dos(core, DPB_STATUS_REG);
++		amvdec_trace(sess, AMVDEC_TR_IRQ, status, level, bit_count);
 +		dev_dbg(core->dev,
 +			 "H264 multi status: time_ns=%llu irq=%u status=%#04x level=%#x wp=%#x rp=%#x bits=%#x\n",
 +			 (unsigned long long)ktime_get_ns(),
@@ -2986,12 +3008,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +				}
 +				action = H264_ACTION_DECODE_SLICE;
 +			}
++			amvdec_trace(sess, AMVDEC_TR_KICK, action, status, 0);
 +			amvdec_write_dos_action(core, DPB_STATUS_REG, action);
 +			dev_dbg(core->dev_dec,
 +				 "H264 multi reply: status=%#04x action=%#04x\n",
 +				 status, action);
 +		} else if (status == H264_PIC_DATA_DONE) {
 +			u32 mby_mbx = amvdec_read_dos(core, H264_MBY_MBX);
++
++			amvdec_trace(sess, AMVDEC_TR_DONE, status,
++				     h264->multi_pic_vb2_idx, mby_mbx);
 +			u32 decoded_mbs = ((mby_mbx & 0xff) + 1) *
 +					  (((mby_mbx >> 8) & 0xff) + 1);
 +			u32 expected_mb_width = h264->multi_sps.pic_width_in_mbs_minus1 + 1;
@@ -3075,7 +3101,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	switch (cmd) {
  	case CMD_SRC_CHANGE:
-@@ -432,21 +3269,21 @@
+@@ -432,21 +3282,21 @@
  		codec_h264_frames_ready(sess, status);
  		break;
  	case CMD_FATAL_ERROR:
@@ -3101,7 +3127,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		break;
  	}
  
-@@ -472,10 +3309,453 @@
+@@ -472,10 +3322,494 @@
  	return IRQ_WAKE_THREAD;
  }
  
@@ -3243,6 +3269,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +				 dst->field, h264->multi_pic_top_poc, h264->multi_pic_bottom_poc);
 +		dst->sequence = sess->sequence_cap++;
 +		v4l2_m2m_buf_done(dst, VB2_BUF_STATE_DONE);
++		amvdec_trace(sess, AMVDEC_TR_SIGNAL, dst->vb2_buf.index, 0, 0);
 +		dev_dbg(core->dev_dec, "H264_MULTI_DONE vb2=%u ts=%llu\n",
 +			dst->vb2_buf.index, dst->vb2_buf.timestamp);
 +	} else if (!dst) {
@@ -3321,6 +3348,44 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	}
 +}
 +
++/*
++ * OUTPUT buffers are allocated coherent, and nothing the driver can do at
++ * queue init changes that: vb2 resets non_coherent_mem at every REQBUFS to
++ * whatever userspace asked for, and players do not ask. On this
++ * non-coherent SoC the kernel therefore sees every access unit through an
++ * uncached mapping, where a byte load costs about 125 ns.
++ *
++ * The H.264 path parses each access unit in software four times - request
++ * preflight, first-slice search, frame preflight and the per-slice walk in
++ * the slice-head interrupt - all one byte at a time. At 1080p that was
++ * 13 ms of the 15 ms spent between pictures, and the reason 1080p60 H.264
++ * could not play: 45 fps against a 7 ms hardware decode.
++ *
++ * Copy the access unit once, with the wide loads memcpy() uses, into
++ * ordinary cached memory and parse the copy. The hardware still reads the
++ * OUTPUT buffer, and the driver's writes into it still go there directly.
++ * Only one access unit is in flight, so one buffer per session serves the
++ * pre-feed parse and the decode that follows it. Falls back to the source
++ * if the copy cannot be allocated, which is slow but correct.
++ */
++const u8 *codec_h264_scan_copy(struct amvdec_session *sess, const u8 *src,
++			       u32 len, u32 cap)
++{
++	struct codec_h264 *h264 = sess->priv;
++
++	if (!h264 || !src || !len || len > cap)
++		return src;
++	if (cap > h264->scan_copy_size) {
++		kvfree(h264->scan_copy);
++		h264->scan_copy = kvmalloc(cap, GFP_KERNEL);
++		h264->scan_copy_size = h264->scan_copy ? cap : 0;
++		if (!h264->scan_copy)
++			return src;
++	}
++	memcpy(h264->scan_copy, src, len);
++	return h264->scan_copy;
++}
++
 +int codec_h264_multi_feed_buffer(struct amvdec_session *sess,
 +				 struct vb2_buffer *vb)
 +{
@@ -3337,7 +3402,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	    !IS_ALIGNED(src_dma, VDEC_FIFO_ALIGN))
 +		return -EINVAL;
 +	/* Headers have been synthesized already; retain the actual DMA payload. */
-+	h264->multi_slice_data = vb2_plane_vaddr(vb, 0);
++	h264->multi_src_vaddr = vb2_plane_vaddr(vb, 0);
++	h264->multi_slice_data = codec_h264_scan_copy(sess, h264->multi_src_vaddr,
++						      payload, vb2_plane_size(vb, 0));
 +	h264->multi_slice_size = payload;
 +	h264->multi_slice_cursor = 0;
 +	h264->multi_slice_count = 0;
@@ -3361,7 +3428,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	/* The vendor clears padding on every frame-block fill. Never expose
 +	 * bytes left by an earlier OUTPUT when VLD reads beyond this payload.
 +	 */
-+	memset((u8 *)h264->multi_slice_data + payload, 0, VLD_PADDING_SIZE);
++	memset(h264->multi_src_vaddr + payload, 0, VLD_PADDING_SIZE);
 +	dma_sync_single_for_device(core->dev, src_dma + payload,
 +				   VLD_PADDING_SIZE, DMA_TO_DEVICE);
 +
@@ -3558,8 +3625,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	.can_recycle = codec_h264_can_recycle,
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.h	2026-09-20 16:35:01.000000000 +0200
-@@ -7,8 +7,49 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264.h	2026-09-23 08:36:19.000000000 +0200
+@@ -7,8 +7,51 @@
  #ifndef __MESON_VDEC_CODEC_H264_H_
  #define __MESON_VDEC_CODEC_H264_H_
  
@@ -3585,6 +3652,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +void codec_h264_multi_hold_src(struct amvdec_session *sess,
 +			       struct vb2_v4l2_buffer *vbuf);
 +
++const u8 *codec_h264_scan_copy(struct amvdec_session *sess, const u8 *src,
++			       u32 len, u32 cap);
 +int codec_h264_multi_feed_buffer(struct amvdec_session *sess,
 +				 struct vb2_buffer *vb);
 +
@@ -3611,7 +3680,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_refs.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_refs.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_refs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_refs.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_refs.h	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,210 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +#ifndef __MESON_VDEC_CODEC_H264_REFS_H_
@@ -3825,7 +3894,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_synth.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_synth.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_synth.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_synth.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_h264_synth.h	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,1104 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +#ifndef __MESON_VDEC_CODEC_H264_SYNTH_H_
@@ -4933,8 +5002,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.c linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.c	2026-09-20 16:35:01.000000000 +0200
-@@ -0,0 +1,3367 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.c	2026-09-23 08:36:19.000000000 +0200
+@@ -0,0 +1,3500 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <mjourdan@baylibre.com>
@@ -5071,6 +5140,13 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#define HEVC_SLICE_DECODING                  0x6
 +#define HEVC_NAL_UNIT_SEI                    0x7
 +#define HEVC_SLICE_SEGMENT_DONE              0x8
++/*
++ * The firmware has consumed everything the VIFIFO holds and is waiting for
++ * more input.  Not an error: the feed worker is writing the next access unit
++ * concurrently, and the firmware resumes on its own once the data lands.
++ */
++#define HEVC_DECODE_BUFEMPTY                 0x20
++#define HEVC_SEARCH_BUFEMPTY                 0x22
 +#define HEVC_NAL_SEARCH_DONE                 0x9
 +#define HEVC_DECPIC_DATA_DONE                0xa
 +#define HEVC_DECPIC_DATA_ERROR               0xb
@@ -5304,6 +5380,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	bool ws_cached;
 +	bool request_mode, request_size, request_parked;
 +	u32 request_origin;
++	/* Set when the shifter has grown enough that the next endpoint could
++	 * cross 0x80000000; acted on between pictures, with nothing queued.
++	 */
++	bool restream_pending;
 +};
 +
 +static void codec_hevc_stall_arm(struct codec_hevc *hevc);
@@ -5971,6 +6051,73 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +
 +static void codec_hevc_stall_work(struct work_struct *work);
 +static void codec_hevc_drain_timeout(struct work_struct *work);
++
++/*
++ * The request path publishes cumulative stream positions. The firmware stops
++ * decoding once a request's end crosses 0x80000000: it answers a published
++ * endpoint with HEVC_NAL_DECODE_DONE (0x0e) and consumes nothing, which the
++ * host sees as B31_C1 non-picture-done. Reproduced on a VIM3 at frame 39464 of
++ * a looped 4K HEVC session, exactly at the first endpoint above 0x80000000.
++ * The vendor never reaches that range: in frame-based mode it writes
++ * HEVC_SHIFT_BYTE_COUNT = 0 and a per-frame HEVC_DECODE_SIZE before every
++ * frame. Do the same between pictures, while the firmware is parked, and keep
++ * the host's cumulative positions by tracking what was subtracted.
++ */
++static unsigned int hevc_rebase_mib = 1024;
++module_param(hevc_rebase_mib, uint, 0644);
++MODULE_PARM_DESC(hevc_rebase_mib,
++		 "Rebase HEVC stream positions once the shifter passes this many MiB (0 disables)");
++
++/*
++ * Rebasing the counter under a running firmware does not work: writing
++ * HEVC_SHIFT_BYTE_COUNT while the firmware is merely parked - with or without
++ * a stream-block reset, wide or narrow mask - made it skip almost every
++ * following picture (B47 attempts 1-3). The vendor only ever writes that
++ * counter as part of restarting its decode loop: in frame-based mode
++ * vh265.c re-runs its whole protocol init (vh265_hw_ctx_restore ->
++ * vh265_prot_init) before every frame.
++ *
++ * So do the same thing once, at a quiet boundary: halt the firmware, reset the
++ * stream engine, reload and restart it, and reset the host's cumulative
++ * positions to match. Requests are self-contained in stateless mode - each one
++ * carries its own references - so the decode continues across the restart.
++ */
++void codec_hevc_arm_restream(struct amvdec_session *sess)
++{
++	struct codec_hevc *hevc = sess->priv;
++	struct amvdec_core *core = sess->core;
++
++	if (!hevc || !hevc->request_mode || !hevc_rebase_mib)
++		return;
++	if (amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT) < (hevc_rebase_mib << 20))
++		return;
++	hevc->restream_pending = true;
++}
++
++bool codec_hevc_restream_pending(struct amvdec_session *sess)
++{
++	struct codec_hevc *hevc = sess->priv;
++
++	return hevc && hevc->restream_pending;
++}
++
++/* Re-arm the codec after the core has been reset and the firmware restarted. */
++int codec_hevc_restream_reinit(struct amvdec_session *sess)
++{
++	struct codec_hevc *hevc = sess->priv;
++	struct amvdec_core *core = sess->core;
++
++	codec_hevc_hw_init(sess);
++	if (codec_hevc_setup_buffers(sess, &hevc->common, hevc->is_10bit))
++		return -EIO;
++	codec_hevc_setup_workspace(sess, hevc);
++	codec_hevc_setup_decode_head(sess, hevc->is_10bit);
++	amvdec_write_dos(core, HEVC_DECODE_SIZE, 0);
++	hevc->request_origin = 0;
++	hevc->request_parked = false;
++	hevc->restream_pending = false;
++	return 0;
++}
 +
 +static int codec_hevc_start(struct amvdec_session *sess)
 +{
@@ -7956,8 +8103,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	    !param->p.pic_height_in_luma_samples)
 +		return 0;
 +
-+	if (param->p.pic_width_in_luma_samples < 256 ||
-+	    param->p.pic_height_in_luma_samples < 144) {
++	if (param->p.pic_width_in_luma_samples <
++		amvdec_min_coded_width(hevc->sess->fmt_out->pixfmt) ||
++	    param->p.pic_height_in_luma_samples <
++		amvdec_min_coded_height(hevc->sess->fmt_out->pixfmt)) {
 +		dev_err_ratelimited(hevc->sess->core->dev,
 +				    "HEVC coded size %ux%u below hardware floor\n",
 +				    param->p.pic_width_in_luma_samples,
@@ -8131,11 +8280,25 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +			amvdec_trace_dump(sess, "hevc");
 +			amvdec_abort(sess);
 +		} else {
-+			amvdec_write_dos(core, HEVC_DECODE_SIZE, end);
-+			hevc->request_parked = false;
-+			dev_dbg(core->dev, "B35_A resume=ff ts=%llu endpoint=%u queued=%d\n",
-+				 ts, end, atomic_read(&sess->esparser_queued_bufs));
-+			/* HOST-owned engine-work-pending bit: clear only bit 1
++			/*
++			 * Resume by status alone.  The firmware parked at 0x0a
++			 * polls HEVC_DEC_STATUS_REG and needs no interrupt to
++			 * see 0xff.  This used to kick HEVC_MCPU_INTR_REQ as
++			 * well - the same request bit the firmware raises on
++			 * itself once it has found the next slice.  A kick that
++			 * landed late stayed pending, the firmware took it just
++			 * after posting 0x08, and its command dispatcher, finding
++			 * no command in the status register, rewrote the 0x08 to
++			 * 0xff.  The header report was lost, the firmware
++			 * searched on through the slice data and starved at the
++			 * write pointer, and the request never completed: a
++			 * silent stall, then the client timed out and lost every
++			 * picture referencing this one.  About one 4K picture in
++			 * a few thousand.  VP9 on this core has always resumed
++			 * without the kick, and so does the vendor driver for
++			 * its poll-waits.
++			 *
++			 * HOST-owned engine-work-pending bit: clear only bit 1
 +			 * after observed 0a for this generation, before ff and
 +			 * with no intervening status-5 kick. Never clear here
 +			 * for intermediate headers, 20/0e/errors or timeout.
@@ -8146,7 +8309,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +			 */
 +			amvdec_clear_dos_bits(core, HEVC_WAIT_FLAG, BIT(1));
 +			amvdec_write_dos_action(core, HEVC_DEC_STATUS_REG, 0xff);
-+			amvdec_write_dos(core, HEVC_MCPU_INTR_REQ, AMRISC_MAIN_REQ);
++			wmb();
++			amvdec_write_dos(core, HEVC_DECODE_SIZE, end);
++			hevc->request_parked = false;
++			dev_dbg(core->dev, "B35_A resume=ff ts=%llu endpoint=%u queued=%d\n",
++				 ts, end, atomic_read(&sess->esparser_queued_bufs));
 +			codec_hevc_stall_arm(hevc);
 +		}
 +	}
@@ -8211,6 +8378,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +			amvdec_write_dos(core, HEVC_DECODE_SIZE, 0);
 +			wmb();
 +			hevc->request_parked = true;
++			codec_hevc_arm_restream(sess);
 +			f->show = 0;
 +			hevc->frames_num--;
 +			dev_dbg(core->dev, "B31_C1 done=0a ts=%llu idx=%u poc=%d; parked\n",
@@ -8218,8 +8386,42 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +			amvdec_request_signal(sess, f->vbuf);
 +			goto unlock;
 +		}
++		/*
++		 * Running dry is recoverable and happens under load: a feed
++		 * that has not landed yet leaves the firmware with nothing to
++		 * shift.  Aborting here turned one transient stall into a dead
++		 * session and thousands of skipped frames.  Wait for the input
++		 * instead - which is what the VP9 codec on this same core has
++		 * always done for the identical status.
++		 */
++		if (dec_status == HEVC_SEARCH_BUFEMPTY ||
++		    dec_status == HEVC_DECODE_BUFEMPTY) {
++			dev_dbg(core->dev,
++				"B31_C1 input starved status=%x queued=%d; waiting\n",
++				dec_status,
++				atomic_read(&sess->esparser_queued_bufs));
++			goto unlock;
++		}
++		/*
++		 * 0xff is never posted with an interrupt: the firmware writes
++		 * it only on paths that return to NAL search silently.  Read
++		 * back here it means a real post was overwritten before we
++		 * got to it - which is how the resume kick lost 0x08 reports
++		 * (see codec_hevc_request_input_ready()).  The picture is gone
++		 * and nothing will complete this request, so fail it loudly
++		 * rather than let the session stall; it used to be ignored as
++		 * our own resume token.
++		 */
 +		if (dec_status != HEVC_SLICE_SEGMENT_DONE) {
-+			dev_err(core->dev, "B31_C1 FAIL non-picture-done status=%x\n", dec_status);
++			dev_err(core->dev,
++				"B31_C1 FAIL non-picture-done status=%x parked=%d queued=%d frames=%u cur=%d size=%u shift=%u origin=%u\n",
++				dec_status, hevc->request_parked,
++				atomic_read(&sess->esparser_queued_bufs),
++				hevc->frames_num,
++				hevc->cur_frame ? (int)hevc->cur_frame->cur_slice_idx : -1,
++				amvdec_read_dos(core, HEVC_DECODE_SIZE),
++				amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++				hevc->request_origin);
 +			amvdec_trace_dump(sess, "hevc");
 +			hevc->drain_failed = true;
 +			amvdec_abort(sess);
@@ -8304,7 +8506,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.c linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.c	2026-09-23 08:36:19.000000000 +0200
 @@ -3,6 +3,9 @@
   * Copyright (C) 2018 Maxime Jourdan <mjourdan@baylibre.com>
   */
@@ -8616,7 +8818,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  		if (codec_hevc_use_fbc(sess->pixfmt_cap, is_10bit)) {
  			val = buf_y_paddr | (idx << 8) | 1;
-@@ -113,35 +366,69 @@
+@@ -113,35 +366,71 @@
  					 int is_10bit)
  {
  	struct amvdec_core *core = sess->core;
@@ -8645,6 +8847,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	n = codec_hevc_capture_buffers(sess, bufs);
 +	if (!n)
 +		return;
++	dev_dbg(core->dev, "B45 setup %ux%u nbuf=%u 10bit=%d fbc=%d\n",
++		sess->width, sess->height, n, is_10bit, fbc);
 +
  	amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR,
  			 BIT(2) | BIT(1));
@@ -8703,7 +8907,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	}
  
  	amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR, 1);
-@@ -150,96 +437,375 @@
+@@ -150,96 +439,375 @@
  		amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_DATA_ADDR, 0);
  }
  
@@ -9123,7 +9327,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	}
  
  	return 0;
-@@ -250,21 +816,27 @@
+@@ -250,21 +818,27 @@
  			     int is_10bit)
  {
  	struct amvdec_core *core = sess->core;
@@ -9160,7 +9364,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	}
  
  	if (core->platform->revision == VDEC_REVISION_GXBB)
-@@ -276,22 +848,162 @@
+@@ -276,22 +850,162 @@
  }
  EXPORT_SYMBOL_GPL(codec_hevc_setup_buffers);
  
@@ -9337,7 +9541,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  EXPORT_SYMBOL_GPL(codec_hevc_fill_mmu_map);
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_common.h	2026-09-23 08:36:19.000000000 +0200
 @@ -18,28 +18,57 @@
  
  #define MAX_REF_PIC_NUM	24
@@ -9443,8 +9647,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.h	2026-09-20 16:35:01.000000000 +0200
-@@ -0,0 +1,19 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc.h	2026-09-23 08:36:19.000000000 +0200
+@@ -0,0 +1,23 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <maxi.jourdan@wanadoo.fr>
@@ -9463,10 +9667,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +void codec_hevc_stateful_eos(struct amvdec_session *sess);
 +void codec_hevc_cancel_drain(struct amvdec_session *sess);
 +
++void codec_hevc_arm_restream(struct amvdec_session *sess);
++bool codec_hevc_restream_pending(struct amvdec_session *sess);
++int codec_hevc_restream_reinit(struct amvdec_session *sess);
++
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_rps.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_rps.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_rps.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_rps.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_rps.h	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,113 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +#ifndef __MESON_VDEC_HEVC_RPS_H
@@ -9583,8 +9791,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_synth.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_synth.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_synth.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_synth.h	2026-09-20 16:35:01.000000000 +0200
-@@ -0,0 +1,634 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_hevc_synth.h	2026-09-23 08:36:19.000000000 +0200
+@@ -0,0 +1,652 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +#ifndef __MESON_VDEC_CODEC_HEVC_SYNTH_H_
 +#define __MESON_VDEC_CODEC_HEVC_SYNTH_H_
@@ -9849,7 +10057,25 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	ret = hevc_sps_validate(sps);
 +	if (ret)
 +		return ret;
-+	return hevc_pps_validate(pps);
++	ret = hevc_pps_validate(pps);
++	if (ret)
++		return ret;
++
++	/*
++	 * Wavefront sync over a picture one CTB wide: the firmware returns
++	 * wrong pixels, about 20 dB, and says nothing.  Two CTB columns and
++	 * wider are exact (WPP_D_ericsson_MAIN_2 at 64x240 against WPP_E and
++	 * WPP_F at 128 and 192).
++	 */
++	if (pps->flags & V4L2_HEVC_PPS_FLAG_ENTROPY_CODING_SYNC_ENABLED) {
++		u32 ctb_log2 = sps->log2_min_luma_coding_block_size_minus3 + 3 +
++			       sps->log2_diff_max_min_luma_coding_block_size;
++
++		if (sps->pic_width_in_luma_samples <= (1U << ctb_log2))
++			return -EOPNOTSUPP;
++	}
++
++	return 0;
 +}
 +
 +static inline int hevc_synth_vps(const struct v4l2_ctrl_hevc_sps *sps,
@@ -10221,7 +10447,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.c linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.c	2026-09-23 08:36:19.000000000 +0200
 @@ -4,6 +4,7 @@
   * Author: Maxime Jourdan <mjourdan@baylibre.com>
   */
@@ -10620,7 +10846,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	.stop = codec_mpeg12_stop,
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12.h	2026-09-23 08:36:19.000000000 +0200
 @@ -10,5 +10,13 @@
  #include "vdec.h"
  
@@ -10637,7 +10863,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12_synth.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12_synth.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12_synth.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12_synth.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg12_synth.h	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,245 @@
 +/* SPDX-License-Identifier: GPL-2.0-or-later */
 +/*
@@ -10886,7 +11112,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.c linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.c	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,240 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -11130,7 +11356,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_mpeg4.h	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,13 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -11147,7 +11373,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.c linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.c	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,314 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -11465,7 +11691,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1.h	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,16 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -11485,7 +11711,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.c linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.c	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,337 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/* VC-1 Annex G preprocessing for the legacy Amlogic microcode. */
@@ -11826,7 +12052,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vc1_parser.h	2026-09-23 08:36:19.000000000 +0200
 @@ -0,0 +1,21 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +#ifndef __MESON_VDEC_CODEC_VC1_PARSER_H_
@@ -11851,7 +12077,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.c linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.c	2026-09-23 08:36:19.000000000 +0200
 @@ -4,6 +4,7 @@
   * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
   */
@@ -11860,7 +12086,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #include <media/v4l2-mem2mem.h>
  #include <media/videobuf2-dma-contig.h>
  
-@@ -13,10 +14,19 @@
+@@ -13,10 +14,21 @@
  #include "vdec_helpers.h"
  #include "codec_hevc_common.h"
  
@@ -11875,12 +12101,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	#define VP9_NAL_DECODE_DONE	0x0e
 +	#define VP9_DECODE_BUFEMPTY	0x20
 +	#define VP9_SEARCH_BUFEMPTY	0x22
++	/* Written by the HOST to resume the firmware; never reported by it. */
++	#define VP9_ACTION_DONE		0xff
  	#define VP9_HEAD_PARSER_DONE	0xf0
 +	#define VP9_EOS			0xf2
  #define VP9_RPM_BUFFER		HEVC_ASSIST_SCRATCH_1
  #define VP9_SHORT_TERM_RPS	HEVC_ASSIST_SCRATCH_2
  #define VP9_ADAPT_PROB_REG	HEVC_ASSIST_SCRATCH_3
-@@ -73,8 +83,8 @@
+@@ -73,8 +85,8 @@
  #define COUNT_SIZE	0x3000
  #define MMU_VBH_SIZE	0x5000
  #define MPRED_ABV_SIZE	0x10000
@@ -11891,7 +12119,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #define LMEM_SIZE	0x800
  
  #define IPP_OFFSET       0x00
-@@ -95,8 +105,16 @@
+@@ -95,8 +107,16 @@
  #define COUNT_OFFSET     (PROB_OFFSET + PROB_SIZE)
  #define MMU_VBH_OFFSET   (COUNT_OFFSET + COUNT_SIZE)
  #define MPRED_ABV_OFFSET (MMU_VBH_OFFSET + MMU_VBH_SIZE)
@@ -11910,7 +12138,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #define LMEM_OFFSET      (RPM_OFFSET + RPM_BUF_SIZE)
  
  #define SIZE_WORKSPACE	ALIGN(LMEM_OFFSET + LMEM_SIZE, 64 * SZ_1K)
-@@ -342,7 +360,7 @@
+@@ -342,7 +362,7 @@
  
  union rpm_param {
  	struct {
@@ -11919,7 +12147,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	} l;
  	struct {
  		u16 profile;
-@@ -425,11 +443,14 @@
+@@ -425,11 +445,14 @@
  struct vp9_frame {
  	struct list_head list;
  	struct vb2_v4l2_buffer *vbuf;
@@ -11934,7 +12162,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	unsigned int width;
  	unsigned int height;
  };
-@@ -444,9 +465,21 @@
+@@ -444,9 +467,22 @@
  	/* Buffer for the VP9 Workspace */
  	void      *workspace_vaddr;
  	dma_addr_t workspace_paddr;
@@ -11953,10 +12181,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	union rpm_param rpm_param;
 +	u32 rpm_dump_seq;
 +	bool request_mode, request_size, request_parked, request_failed;
++	bool restream_pending;
  
  	/* Whether we detected the bitstream as 10-bit */
  	int is_10bit;
-@@ -458,12 +491,6 @@
+@@ -458,12 +494,6 @@
  	struct list_head ref_frames_list;
  	u32 frames_num;
  
@@ -11969,7 +12198,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	int ref_frame_map[REF_FRAMES];
  	int next_ref_frame_map[REF_FRAMES];
  	struct vp9_frame *frame_refs[REFS_PER_FRAME];
-@@ -478,8 +505,51 @@
+@@ -478,8 +508,51 @@
  
  	struct vp9_frame *cur_frame;
  	struct vp9_frame *prev_frame;
@@ -12021,7 +12250,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static int div_r32(s64 m, int n)
  {
  	s64 qu = div_s64(m, n);
-@@ -661,26 +731,93 @@
+@@ -661,26 +734,93 @@
  	}
  }
  
@@ -12125,7 +12354,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	mutex_unlock(&vp9->lock);
  }
  
-@@ -694,18 +831,61 @@
+@@ -694,18 +834,61 @@
  	return vp9->frames_num;
  }
  
@@ -12190,10 +12419,99 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	return 0;
  }
  
-@@ -766,6 +946,16 @@
- 	if (!vp9)
- 		return -ENOMEM;
+@@ -754,21 +937,17 @@
+ 	}
+ }
  
+-static int codec_vp9_start(struct amvdec_session *sess)
++/*
++ * Every register a fresh or just-reset HEVC core needs before the VP9
++ * firmware may run, given an allocated workspace. Split out of
++ * codec_vp9_start() so an in-session core restart can redo it without
++ * touching software state that must survive (reference list, frame maps).
++ */
++static void codec_vp9_hw_init(struct amvdec_session *sess, struct codec_vp9 *vp9)
+ {
+ 	struct amvdec_core *core = sess->core;
+-	struct codec_vp9 *vp9;
+ 	u32 val;
+ 	int i;
+-	int ret;
+-
+-	vp9 = kzalloc_obj(*vp9);
+-	if (!vp9)
+-		return -ENOMEM;
+-
+-	ret = codec_vp9_alloc_workspace(core, vp9);
+-	if (ret)
+-		goto free_vp9;
+ 
+ 	codec_vp9_setup_workspace(sess, vp9);
+ 	amvdec_write_dos_bits(core, HEVC_STREAM_CONTROL, BIT(0));
+@@ -820,7 +999,86 @@
+ 		 amvdec_read_dos(core, HEVC_DECODE_COUNT),
+ 		 amvdec_read_dos(core, HEVC_DECODE_SIZE));
+ 
++	if (vp9->request_mode)
++		/* Preserve mode 0 and the firmware's cleared LMEM origin. */
++		amvdec_write_dos(core, HEVC_DECODE_SIZE, 0);
+ 	vp9_loop_filter_init(core, vp9);
++}
++
++static unsigned int vp9_rebase_mib = 1024;
++module_param(vp9_rebase_mib, uint, 0644);
++MODULE_PARM_DESC(vp9_rebase_mib,
++		 "Restart the core once the VP9 stream counter passes this many MiB (0 disables)");
++
++/* See codec_hevc_arm_restream(): the same 2 GiB counter limit applies here. */
++void codec_vp9_arm_restream(struct amvdec_session *sess)
++{
++	struct codec_vp9 *vp9 = sess->priv;
++
++	if (!vp9 || !vp9->request_mode || !vp9_rebase_mib)
++		return;
++	if (amvdec_read_dos(sess->core, HEVC_SHIFT_BYTE_COUNT) < (vp9_rebase_mib << 20))
++		return;
++	vp9->restream_pending = true;
++}
++
++bool codec_vp9_restream_pending(struct amvdec_session *sess)
++{
++	struct codec_vp9 *vp9 = sess->priv;
++
++	return vp9 && vp9->restream_pending;
++}
++
++int codec_vp9_restream_reinit(struct amvdec_session *sess)
++{
++	struct codec_vp9 *vp9 = sess->priv;
++
++	codec_vp9_hw_init(sess, vp9);
++	/*
++	 * The core scrub also cleared the CAPTURE buffer address table and the
++	 * decode head, which codec_vp9_resume() programs once per session:
++	 * without them every picture after the restart lands in the wrong
++	 * buffer. The firmware is halted here, so no interrupt can race this.
++	 */
++	if (codec_hevc_setup_buffers(sess, &vp9->common, vp9->is_10bit))
++		return -EIO;
++	codec_hevc_setup_decode_head(sess, vp9->is_10bit);
++	vp9->request_parked = false;
++	vp9->restream_pending = false;
++	return 0;
++}
++
++static int codec_vp9_start(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++	struct codec_vp9 *vp9;
++	int i;
++	int ret;
++
++	vp9 = kzalloc_obj(*vp9);
++	if (!vp9)
++		return -ENOMEM;
++
 +	/*
 +	 * The workspace is a single contiguous SIZE_WORKSPACE allocation and
 +	 * it is the first thing a session asks CMA for.  A previous session's
@@ -12204,25 +12522,20 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	 */
 +	codec_hevc_fbc_pool_reclaim();
 +
- 	ret = codec_vp9_alloc_workspace(core, vp9);
- 	if (ret)
- 		goto free_vp9;
-@@ -820,6 +1010,14 @@
- 		 amvdec_read_dos(core, HEVC_DECODE_COUNT),
- 		 amvdec_read_dos(core, HEVC_DECODE_SIZE));
- 
++	ret = codec_vp9_alloc_workspace(core, vp9);
++	if (ret)
++		goto free_vp9;
++
 +	vp9->request_mode = codec_vp9_is_stateless(sess);
 +	vp9->request_size = true;
-+	if (vp9->request_mode) {
-+		/* Preserve mode 0 and the firmware's cleared LMEM origin. */
-+		amvdec_write_dos(core, HEVC_DECODE_SIZE, 0);
++	codec_vp9_hw_init(sess, vp9);
++	if (vp9->request_mode)
 +		dev_dbg(core->dev, "B31_C3 start size=0 mode=0 origin_shift=%u rpm_bytes=%u\n",
 +			 amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT), RPM_BUF_SIZE);
-+	}
- 	vp9_loop_filter_init(core, vp9);
  
  	INIT_LIST_HEAD(&vp9->ref_frames_list);
-@@ -843,14 +1041,41 @@
+ 	mutex_init(&vp9->lock);
+@@ -843,14 +1101,41 @@
  	struct codec_vp9 *vp9 = sess->priv;
  
  	mutex_lock(&vp9->lock);
@@ -12268,7 +12581,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	return 0;
  }
  
-@@ -884,8 +1109,8 @@
+@@ -884,8 +1169,8 @@
  	amvdec_write_dos(core, HEVCD_MCRCC_CTL1, 0xff0);
  }
  
@@ -12279,7 +12592,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  {
  	struct amvdec_core *core = sess->core;
  	struct codec_vp9 *vp9 = sess->priv;
-@@ -893,21 +1118,28 @@
+@@ -893,21 +1178,28 @@
  	dma_addr_t buf_y_paddr;
  	dma_addr_t buf_u_v_paddr;
  	u32 val;
@@ -12311,7 +12624,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		buf_y_paddr =
  		       vb2_dma_contig_plane_dma_addr(vb, 0);
  		buf_u_v_paddr =
-@@ -920,16 +1152,23 @@
+@@ -920,16 +1212,23 @@
  
  	if (codec_hevc_use_mmu(core->platform->revision, sess->pixfmt_cap,
  			       vp9->is_10bit)) {
@@ -12339,7 +12652,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	if (core->platform->revision >= VDEC_REVISION_G12A) {
  		amvdec_clear_dos_bits(core, HEVC_DBLK_CFGB,
-@@ -970,20 +1209,50 @@
+@@ -970,20 +1269,50 @@
  	val |= 0xf;
  	val &= ~BIT(12); /* NV12 */
  	amvdec_write_dos(core, HEVCD_IPP_AXIIF_CONFIG, val);
@@ -12396,7 +12709,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  					vp9->cur_frame->width &&
  				 vp9->prev_frame->height ==
  					vp9->cur_frame->height &&
-@@ -991,6 +1260,19 @@
+@@ -991,6 +1320,19 @@
  				 vp9->prev_frame->show &&
  				 vp9->prev_frame->type != KEY_FRAME;
  
@@ -12416,7 +12729,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	amvdec_write_dos(core, HEVC_MPRED_CTRL3, 0x24122412);
  	amvdec_write_dos(core, HEVC_MPRED_ABV_START_ADDR,
  			 vp9->workspace_paddr + MPRED_ABV_OFFSET);
-@@ -1004,6 +1286,19 @@
+@@ -1004,6 +1346,19 @@
  	amvdec_write_dos(core, HEVC_MPRED_MV_WPTR,
  			 codec_vp9_get_frame_mv_paddr(vp9, vp9->cur_frame));
  
@@ -12436,7 +12749,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	amvdec_write_dos(core, HEVC_MPRED_MV_RD_START_ADDR,
  			 codec_vp9_get_frame_mv_paddr(vp9, vp9->prev_frame));
  	amvdec_write_dos(core, HEVC_MPRED_MV_RPTR,
-@@ -1011,8 +1306,9 @@
+@@ -1011,8 +1366,9 @@
  
  	mpred_mv_rd_end_addr =
  			codec_vp9_get_frame_mv_paddr(vp9, vp9->prev_frame) +
@@ -12447,7 +12760,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  
  static void codec_vp9_update_next_ref(struct codec_vp9 *vp9)
-@@ -1099,6 +1395,14 @@
+@@ -1099,6 +1455,14 @@
  	return NULL;
  }
  
@@ -12462,7 +12775,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static void codec_vp9_sync_ref(struct codec_vp9 *vp9)
  {
  	union rpm_param *param = &vp9->rpm_param;
-@@ -1116,6 +1420,61 @@
+@@ -1116,6 +1480,61 @@
  	}
  }
  
@@ -12524,7 +12837,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static void codec_vp9_set_refs(struct amvdec_session *sess,
  			       struct codec_vp9 *vp9)
  {
-@@ -1148,9 +1507,13 @@
+@@ -1148,9 +1567,13 @@
  {
  	struct amvdec_core *core = sess->core;
  	u32 scale = 0;
@@ -12538,7 +12851,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR, 1);
  	codec_vp9_set_refs(sess, vp9);
  	amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
-@@ -1166,8 +1529,9 @@
+@@ -1166,8 +1589,9 @@
  		    vp9->frame_refs[i]->height != vp9->height)
  			scale = 1;
  
@@ -12550,7 +12863,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  		amvdec_write_dos(core, VP9D_MPP_REFINFO_DATA,
  				 vp9->frame_refs[i]->width);
-@@ -1191,35 +1555,97 @@
+@@ -1191,35 +1615,97 @@
  	union rpm_param *param = &vp9->rpm_param;
  	struct vb2_v4l2_buffer *vbuf;
  	struct vp9_frame *new_frame;
@@ -12652,7 +12965,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	new_frame->width = vp9->width;
  	new_frame->height = vp9->height;
  	list_add_tail(&new_frame->list, &vp9->ref_frames_list);
-@@ -1248,10 +1674,13 @@
+@@ -1248,10 +1734,13 @@
  			continue;
  
  		pr_debug("rm noshow: %u\n", tmp->index);
@@ -12667,7 +12980,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		return;
  	}
  }
-@@ -1262,50 +1691,114 @@
+@@ -1262,50 +1751,115 @@
  	struct codec_vp9 *vp9 = sess->priv;
  	union rpm_param *param = &vp9->rpm_param;
  	int intra_only;
@@ -12788,6 +13101,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		u32 size = vp9->request_size ? min(end, shift + 1) : 0;
 +
 +		amvdec_write_dos(core, HEVC_DECODE_SIZE, size);
++		amvdec_trace(sess, AMVDEC_TR_KICK, size, end, shift);
 +		dev_dbg(core->dev, "B31_C3 kick=5 ts=%llu idx=%u size=%u end=%u shift=%u show=%u\n",
 +			 vp9->cur_frame->vbuf->vb2_buf.timestamp,
 +			 vp9->cur_frame->index, size, end, shift, vp9->cur_frame->show);
@@ -12799,7 +13113,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  
  static void codec_vp9_process_lf(struct codec_vp9 *vp9)
-@@ -1366,24 +1859,71 @@
+@@ -1366,24 +1920,72 @@
  	u16 *rpm_vaddr = vp9->workspace_vaddr + RPM_OFFSET;
  	int i, j;
  
@@ -12855,7 +13169,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	int pic_width_lcu;
 +	int pic_height_lcu;
 +
-+	if (param->p.width < 256 || param->p.height < 144) {
++	if (param->p.width < amvdec_min_coded_width(sess->fmt_out->pixfmt) ||
++	    param->p.height < amvdec_min_coded_height(sess->fmt_out->pixfmt)) {
 +		dev_err_ratelimited(sess->core->dev,
 +				    "VP9 coded size %ux%u below hardware floor\n",
 +				    param->p.width, param->p.height);
@@ -12881,7 +13196,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	vp9->lcu_total = pic_width_lcu * pic_height_lcu;
  
  	if (param->p.bit_depth == 10)
-@@ -1403,6 +1943,19 @@
+@@ -1403,6 +2005,19 @@
  	return src_changed;
  }
  
@@ -12901,7 +13216,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static bool codec_vp9_is_ref(struct codec_vp9 *vp9, struct vp9_frame *frame)
  {
  	int i;
-@@ -1425,11 +1978,26 @@
+@@ -1425,11 +2040,26 @@
  
  		if (!tmp->done) {
  			pr_debug("Doning %u\n", tmp->index);
@@ -12929,7 +13244,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		if (codec_vp9_is_ref(vp9, tmp) || tmp == vp9->prev_frame)
  			continue;
  
-@@ -1649,8 +2217,13 @@
+@@ -1649,8 +2279,13 @@
  			else if (coef_count_node_start ==
  					VP9_MV_BITS_1_COUNT_START)
  				coef_node_start = VP9_MV_BITS_1_START;
@@ -12944,7 +13259,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  			den = count[coef_count_node_start] +
  			      count[coef_count_node_start + 1];
-@@ -2075,29 +2648,13 @@
+@@ -2075,29 +2710,13 @@
  	}
  }
  
@@ -12978,7 +13293,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		/* VP9_REQ_ADAPT_PROB */
  		u8 *prev_prob_b = ((u8 *)vp9->workspace_vaddr +
  					 PROB_OFFSET) +
-@@ -2110,8 +2667,15 @@
+@@ -2110,8 +2729,15 @@
  						vp9->prev_frame->type :
  						KEY_FRAME;
  
@@ -12995,7 +13310,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  				 prob_status >> 8,
  				 (unsigned int *)prev_prob_b,
  				 (unsigned int *)cur_prob_b,
-@@ -2121,17 +2685,144 @@
+@@ -2121,17 +2747,188 @@
  		amvdec_write_dos(core, VP9_ADAPT_PROB_REG, 0);
  	}
  
@@ -13009,6 +13324,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +
 +	if (!vp9 || !vp9->request_mode)
 +		return;
++	amvdec_trace(sess, AMVDEC_TR_READY, end, vp9->request_parked,
++		     amvdec_read_dos(core, VP9_DEC_STATUS_REG));
 +	mutex_lock(&vp9->lock);
 +	/*
 +	 * A small picture can be decoded, and the firmware parked at 0x0a,
@@ -13024,6 +13341,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	if (vp9->request_parked && !vp9->request_failed) {
 +		if (!vp9->cur_frame || end <= vp9->cur_frame->input_end ||
 +		    amvdec_read_dos(core, VP9_DEC_STATUS_REG) != 0x0a) {
++			dev_err(core->dev,
++				"B31_C4 FAIL next request: end=%u prev_end=%d status=%x\n",
++				end, vp9->cur_frame ? (int)vp9->cur_frame->input_end : -1,
++				amvdec_read_dos(core, VP9_DEC_STATUS_REG));
 +			vp9->request_failed = true;
 +			amvdec_abort(sess);
 +		} else {
@@ -13064,6 +13385,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		 dec_status, prob_status);
 +
 +	if (vp9->request_mode) {
++		amvdec_trace(sess, AMVDEC_TR_IRQ, dec_status,
++			     amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++			     amvdec_read_dos(core, HEVC_DECODE_SIZE));
 +		dev_dbg(core->dev, "B31_C3 irq status=%x shift=%u size=%u prob=%x lcu=%x\n",
 +			 dec_status, amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
 +			 amvdec_read_dos(core, HEVC_DECODE_SIZE), prob_status,
@@ -13079,14 +13403,49 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +			f->done = 1;
 +			vp9->frames_num--;
 +			vp9->request_parked = true;
++			codec_vp9_arm_restream(sess);
++			amvdec_trace(sess, AMVDEC_TR_DONE, amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++				     f->index, f->show);
 +			dev_dbg(core->dev, "B31_C3 done=0a ts=%llu idx=%u show=%u; parked\n",
 +				 f->vbuf->vb2_buf.timestamp, f->index, f->show);
 +			amvdec_request_signal(sess, f->vbuf);
 +			goto unlock;
 +		}
++		/*
++		 * The request path aborts on anything that is not a finished
++		 * picture or a parsed header, which swallows three statuses
++		 * that are not decode failures at all - and made the benign
++		 * handling in the switch below unreachable in request mode:
++		 *
++		 *  - BUFEMPTY: the firmware has consumed the VIFIFO and wants
++		 *    more input; the feed worker is already writing it.
++		 *  - ACTION_DONE: the token the host itself writes to resume
++		 *    the firmware after publishing an endpoint, read back
++		 *    before the firmware has replaced it with a verdict.
++		 *
++		 * The same two mistakes cost HEVC roughly one long run in five
++		 * before they were fixed there; VP9 drives the same core, the
++		 * same status register and the same resume handshake.
++		 */
++		if (dec_status == VP9_SEARCH_BUFEMPTY ||
++		    dec_status == VP9_DECODE_BUFEMPTY ||
++		    dec_status == VP9_ACTION_DONE) {
++			dev_dbg(core->dev,
++				"B31_C3 not a verdict status=%x; ignoring\n",
++				dec_status);
++			goto unlock;
++		}
 +		if (dec_status != VP9_HEAD_PARSER_DONE) {
 +request_fail:
-+			dev_err(core->dev, "B31_C3 FAIL event=%x\n", dec_status);
++			dev_err(core->dev,
++				"B31_C3 FAIL event=%x parked=%d queued=%d frames=%u cur=%d show=%d size=%u shift=%u prob=%x\n",
++				dec_status, vp9->request_parked,
++				atomic_read(&sess->esparser_queued_bufs), vp9->frames_num,
++				vp9->cur_frame ? (int)vp9->cur_frame->index : -1,
++				vp9->cur_frame ? (int)vp9->cur_frame->show : -1,
++				amvdec_read_dos(core, HEVC_DECODE_SIZE),
++				amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT), prob_status);
++			amvdec_trace_dump(sess, "vp9");
 +			vp9->request_failed = true;
 +			amvdec_abort(sess);
 +			goto unlock;
@@ -13144,7 +13503,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		/* No frame is actually processed */
  		vp9->cur_frame = NULL;
  
-@@ -2139,10 +2830,21 @@
+@@ -2139,10 +2936,21 @@
  		codec_vp9_show_frame(sess);
  
  		/* FIXME: Save refs for resized frame */
@@ -13170,18 +13529,22 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	codec_vp9_process_lf(vp9);
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.h linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.h	2026-09-20 16:35:01.000000000 +0200
-@@ -8,6 +8,7 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/codec_vp9.h	2026-09-23 08:36:19.000000000 +0200
+@@ -8,6 +8,11 @@
  
  #include "vdec.h"
  
 +void codec_vp9_request_input_ready(struct amvdec_session *sess, u32 end);
  extern struct amvdec_codec_ops codec_vp9_ops;
  
++void codec_vp9_arm_restream(struct amvdec_session *sess);
++bool codec_vp9_restream_pending(struct amvdec_session *sess);
++int codec_vp9_restream_reinit(struct amvdec_session *sess);
++
  #endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/dos_regs.h linux-7.2.6/drivers/staging/media/meson/vdec/dos_regs.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/dos_regs.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/dos_regs.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/dos_regs.h	2026-09-23 08:36:19.000000000 +0200
 @@ -37,6 +37,12 @@
  #define MDEC_PIC_DC_CTRL	0x2638
  #define MDEC_PIC_DC_STATUS	0x263c
@@ -13213,8 +13576,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	#define MEM_CTRL_FILL_EN	BIT(1)
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/esparser.c linux-7.2.6/drivers/staging/media/meson/vdec/esparser.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/esparser.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/esparser.c	2026-09-20 16:35:01.000000000 +0200
-@@ -8,17 +8,36 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/esparser.c	2026-09-23 08:36:19.000000000 +0200
+@@ -8,17 +8,37 @@
   */
  
  #include <linux/init.h>
@@ -13233,6 +13596,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  #include "dos_regs.h"
  #include "esparser.h"
++#include "vdec_hevc.h"
 +#include "codec_vc1.h"
  #include "vdec_helpers.h"
 +#include "codec_h264_synth.h"
@@ -13251,7 +13615,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  /* PARSER REGS (CBUS) */
  #define PARSER_CONTROL 0x00
-@@ -56,6 +75,41 @@
+@@ -56,6 +76,41 @@
  static DECLARE_WAIT_QUEUE_HEAD(wq);
  static int search_done;
  
@@ -13293,7 +13657,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static irqreturn_t esparser_isr(int irq, void *dev)
  {
  	int int_status;
-@@ -94,7 +148,7 @@
+@@ -94,7 +149,7 @@
  	dsize = vb2_get_plane_payload(buf, 0);
  
  	if (dsize == vb2_plane_size(buf, 0)) {
@@ -13302,7 +13666,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		return 0;
  	}
  
-@@ -133,7 +187,7 @@
+@@ -133,7 +188,7 @@
  	new_frame_size = total_datasize + num_frames * VP9_HEADER_SIZE;
  
  	if (new_frame_size >= vb2_plane_size(buf, 0)) {
@@ -13311,7 +13675,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		return 0;
  	}
  
-@@ -172,7 +226,7 @@
+@@ -172,7 +227,7 @@
  			memset(fdata + 16 + framesize, 0,
  			       (old_header - fdata + 16 + framesize));
  		} else if (old_header < fdata + 16 + framesize) {
@@ -13320,7 +13684,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		}
  		old_header = fdata;
  	}
-@@ -199,7 +253,7 @@
+@@ -199,7 +254,7 @@
  
  	if ((payload_size + pad_size + SEARCH_PATTERN_LEN) >
  						vb2_plane_size(vb, 0)) {
@@ -13329,7 +13693,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		return pad_size;
  	}
  
-@@ -242,8 +296,13 @@
+@@ -242,8 +297,13 @@
  	vififo_usage += amvdec_read_parser(core, PARSER_VIDEO_HOLE);
  	vififo_usage += (6 * SZ_1K); // 6 KiB internal fifo
  
@@ -13344,7 +13708,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  			 "VIFIFO usage (%u) > VIFIFO size (%u)\n",
  			 vififo_usage, sess->vififo_size);
  		return 0;
-@@ -265,6 +324,10 @@
+@@ -265,6 +325,10 @@
  		return -ENOMEM;
  
  	memcpy(eos_vaddr, data, len);
@@ -13355,7 +13719,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	ret = esparser_write_data(core, eos_paddr, len);
  	dma_free_coherent(dev, len + SEARCH_PATTERN_LEN,
  			  eos_vaddr, eos_paddr);
-@@ -287,6 +350,50 @@
+@@ -287,6 +351,50 @@
  	return offset;
  }
  
@@ -13406,7 +13770,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static int
  esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
  {
-@@ -295,10 +402,55 @@
+@@ -295,10 +403,55 @@
  	struct amvdec_core *core = sess->core;
  	struct amvdec_codec_ops *codec_ops = sess->fmt_out->codec_ops;
  	u32 payload_size = vb2_get_plane_payload(vb, 0);
@@ -13462,7 +13826,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	/*
  	 * When max ref frame is held by VP9, this should be -= 3 to prevent a
-@@ -308,27 +460,499 @@
+@@ -308,27 +461,527 @@
  	 * they could pause when there is no capture buffer available and
  	 * resume on this notification.
  	 */
@@ -13616,6 +13980,30 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +			}
 +			if (!offset)
 +				sess->bitdepth = vp9_frame.bit_depth;
++			/*
++			 * The 2 GiB restart (see codec_vp9_arm_restream()) is
++			 * only safe before a key frame. A VP9 inter frame may
++			 * take its size from a reference, and the firmware
++			 * resolves that from state a restart wipes: the next
++			 * header parses as 0x0. Backward-adapted probability
++			 * contexts are lost the same way. A key frame codes its
++			 * size and resets both, so wait for one. The previous
++			 * picture is complete and nothing is queued, so the
++			 * FIFO holds nothing to lose; recompute this buffer's
++			 * offset on the restarted scale.
++			 */
++			if (codec_vp9_restream_pending(sess) &&
++			    (vp9_frame.flags & V4L2_VP9_FRAME_FLAG_KEY_FRAME) &&
++			    !sess->should_stop &&
++			    !atomic_read(&sess->esparser_queued_bufs)) {
++				ret = vdec_hevc_restream(sess);
++				if (ret) {
++					dev_err(core->dev, "VP9 restream failed (%d)\n", ret);
++					esparser_src_error(sess, vbuf);
++					return ret;
++				}
++				offset = esparser_get_offset(sess);
++			}
 +			vp9_frame_ptr = &vp9_frame;
 +		} else if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) {
 +			u8 *vaddr = vb2_plane_vaddr(vb, 0);
@@ -13842,6 +14230,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		} else {
 +			u8 *vaddr = vb2_plane_vaddr(vb, 0);
 +			u32 plane_size = vb2_plane_size(vb, 0);
++			/* Parsed copy of vaddr, see codec_h264_scan_copy(). */
++			const u8 *scan;
 +
 +			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
 +					      V4L2_CID_STATELESS_H264_SPS);
@@ -13859,7 +14249,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +				return -EINVAL;
 +			}
 +			h264_pps = ctrl->p_cur.p_h264_pps;
-+			ret = h264_request_preflight(vaddr, payload_size, h264_pps);
++			scan = codec_h264_scan_copy(sess, vaddr, payload_size,
++						    plane_size);
++			ret = h264_request_preflight(scan, payload_size, h264_pps);
 +			if (ret) {
 +				dev_err_ratelimited(core->dev,
 +					"H264_SYNTAX_REFUSED before feed: %d slice_groups=%u\n",
@@ -13912,7 +14304,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +				const u8 *nal;
 +				u32 nal_len = 0;
 +
-+				nal = h264_find_first_slice(vaddr, payload_size,
++				nal = h264_find_first_slice(scan, payload_size,
 +							    &nal_len);
 +				if (nal && !h264_parse_slice_refs(nal, nal_len,
 +								  h264_sps,
@@ -13970,7 +14362,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		return ret;
  	}
  
-@@ -339,32 +963,255 @@
+@@ -339,32 +992,257 @@
  	vbuf->field = V4L2_FIELD_NONE;
  	vbuf->sequence = sess->sequence_out++;
  
@@ -14029,7 +14421,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		 */
 +		amvdec_remove_ts(sess, vb->timestamp);
 +		atomic_inc(&sess->esparser_queued_bufs);
++		amvdec_trace(sess, AMVDEC_TR_FEED, vb->index, payload_size, 0);
 +		ret = codec_h264_multi_feed_buffer(sess, vb);
++		amvdec_trace(sess, AMVDEC_TR_FED, ret, 0, 0);
 +		if (ret) {
 +			codec_h264_multi_hold_src(sess, NULL);
 +			atomic_dec(&sess->esparser_queued_bufs);
@@ -14233,7 +14627,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	return 0;
  }
-@@ -374,15 +1221,94 @@
+@@ -374,15 +1252,115 @@
  	struct v4l2_m2m_buffer *buf, *n;
  	struct amvdec_session *sess =
  		container_of(work, struct amvdec_session, esparser_queue_work);
@@ -14244,6 +14638,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
 +	task_cputime_adjusted(current, &user_start, &system_start);
  	mutex_lock(&sess->lock);
++	amvdec_trace(sess, AMVDEC_TR_WORK, READ_ONCE(sess->m2m_run_armed),
++		     v4l2_m2m_num_src_bufs_ready(sess->m2m_ctx), 0);
 +	sess->esparser_diag_runs++;
 +	dev_dbg(sess->core->dev,
 +		 "h22 worker begin run=%u src=%u queued=%d job=%lx\n",
@@ -14271,6 +14667,25 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +			 codec_h264_multi_busy(sess), q);
 +	}
 +
++	/* B47: the stream position counter must not reach 0x80000000. Restart
++	 * the core here, before anything is fed: the firmware is parked after a
++	 * completed picture and the VIFIFO is empty, so nothing is lost.
++	 */
++	/* VP9 restarts at a key frame instead: see esparser_queue(). */
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE &&
++	    codec_hevc_restream_pending(sess) &&
++	    !sess->should_stop && !sess->hevc_draining &&
++	    !atomic_read(&sess->esparser_queued_bufs)) {
++		ret = vdec_hevc_restream(sess);
++		if (ret) {
++			dev_err(sess->core->dev,
++				"B47 restream failed (%d)\n", ret);
++			amvdec_abort(sess);
++			mutex_unlock(&sess->lock);
++			return;
++		}
++	}
++
  	v4l2_m2m_for_each_src_buf_safe(sess->m2m_ctx, buf, n) {
 -		if (sess->should_stop)
 +		if (sess->should_stop ||
@@ -14280,7 +14695,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 -		if (esparser_queue(sess, &buf->vb) < 0)
 +		ret = esparser_queue(sess, &buf->vb);
 +		if (ret < 0)
- 			break;
++			break;
 +		fed++;
 +		if (amvdec_request_jobs(sess))
 +			break;
@@ -14292,7 +14707,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_H264_SLICE &&
 +		    codec_h264_uses_multi_blob() &&
 +		    codec_h264_multi_direct_vld())
-+			break;
+ 			break;
 +		if (sess->hevc_draining && --sess->hevc_drain_src_remaining == 0)
 +			sess->hevc_input_done = true;
  	}
@@ -14330,7 +14745,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	mutex_unlock(&sess->lock);
  }
  
-@@ -429,6 +1355,39 @@
+@@ -429,6 +1407,39 @@
  	return 0;
  }
  
@@ -14372,7 +14787,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	struct device *dev = &pdev->dev;
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/esparser.h linux-7.2.6/drivers/staging/media/meson/vdec/esparser.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/esparser.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/esparser.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/esparser.h	2026-09-23 08:36:19.000000000 +0200
 @@ -12,6 +12,7 @@
  #include "vdec.h"
  
@@ -14383,7 +14798,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  /**
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/hevc_regs.h linux-7.2.6/drivers/staging/media/meson/vdec/hevc_regs.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/hevc_regs.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/hevc_regs.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/hevc_regs.h	2026-09-23 08:36:19.000000000 +0200
 @@ -173,6 +173,8 @@
  #define HEVC_DBLK_CFGB 0xd42c
  #define HEVC_DBLK_STS1 0xd430
@@ -14403,7 +14818,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/Kconfig linux-7.2.6/drivers/staging/media/meson/vdec/Kconfig
 --- linux-7.2.6/drivers/staging/media/meson/vdec/Kconfig	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/Kconfig	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/Kconfig	2026-09-23 08:36:19.000000000 +0200
 @@ -3,9 +3,11 @@
  config VIDEO_MESON_VDEC
  	tristate "Amlogic video decoder driver"
@@ -14418,7 +14833,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	Support for the video decoder found in gxbb/gxl/gxm chips.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/Makefile linux-7.2.6/drivers/staging/media/meson/vdec/Makefile
 --- linux-7.2.6/drivers/staging/media/meson/vdec/Makefile	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/Makefile	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/Makefile	2026-09-23 08:36:19.000000000 +0200
 @@ -3,6 +3,6 @@
  
  meson-vdec-objs = esparser.o vdec.o vdec_helpers.o vdec_platform.o
@@ -14429,7 +14844,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  obj-$(CONFIG_VIDEO_MESON_VDEC) += meson-vdec.o
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec_1.c linux-7.2.6/drivers/staging/media/meson/vdec/vdec_1.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec_1.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_1.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_1.c	2026-09-23 08:36:19.000000000 +0200
 @@ -9,8 +9,10 @@
  
  #include <linux/firmware.h>
@@ -14726,7 +15141,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec.c linux-7.2.6/drivers/staging/media/meson/vdec/vdec.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec.c	2026-09-23 08:36:19.000000000 +0200
 @@ -13,6 +13,7 @@
  #include <linux/slab.h>
  #include <linux/interrupt.h>
@@ -14735,10 +15150,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #include <media/v4l2-ioctl.h>
  #include <media/v4l2-event.h>
  #include <media/v4l2-ctrls.h>
-@@ -21,9 +22,21 @@
+@@ -21,9 +22,32 @@
  #include <media/videobuf2-dma-contig.h>
  
  #include "vdec.h"
++#include "hevc_regs.h"
 +#include "codec_hevc_common.h"
 +#include "codec_hevc.h"
 +#include "codec_hevc_synth.h"
@@ -14750,6 +15166,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #include "vdec_helpers.h"
  
 +/* Spike identity is fixed for the lifetime of the registered node. */
++static unsigned int job_watch_ms = 1000;
++module_param(job_watch_ms, uint, 0644);
++MODULE_PARM_DESC(job_watch_ms,
++		 "Report a request that has not completed after this long (0 = off)");
++
++static bool trace_on_stop;
++module_param(trace_on_stop, bool, 0644);
++MODULE_PARM_DESC(trace_on_stop,
++		 "Dump the per-session flight recorder when a session stops");
++
 +static bool stateless;
 +module_param(stateless, bool, 0444);
 +MODULE_PARM_DESC(stateless, "Expose only stateless H.264/VP9/HEVC requests (G12A/G12B)");
@@ -14757,7 +15183,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  struct dummy_buf {
  	struct vb2_v4l2_buffer vb;
  	struct list_head list;
-@@ -32,9 +45,16 @@
+@@ -32,9 +56,16 @@
  /* 16 MiB for parsed bitstream swap exchange */
  #define SIZE_VIFIFO SZ_16M
  
@@ -14775,7 +15201,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  
  u32 amvdec_get_output_size(struct amvdec_session *sess)
-@@ -60,10 +80,39 @@
+@@ -60,10 +91,39 @@
  	while (!kthread_should_stop()) {
  		mutex_lock(&sess->bufs_recycle_lock);
  		list_for_each_entry_safe(tmp, n, &sess->bufs_recycle, list) {
@@ -14816,7 +15242,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  			list_del(&tmp->list);
  			kfree(tmp);
  		}
-@@ -75,6 +124,13 @@
+@@ -75,6 +135,13 @@
  	return 0;
  }
  
@@ -14830,7 +15256,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static int vdec_poweron(struct amvdec_session *sess)
  {
  	int ret;
-@@ -92,7 +148,8 @@
+@@ -92,7 +159,8 @@
  	if (ret)
  		goto disable_dos;
  
@@ -14840,7 +15266,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	return 0;
  
-@@ -112,19 +169,53 @@
+@@ -112,19 +180,59 @@
  		msleep(25);
  }
  
@@ -14850,6 +15276,12 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	struct amvdec_ops *vdec_ops = sess->fmt_out->vdec_ops;
  	struct amvdec_codec_ops *codec_ops = sess->fmt_out->codec_ops;
 +	int ret;
++
++	WRITE_ONCE(sess->watch_on, false);
++	cancel_delayed_work_sync(&sess->job_watch);
++
++	if (trace_on_stop)
++		amvdec_trace_dump(sess, "stop");
  
  	sess->should_stop = 1;
 -	vdec_wait_inactive(sess);
@@ -14899,10 +15331,90 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  
  static void
-@@ -146,13 +237,17 @@
+@@ -142,17 +250,97 @@
+ 	mutex_unlock(&sess->bufs_recycle_lock);
+ }
+ 
++/* HEVC-core formats: where the firmware and the stream fetcher stand. */
++static void vdec_job_watch_stream(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++
++	if (sess->fmt_out->pixfmt != V4L2_PIX_FMT_HEVC_SLICE &&
++	    sess->fmt_out->pixfmt != V4L2_PIX_FMT_VP9_FRAME)
++		return;
++	/* Registers only while this session owns the powered core */
++	if (READ_ONCE(core->cur_sess) != sess)
++		return;
++
++	dev_warn(core->dev,
++		 "stuck request: status=%x endpoint=%x shift=%x lcu=%x stream wp=%x rp=%x level=%x\n",
++		 amvdec_read_dos(core, HEVC_ASSIST_SCRATCH_0),
++		 amvdec_read_dos(core, HEVC_ASSIST_SCRATCH_N),
++		 amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++		 amvdec_read_dos(core, HEVC_PARSER_LCU_START),
++		 amvdec_read_dos(core, HEVC_STREAM_WR_PTR),
++		 amvdec_read_dos(core, HEVC_STREAM_RD_PTR),
++		 amvdec_read_dos(core, HEVC_STREAM_LEVEL));
++}
++
++/*
++ * A stateless client blocks on the OUTPUT and CAPTURE buffers of the request
++ * it just queued; FFmpeg gives up after two seconds and carries on with its
++ * references gone - a silent picture loss as far as the kernel log goes.
++ * Report the precondition instead: no new job for job_watch_ms while a job
++ * is still running or source buffers are waiting for one.  One report per
++ * stuck job, with the queue state and the flight recorder.
++ */
++#define VDEC_M2M_TRANS_RUNNING	BIT(1)	/* v4l2-mem2mem.c private */
++
++static void vdec_job_watch(struct work_struct *work)
++{
++	struct amvdec_session *sess = container_of(to_delayed_work(work),
++						   struct amvdec_session,
++						   job_watch);
++	u32 seq = READ_ONCE(sess->run_seq);
++	u64 age = ktime_get_ns() - READ_ONCE(sess->run_ns);
++	bool running = READ_ONCE(sess->m2m_ctx->job_flags) & VDEC_M2M_TRANS_RUNNING;
++	unsigned int src = v4l2_m2m_num_src_bufs_ready(sess->m2m_ctx);
++	unsigned int dst = v4l2_m2m_num_dst_bufs_ready(sess->m2m_ctx);
++	unsigned int ms = READ_ONCE(job_watch_ms);
++
++	if (!READ_ONCE(sess->watch_on) || !ms)
++		return;
++
++	if (age > (u64)ms * NSEC_PER_MSEC && (running || src) &&
++	    sess->watch_dumped_seq != seq) {
++		sess->watch_dumped_seq = seq;
++		dev_warn(sess->core->dev,
++			 "no new job for %llu ms: job %u running=%d src_ready=%u dst_ready=%u parser_queued=%d request_state=%d run_armed=%d seq=%u/%u\n",
++			 age / NSEC_PER_MSEC, seq, running, src, dst,
++			 atomic_read(&sess->esparser_queued_bufs),
++			 atomic_read(&sess->request_job.state),
++			 READ_ONCE(sess->m2m_run_armed),
++			 READ_ONCE(sess->sequence_out),
++			 READ_ONCE(sess->sequence_cap));
++		vdec_job_watch_stream(sess);
++		amvdec_trace_dump(sess, "job watch");
++	}
++
++	if (READ_ONCE(sess->watch_on))
++		mod_delayed_work(system_dfl_wq, &sess->job_watch,
++				 msecs_to_jiffies(ms / 4 + 1));
++}
++
+ static void vdec_m2m_device_run(void *priv)
  {
  	struct amvdec_session *sess = priv;
  
++	amvdec_trace(sess, AMVDEC_TR_RUN, 0, 0, 0);
++	WRITE_ONCE(sess->run_ns, ktime_get_ns());
++	WRITE_ONCE(sess->run_seq, sess->run_seq + 1);
++	if (READ_ONCE(job_watch_ms) && !READ_ONCE(sess->should_stop)) {
++		WRITE_ONCE(sess->watch_on, true);
++		queue_delayed_work(system_dfl_wq, &sess->job_watch,
++				   msecs_to_jiffies(job_watch_ms / 4 + 1));
++	}
 +	WRITE_ONCE(sess->m2m_run_armed, true);
  	schedule_work(&sess->esparser_queue_work);
  }
@@ -14917,7 +15429,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	v4l2_m2m_job_finish(sess->m2m_dev, sess->m2m_ctx);
  }
  
-@@ -169,7 +264,8 @@
+@@ -169,7 +357,8 @@
  	const struct amvdec_format *fmt_out = sess->fmt_out;
  	unsigned int q_num_bufs = vb2_get_num_buffers(q);
  	unsigned int buffers_total = q_num_bufs + *num_buffers;
@@ -14927,7 +15439,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	if (q_num_bufs + *num_buffers < min_buf_capture)
  		*num_buffers = min_buf_capture - q_num_bufs;
-@@ -178,13 +274,36 @@
+@@ -178,13 +367,36 @@
  	if (buffers_total > fmt_out->max_buffers)
  		*num_buffers = fmt_out->max_buffers - q_num_bufs;
  
@@ -14970,7 +15482,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  
  static int vdec_queue_setup(struct vb2_queue *q, unsigned int *num_buffers,
-@@ -216,6 +335,11 @@
+@@ -216,6 +428,11 @@
  				    sizes[2] < output_size / 4)
  					return -EINVAL;
  				break;
@@ -14982,7 +15494,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  			default:
  				return -EINVAL;
  			}
-@@ -245,6 +369,10 @@
+@@ -245,6 +462,10 @@
  			sizes[2] = output_size / 4;
  			*num_planes = 3;
  			break;
@@ -14993,7 +15505,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		default:
  			return -EINVAL;
  		}
-@@ -259,13 +387,307 @@
+@@ -259,13 +480,307 @@
  	return 0;
  }
  
@@ -15301,7 +15813,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	if (!sess->streamon_out)
  		return;
-@@ -286,10 +708,23 @@
+@@ -286,10 +801,23 @@
  	struct vb2_v4l2_buffer *buf;
  	int ret;
  
@@ -15325,7 +15837,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	if (q->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
  		sess->streamon_out = 1;
-@@ -299,6 +734,20 @@
+@@ -299,6 +827,20 @@
  	if (!sess->streamon_out)
  		return 0;
  
@@ -15346,7 +15858,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	if (sess->status == STATUS_NEEDS_RESUME &&
  	    q->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
  	    sess->changed_format) {
-@@ -312,24 +761,33 @@
+@@ -312,24 +854,33 @@
  	    sess->status == STATUS_INIT)
  		return 0;
  
@@ -15389,7 +15901,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	ret = vdec_poweron(sess);
  	if (ret)
-@@ -342,14 +800,19 @@
+@@ -342,14 +893,19 @@
  						   "vdec_recycle");
  
  	sess->status = STATUS_INIT;
@@ -15412,7 +15924,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	while ((buf = v4l2_m2m_src_buf_remove(sess->m2m_ctx)))
  		v4l2_m2m_buf_done(buf, VB2_BUF_STATE_QUEUED);
  	while ((buf = v4l2_m2m_dst_buf_remove(sess->m2m_ctx)))
-@@ -399,6 +862,9 @@
+@@ -399,6 +955,9 @@
  	struct amvdec_codec_ops *codec_ops = sess->fmt_out->codec_ops;
  	struct amvdec_core *core = sess->core;
  	struct vb2_v4l2_buffer *buf;
@@ -15422,7 +15934,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	if (sess->status == STATUS_RUNNING ||
  	    sess->status == STATUS_INIT ||
-@@ -407,21 +873,60 @@
+@@ -407,21 +966,60 @@
  		if (vdec_codec_needs_recycle(sess))
  			kthread_stop(sess->recycle_thread);
  
@@ -15494,7 +16006,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  		sess->streamon_out = 0;
  	} else {
-@@ -434,6 +939,14 @@
+@@ -434,6 +1032,14 @@
  
  		sess->streamon_cap = 0;
  	}
@@ -15509,7 +16021,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  
  static int vdec_vb2_buf_prepare(struct vb2_buffer *vb)
-@@ -444,12 +957,27 @@
+@@ -444,12 +1050,27 @@
  	return 0;
  }
  
@@ -15537,7 +16049,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  };
  
  static int
-@@ -515,8 +1043,19 @@
+@@ -515,8 +1136,29 @@
  		return NULL;
  	}
  
@@ -15553,13 +16065,23 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		pixmp->width = sess->width;
 +		pixmp->height = sess->height;
 +	} else {
-+		pixmp->width = clamp(pixmp->width, (u32)256, fmt_out->max_width);
-+		pixmp->height = clamp(pixmp->height, (u32)144, fmt_out->max_height);
++		/*
++		 * Match what VIDIOC_ENUM_FRAMESIZES advertises: one macroblock
++		 * for the stateless formats, where the coded size comes from
++		 * the stream and conformance coverage is the point, and the
++		 * shipped figure for the stateful path.
++		 */
++		pixmp->width = clamp(pixmp->width,
++				     amvdec_min_coded_width(fmt_out->pixfmt),
++				     fmt_out->max_width);
++		pixmp->height = clamp(pixmp->height,
++				      amvdec_min_coded_height(fmt_out->pixfmt),
++				      fmt_out->max_height);
 +	}
  	output_size = get_output_size(pixmp->width, pixmp->height);
  
  	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-@@ -531,22 +1070,37 @@
+@@ -531,22 +1173,37 @@
  
  		memset(pfmt[1].reserved, 0, sizeof(pfmt[1].reserved));
  		if (pixmp->pixelformat == V4L2_PIX_FMT_NV12M) {
@@ -15602,7 +16124,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		}
  	}
  
-@@ -602,6 +1156,23 @@
+@@ -602,6 +1259,23 @@
  	struct v4l2_format format;
  	u32 pixfmt_out = 0, pixfmt_cap = 0;
  
@@ -15626,7 +16148,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	orig_pixmp = *pixmp;
  
  	fmt_out = vdec_try_fmt_common(sess, num_formats, f);
-@@ -609,6 +1180,7 @@
+@@ -609,6 +1283,7 @@
  		return -EINVAL;
  
  	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
@@ -15634,7 +16156,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		pixfmt_out = pixmp->pixelformat;
  		pixfmt_cap = sess->pixfmt_cap;
  	} else if (f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-@@ -645,10 +1217,11 @@
+@@ -645,10 +1320,11 @@
  	sess->width = format.fmt.pix_mp.width;
  	sess->height = format.fmt.pix_mp.height;
  
@@ -15648,7 +16170,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	return 0;
  }
-@@ -695,16 +1268,99 @@
+@@ -695,16 +1371,94 @@
  
  	fsize->type = V4L2_FRMSIZE_TYPE_CONTINUOUS;
  
@@ -15664,13 +16186,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	 * conformance coverage is the point, and leave the stateful path on
 +	 * the figure it has shipped with.
 +	 */
-+	if (amvdec_pixfmt_is_stateless(fsize->pixel_format)) {
-+		fsize->stepwise.min_width = 16;
-+		fsize->stepwise.min_height = 16;
-+	} else {
-+		fsize->stepwise.min_width = 256;
-+		fsize->stepwise.min_height = 144;
-+	}
++	fsize->stepwise.min_width = amvdec_min_coded_width(fsize->pixel_format);
++	fsize->stepwise.min_height = amvdec_min_coded_height(fsize->pixel_format);
  	fsize->stepwise.max_width = fmt->max_width;
  	fsize->stepwise.step_width = 1;
 -	fsize->stepwise.min_height = 144;
@@ -15750,7 +16267,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static int
  vdec_decoder_cmd(struct file *file, void *fh, struct v4l2_decoder_cmd *cmd)
  {
-@@ -713,6 +1369,21 @@
+@@ -713,6 +1467,21 @@
  	struct device *dev = sess->core->dev;
  	int ret;
  
@@ -15772,7 +16289,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	ret = v4l2_m2m_ioctl_try_decoder_cmd(file, fh, cmd);
  	if (ret)
  		return ret;
-@@ -720,10 +1391,20 @@
+@@ -720,10 +1489,20 @@
  	if (!(sess->streamon_out & sess->streamon_cap))
  		return 0;
  
@@ -15796,7 +16313,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	}
  
  	/* Should not happen */
-@@ -732,6 +1413,16 @@
+@@ -732,6 +1511,16 @@
  
  	dev_dbg(dev, "Received V4L2_DEC_CMD_STOP\n");
  
@@ -15813,7 +16330,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	sess->should_stop = 1;
  
  	v4l2_m2m_mark_stopped(sess->m2m_ctx);
-@@ -756,6 +1447,8 @@
+@@ -756,6 +1545,8 @@
  	switch (sub->type) {
  	case V4L2_EVENT_EOS:
  	case V4L2_EVENT_SOURCE_CHANGE:
@@ -15822,7 +16339,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		return v4l2_event_subscribe(fh, sub, 0, NULL);
  	case V4L2_EVENT_CTRL:
  		return v4l2_ctrl_subscribe_event(fh, sub);
-@@ -798,7 +1491,7 @@
+@@ -798,7 +1589,7 @@
  	.vidioc_enum_framesizes = vdec_enum_framesizes,
  	.vidioc_subscribe_event = vdec_subscribe_event,
  	.vidioc_unsubscribe_event = v4l2_event_unsubscribe,
@@ -15831,7 +16348,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	.vidioc_decoder_cmd = vdec_decoder_cmd,
  	.vidioc_g_pixelaspect = vdec_g_pixelaspect,
  };
-@@ -816,7 +1509,9 @@
+@@ -816,7 +1607,9 @@
  	src_vq->mem_ops = &vb2_dma_contig_memops;
  	src_vq->drv_priv = sess;
  	src_vq->buf_struct_size = sizeof(struct dummy_buf);
@@ -15842,7 +16359,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	src_vq->dev = sess->core->dev;
  	src_vq->lock = &sess->lock;
  	ret = vb2_queue_init(src_vq);
-@@ -824,31 +1519,308 @@
+@@ -824,31 +1617,308 @@
  		return ret;
  
  	dst_vq->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
@@ -15971,8 +16488,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		return -EINVAL;
 +
 +	/* The G12A/G12B VP9 firmware cannot safely run below this floor. */
-+	if (frame->frame_width_minus_1 + 1 < 256 ||
-+	    frame->frame_height_minus_1 + 1 < 144)
++	if (frame->frame_width_minus_1 + 1 < 16 ||
++	    frame->frame_height_minus_1 + 1 < 16)
 +		return -EINVAL;
 +
 +	return 0;
@@ -16157,7 +16674,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	ret = ctrl_handler->error;
  	if (ret) {
-@@ -873,18 +1845,13 @@
+@@ -873,18 +1943,13 @@
  
  	sess->core = core;
  
@@ -16178,7 +16695,15 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	}
  
  	ret = vdec_init_ctrls(sess);
-@@ -915,8 +1882,6 @@
+@@ -902,6 +1967,7 @@
+ 	INIT_LIST_HEAD(&sess->timestamps);
+ 	INIT_LIST_HEAD(&sess->bufs_recycle);
+ 	INIT_WORK(&sess->esparser_queue_work, esparser_queue_all_src);
++	INIT_DELAYED_WORK(&sess->job_watch, vdec_job_watch);
+ 	mutex_init(&sess->lock);
+ 	mutex_init(&sess->bufs_recycle_lock);
+ 	spin_lock_init(&sess->ts_spinlock);
+@@ -915,8 +1981,6 @@
  
  err_m2m_ctx_release:
  	v4l2_m2m_ctx_release(sess->m2m_ctx);
@@ -16187,10 +16712,12 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  err_free_sess:
  	kfree(sess);
  	return ret;
-@@ -926,10 +1891,11 @@
+@@ -926,10 +1990,13 @@
  {
  	struct amvdec_session *sess = file_to_amvdec_session(file);
  
++	WRITE_ONCE(sess->watch_on, false);
++	disable_delayed_work_sync(&sess->job_watch);
 +	disable_work_sync(&sess->esparser_queue_work);
  	v4l2_m2m_ctx_release(sess->m2m_ctx);
 -	v4l2_m2m_release(sess->m2m_dev);
@@ -16200,7 +16727,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	mutex_destroy(&sess->lock);
  	mutex_destroy(&sess->bufs_recycle_lock);
-@@ -939,12 +1905,36 @@
+@@ -939,12 +2006,36 @@
  	return 0;
  }
  
@@ -16238,7 +16765,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	.mmap = v4l2_m2m_fop_mmap,
  };
  
-@@ -953,6 +1943,14 @@
+@@ -953,6 +2044,14 @@
  	struct amvdec_core *core = data;
  	struct amvdec_session *sess = core->cur_sess;
  
@@ -16253,7 +16780,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	sess->last_irq_jiffies = get_jiffies_64();
  
  	return sess->fmt_out->codec_ops->isr(sess);
-@@ -963,6 +1961,9 @@
+@@ -963,6 +2062,9 @@
  	struct amvdec_core *core = data;
  	struct amvdec_session *sess = core->cur_sess;
  
@@ -16263,7 +16790,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	return sess->fmt_out->codec_ops->threaded_isr(sess);
  }
  
-@@ -983,6 +1984,23 @@
+@@ -983,6 +2085,23 @@
  };
  MODULE_DEVICE_TABLE(of, vdec_dt_match);
  
@@ -16287,7 +16814,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static int vdec_probe(struct platform_device *pdev)
  {
  	struct device *dev = &pdev->dev;
-@@ -1021,6 +2039,11 @@
+@@ -1021,6 +2140,11 @@
  
  	of_id = of_match_node(vdec_dt_match, dev->of_node);
  	core->platform = of_id->data;
@@ -16299,7 +16826,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	if (core->platform->revision == VDEC_REVISION_G12A ||
  	    core->platform->revision == VDEC_REVISION_SM1) {
-@@ -1046,6 +2069,7 @@
+@@ -1046,6 +2170,7 @@
  		return -EPROBE_DEFER;
  
  	irq = platform_get_irq_byname(pdev, "vdec");
@@ -16307,7 +16834,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	if (irq < 0)
  		return irq;
  
-@@ -1065,10 +2089,24 @@
+@@ -1065,10 +2190,24 @@
  		return -ENOMEM;
  	}
  
@@ -16333,7 +16860,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	}
  
  	core->vdev_dec = vdev;
-@@ -1092,10 +2130,28 @@
+@@ -1092,10 +2231,28 @@
  		goto err_vdev_release;
  	}
  
@@ -16362,7 +16889,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	v4l2_device_unregister(&core->v4l2_dev);
  	return ret;
  }
-@@ -1104,7 +2160,13 @@
+@@ -1104,7 +2261,13 @@
  {
  	struct amvdec_core *core = platform_get_drvdata(pdev);
  
@@ -16378,8 +16905,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec.h linux-7.2.6/drivers/staging/media/meson/vdec/vdec.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec.h	2026-09-20 16:35:01.000000000 +0200
-@@ -13,12 +13,34 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec.h	2026-09-23 08:36:19.000000000 +0200
+@@ -13,12 +13,35 @@
  #include <media/videobuf2-v4l2.h>
  #include <media/v4l2-ctrls.h>
  #include <media/v4l2-device.h>
@@ -16397,6 +16924,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	dma_addr_t raw_paddr;
 +	size_t raw_size;
 +	size_t size;
++	size_t prefix_size;	/* guard bytes before the device-visible buffer */
 +};
 +
 +
@@ -16414,7 +16942,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  struct amvdec_buffer {
  	struct list_head list;
-@@ -33,6 +55,8 @@
+@@ -33,6 +56,8 @@
   * @ts: timestamp from the VB2 buffer
   * @offset: offset in the VIFIFO where the associated packet was written
   * @flags: flags from the v4l2 buffer
@@ -16423,7 +16951,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
   * @used_count: times this timestamp was checked for a match with a dst buffer
   */
  struct amvdec_timestamp {
-@@ -41,7 +65,15 @@
+@@ -41,7 +66,15 @@
  	u64 ts;
  	u32 offset;
  	u32 flags;
@@ -16439,7 +16967,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  };
  
  struct amvdec_session;
-@@ -88,9 +120,14 @@
+@@ -88,9 +121,14 @@
  
  	struct video_device *vdev_dec;
  	struct v4l2_device v4l2_dev;
@@ -16454,7 +16982,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  };
  
  /**
-@@ -114,13 +151,20 @@
+@@ -114,13 +152,20 @@
   *
   * @start: mandatory call when the codec needs to initialize
   * @stop: mandatory call when the codec needs to stop
@@ -16475,7 +17003,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
   * @resume: optional call to resume after a resolution change
   * @eos_sequence: optional call to get an end sequence to send to esparser
   *		  for flush. Mutually exclusive with @drain.
-@@ -130,8 +174,16 @@
+@@ -130,8 +175,16 @@
  struct amvdec_codec_ops {
  	int (*start)(struct amvdec_session *sess);
  	int (*stop)(struct amvdec_session *sess);
@@ -16492,7 +17020,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	u32 (*num_pending_bufs)(struct amvdec_session *sess);
  	int (*can_recycle)(struct amvdec_core *core);
  	void (*recycle)(struct amvdec_core *core, u32 buf_idx);
-@@ -178,6 +230,9 @@
+@@ -178,6 +231,9 @@
  	STATUS_NEEDS_RESUME,
  };
  
@@ -16502,7 +17030,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  /**
   * struct amvdec_session - decoding session parameters
   *
-@@ -204,10 +259,15 @@
+@@ -204,10 +260,15 @@
   * @streamon_out: stream on flag for output queue
   * @sequence_cap: capture sequence counter
   * @sequence_out: output sequence counter
@@ -16519,7 +17047,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
   * @changed_format: the format changed
   * @canvas_alloc: array of all the canvas IDs allocated
   * @canvas_num: number of canvas IDs allocated
-@@ -223,10 +283,36 @@
+@@ -223,10 +284,45 @@
   * @last_offset: tracks last offset of vififo
   * @wrap_count: number of times the vififo wrapped around
   * @fw_idx_to_vb2_idx: firmware buffer index to vb2 buffer index
@@ -16548,15 +17076,24 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	AMVDEC_TR_IRQ,		/* a = status, b = shift byte count, c = LCU */
 +	AMVDEC_TR_KICK,		/* a = decode size, b = slice index, c = slice address */
 +	AMVDEC_TR_DONE,		/* a = shift byte count, b = decode size, c = LCU */
++	AMVDEC_TR_RUN,		/* m2m device_run: next job handed to the driver */
++	AMVDEC_TR_WORK,		/* feed worker entered: a = run armed, b = src ready */
++	AMVDEC_TR_SIGNAL,	/* picture handed back to userspace: a = vb2 index */
 +};
 +
  struct amvdec_session {
 +	struct amvdec_trace_ev trace[AMVDEC_TRACE_LEN];
 +	atomic_t trace_pos;
++	/* Stuck-request watch: see vdec_job_watch() */
++	struct delayed_work job_watch;
++	u64 run_ns;
++	u32 run_seq;
++	u32 watch_dumped_seq;
++	bool watch_on;
  	struct amvdec_core *core;
  
  	struct v4l2_fh fh;
-@@ -243,6 +329,7 @@
+@@ -243,6 +339,7 @@
  	u32 width;
  	u32 height;
  	u32 colorspace;
@@ -16564,7 +17101,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	u8 ycbcr_enc;
  	u8 quantization;
  	u8 xfer_func;
-@@ -251,13 +338,54 @@
+@@ -251,13 +348,54 @@
  
  	atomic_t esparser_queued_bufs;
  	struct work_struct esparser_queue_work;
@@ -16619,7 +17156,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	u8 canvas_alloc[MAX_CANVAS];
  	u32 canvas_num;
-@@ -277,6 +405,7 @@
+@@ -277,6 +415,7 @@
  	u32 last_offset;
  	u32 wrap_count;
  	u32 fw_idx_to_vb2_idx[32];
@@ -16627,7 +17164,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	enum amvdec_status status;
  	void *priv;
-@@ -287,6 +416,12 @@
+@@ -287,6 +426,12 @@
  	return container_of(file_to_v4l2_fh(filp), struct amvdec_session, fh);
  }
  
@@ -16642,7 +17179,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.c linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.c	2026-09-23 08:36:19.000000000 +0200
 @@ -5,6 +5,10 @@
   */
  
@@ -16654,7 +17191,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  #include <media/v4l2-mem2mem.h>
  #include <media/v4l2-event.h>
  #include <media/videobuf2-dma-contig.h>
-@@ -14,6 +18,221 @@
+@@ -14,6 +18,238 @@
  #define NUM_CANVAS_NV12 2
  #define NUM_CANVAS_YUV420 3
  
@@ -16676,8 +17213,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +{
 +	if (!guard->raw_vaddr || !guard->raw_size)
 +		return;
-+	memset(guard->raw_vaddr, DMA_GUARD_PATTERN, PAGE_SIZE);
-+	memset((u8 *)guard->raw_vaddr + PAGE_SIZE + guard->size,
++	memset(guard->raw_vaddr, DMA_GUARD_PATTERN, guard->prefix_size);
++	memset((u8 *)guard->raw_vaddr + guard->prefix_size + guard->size,
 +	       DMA_GUARD_PATTERN, PAGE_SIZE);
 +}
 +
@@ -16686,9 +17223,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +				       struct amvdec_dma_guard *guard)
 +{
 +	void *raw;
-+	dma_addr_t raw_dma;
++	dma_addr_t raw_dma, visible;
 +	size_t aligned = PAGE_ALIGN(size);
-+	size_t raw_size;
++	size_t raw_size, alignment;
 +
 +	memset(guard, 0, sizeof(*guard));
 +	if (!amvdec_dma_guards_enabled()) {
@@ -16702,19 +17239,34 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +		return raw;
 +	}
 +
-+	raw_size = PAGE_SIZE + aligned + PAGE_SIZE;
++	/*
++	 * A plain dma_alloc_coherent() of a large buffer comes back aligned to
++	 * its allocation order, and the hardware relies on that: on GXBB the
++	 * HEVC core rounded a page-aligned workspace base down and wrote 960
++	 * bytes into the guard page below it (C2 bring-up, trials 7-8); a
++	 * 64 KiB-aligned base stopped it.  So keep the device-visible address
++	 * 64 KiB-aligned for buffers that size or larger, and make the padding
++	 * in front part of the prefix guard.  Smaller buffers stay page-aligned
++	 * with a one-page prefix, exactly as before.
++	 */
++	alignment = aligned >= SZ_64K ? SZ_64K : PAGE_SIZE;
++	if (aligned > SIZE_MAX - alignment - PAGE_SIZE)
++		return NULL;
++	raw_size = alignment + aligned + PAGE_SIZE;
 +	raw = dma_alloc_coherent(dev, raw_size, &raw_dma, gfp);
 +	if (!raw)
 +		return NULL;
 +
++	visible = ALIGN(raw_dma + PAGE_SIZE, alignment);
 +	guard->raw_vaddr = raw;
 +	guard->raw_paddr = raw_dma;
 +	guard->raw_size = raw_size;
 +	guard->size = aligned;
-+	*dma_handle = raw_dma + PAGE_SIZE;
++	guard->prefix_size = visible - raw_dma;
++	*dma_handle = visible;
 +	amvdec_dma_fill_guards(guard);
 +
-+	return (u8 *)raw + PAGE_SIZE;
++	return (u8 *)raw + guard->prefix_size;
 +}
 +EXPORT_SYMBOL_GPL(amvdec_dma_alloc_guarded);
 +
@@ -16739,21 +17291,23 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	int ret = 0;
 +
 +	if (!amvdec_dma_guards_enabled() || !guard->raw_vaddr ||
-+	    guard->raw_size < PAGE_SIZE * 2 + guard->size)
++	    !guard->prefix_size ||
++	    guard->raw_size < guard->prefix_size + guard->size + PAGE_SIZE)
 +		return 0;
 +
 +	before = guard->raw_vaddr;
-+	after = (const u8 *)guard->raw_vaddr + PAGE_SIZE + guard->size;
++	after = (const u8 *)guard->raw_vaddr + guard->prefix_size + guard->size;
 +
-+	for (off = 0; off < PAGE_SIZE; ) {
++	/* offsets are reported relative to the start of the prefix guard */
++	for (off = 0; off < guard->prefix_size; ) {
 +		size_t start, end;
 +
-+		while (off < PAGE_SIZE && before[off] == DMA_GUARD_PATTERN)
++		while (off < guard->prefix_size && before[off] == DMA_GUARD_PATTERN)
 +			off++;
-+		if (off == PAGE_SIZE)
++		if (off == guard->prefix_size)
 +			break;
 +		start = off;
-+		while (off < PAGE_SIZE && before[off] != DMA_GUARD_PATTERN)
++		while (off < guard->prefix_size && before[off] != DMA_GUARD_PATTERN)
 +			off++;
 +		end = off;
 +		dev_err(dev, "B35_DMA_GUARD changed %s before offset=%zu length=%zu\n",
@@ -16876,7 +17430,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  u32 amvdec_read_dos(struct amvdec_core *core, u32 reg)
  {
  	return readl_relaxed(core->dos_base + reg);
-@@ -26,6 +245,19 @@
+@@ -26,6 +262,19 @@
  }
  EXPORT_SYMBOL_GPL(amvdec_write_dos);
  
@@ -16896,7 +17450,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  void amvdec_write_dos_bits(struct amvdec_core *core, u32 reg, u32 val)
  {
  	amvdec_write_dos(core, reg, amvdec_read_dos(core, reg) | val);
-@@ -50,32 +282,40 @@
+@@ -50,32 +299,40 @@
  }
  EXPORT_SYMBOL_GPL(amvdec_write_parser);
  
@@ -16947,7 +17501,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  static int canvas_alloc(struct amvdec_session *sess, u8 *canvas_id)
  {
-@@ -176,12 +416,50 @@
+@@ -176,12 +433,50 @@
  	return 0;
  }
  
@@ -16999,7 +17553,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	u32 height = ALIGN(sess->height, 32);
  	u32 reg_cur;
  	u32 reg_num_cur = 0;
-@@ -189,7 +467,24 @@
+@@ -189,7 +484,24 @@
  	int i = 0;
  	int ret;
  
@@ -17024,7 +17578,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		if (!reg_base[reg_base_cur])
  			return -EINVAL;
  
-@@ -220,15 +515,141 @@
+@@ -220,15 +532,141 @@
  			reg_num_cur = 0;
  		}
  
@@ -17168,7 +17722,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  {
  	struct amvdec_timestamp *new_ts;
  	unsigned long flags;
-@@ -241,6 +662,17 @@
+@@ -241,6 +679,17 @@
  	new_ts->tc = tc;
  	new_ts->offset = offset;
  	new_ts->flags = vbuf_flags;
@@ -17186,7 +17740,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	spin_lock_irqsave(&sess->ts_spinlock, flags);
  	list_add_tail(&new_ts->list, &sess->timestamps);
-@@ -249,6 +681,25 @@
+@@ -249,6 +698,25 @@
  }
  EXPORT_SYMBOL_GPL(amvdec_add_ts);
  
@@ -17212,7 +17766,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  void amvdec_remove_ts(struct amvdec_session *sess, u64 ts)
  {
  	struct amvdec_timestamp *tmp;
-@@ -262,7 +713,7 @@
+@@ -262,7 +730,7 @@
  			goto unlock;
  		}
  	}
@@ -17221,7 +17775,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		 "Couldn't remove buffer with timestamp %llu from list\n", ts);
  
  unlock:
-@@ -270,6 +721,57 @@
+@@ -270,6 +738,87 @@
  }
  EXPORT_SYMBOL_GPL(amvdec_remove_ts);
  
@@ -17246,6 +17800,36 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	return ret;
 +}
 +EXPORT_SYMBOL_GPL(amvdec_next_ts_offset);
++
++/*
++ * Drop every request snapshot.  The snapshots are keyed by cumulative stream
++ * offset and looked up as "the last entry at or below the hardware's stream
++ * position", so they are only meaningful while the host and the firmware
++ * agree on where zero is.  A mid-session core restart moves that zero, and
++ * leaving the old entries in place makes the list non-monotonic: the lookup
++ * then returns a stale snapshot for a new picture, which decodes as garbage.
++ *
++ * Only safe where the restart itself is safe - firmware parked after a
++ * completed picture with nothing queued - because every remaining entry then
++ * describes input that has already been consumed and prepared.
++ */
++unsigned int amvdec_flush_ts(struct amvdec_session *sess)
++{
++	struct amvdec_timestamp *tmp, *n;
++	unsigned int dropped = 0;
++	unsigned long flags;
++
++	spin_lock_irqsave(&sess->ts_spinlock, flags);
++	list_for_each_entry_safe(tmp, n, &sess->timestamps, list) {
++		list_del(&tmp->list);
++		kfree(tmp);
++		dropped++;
++	}
++	spin_unlock_irqrestore(&sess->ts_spinlock, flags);
++
++	return dropped;
++}
++EXPORT_SYMBOL_GPL(amvdec_flush_ts);
 +
 +void amvdec_dst_buf_drop_offset(struct amvdec_session *sess, u32 offset)
 +{
@@ -17279,7 +17863,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static void dst_buf_done(struct amvdec_session *sess,
  			 struct vb2_v4l2_buffer *vbuf,
  			 u32 field, u64 timestamp,
-@@ -288,6 +790,9 @@
+@@ -288,6 +837,9 @@
  		vb2_set_plane_payload(&vbuf->vb2_buf, 1, output_size / 4);
  		vb2_set_plane_payload(&vbuf->vb2_buf, 2, output_size / 4);
  		break;
@@ -17289,7 +17873,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	}
  
  	vbuf->vb2_buf.timestamp = timestamp;
-@@ -295,8 +800,8 @@
+@@ -295,8 +847,8 @@
  	vbuf->flags = flags;
  	vbuf->timecode = timecode;
  
@@ -17300,7 +17884,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  		const struct v4l2_event ev = { .type = V4L2_EVENT_EOS };
  
  		dev_dbg(dev, "Signaling EOS, sequence_cap = %u\n",
-@@ -320,6 +825,92 @@
+@@ -320,6 +872,92 @@
  	schedule_work(&sess->esparser_queue_work);
  }
  
@@ -17393,7 +17977,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  void amvdec_dst_buf_done(struct amvdec_session *sess,
  			 struct vb2_v4l2_buffer *vbuf, u32 field)
  {
-@@ -333,7 +924,7 @@
+@@ -333,7 +971,7 @@
  
  	spin_lock_irqsave(&sess->ts_spinlock, flags);
  	if (list_empty(timestamps)) {
@@ -17402,7 +17986,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  			vbuf->vb2_buf.index);
  
  		v4l2_m2m_buf_done(vbuf, VB2_BUF_STATE_ERROR);
-@@ -351,9 +942,127 @@
+@@ -351,9 +989,127 @@
  
  	dst_buf_done(sess, vbuf, field, timestamp, timecode, vbuf_flags);
  	atomic_dec(&sess->esparser_queued_bufs);
@@ -17530,7 +18114,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  void amvdec_dst_buf_done_offset(struct amvdec_session *sess,
  				struct vb2_v4l2_buffer *vbuf,
  				u32 offset, u32 field, bool allow_drop)
-@@ -386,7 +1095,7 @@
+@@ -386,7 +1142,7 @@
  	}
  
  	if (!match) {
@@ -17539,7 +18123,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  			vbuf->vb2_buf.index, offset);
  	} else {
  		timestamp = match->ts;
-@@ -397,9 +1106,25 @@
+@@ -397,9 +1153,25 @@
  	}
  	spin_unlock_irqrestore(&sess->ts_spinlock, flags);
  
@@ -17567,7 +18151,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  }
  EXPORT_SYMBOL_GPL(amvdec_dst_buf_done_offset);
  
-@@ -409,11 +1134,16 @@
+@@ -409,11 +1181,16 @@
  	struct vb2_v4l2_buffer *vbuf;
  	struct device *dev = sess->core->dev_dec;
  
@@ -17585,7 +18169,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  			"Buffer %u done but it doesn't exist in m2m_ctx\n",
  			buf_idx);
  		return;
-@@ -440,41 +1170,85 @@
+@@ -440,41 +1217,93 @@
  EXPORT_SYMBOL_GPL(amvdec_set_par_from_dar);
  
  void amvdec_src_change(struct amvdec_session *sess, u32 width,
@@ -17640,7 +18224,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  void amvdec_abort(struct amvdec_session *sess)
  {
 -	dev_info(sess->core->dev, "Aborting decoding session!\n");
-+	dev_dbg(sess->core->dev, "Aborting decoding session!\n");
++	/*
++	 * Most callers abort without logging, and this used to be dev_dbg, so
++	 * a session could die with nothing in the kernel log at all - which is
++	 * how a decode that stopped half way through looked like a client bug.
++	 * Name the caller: an abort is terminal, so the cost is irrelevant.
++	 */
++	dev_warn_ratelimited(sess->core->dev, "decoding session aborted by %pS\n",
++			     __builtin_return_address(0));
  	vb2_queue_error(&sess->m2m_ctx->cap_q_ctx.q);
  	vb2_queue_error(&sess->m2m_ctx->out_q_ctx.q);
  }
@@ -17663,6 +18254,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +{
 +	static const char * const name[] = {
 +		"?", "feed", "fed", "ready", "irq", "kick", "done",
++		"run", "work", "signal",
 +	};
 +	u32 end = (u32)atomic_read(&sess->trace_pos);
 +	u32 i;
@@ -17682,8 +18274,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +EXPORT_SYMBOL_GPL(amvdec_trace_dump);
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.h linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.h	2026-09-20 16:35:01.000000000 +0200
-@@ -9,6 +9,33 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_helpers.h	2026-09-23 08:36:19.000000000 +0200
+@@ -9,6 +9,48 @@
  
  #include "vdec.h"
  
@@ -17713,11 +18305,26 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +	       pixfmt == V4L2_PIX_FMT_MPEG2_SLICE;
 +}
 +
++/*
++ * Coded-size floor.  The stateless formats are admitted down to one macroblock,
++ * which is what VIDIOC_ENUM_FRAMESIZES advertises for them and what the
++ * hardware decodes exactly; the stateful path keeps the figure it shipped with.
++ */
++static inline u32 amvdec_min_coded_width(u32 pixfmt)
++{
++	return amvdec_pixfmt_is_stateless(pixfmt) ? 16 : 256;
++}
++
++static inline u32 amvdec_min_coded_height(u32 pixfmt)
++{
++	return amvdec_pixfmt_is_stateless(pixfmt) ? 16 : 144;
++}
++
 +
  /**
   * amvdec_set_canvases() - Map VB2 buffers to canvases
   *
-@@ -19,17 +46,72 @@
+@@ -19,17 +61,72 @@
  int amvdec_set_canvases(struct amvdec_session *sess,
  			u32 reg_base[], u32 reg_num[]);
  
@@ -17793,7 +18400,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  /**
   * amvdec_dst_buf_done_idx() - Signal that a buffer is done decoding
-@@ -43,6 +125,18 @@
+@@ -43,6 +140,18 @@
  			     u32 offset, u32 field);
  void amvdec_dst_buf_done(struct amvdec_session *sess,
  			 struct vb2_v4l2_buffer *vbuf, u32 field);
@@ -17812,7 +18419,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  void amvdec_dst_buf_done_offset(struct amvdec_session *sess,
  				struct vb2_v4l2_buffer *vbuf,
  				u32 offset, u32 field, bool allow_drop);
-@@ -55,10 +149,20 @@
+@@ -55,10 +164,21 @@
   * @tc: timecode to add
   * @offset: offset in the VIFIFO where the associated packet was written
   * @flags: the vb2_v4l2_buffer flags
@@ -17831,10 +18438,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +int amvdec_next_ts_offset(struct amvdec_session *sess, u32 after,
 +			  bool after_valid, u32 *offset);
 +void amvdec_dst_buf_drop_offset(struct amvdec_session *sess, u32 offset);
++unsigned int amvdec_flush_ts(struct amvdec_session *sess);
  
  /**
   * amvdec_set_par_from_dar() - Set Pixel Aspect Ratio from Display Aspect Ratio
-@@ -77,9 +181,10 @@
+@@ -77,9 +197,10 @@
   * @width: picture width detected by the hardware
   * @height: picture height detected by the hardware
   * @dpb_size: Decoded Picture Buffer size (= amount of buffers for decoding)
@@ -17848,8 +18456,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
   * amvdec_abort() - Abort the current decoding session
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.c linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.c	2026-09-20 16:35:01.000000000 +0200
-@@ -8,6 +8,8 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.c	2026-09-23 08:36:19.000000000 +0200
+@@ -8,10 +8,15 @@
  
  #include <linux/firmware.h>
  #include <linux/clk.h>
@@ -17858,7 +18466,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  #include "vdec_1.h"
  #include "vdec_helpers.h"
-@@ -23,6 +25,34 @@
+ #include "vdec_hevc.h"
++#include "esparser.h"
++#include "codec_hevc.h"
++#include "codec_vp9.h"
+ #include "hevc_regs.h"
+ #include "dos_regs.h"
+ 
+@@ -23,6 +28,34 @@
  
  #define MC_SIZE	(4096 * 4)
  
@@ -17893,7 +18508,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  static int vdec_hevc_load_firmware(struct amvdec_session *sess,
  				   const char *fwname)
  {
-@@ -63,8 +93,18 @@
+@@ -63,8 +96,18 @@
  	amvdec_write_dos(core, HEVC_IMEM_DMA_COUNT, MC_SIZE / 4);
  	amvdec_write_dos(core, HEVC_IMEM_DMA_CTRL, (0x8000 | (7 << 16)));
  
@@ -17913,7 +18528,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	if (i == 0) {
  		dev_err(dev, "Firmware load fail (DMA hang?)\n");
-@@ -110,15 +150,247 @@
+@@ -110,15 +153,247 @@
  	return readl_relaxed(sess->core->dos_base + HEVC_STREAM_LEVEL);
  }
  
@@ -18164,7 +18779,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	if (sess->priv)
  		codec_ops->stop(sess);
-@@ -142,13 +414,18 @@
+@@ -142,13 +417,18 @@
  	else
  		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
  				   GEN_PWR_VDEC_HEVC, GEN_PWR_VDEC_HEVC);
@@ -18184,7 +18799,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  
  	clk_disable_unprepare(core->vdec_hevc_clk);
  	if (core->platform->revision == VDEC_REVISION_G12A ||
-@@ -181,8 +458,20 @@
+@@ -181,8 +461,20 @@
  				   GEN_PWR_VDEC_HEVC, 0);
  	usleep_range(10, 20);
  
@@ -18205,7 +18820,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	amvdec_write_dos(core, DOS_SW_RESET3, 0x00000000);
  
  	amvdec_write_dos(core, DOS_GCLK_EN3, 0xffffffff);
-@@ -199,8 +488,13 @@
+@@ -199,8 +491,13 @@
  				   0xc00, 0);
  
  	amvdec_write_dos(core, DOS_SW_RESET3, 0xffffffff);
@@ -18219,7 +18834,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	vdec_hevc_stbuf_init(sess);
  
  	ret = vdec_hevc_load_firmware(sess, sess->fmt_out->firmware_path);
-@@ -222,8 +516,8 @@
+@@ -222,11 +519,64 @@
  	return 0;
  
  stop:
@@ -18230,19 +18845,77 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  	return ret;
  }
  
++/*
++ * B47: restart the HEVC core mid-session so the stream position counter goes
++ * back to zero before it can reach 0x80000000, where the firmware stops
++ * consuming (it answers a published endpoint with HEVC_NAL_DECODE_DONE).
++ * Only valid at a quiet boundary: firmware parked after a completed picture,
++ * nothing queued, so the VIFIFO holds nothing that would be lost.
++ */
++int vdec_hevc_restream(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++	unsigned int dropped;
++	int ret;
++
++	ret = vdec_hevc_stop_armrisc(core);
++	if (ret)
++		return ret;
++	ret = vdec_hevc_quiesce_reset_locked(core, true);
++	if (ret)
++		return ret;
++
++	vdec_hevc_stbuf_init(sess);
++
++	ret = vdec_hevc_load_firmware(sess, sess->fmt_out->firmware_path);
++	if (ret)
++		return ret;
++
++	/* Both codecs on this core publish endpoints the same way. */
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9_FRAME)
++		ret = codec_vp9_restream_reinit(sess);
++	else
++		ret = codec_hevc_restream_reinit(sess);
++	if (ret)
++		return ret;
++
++	amvdec_write_dos(core, DOS_SW_RESET3, BIT(12) | BIT(11));
++	amvdec_write_dos(core, DOS_SW_RESET3, 0);
++	amvdec_read_dos(core, DOS_SW_RESET3);
++
++	amvdec_write_dos(core, HEVC_MPSR, 1);
++	usleep_range(10, 20);
++
++	/* The stream restarts at the beginning of the VIFIFO: the host's
++	 * cumulative offsets must restart with it.
++	 */
++	esparser_power_up(sess);
++	sess->last_offset = 0;
++	sess->wrap_count = 0;
++	dropped = amvdec_flush_ts(sess);
++	do { static u32 n; dev_info(core->dev, "B47 restreamed #%u: positions restart at 0, %u stale snapshots dropped\n", ++n, dropped); } while (0);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(vdec_hevc_restream);
++
+ static int vdec_hevc_start(struct amvdec_session *sess)
+ {
+ 	struct amvdec_core *core = sess->core;
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.h linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.h	2026-09-20 16:35:01.000000000 +0200
-@@ -10,4 +10,6 @@
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_hevc.h	2026-09-23 08:36:19.000000000 +0200
+@@ -10,4 +10,8 @@
  
  extern struct amvdec_ops vdec_hevc_ops;
  
 +int vdec_hevc_quiesce_reset(struct amvdec_core *core);
 +
++int vdec_hevc_restream(struct amvdec_session *sess);
++
  #endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.c linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.c
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.c	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.c	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.c	2026-09-23 08:36:19.000000000 +0200
 @@ -10,11 +10,26 @@
  #include "vdec_1.h"
  #include "vdec_hevc.h"
@@ -18483,7 +19156,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
 +MODULE_FIRMWARE("meson/vdec/g12a_hevc_mmu.bin");
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.h linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.h
 --- linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.h	2026-09-14 13:41:11.000000000 +0200
-+++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.h	2026-09-20 16:35:01.000000000 +0200
++++ linux-7.2.6/drivers/staging/media/meson/vdec/vdec_platform.h	2026-09-23 08:36:19.000000000 +0200
 @@ -31,6 +31,7 @@
  extern const struct vdec_platform vdec_platform_gxl;
  extern const struct vdec_platform vdec_platform_gxlx;
@@ -18492,3 +19165,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.6/drivers/st
  extern const struct vdec_platform vdec_platform_sm1;
  
  #endif
+--
+
+MiniMyth2
+

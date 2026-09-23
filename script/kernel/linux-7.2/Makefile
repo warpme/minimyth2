@@ -121,7 +121,8 @@ PATCHFILES += 1303-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
 # stateless vdec 20.09.2026 https://github.com/gusbourg/vim3-vdec-stateless
 PATCHFILES += 1410-media-add-MESON_AM21C-fourcc.patch
-PATCHFILES += 1411-media-amlogic-stateless-vdec-gusbourg-20092026-g51e40d34f2.patch
+PATCHFILES += 1411-media-amlogic-stateless-vdec-gusbourg-23092026-g810e57e55.patch
+PATCHFILES += 1412-media-amlogic-stateless-vdec-gusbourg-add-experimantal-sm1-support.patch
 # g12/sm1 dtsi additions
 PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 # g12/sm1 board dts additions
