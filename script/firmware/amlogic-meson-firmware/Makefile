@@ -25,13 +25,9 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/g12a_h264_multi.bin  $(DESTDIR)$(elibdir)/firmware/meson/vdec/
 	@cp -Rdf $(WORKSRC)/gxl_mpeg12_multi.bin $(DESTDIR)$(elibdir)/firmware/meson/vdec/
 	@cp -Rdf $(WORKSRC)/sm1_h264_multi.bin   $(DESTDIR)$(elibdir)/firmware/meson/vdec/
-	@cp -Rdf $(WORKSRC)/sm1_hevc_mmu_swap.bin $(DESTDIR)$(elibdir)/firmware/meson/vdec/
-	@cp -Rdf $(WORKSRC)/sm1_vp9_mmu.bin      $(DESTDIR)$(elibdir)/firmware/meson/vdec/
 	@$(MAKECOOKIE)
 
 clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/g12a_h264_multi.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/gxl_mpeg12_multi.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/sm1_h264_multi.bin
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/sm1_hevc_mmu_swap.bin
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/sm1_vp9_mmu.bin
