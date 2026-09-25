@@ -1,8 +1,9 @@
 
 GARNAME        = openvfd-service
-# v1.4.2 6.09.2022
-GARVERSION     = ac2d94c8f466d6d1d56b5dc818a342b0ce01a750
-CONFIGSVERSION = e36499532ac9583cdfd1fcb2e42c0567c5a1f892
+# v1.4.6 25.09.2026
+GARVERSION     = e6f57b329d2cfe4bc4670ad10a68a21bcbf3d846
+# git@19.05.2026
+CONFIGSVERSION = a71194eb3f4a83050e0f93d08440315f450606de
 CATEGORIES     = utils
 MASTER_SITES   = \
 		https://github.com/arthur-liberman/linux_openvfd/archive/ \
