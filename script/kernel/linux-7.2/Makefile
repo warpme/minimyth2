@@ -46,7 +46,7 @@ ifeq (1,1)
 
 PATCHFILES += 0106-net-brcm80211-brcmfmac-pcie-stop-loading-txcap_blob-fw.patch
 PATCHFILES += 0107-OF-add-DT-Overlay-using-configfs-interface.patch
-PATCHFILES += 0108-drivers-led-add-openvfd-g6de4e217b.patch
+PATCHFILES += 0108-drivers-led-add-openvfd-ga43fc8a4a4.patch
 PATCHFILES += 0109-block-add-led-showing-block-activity.patch
 
 ifeq (1,1)

@@ -30,7 +30,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
  obj-$(CONFIG_AD525X_DPOT)	+= ad525x_dpot.o
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/controller.h linux-7.2.7/drivers/misc/openvfd/controllers/controller.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/controller.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/controller.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/controller.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,28 @@
 +#ifndef __CONTROLLERH__
 +#define __CONTROLLERH__
@@ -62,7 +62,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/controller_list.h linux-7.2.7/drivers/misc/openvfd/controllers/controller_list.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/controller_list.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/controller_list.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/controller_list.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,12 @@
 +#ifndef __CONTROLLER_LIST_H__
 +#define __CONTROLLER_LIST_H__
@@ -78,7 +78,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/dummy.c linux-7.2.7/drivers/misc/openvfd/controllers/dummy.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/dummy.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/dummy.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/dummy.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,99 @@
 +#include "dummy.h"
 +
@@ -181,7 +181,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/dummy.h linux-7.2.7/drivers/misc/openvfd/controllers/dummy.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/dummy.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/dummy.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/dummy.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,8 @@
 +#ifndef __DUMMYH__
 +#define __DUMMYH__
@@ -193,8 +193,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fd628.c linux-7.2.7/drivers/misc/openvfd/controllers/fd628.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fd628.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fd628.c	2026-05-09 16:35:42.000000000 +0200
-@@ -0,0 +1,399 @@
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fd628.c	2026-09-24 15:43:17.000000000 +0200
+@@ -0,0 +1,407 @@
 +#include "../protocols/i2c_sw.h"
 +#include "../protocols/spi_sw.h"
 +#include "fd628.h"
@@ -522,15 +522,23 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +	case DISPLAY_TYPE_5D_7S_G9SX:
 +	case DISPLAY_TYPE_5D_X96_X9:
 +	default:
-+		for (i = 0; i < length; i++)
-+			dev->wbuf[dtb->dat_index[i]] = data[i];
++		for (i = 0; i < length; i++) {
++			unsigned char pos = dtb->dat_index[i];
++
++			if (pos < sizeof(dev->wbuf) / sizeof(dev->wbuf[0]))
++				dev->wbuf[pos] = data[i];
++		}
 +		break;
 +	case DISPLAY_TYPE_FD620_REF:
 +	case DISPLAY_TYPE_4D_7S_FREESATGTC:
 +		for (i = 1; i < length; i++) {
-+			dev->wbuf[dtb->dat_index[i]] = data[i];
++			unsigned char pos = dtb->dat_index[i];
++
++			if (pos >= sizeof(dev->wbuf) / sizeof(dev->wbuf[0]))
++				continue;
++			dev->wbuf[pos] = data[i];
 +			if (data[0] & dtb->led_dots[LED_DOT_SEC])
-+				dev->wbuf[dtb->dat_index[i]] |= ledDot;				// DP is the colon.
++				dev->wbuf[pos] |= ledDot;				// DP is the colon.
 +		}
 +		break;
 +	}
@@ -596,7 +604,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fd628.h linux-7.2.7/drivers/misc/openvfd/controllers/fd628.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fd628.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fd628.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fd628.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,8 @@
 +#ifndef __FD628H__
 +#define __FD628H__
@@ -608,8 +616,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fd650.c linux-7.2.7/drivers/misc/openvfd/controllers/fd650.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fd650.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fd650.c	2026-05-09 16:35:42.000000000 +0200
-@@ -0,0 +1,324 @@
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fd650.c	2026-09-24 15:43:17.000000000 +0200
+@@ -0,0 +1,333 @@
 +#include "../protocols/i2c_sw.h"
 +#include "fd650.h"
 +
@@ -912,13 +920,22 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +		data[0] |= dev->status_led_mask;
 +	else
 +		data[0] |= (dev->status_led_mask & ~dtb->led_dots[LED_DOT_SEC]);
-+	for (i = 0; i <= length; i++)
-+		tempBuf[dtb->dat_index[i]] = (unsigned char)(data[i] & 0xFF);
++	for (i = 0; i < length; i++) {
++		unsigned char pos = dtb->dat_index[i];
++
++		if (pos < sizeof(dev->wbuf) / sizeof(dev->wbuf[0]))
++			tempBuf[pos] = (unsigned char)(data[i] & 0xFF);
++	}
 +	if (is_fd650()) {
-+		tempBuf[dtb->dat_index[0]] |= (data[0] & dtb->led_dots[LED_DOT_SEC]) ? ledDot : 0x00;
++		unsigned char pos0 = dtb->dat_index[0];
++
++		if (pos0 < sizeof(dev->wbuf) / sizeof(dev->wbuf[0]))
++			tempBuf[pos0] |= (data[0] & dtb->led_dots[LED_DOT_SEC]) ? ledDot : 0x00;
 +		for (i = 1; i < length; i++) {
-+			if (dtb->dat_index[i] != dtb->dat_index[0])
-+				tempBuf[dtb->dat_index[i]] |= (data[0] & dtb->led_dots[dtb->led_dot_index[i]]) ? ledDot : 0x00;
++			unsigned char pos = dtb->dat_index[i];
++
++			if (pos < sizeof(dev->wbuf) / sizeof(dev->wbuf[0]) && pos != pos0)
++				tempBuf[pos] |= (data[0] & dtb->led_dots[dtb->led_dot_index[i]]) ? ledDot : 0x00;
 +		}
 +	}
 +
@@ -936,7 +953,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fd650.h linux-7.2.7/drivers/misc/openvfd/controllers/fd650.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fd650.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fd650.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fd650.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,8 @@
 +#ifndef __FD650H__
 +#define __FD650H__
@@ -948,7 +965,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_h.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_h.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_h.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_h.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_h.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,112 @@
 +// Grotesk16x32_h.h
 +// Font type    : Full (96 characters)
@@ -1064,7 +1081,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_v.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_v.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_v.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_v.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk16x32_v.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,107 @@
 +// Grotesk16x32_v.h
 +// Font type	: Full (96 characters)
@@ -1175,7 +1192,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk24x48_v.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk24x48_v.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk24x48_v.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk24x48_v.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk24x48_v.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,107 @@
 +// Grotesk24x48_v.h
 +// Font type	: Full (96 characters)
@@ -1286,7 +1303,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk32x64_h.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk32x64_h.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk32x64_h.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk32x64_h.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Grotesk32x64_h.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,112 @@
 +// Grotesk32x64_h.h
 +// Font type    : Full (96 characters)
@@ -1402,7 +1419,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_h.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_h.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_h.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_h.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_h.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,23 @@
 +// icons16x16_h.h
 +// Font type	: Full (15 characters)
@@ -1429,7 +1446,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_v.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_v.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_v.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_v.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons16x16_v.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,23 @@
 +// icons16x16_v.h
 +// Font type	: Full (15 characters)
@@ -1456,7 +1473,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_h.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_h.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_h.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_h.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_h.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,23 @@
 +// icons32x32_h.h
 +// Font type	: Full (15 characters)
@@ -1483,7 +1500,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_v.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_v.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_v.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_v.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons32x32_v.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,23 @@
 +// icons32x32_v.h
 +// Font type	: Full (15 characters)
@@ -1510,31 +1527,31 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/00none.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/00none.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/00none.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/00none.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/00none.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ                                                                 
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/01channel.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/01channel.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/01channel.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/01channel.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/01channel.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ        0  @  €  ü  €  €  ¿ú  €  ¿ú  €  ¿ú  €  €  ü  
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/02temp.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/02temp.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/02temp.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/02temp.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/02temp.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ 8       8   €  9œ  €  œ  €  œ  €  À  à  à  à  à  À  
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/03calendar.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/03calendar.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/03calendar.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/03calendar.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/03calendar.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ `  P  ?ø  @  €  †Ú  †Ú  €  ¶Ú  ¶Ú  €  ¶Â  ¶Â  €  @  ?ø  
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/04media.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/04media.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/04media.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/04media.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/04media.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,7 @@
 +BM~       >   (               @                       ÿÿÿ ÿþ  ªª  ÿþ   
 +  ¢
@@ -1546,175 +1563,175 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/05tv.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/05tv.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/05tv.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/05tv.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/05tv.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ           `  À  ü  ÿþ  ø  ˜    ð      ø  ÿþ  ü  
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/10eth.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/10eth.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/10eth.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/10eth.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/10eth.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ À  @  @  @  À        ?ø        ø>  ˆ"  ˆ"  ˆ"  ø>      
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/11wifi.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/11wifi.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/11wifi.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/11wifi.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/11wifi.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ         À  ø  <<  qŽ  gæ  ð  x    €  À  À  €          
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/12play.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/12play.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/12play.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/12play.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/12play.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ             €  À  à  ð  à  À  €                  
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/13pause.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/13pause.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/13pause.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/13pause.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/13pause.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ 8  >|  >|  >|  >|  >|  >|  >|  >|  >|  >|  >|  >|  >|  8      
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/14usb.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/14usb.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/14usb.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/14usb.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/14usb.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @   Ä  Ä              ÿÿÿ     €  €  €  €     °        à  À  €  €  À  À  €  
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/15sd.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/15sd.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/15sd.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/15sd.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/15sd.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ ü    	T  T  !T  !T        .ä  (”  .”  "”  .ä     ?ü      
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/16bt.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/16bt.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/16bt.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/16bt.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/16bt.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ        €  @  	      @  €  €  @     	   @  €         
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/17apps.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/17apps.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/17apps.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/17apps.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/17apps.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ ?ø  @  €  žò  žò  žò  žò  €  žò  žò  žò  žò  €  @  ?ø      
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/18setup.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/18setup.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/18setup.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/18setup.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/16/18setup.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM~       >   (               @                       ÿÿÿ À  #Ä  þ  ?ü  ?ü  >|  ü?  ø  ø  ü?  >|  ?ü  ?ü  þ  #Ä  À  
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/00none.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/00none.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/00none.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/00none.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/00none.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ                                                                                                                                 
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/01channel.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/01channel.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/01channel.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/01channel.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/01channel.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ € À À€ `  0      0  `  À ÿÿàÿÿð  8      ÿÿ˜ÿÿ˜    ÿÿ˜ÿÿ˜    ÿÿ˜ÿÿ˜      pÿÿàÿÿÀ        
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/02temp.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/02temp.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/02temp.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/02temp.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/02temp.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ  À  `  0                    Ð  Ð  Ð  Ð  Ð  Ð  Ð  Ø  Ì  ä  7ö  'ò  'ò  'ò  7ö  ä    8  à     
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/03calendar.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/03calendar.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/03calendar.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/03calendar.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/03calendar.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ À€ÀÀÀÀÀÀ<ÿüð|ÿüøÿÿÿüÿÿÿüà  À  À  À  À<óÌÀ<óÌÀ<óÌÀ<óÌÀ  À  Ï<óÌÏ<óÌÏ<óÌÏ<óÌÀ  À  Ï<ðÏ<ðÏ<ðÏ<ðÀ  à  ÿÿø?ÿÿð
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/04media.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/04media.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/04media.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/04media.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/04media.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ         ÿÿÿÿÿÿÿÿÆ1ŒcÆ1ŒcÆ1ŒcÿÿÿÿÿÿÿÿÃ  ÃÃ ÃÃ ÃÃ€ÃÃàÃÃðÃÃøÃÃðÃÃàÃÃ€ÃÃ ÃÃ ÃÃ  ÃÿÿÿÿÿÿÿÿÆ1ŒcÆ1ŒcÆ1Œcÿÿÿÿÿÿÿÿ            
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/05tv.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/05tv.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/05tv.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/05tv.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/05tv.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €   Ä  Ä              ÿÿÿ     €  À  à   ð  x  <<  x  ð  à ÿÿø?ÿÿüÿÿþð >À À sÀ q€ s€ € € s€ q€ s€ € À À à ÿÿþÿÿü?ÿÿø    
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/10eth.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/10eth.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/10eth.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/10eth.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/10eth.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ  ?ð  ?ð  00  00  00  00  00  00  ?ð  ?ð             ÿÿÀÿÿÀ  À  À  À  ÀÿÀüÿÀüÀÀÀÀÀÀÀÀÀÀÀÀÿÀüÿÀü        
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/11wifi.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/11wifi.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/11wifi.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/11wifi.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/11wifi.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ              à  ø  þ ÿÿ€ÿÿÀÿÿàøðàø?€ü?àü>ø|?ü8 þ  ÿÿ ü?€øÀàÀÃÃ€ à  ð  ð  ð  ð  à  À                 
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/12play.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/12play.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/12play.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/12play.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/12play.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ  À   à   ð   ø   ü   þ   ÿ   ÿ€  ÿÀ  ÿà  ÿð  ÿø  ÿü  ÿþ  ÿÿ  ÿÿ  ÿþ  ÿü  ÿø  ÿð  ÿà  ÿÀ  ÿ€  ÿ   þ   ü   ø   ð   à   À          
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/13pause.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/13pause.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/13pause.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/13pause.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/13pause.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ ðÀøàü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðü?ðøàðÀ        
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/14usb.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/14usb.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/14usb.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/14usb.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/14usb.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ  þ  þ  `  ff  ff  ff  ff  `  ` ÿÿ€ÿÿÀ  `p`ˆ`ˆ`ˆ`ø`  `p`ˆ`ˆ`ˆ``  `ð` ` ` `ð`  `ÿÿàÿÿÀ
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/15sd.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/15sd.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/15sd.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/15sd.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/15sd.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ  ÿð ÿð 8 0 p 0 ã30Ã30ƒ303030303030  0  0  0  0üü0üþ0ÀÇ0ÀÃ0üÃ0üÃ0Ã0Ç0üþ0üü0  0  0ÿÿðÿÿð        
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/16bt.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/16bt.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/16bt.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/16bt.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/16bt.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ             €  À  à  p  8  Ã  ã  s  ;  8  p  à  À  À  à  p  8  ;  s  ã  Ã  8  p  à  À  €            
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/17apps.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/17apps.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/17apps.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/17apps.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/17apps.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ ÿÿÀÿÿà8  pp  8à  À  ÁüþÃüÿÃüÿÃüÿÃüÿÃüÿÃüÿÃüÿÀ  À  ÃüÿÃüÿÃüÿÃüÿÃüÿÃüÿÃüÿÁüþÀ  à  p  88  pÿÿàÿÿÀ        
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/18setup.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/18setup.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/18setup.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/18setup.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/32/18setup.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                 €                       ÿÿÿ  à  à  à ðÀÏñàÿÿðÿÿøÿÿøÿÿðÿÿàÿÿàøàðøÿàÿÿàÿÿàÿÿàÿÿàÿÿàÿððøàÿÿàÿÿàÿÿðÿÿøÿÿøÿÿðñààÀ à  à  à 
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree16x32.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree16x32.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree16x32.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree16x32.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree16x32.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM¾       >   (                €                       ÿÿÿ         À  à  p  88  0  0  0  88  p  à  À                                                                              
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree24x48.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree24x48.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree24x48.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree24x48.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree24x48.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BMþ       >   (      0         À                       ÿÿÿ             þ  þ  ÿ  ‡À ‡À à  à  à  à  à  à à ‡À ‡À ÿ  þ  þ                                                                                                                  
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree32x64.bmp linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree32x64.bmp
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree32x64.bmp	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree32x64.bmp	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/icons_source/degree32x64.bmp	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1 @@
 +BM>      >   (       @                                ÿÿÿ                      À  ?ð  ÿü ø~ à À € €€ € € € €€€€ À à  ø~  ü  ?ð  À                                                                                                                                                             
 \ No newline at end of file
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Retro8x16_v.h linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Retro8x16_v.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Retro8x16_v.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Retro8x16_v.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/fonts/Retro8x16_v.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,107 @@
 +// Retro8x16_v.h
 +// Font type	: Full (96 characters)
@@ -1825,7 +1842,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.c linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,986 @@
 +#include "gfx_mono_ctrl.h"
 +#include "fonts/Grotesk16x32_h.h"
@@ -2815,7 +2832,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.h linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/gfx_mono_ctrl.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,58 @@
 +#ifndef __GFXMONOCTRLH__
 +#define __GFXMONOCTRLH__
@@ -2877,7 +2894,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.c linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,760 @@
 +#include "../protocols/i2c_sw.h"
 +#include "hd44780.h"
@@ -3641,7 +3658,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.h linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/hd44780.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,8 @@
 +#ifndef __HD44780H__
 +#define __HD44780H__
@@ -3653,7 +3670,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/il3829.c linux-7.2.7/drivers/misc/openvfd/controllers/il3829.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/il3829.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/il3829.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/il3829.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,513 @@
 +#include <linux/gpio.h>
 +#include <linux/list.h>
@@ -4170,7 +4187,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/il3829.h linux-7.2.7/drivers/misc/openvfd/controllers/il3829.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/il3829.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/il3829.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/il3829.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,8 @@
 +#ifndef __il3829H__
 +#define __il3829H__
@@ -4182,7 +4199,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.c linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,210 @@
 +#include <linux/gpio.h>
 +#include "../protocols/i2c_hw.h"
@@ -4396,7 +4413,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.h linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/pcd8544.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,8 @@
 +#ifndef __PCD8544H__
 +#define __PCD8544H__
@@ -4408,8 +4425,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/seg7_ctrl.c linux-7.2.7/drivers/misc/openvfd/controllers/seg7_ctrl.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/seg7_ctrl.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/seg7_ctrl.c	2026-05-09 16:35:42.000000000 +0200
-@@ -0,0 +1,106 @@
++++ linux-7.2.7/drivers/misc/openvfd/controllers/seg7_ctrl.c	2026-09-24 15:43:17.000000000 +0200
+@@ -0,0 +1,110 @@
 +#include "controller.h"
 +
 +#define LEDCODES_LEN	(sizeof(LED_decode_tab1)/sizeof(LED_decode_tab1[0]))
@@ -4486,7 +4503,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +			raw_wdata[i] = data->string_main[i - 1] ? char_to_mask(data->string_main[i - 1]) : 0;
 +		break;
 +	case DISPLAY_MODE_TEMPERATURE:
-+		len = scnprintf(buffer, sizeof(buffer), "%d%c%c", data->temperature % 1000, 0xB0, 'c'); // ascii 176 = degree
++		/* Show as "XXÂ°c" (â‰¤99) or "XXXÂ°" (â‰¥100, no room for 'c') */
++		if (data->temperature >= 100)
++			len = scnprintf(buffer, sizeof(buffer), "%3d%c", data->temperature % 1000, 0xB0);
++		else
++			len = scnprintf(buffer, sizeof(buffer), "%2d%c%c", data->temperature, 0xB0, 'c');
 +		if (len > 4)
 +			len = 4;
 +		for (i = 0; i < len; i++)
@@ -4518,7 +4539,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.c linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.c
 --- linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,353 @@
 +#include <linux/gpio.h>
 +#include "../protocols/i2c_hw.h"
@@ -4875,7 +4896,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.h linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.h
 --- linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/controllers/ssd1306.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,8 @@
 +#ifndef __SSD1306H__
 +#define __SSD1306H__
@@ -4887,7 +4908,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/glyphs.h linux-7.2.7/drivers/misc/openvfd/glyphs.h
 --- linux-7.2.7/drivers/misc/openvfd/glyphs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/glyphs.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/glyphs.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,339 @@
 +#ifndef __GLYPHS__
 +#define __GLYPHS__
@@ -5230,7 +5251,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/Kconfig linux-7.2.7/drivers/misc/openvfd/Kconfig
 --- linux-7.2.7/drivers/misc/openvfd/Kconfig	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/Kconfig	2026-06-05 10:14:42.859501143 +0200
++++ linux-7.2.7/drivers/misc/openvfd/Kconfig	2026-09-25 21:54:55.636061673 +0200
 @@ -0,0 +1,8 @@
 +# SPDX-License-Identifier: GPL-2.0
 +
@@ -5242,7 +5263,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +	  FD650, HD44780, IL3829, PCD8544 and SSD1306
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/Makefile linux-7.2.7/drivers/misc/openvfd/Makefile
 --- linux-7.2.7/drivers/misc/openvfd/Makefile	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/Makefile	2026-06-05 10:14:42.859666603 +0200
++++ linux-7.2.7/drivers/misc/openvfd/Makefile	2026-09-25 21:54:55.636282084 +0200
 @@ -0,0 +1,17 @@
 +# SPDX-License-Identifier: GPL-2.0
 +
@@ -5263,8 +5284,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +openvfd-objs += openvfd_drv.o
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/openvfd_drv.c linux-7.2.7/drivers/misc/openvfd/openvfd_drv.c
 --- linux-7.2.7/drivers/misc/openvfd/openvfd_drv.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/openvfd_drv.c	2026-09-25 16:05:26.510262943 +0200
-@@ -0,0 +1,1101 @@
++++ linux-7.2.7/drivers/misc/openvfd/openvfd_drv.c	2026-09-25 22:12:39.047294115 +0200
+@@ -0,0 +1,1228 @@
 +/*
 + * Open VFD Driver
 + *
@@ -5303,13 +5324,15 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#include <linux/gpio/consumer.h>
 +#include <linux/property.h>
 +#include <linux/gpio/driver.h>
++#include <linux/notifier.h>
++#include <linux/reboot.h>
 +#include "openvfd_drv.h"
 +#include "controllers/controller_list.h"
 +
-+#ifdef CONFIG_HAS_EARLYSUSPEND
++#if defined(CONFIG_HAS_EARLYSUSPEND)
 +#include <linux/earlysuspend.h>
 +static struct early_suspend openvfd_early_suspend;
-+#elif CONFIG_AMLOGIC_LEGACY_EARLY_SUSPEND
++#elif defined(CONFIG_AMLOGIC_LEGACY_EARLY_SUSPEND)
 +#include <linux/amlogic/pm.h>
 +static struct early_suspend openvfd_early_suspend;
 +#endif
@@ -5369,6 +5392,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +
 +unsigned char vfd_display_auto_power = 1;
 +static uint vfd_brightness = FD628_Brightness_8;
++unsigned char vfd_show_boot = 0;
++unsigned char vfd_show_stop = 0;
 +
 +static struct vfd_platform_data *pdata = NULL;
 +struct kp {
@@ -5526,9 +5551,44 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +	return 0;
 +}
 +
++static struct vfd_display_data current_display_data;
++
++static inline
++size_t unlocked_display_data(struct vfd_display_data *data)
++{
++	size_t ret;
++
++	if (!controller)
++		return 0;
++	ret = controller->write_display_data(data);
++	if (data != &current_display_data)
++		current_display_data = *data;
++	current_display_data.string_main[sizeof(current_display_data.string_main) - 1] = '\0';
++	current_display_data.string_secondary[sizeof(current_display_data.string_secondary) - 1] = '\0';
++	return ret;
++}
++
++static inline
++void unlocked_display_text(const char *text)
++{
++	memset(&current_display_data, 0, sizeof(current_display_data));
++	current_display_data.mode = DISPLAY_MODE_TITLE;
++	snprintf(current_display_data.string_main, sizeof(current_display_data.string_main), "%s", text);
++	unlocked_display_data(&current_display_data);
++}
++
++static void display_text(const char *text)
++{
++	mutex_lock(&mutex);
++	unlocked_display_text(text);
++	mutex_unlock(&mutex);
++}
++
 +static int openvfd_dev_release(struct inode *inode, struct file *file)
 +{
-+	set_power(0);
++	if (vfd_show_stop) display_text("----");
++	else               set_power(0);
++
 +	file->private_data = NULL;
 +	pr_dbg("succes to close  openvfd_dev.............\n");
 +	return 0;
@@ -5540,9 +5600,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +	__u32 disk = 0;
 +	struct vfd_dev *dev = filp->private_data;
 +	__u32 diskvalue = 0;
-+	int ret = 0;
 +	int rbuf[2] = { 0 };
 +	//pr_dbg("start read keyboard value...............\r\n");
++	if (count < sizeof(rbuf))
++		return -EINVAL;
 +	if (dev->Keyboard_diskstatus == 1) {
 +		diskvalue = FD628_GetKey(dev);
 +		if (diskvalue == 0)
@@ -5554,12 +5615,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +		rbuf[0] = disk;
 +	else
 +		rbuf[0] = diskvalue;
-+	//pr_dbg("Keyboard value:%d\n, status : %d\n",rbuf[0],rbuf[1]);
-+	ret = copy_to_user(buf, rbuf, sizeof(rbuf));
-+	if (ret == 0)
-+		return sizeof(rbuf);
-+	else
-+		return ret;
++	if (copy_to_user(buf, rbuf, sizeof(rbuf)))
++		return -EFAULT;
++	return sizeof(rbuf);
 +}
 +
 +/**
@@ -5572,12 +5630,12 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +				   size_t count, loff_t * f_pos)
 +{
 +	ssize_t status = count;
-+	static struct vfd_display_data data;
++	struct vfd_display_data data;
 +
 +	if (count == sizeof(data)) {
 +		if (!copy_from_user(&data, buf, count)) {
 +			mutex_lock(&mutex);
-+			if (controller->write_display_data(&data))
++			if (unlocked_display_data(&data))
 +				pr_dbg("openvfd_dev_write count : %ld\n", count);
 +			else {
 +				status = -EIO;
@@ -5590,6 +5648,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +		}
 +	} else if (count > 0) {
 +		unsigned char *raw_data;
++
++		if (count > PAGE_SIZE)
++			return -EINVAL;
 +		pr_dbg2("openvfd_dev_write: count = %ld, sizeof(data) = %ld\n", count, sizeof(data));
 +		raw_data = kzalloc(count, GFP_KERNEL);
 +		if (!raw_data) {
@@ -5598,7 +5659,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +		}
 +		if (!copy_from_user(raw_data, buf, count)) {
 +			mutex_lock(&mutex);
-+			if (controller->write_data((unsigned char*)raw_data, count))
++			if (controller && controller->write_data((unsigned char *)raw_data, count))
 +				pr_dbg("openvfd_dev_write count : %ld\n", count);
 +			else {
 +				status = -EIO;
@@ -5619,6 +5680,18 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +{
 +	memcpy(&dev->dtb_active.display, &new_display_type, sizeof(struct vfd_display));
 +	init_controller(dev);
++}
++
++static void sanitize_dat_index(struct vfd_dev *dev)
++{
++	size_t i;
++	const size_t n = sizeof(dev->dtb_active.dat_index) / sizeof(dev->dtb_active.dat_index[0]);
++	const size_t wbuf_n = sizeof(dev->wbuf) / sizeof(dev->wbuf[0]);
++
++	for (i = 0; i < n; i++) {
++		if (dev->dtb_active.dat_index[i] >= wbuf_n)
++			dev->dtb_active.dat_index[i] = (i < wbuf_n) ? (u_int8)i : 0;
++	}
 +}
 +
 +static long openvfd_dev_ioctl(struct file *filp, unsigned int cmd,
@@ -5658,8 +5731,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +		break;
 +	case VFD_IOC_SCHARS_ORDER:
 +		ret = __copy_from_user(temp_chars_order, (__u8 __user *)arg, sizeof(dev->dtb_active.dat_index));
-+		if (!ret)
++		if (!ret) {
 +			memcpy(dev->dtb_active.dat_index, temp_chars_order, sizeof(dev->dtb_active.dat_index));
++			sanitize_dat_index(dev);
++		}
 +		break;
 +	case VFD_IOC_SMODE:	/* Set: arg points to the value */
 +		ret = __get_user(dev->mode, (int __user *)arg);
@@ -5806,9 +5881,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +			set_display_type(dev, (int)temp);
 +			break;
 +		case VFD_IOC_SCHARS_ORDER:
-+			if (size >= sizeof(dev->dtb_active.dat_index)+sizeof(int))
++			if (size >= sizeof(dev->dtb_active.dat_index)+sizeof(int)) {
 +				memcpy(dev->dtb_active.dat_index, buf, sizeof(dev->dtb_active.dat_index));
-+			else
++				sanitize_dat_index(dev);
++			} else
 +				size = -EFAULT;
 +			break;
 +		case VFD_IOC_USE_DTB_CONFIG:
@@ -5827,6 +5903,21 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +	return size;
 +}
 +
++static size_t copy_sysfs_token(char *dst, size_t dst_size, const char *buf, size_t size)
++{
++	size_t len = size;
++
++	if (dst_size == 0)
++		return 0;
++	if (len >= dst_size)
++		len = dst_size - 1;
++	while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
++		len--;
++	memcpy(dst, buf, len);
++	dst[len] = '\0';
++	return len;
++}
++
 +static ssize_t led_on_show(struct device *dev,
 +		struct device_attribute *attr, char *buf)
 +{
@@ -5836,8 +5927,12 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +static ssize_t led_on_store(struct device *dev,
 +		struct device_attribute *attr, const char *buf, size_t size)
 +{
++	char name[32];
++
++	copy_sysfs_token(name, sizeof(name), buf, size);
 +	mutex_lock(&mutex);
-+	controller->set_icon(buf, 1);
++	controller->set_icon(name, 1);
++	unlocked_display_data(&current_display_data);
 +	mutex_unlock(&mutex);
 +	return size;
 +}
@@ -5851,26 +5946,63 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +static ssize_t led_off_store(struct device *dev,
 +		struct device_attribute *attr, const char *buf, size_t size)
 +{
++	char name[32];
++
++	copy_sysfs_token(name, sizeof(name), buf, size);
 +	mutex_lock(&mutex);
-+	controller->set_icon(buf, 0);
++	controller->set_icon(name, 0);
++	unlocked_display_data(&current_display_data);
++	mutex_unlock(&mutex);
++	return size;
++}
++
++static ssize_t text_show(struct device *dev,
++		struct device_attribute *attr, char *buf)
++{
++	ssize_t ret;
++
++	mutex_lock(&mutex);
++	ret = scnprintf(buf, PAGE_SIZE, "%.*s\n",
++		(int)sizeof(current_display_data.string_main),
++		current_display_data.string_main);
++	mutex_unlock(&mutex);
++	return ret;
++}
++
++static ssize_t text_store(struct device *dev,
++		struct device_attribute *attr, const char *buf, size_t size)
++{
++	char text[sizeof(current_display_data.string_main)];
++	size_t len = size;
++
++	if (len >= sizeof(text))
++		len = sizeof(text) - 1;
++	while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
++		len--;
++	memcpy(text, buf, len);
++	text[len] = '\0';
++
++	mutex_lock(&mutex);
++	unlocked_display_text(text);
 +	mutex_unlock(&mutex);
 +	return size;
 +}
 +
 +static DEVICE_ATTR(led_cmd , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, led_cmd_show , led_cmd_store);
-+static DEVICE_ATTR(led_on , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, led_on_show , led_on_store);
++static DEVICE_ATTR(led_on  , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, led_on_show , led_on_store);
 +static DEVICE_ATTR(led_off , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, led_off_show , led_off_store);
++static DEVICE_ATTR(text    , S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, text_show , text_store);
 +
 +#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_AMLOGIC_LEGACY_EARLY_SUSPEND)
 +static void openvfd_suspend(struct early_suspend *h)
 +{
-+	pr_info("%s!\n", __func__);
++	pr_info("OpenVFD: %s!\n", __func__);
 +	set_power(0);
 +}
 +
 +static void openvfd_resume(struct early_suspend *h)
 +{
-+	pr_info("%s!\n", __func__);
++	pr_info("OpenVFD: %s!\n", __func__);
 +	set_power(1);
 +}
 +#endif
@@ -5913,6 +6045,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +module_param_array(vfd_display_type, uint, &vfd_display_type_argc, 0000);
 +module_param(vfd_display_auto_power, byte, 0000);
 +module_param(vfd_brightness, uint, 0444);
++module_param(vfd_show_boot, byte, 0000);
++module_param(vfd_show_stop, byte, 0000);
 +
 +static void print_param_debug(const char *label, int argc, unsigned int param[])
 +{
@@ -6034,6 +6168,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +			dev->dtb_active.dat_index[i] = (u_int8)vfd_chars[i];
 +			dev->dtb_active.led_dot_index[i] = (u_int8)vfd_dot_bits[i];
 +		}
++		sanitize_dat_index(dev);
 +		for (i = 0; i < 8; i++)
 +			dev->dtb_active.led_dots[i] = (u_int8)ledDots[vfd_dot_bits[i]];
 +		dev->dtb_active.display.type = (u_int8)vfd_display_type[0];
@@ -6139,6 +6274,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +				pdata->dev->dtb_active.dat_index[i] = c[i];
 +				pr_dbg2("char #%d: %d\n", i, c[i]);
 +			}
++			sanitize_dat_index(pdata->dev);
 +		}
 +
 +		dot_bits_prop = of_find_property(pdev->dev.of_node, MOD_NAME_DOTS, NULL);
@@ -6216,25 +6352,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +		pr_error("device_create_file dev_attr_led_off failed\n");
 +	if (device_create_file(kp->cdev.dev, &dev_attr_led_cmd))
 +		pr_error("device_create_file dev_attr_led_cmd failed\n");
++	if (device_create_file(kp->cdev.dev, &dev_attr_text))
++		pr_error("device_create_file dev_attr_text failed\n");
 +	init_controller(pdata->dev);
-+#if 0
-+	// TODO: Display 'boot' during POST/boot.
-+	// 'boot'
-+	//  1 1 0  0 1 1 1  b => 0x7C
-+	//  1 1 0  0 0 1 1  o => 0x5C
-+	//  1 0 0  0 1 1 1  t => 0x78
-+	__u8 data[7];
-+	data[0] = 0x00;
-+	data[1] = pdata->dev->dtb_active.display.flags & DISPLAY_TYPE_TRANSPOSED ? 0x7C : 0x67;
-+	data[2] = pdata->dev->dtb_active.display.flags & DISPLAY_TYPE_TRANSPOSED ? 0x5C : 0x63;
-+	data[3] = pdata->dev->dtb_active.display.flags & DISPLAY_TYPE_TRANSPOSED ? 0x5C : 0x63;
-+	data[4] = pdata->dev->dtb_active.display.flags & DISPLAY_TYPE_TRANSPOSED ? 0x78 : 0x47;
-+	for (i = 0; i < 5; i++) {
-+		pdata->dev->wbuf[pdata->dev->dtb_active.dat_index[i]] = data[i];
++
++	if (vfd_show_boot) {
++		unlocked_set_power(1);
++		unlocked_display_text("boot");
 +	}
-+	// Write data in incremental mode
-+	FD628_WrDisp_AddrINC(0x00, 2*5, pdata->dev);
-+#endif
 +
 +#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_AMLOGIC_LEGACY_EARLY_SUSPEND)
 +	openvfd_early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
@@ -6273,7 +6398,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +
 +static void openvfd_driver_remove(struct platform_device *pdev)
 +{
-+	set_power(0);
++	if (vfd_show_stop) display_text("stop");
++	else               set_power(0);
++
 +#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_AMLOGIC_LEGACY_EARLY_SUSPEND)
 +	unregister_early_suspend(&openvfd_early_suspend);
 +#endif
@@ -6298,12 +6425,15 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +	kfree(pdata);
 +	pdata = NULL;
 +#endif
++	pr_dbg2("OpenVFD Driver removed.\n");
 +}
 +
 +static void openvfd_driver_shutdown(struct platform_device *dev)
 +{
-+	pr_dbg("openvfd_driver_shutdown");
-+	set_power(0);
++	if (dev == NULL) pr_dbg2("OpenVFD System shutdown.\n");
++	else             pr_dbg2("OpenVFD Driver shutdown.\n");
++	if (vfd_show_stop) display_text("shut");
++	else               set_power(0);
 +}
 +
 +static int openvfd_driver_suspend(struct platform_device *dev, pm_message_t state)
@@ -6346,18 +6476,35 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +		   },
 +};
 +
++static int openvfd_notify_sys(struct notifier_block *this, unsigned long code, void *unused)
++{
++	openvfd_driver_shutdown(NULL);
++	return NOTIFY_DONE;
++}
++
++static struct notifier_block openvfd_notifier = {
++	.notifier_call = openvfd_notify_sys,
++};
++
 +static int __init openvfd_driver_init(void)
 +{
-+	pr_dbg("OpenVFD Driver init.\n");
++	int ret;
++
++	pr_dbg2("OpenVFD Driver init.\n");
 +	mutex_init(&mutex);
-+	return platform_driver_register(&openvfd_driver);
++	ret = platform_driver_register(&openvfd_driver);
++	if (ret)
++		return ret;
++
++	return register_reboot_notifier(&openvfd_notifier);
 +}
 +
 +static void __exit openvfd_driver_exit(void)
 +{
-+	pr_dbg("OpenVFD Driver exit.\n");
 +	mutex_destroy(&mutex);
 +	platform_driver_unregister(&openvfd_driver);
++	unregister_reboot_notifier(&openvfd_notifier);
++	pr_dbg2("OpenVFD Driver exit.\n");
 +}
 +
 +module_init(openvfd_driver_init);
@@ -6365,10 +6512,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +
 +MODULE_AUTHOR("Arthur Liberman, Piotr Oniszczuk");
 +MODULE_DESCRIPTION("OpenVFD Driver");
++MODULE_VERSION(OPENVFD_DRIVER_VERSION);
 +MODULE_LICENSE("GPL");
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/openvfd_drv.h linux-7.2.7/drivers/misc/openvfd/openvfd_drv.h
 --- linux-7.2.7/drivers/misc/openvfd/openvfd_drv.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/openvfd_drv.h	2026-09-25 16:25:45.826015027 +0200
++++ linux-7.2.7/drivers/misc/openvfd/openvfd_drv.h	2026-09-25 22:00:46.397687877 +0200
 @@ -0,0 +1,315 @@
 +#ifndef __OPENVFD_DRV_H__
 +#define __OPENVFD_DRV_H__
@@ -6403,7 +6551,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#define FALSE 0
 +#endif
 +
-+#define  OPENVFD_DRIVER_VERSION	"V1.4.5-mm2"
++#define  OPENVFD_DRIVER_VERSION	"V1.4.6-mm2"
 +
 +/*
 + * Ioctl definitions
@@ -6687,7 +6835,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.c linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.c
 --- linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,161 @@
 +
 +#include <linux/gpio.h>
@@ -6852,7 +7000,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.h linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.h
 --- linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/protocols/i2c_hw.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,8 @@
 +#ifndef __I2C_HW_H__
 +#define __I2C_HW_H__
@@ -6864,7 +7012,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.c linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.c
 --- linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,257 @@
 +#include <linux/gpio.h>
 +#include <linux/version.h>
@@ -7125,7 +7273,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.h linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.h
 --- linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/protocols/i2c_sw.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,13 @@
 +#ifndef __I2C_SW_H__
 +#define __I2C_SW_H__
@@ -7142,7 +7290,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/protocols/protocol.h linux-7.2.7/drivers/misc/openvfd/protocols/protocol.h
 --- linux-7.2.7/drivers/misc/openvfd/protocols/protocol.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/protocols/protocol.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/protocols/protocol.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,25 @@
 +#ifndef __PROTOCOLS__
 +#define __PROTOCOLS__
@@ -7171,7 +7319,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.c linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.c
 --- linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.c	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.c	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,194 @@
 +#include <linux/gpio.h>
 +#include "spi_sw.h"
@@ -7369,7 +7517,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/mi
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.h linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.h
 --- linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.h	2026-05-09 16:35:42.000000000 +0200
++++ linux-7.2.7/drivers/misc/openvfd/protocols/spi_sw.h	2026-09-24 15:43:17.000000000 +0200
 @@ -0,0 +1,14 @@
 +#ifndef __SPI_SW_H__
 +#define __SPI_SW_H__
