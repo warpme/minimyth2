@@ -1,0 +1,1436 @@
+From 02d92fe978c23b7ea484b08dd45135ce64dba71f Mon Sep 17 00:00:00 2001
+From: gus bourg <gus@bourg.net>
+Date: Thu, 24 Sep 2026 20:15:14 -0700
+Subject: [PATCH 04/17] media: amlogic: amvdec: add MPEG-4, H.263 and VC-1
+ decoding
+
+Add stateful MPEG-4 Part 2, H.263 and VC-1 codec operations, including
+VC-1 input preparation and reference-buffer recycling.
+
+Assisted-by: Claude:claude-opus-5-5
+Assisted-by: Claude:claude-fable-5-1
+Assisted-by: Codex:gpt-5.6
+Assisted-by: Codex:gpt-6.0
+---
+ drivers/media/platform/amlogic/amvdec/Kconfig |   3 +-
+ .../media/platform/amlogic/amvdec/Makefile    |   2 +-
+ .../media/platform/amlogic/amvdec/amvdec.c    | 206 ++++++++++-
+ .../media/platform/amlogic/amvdec/amvdec.h    |   2 +
+ .../platform/amlogic/amvdec/amvdec_platform.c |  38 ++
+ .../platform/amlogic/amvdec/codec_mpeg4.c     | 240 +++++++++++++
+ .../platform/amlogic/amvdec/codec_mpeg4.h     |  13 +
+ .../media/platform/amlogic/amvdec/codec_vc1.c | 314 ++++++++++++++++
+ .../media/platform/amlogic/amvdec/codec_vc1.h |  16 +
+ .../amlogic/amvdec/codec_vc1_parser.c         | 338 ++++++++++++++++++
+ .../amlogic/amvdec/codec_vc1_parser.h         |  21 ++
+ .../media/platform/amlogic/amvdec/esparser.c  |  18 +
+ 12 files changed, 1203 insertions(+), 8 deletions(-)
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_mpeg4.c
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_mpeg4.h
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_vc1.c
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_vc1.h
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_vc1_parser.c
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_vc1_parser.h
+
+diff --git a/drivers/media/platform/amlogic/amvdec/Kconfig b/drivers/media/platform/amlogic/amvdec/Kconfig
+index 04ed84b625..2d3bf50c6a 100644
+--- a/drivers/media/platform/amlogic/amvdec/Kconfig
++++ b/drivers/media/platform/amlogic/amvdec/Kconfig
+@@ -10,7 +10,8 @@ config VIDEO_MESON_AMVDEC
+ 	select MESON_CANVAS
+ 	help
+ 	Support for the video decoder found in the Amlogic GXBB, GXL, GXM,
+-	G12A, G12B and SM1 SoCs: stateful MPEG-1/2 decoding.
++	G12A, G12B and SM1 SoCs: stateful MPEG-1/2, MPEG-4, H.263 and VC-1
++	decoding.
+ 
+ 	To compile this driver as a module, choose M here: the module will
+ 	be called meson-amvdec.
+diff --git a/drivers/media/platform/amlogic/amvdec/Makefile b/drivers/media/platform/amlogic/amvdec/Makefile
+index 48105afdc4..fcc7fb3da4 100644
+--- a/drivers/media/platform/amlogic/amvdec/Makefile
++++ b/drivers/media/platform/amlogic/amvdec/Makefile
+@@ -3,6 +3,6 @@
+ 
+ meson-amvdec-objs = esparser.o amvdec.o amvdec_helpers.o amvdec_platform.o
+ meson-amvdec-objs += amvdec_1.o amvdec_hevc.o
+-meson-amvdec-objs += codec_mpeg12.o
++meson-amvdec-objs += codec_mpeg12.o codec_mpeg4.o codec_vc1.o codec_vc1_parser.o
+ 
+ obj-$(CONFIG_VIDEO_MESON_AMVDEC) += meson-amvdec.o
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
+index d98a455af4..ca83172bff 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
+@@ -22,6 +22,7 @@
+ #include <media/videobuf2-dma-contig.h>
+ 
+ #include "amvdec.h"
++#include "codec_vc1_parser.h"
+ #include "esparser.h"
+ #include "amvdec_helpers.h"
+ 
+@@ -158,6 +159,7 @@ static int vdec_poweroff(struct amvdec_session *sess)
+ 	int ret;
+ 
+ 	sess->should_stop = 1;
++	sess->eos_pending = false;
+ 	vdec_wait_inactive(sess);
+ 	if (codec_ops->drain)
+ 		codec_ops->drain(sess);
+@@ -384,6 +386,158 @@ static bool vdec_parse_mpeg_seq_header(struct amvdec_session *sess,
+ 	return false;
+ }
+ 
++/* Minimal MSB-first bit reader over one OUTPUT buffer */
++struct vdec_bitreader {
++	const u8 *data;
++	u32 len;	/* bytes */
++	u32 pos;	/* bits consumed */
++};
++
++static u32 vdec_br_bits(struct vdec_bitreader *br, u8 n)
++{
++	u32 v = 0;
++
++	while (n--) {
++		u32 byte = br->pos >> 3;
++
++		if (byte >= br->len)
++			return v << (n + 1);	/* ran off the end */
++
++		v = (v << 1) | ((br->data[byte] >> (7 - (br->pos & 7))) & 1);
++		br->pos++;
++	}
++
++	return v;
++}
++
++/*
++ * MPEG-4 Part 2 video_object_layer_header (ISO/IEC 14496-2 sec. 6.2.3).
++ *
++ * The geometry cannot be taken from the client here.  vdec_s_fmt() assigns
++ * sess->width/height from whatever dimensions the CAPTURE S_FMT carried, and
++ * a client that sets CAPTURE before it knows the coded size - ffmpeg does -
++ * leaves a placeholder behind.  For MPEG1/2 the sequence-header parse above
++ * corrects that; MPEG-4 has no equivalent, so a placeholder would go straight
++ * into MP4_PIC_WH and into the canvas sizes while the microcode decodes at
++ * the real size.  That is the wild write this driver has been bitten by
++ * before, so parse the real thing.
++ */
++static bool vdec_parse_mpeg4_vol_header(struct amvdec_session *sess,
++					struct vb2_buffer *vb)
++{
++	const u8 *data = vb2_plane_vaddr(vb, 0);
++	u32 len = vb2_get_plane_payload(vb, 0);
++	struct vdec_bitreader br;
++	u32 i, verid = 1, shape, w, h;
++
++	if (!data)
++		return false;
++
++	for (i = 0; i + 4 < len; i++) {
++		if (data[i] != 0x00 || data[i + 1] != 0x00 ||
++		    data[i + 2] != 0x01 ||
++		    data[i + 3] < 0x20 || data[i + 3] > 0x2f)
++			continue;
++
++		br.data = data;
++		br.len = len;
++		br.pos = (i + 4) * 8;
++
++		vdec_br_bits(&br, 1);		/* random_accessible_vol */
++		vdec_br_bits(&br, 8);		/* video_object_type_indication */
++
++		if (vdec_br_bits(&br, 1)) {	/* is_object_layer_identifier */
++			verid = vdec_br_bits(&br, 4);
++			vdec_br_bits(&br, 3);	/* priority */
++		}
++
++		if (vdec_br_bits(&br, 4) == 15)	/* aspect_ratio_info */
++			vdec_br_bits(&br, 16);	/* par_width, par_height */
++
++		if (vdec_br_bits(&br, 1)) {	/* vol_control_parameters */
++			vdec_br_bits(&br, 3);	/* chroma_format, low_delay */
++			if (vdec_br_bits(&br, 1)) {	/* vbv_parameters */
++				vdec_br_bits(&br, 15);	/* first_half_bit_rate */
++				vdec_br_bits(&br, 1);
++				vdec_br_bits(&br, 15);	/* latter_half_bit_rate */
++				vdec_br_bits(&br, 1);
++				vdec_br_bits(&br, 15);	/* first_half_vbv_buf */
++				vdec_br_bits(&br, 1);
++				vdec_br_bits(&br, 3);	/* latter_half_vbv_buf */
++				vdec_br_bits(&br, 11);	/* first_half_vbv_occ */
++				vdec_br_bits(&br, 1);
++				vdec_br_bits(&br, 15);	/* latter_half_vbv_occ */
++				vdec_br_bits(&br, 1);
++			}
++		}
++
++		shape = vdec_br_bits(&br, 2);	/* video_object_layer_shape */
++		if (shape == 3 && verid != 1)
++			vdec_br_bits(&br, 4);	/* shape_extension */
++
++		vdec_br_bits(&br, 1);		/* marker_bit */
++		if (vdec_br_bits(&br, 16)) {	/* vop_time_increment_resolution */
++			u32 res = 1, bits = 1;
++
++			/*
++			 * fixed_vop_time_increment is
++			 * ceil(log2(vop_time_increment_resolution)) bits wide,
++			 * so it can only be skipped by recomputing that width.
++			 */
++			br.pos -= 16;
++			res = vdec_br_bits(&br, 16);
++			while ((1U << bits) < res && bits < 16)
++				bits++;
++			vdec_br_bits(&br, 1);		/* marker_bit */
++			if (vdec_br_bits(&br, 1))	/* fixed_vop_rate */
++				vdec_br_bits(&br, bits);
++		} else {
++			vdec_br_bits(&br, 1);		/* marker_bit */
++			vdec_br_bits(&br, 1);		/* fixed_vop_rate */
++		}
++
++		if (shape != 0)			/* not rectangular */
++			return false;
++
++		vdec_br_bits(&br, 1);		/* marker_bit */
++		w = vdec_br_bits(&br, 13);
++		vdec_br_bits(&br, 1);		/* marker_bit */
++		h = vdec_br_bits(&br, 13);
++
++		if (!w || !h)
++			return false;
++
++		sess->width = w;
++		sess->height = h;
++		dev_dbg(sess->core->dev, "mpeg4 VOL header: %ux%u\n", w, h);
++		return true;
++	}
++
++	return false;
++}
++
++/* Read coded geometry before allocating canvases; CAPTURE S_FMT may be a placeholder. */
++static bool vdec_parse_vc1_seq_header(struct amvdec_session *sess,
++				      struct vb2_buffer *vb)
++{
++	const u8 *data = vb2_plane_vaddr(vb, 0);
++	u32 len = vb2_get_plane_payload(vb, 0);
++	u32 i, width, height;
++
++	if (!data)
++		return false;
++	for (i = 0; i + 4 < len; ++i) {
++		if (data[i] || data[i + 1] || data[i + 2] != 1 || data[i + 3] != 0x0f)
++			continue;
++		if (meson_amvdec_vc1_sequence_header(data + i + 4, len - i - 4, &width, &height))
++			return false;
++		sess->width = width;
++		sess->height = height;
++		return true;
++	}
++	return false;
++}
++
+ static void vdec_init_src_change(struct amvdec_session *sess,
+ 				 struct vb2_buffer *vb)
+ {
+@@ -391,8 +545,25 @@ static void vdec_init_src_change(struct amvdec_session *sess,
+ 		.type = V4L2_EVENT_SOURCE_CHANGE,
+ 		.u.src_change.changes = V4L2_EVENT_SRC_CH_RESOLUTION };
+ 
+-	if (!vdec_parse_mpeg_seq_header(sess, vb))
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG1 ||
++	    sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG2) {
++		if (!vdec_parse_mpeg_seq_header(sess, vb))
++			return;
++	} else if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG4) {
++		if (!vdec_parse_mpeg4_vol_header(sess, vb))
++			return;
++	} else if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VC1_ANNEX_G) {
++		if (!vdec_parse_vc1_seq_header(sess, vb))
++			return;
++	} else if (!sess->width || !sess->height) {
++		/*
++		 * H.263 carries its size in each picture header rather than a
++		 * sequence header, so it still relies on the client's S_FMT.
++		 * If none was supplied there is nothing to announce, and
++		 * starting anyway would size the canvases from zero.
++		 */
+ 		return;
++	}
+ 
+ 	v4l2_ctrl_s_ctrl(sess->ctrl_min_buf_capture,
+ 			 sess->fmt_out->min_buffers);
+@@ -431,16 +602,27 @@ static void vdec_vb2_buf_queue(struct vb2_buffer *vb)
+ 	vdec_debug_state(sess, "qbuf", vb->type, vb->index);
+ 
+ 	/*
+-	 * Only MPEG1/2 may take this path: the parser behind it looks for the
+-	 * MPEG1/2 sequence header 00 00 01 B3, which other codecs reuse for
+-	 * something else.  Gate on the codec, not on the absence of a resume
+-	 * op.
++	 * Only MPEG1/2 may take this path.  The parser below looks for the
++	 * MPEG1/2 sequence header 00 00 01 B3 - but MPEG-4 Part 2 uses that
++	 * very start code for group_of_vop, whose following bytes are a time
++	 * code, not a size.  Parsing it yields a nonsense resolution, the
++	 * canvases are then built for that size, and the microcode decodes a
++	 * full-size picture straight past the end of them: a wild DMA that
++	 * wedges the DDR controller.  Gate on the codec, not on the absence
++	 * of a resume op.
++	 *
++	 * MPEG-4 and H.263 are listed here as well, but they take the
++	 * client-supplied geometry branch in vdec_init_src_change() and never
++	 * reach that parser.
+ 	 */
+ 	if (vb->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE &&
+ 	    !sess->fmt_out->codec_ops->resume &&
+ 	    !sess->init_src_change_done &&
+ 	    (sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG1 ||
+-	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG2))
++	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG2 ||
++	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG4 ||
++	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_VC1_ANNEX_G ||
++	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_H263))
+ 		vdec_init_src_change(sess, vb);
+ 
+ 	if (!sess->streamon_out)
+@@ -526,6 +708,7 @@ static int vdec_start_streaming(struct vb2_queue *q, unsigned int count)
+ 	}
+ 
+ 	sess->should_stop = 0;
++	sess->eos_pending = false;
+ 	sess->keyframe_found = 0;
+ 	sess->last_offset = 0;
+ 	sess->wrap_count = 0;
+@@ -1075,6 +1258,7 @@ vdec_decoder_cmd(struct file *file, void *fh, struct v4l2_decoder_cmd *cmd)
+ 			v4l2_m2m_clear_state(sess->m2m_ctx);
+ 			vb2_clear_last_buffer_dequeued(v4l2_m2m_get_dst_vq(sess->m2m_ctx));
+ 			sess->should_stop = 0;
++			sess->eos_pending = false;
+ 		}
+ 		mutex_unlock(&sess->lock);
+ 		return ret;
+@@ -1086,6 +1270,16 @@ vdec_decoder_cmd(struct file *file, void *fh, struct v4l2_decoder_cmd *cmd)
+ 
+ 	dev_dbg(dev, "Received V4L2_DEC_CMD_STOP\n");
+ 
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VC1_ANNEX_G) {
++		/* STOP can arrive while OUTPUT packets are still queued. Let
++		 * the worker feed them before appending the end-of-sequence BDU.
++		 */
++		sess->eos_pending = true;
++		v4l2_m2m_mark_stopped(sess->m2m_ctx);
++		schedule_work(&sess->esparser_queue_work);
++		return 0;
++	}
++
+ 	sess->should_stop = 1;
+ 
+ 	v4l2_m2m_mark_stopped(sess->m2m_ctx);
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.h b/drivers/media/platform/amlogic/amvdec/amvdec.h
+index bb322179b9..daaefb46ab 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.h
+@@ -237,6 +237,7 @@ enum amvdec_status {
+  * @streamon_out: stream on flag for output queue
+  * @sequence_cap: capture sequence counter
+  * @sequence_out: output sequence counter
++ * @eos_pending: feed queued VC-1 OUTPUT packets before sending the EOS BDU
+  * @should_stop: flag set if userspace signaled EOS via command
+  *		 or empty buffer
+  * @keyframe_found: flag set once a keyframe has been parsed
+@@ -298,6 +299,7 @@ struct amvdec_session {
+ 	unsigned int sequence_cap, sequence_out;
+ 
+ 	unsigned int should_stop;
++	bool eos_pending;
+ 	unsigned int keyframe_found;
+ 	unsigned int num_dst_bufs;
+ 	unsigned int num_fw_bufs;
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+index 4cebe2c587..14ccb41858 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -10,6 +10,8 @@
+ #include "amvdec_1.h"
+ #include "amvdec_hevc.h"
+ #include "codec_mpeg12.h"
++#include "codec_mpeg4.h"
++#include "codec_vc1.h"
+ 
+ static const struct amvdec_format amvdec_formats_gxbb[] = {
+ 	{
+@@ -138,6 +140,39 @@ static const struct amvdec_format amvdec_formats_g12a[] = {
+ 		.firmware_path = "meson/vdec/gxl_mpeg12.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}, {
++		.pixfmt = V4L2_PIX_FMT_MPEG4,
++		.min_buffers = 8,
++		.max_buffers = 8,
++		.max_width = 1920,
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_mpeg4_ops,
++		.firmware_path = "meson/vdec/gxl_mpeg4_5.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}, {
++		.pixfmt = V4L2_PIX_FMT_H263,
++		.min_buffers = 8,
++		.max_buffers = 8,
++		.max_width = 1920,
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_mpeg4_ops,
++		.firmware_path = "meson/vdec/gxl_h263.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}, {
++		.pixfmt = V4L2_PIX_FMT_VC1_ANNEX_G,
++		.min_buffers = 4,
++		.max_buffers = 4,
++		.max_width = 1920,
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_vc1_ops,
++		.firmware_path = "meson/vdec/g12a_vc1.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_YUV420M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
+ 	},
+ };
+ 
+@@ -204,3 +239,6 @@ const struct amvdec_platform meson_amvdec_platform_sm1 = {
+ };
+ 
+ MODULE_FIRMWARE("meson/vdec/gxl_mpeg12.bin");
++MODULE_FIRMWARE("meson/vdec/gxl_mpeg4_5.bin");
++MODULE_FIRMWARE("meson/vdec/gxl_h263.bin");
++MODULE_FIRMWARE("meson/vdec/g12a_vc1.bin");
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c b/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c
+new file mode 100644
+index 0000000000..df814b8850
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c
+@@ -0,0 +1,240 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2026 Gus Bourg <gus@bourg.net>
++ *
++ * MPEG-4 Part 2 (DivX/Xvid) and H.263 support for the Amlogic VDEC_1 engine,
++ * driving the vendor's "legacy" free-running microcode.
++ *
++ * Two properties of this microcode differ from MPEG1/2 and must be honoured
++ * exactly, because getting either wrong is silent and catastrophic rather
++ * than merely wrong:
++ *
++ *  - It addresses its DC/AC prediction, MV and CBP scratch buffers at the
++ *    FIXED physical base DCAC_BUFF_START_IP plus the offset handed to it in
++ *    AV_SCRATCH_F.  Leaving AV_SCRATCH_F at zero does not disable the
++ *    feature: the microcode then writes to physical 0x02b00000, which on
++ *    this SoC is ordinary kernel memory.  That is a bus-master write into
++ *    the running kernel, and it happens at codec start before a single byte
++ *    of bitstream is parsed.
++ *
++ *  - Its eight decode buffers are described by canvas index triplets in
++ *    AV_SCRATCH_0..3 and AV_SCRATCH_G..J, which are NOT contiguous.  The
++ *    four registers in between are AV_SCRATCH_4..7, and AV_SCRATCH_7 is
++ *    MP4_PIC_WH, the picture geometry.  Writing eight consecutive canvas
++ *    entries from AV_SCRATCH_0 - the layout MPEG1/2 uses - therefore both
++ *    overwrites the geometry and leaves buffers 4..7 pointing at canvas 0.
++ */
++
++#include <media/v4l2-mem2mem.h>
++#include <media/videobuf2-dma-contig.h>
++
++#include "codec_mpeg4.h"
++#include "dos_regs.h"
++#include "amvdec_helpers.h"
++
++/*
++ * Scratch region for the microcode's own state.  The vendor driver allocates
++ * exactly this much as the last of its buffers and derives AV_SCRATCH_F from
++ * where it landed.
++ */
++#define SIZE_WORKSPACE		SZ_1M
++
++/*
++ * Physical base the microcode adds AV_SCRATCH_F to when addressing that
++ * region.  Not a hint and not a default - the value is baked into the blob.
++ */
++#define DCAC_BUFF_START_IP	0x02b00000
++
++/* map firmware registers to known MPEG-4 functions */
++#define MP4_RATE		AV_SCRATCH_3
++#define MP4_PIC_RATIO		AV_SCRATCH_5
++#define MP4_ERR_COUNT		AV_SCRATCH_6
++#define MP4_PIC_WH		AV_SCRATCH_7
++#define MREG_BUFFERIN		AV_SCRATCH_8
++#define MREG_BUFFEROUT		AV_SCRATCH_9
++#define MP4_NOT_CODED_CNT	AV_SCRATCH_A
++#define MP4_VOP_TIME_INC	AV_SCRATCH_B
++#define MP4_OFFSET_REG		AV_SCRATCH_C
++#define MP4_SYS_RATE		AV_SCRATCH_E
++#define MREG_BUF_OFFSET		AV_SCRATCH_F
++#define MREG_FATAL_ERROR	AV_SCRATCH_L
++
++#define INTERLACE_FLAG		0x80
++
++/* Widest picture this microcode is built for */
++#define MP4_MAX_WIDTH		1920
++#define MP4_MAX_HEIGHT		1088
++
++struct codec_mpeg4 {
++	void	  *workspace_vaddr;
++	dma_addr_t workspace_paddr;
++};
++
++static const u8 eos_sequence[SZ_1K] = { 0x00, 0x00, 0x01, 0xB1 };
++
++static const u8 *codec_mpeg4_eos_sequence(u32 *len)
++{
++	*len = ARRAY_SIZE(eos_sequence);
++	return eos_sequence;
++}
++
++static int codec_mpeg4_can_recycle(struct amvdec_core *core)
++{
++	return !meson_amvdec_read_dos(core, MREG_BUFFERIN);
++}
++
++static void codec_mpeg4_recycle(struct amvdec_core *core, u32 buf_idx)
++{
++	/*
++	 * Unlike MPEG1/2, which takes a 1-based index, this microcode takes
++	 * the complement of a one-hot mask.
++	 */
++	meson_amvdec_write_dos(core, MREG_BUFFERIN, ~(1 << buf_idx));
++}
++
++static int codec_mpeg4_start(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++	struct codec_mpeg4 *mpeg4;
++	u32 buf_offset;
++	int ret;
++
++	/*
++	 * The geometry goes straight into the canvas setup and into
++	 * MP4_PIC_WH.  A bogus value here means the microcode decodes a
++	 * full-size picture into undersized canvases, which is a wild write.
++	 * There is no in-band source for it on this codec - it comes from the
++	 * client's S_FMT - so validate it rather than trust it.
++	 */
++	if (sess->width < 16 || sess->height < 16 ||
++	    sess->width > MP4_MAX_WIDTH || sess->height > MP4_MAX_HEIGHT) {
++		dev_err(core->dev, "MPEG-4: refusing implausible geometry %ux%u\n",
++			sess->width, sess->height);
++		return -EINVAL;
++	}
++
++	mpeg4 = kzalloc_obj(*mpeg4);
++	if (!mpeg4)
++		return -ENOMEM;
++
++	mpeg4->workspace_vaddr = dma_alloc_coherent(core->dev, SIZE_WORKSPACE,
++						    &mpeg4->workspace_paddr,
++						    GFP_KERNEL);
++	if (!mpeg4->workspace_vaddr) {
++		dev_err(core->dev, "Failed to request MPEG-4 workspace\n");
++		ret = -ENOMEM;
++		goto free_mpeg4;
++	}
++
++	/*
++	 * AV_SCRATCH_F is an unsigned offset added to a fixed base, so a
++	 * workspace below that base would wrap and send the microcode
++	 * somewhere arbitrary.  Refuse instead.
++	 */
++	if (mpeg4->workspace_paddr < DCAC_BUFF_START_IP) {
++		dev_err(core->dev,
++			"MPEG-4: workspace at %pad is below the microcode's base %#x\n",
++			&mpeg4->workspace_paddr, DCAC_BUFF_START_IP);
++		ret = -ERANGE;
++		goto free_workspace;
++	}
++	buf_offset = mpeg4->workspace_paddr - DCAC_BUFF_START_IP;
++
++	/* Buffers 0..3 in AV_SCRATCH_0..3, buffers 4..7 in AV_SCRATCH_G..J */
++	ret = meson_amvdec_set_canvases(sess, (u32[]){ AV_SCRATCH_0, AV_SCRATCH_G, 0 },
++				  (u32[]){ 4, 4, 0 });
++	if (ret)
++		goto free_workspace;
++
++	meson_amvdec_write_dos(core, POWER_CTL_VLD, BIT(4));
++
++	/* Tell the microcode where its scratch region actually is */
++	meson_amvdec_write_dos(core, MREG_BUF_OFFSET, buf_offset);
++
++	/* disable PSCALE for hardware sharing */
++	meson_amvdec_write_dos(core, PSCALE_CTRL, 0);
++
++	meson_amvdec_write_dos(core, MP4_NOT_CODED_CNT, 0);
++	meson_amvdec_write_dos(core, MREG_BUFFERIN, 0);
++	meson_amvdec_write_dos(core, MREG_BUFFEROUT, 0);
++	meson_amvdec_write_dos(core, MREG_FATAL_ERROR, 0);
++
++	meson_amvdec_write_dos(core, MDEC_PIC_DC_THRESH, 0x404038aa);
++	meson_amvdec_write_dos(core, MP4_PIC_WH,
++			 (sess->width << 16) | sess->height);
++	meson_amvdec_write_dos(core, MP4_SYS_RATE, 0);
++
++	sess->keyframe_found = 1;
++	sess->priv = mpeg4;
++
++	return 0;
++
++free_workspace:
++	dma_free_coherent(core->dev, SIZE_WORKSPACE, mpeg4->workspace_vaddr,
++			  mpeg4->workspace_paddr);
++free_mpeg4:
++	kfree(mpeg4);
++
++	return ret;
++}
++
++static int codec_mpeg4_stop(struct amvdec_session *sess)
++{
++	struct codec_mpeg4 *mpeg4 = sess->priv;
++	struct amvdec_core *core = sess->core;
++
++	if (mpeg4 && mpeg4->workspace_vaddr) {
++		dma_free_coherent(core->dev, SIZE_WORKSPACE,
++				  mpeg4->workspace_vaddr,
++				  mpeg4->workspace_paddr);
++		mpeg4->workspace_vaddr = NULL;
++	}
++
++	return 0;
++}
++
++static irqreturn_t codec_mpeg4_threaded_isr(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++	u32 reg;
++	u32 buffer_index;
++	u32 field = V4L2_FIELD_NONE;
++	u32 offset;
++
++	meson_amvdec_write_dos(core, ASSIST_MBOX1_CLR_REG, 1);
++
++	if (meson_amvdec_read_dos(core, MREG_FATAL_ERROR) == 1) {
++		dev_err(core->dev, "MPEG-4 fatal error\n");
++		meson_amvdec_abort(sess);
++		return IRQ_HANDLED;
++	}
++
++	reg = meson_amvdec_read_dos(core, MREG_BUFFEROUT);
++	if (!reg)
++		return IRQ_HANDLED;
++
++	buffer_index = reg & 0x7;
++	if (reg & INTERLACE_FLAG)
++		field = V4L2_FIELD_INTERLACED_TB;
++
++	offset = meson_amvdec_read_dos(core, MP4_OFFSET_REG);
++	meson_amvdec_dst_buf_done_idx(sess, buffer_index, offset, field);
++
++	meson_amvdec_write_dos(core, MREG_BUFFEROUT, 0);
++	return IRQ_HANDLED;
++}
++
++static irqreturn_t codec_mpeg4_isr(struct amvdec_session *sess)
++{
++	return IRQ_WAKE_THREAD;
++}
++
++struct amvdec_codec_ops meson_amvdec_codec_mpeg4_ops = {
++	.start = codec_mpeg4_start,
++	.stop = codec_mpeg4_stop,
++	.isr = codec_mpeg4_isr,
++	.threaded_isr = codec_mpeg4_threaded_isr,
++	.can_recycle = codec_mpeg4_can_recycle,
++	.recycle = codec_mpeg4_recycle,
++	.eos_sequence = codec_mpeg4_eos_sequence,
++};
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h b/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h
+new file mode 100644
+index 0000000000..dc6b00e42d
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2026 Gus Bourg <gus@bourg.net>
++ */
++
++#ifndef __MESON_AMVDEC_CODEC_MPEG4_H_
++#define __MESON_AMVDEC_CODEC_MPEG4_H_
++
++#include "amvdec.h"
++
++extern struct amvdec_codec_ops meson_amvdec_codec_mpeg4_ops;
++
++#endif
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_vc1.c b/drivers/media/platform/amlogic/amvdec/codec_vc1.c
+new file mode 100644
+index 0000000000..d8864396be
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_vc1.c
+@@ -0,0 +1,314 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2026 Gus Bourg <gus@bourg.net>
++ *
++ * VC-1 / WMV9 support for the Amlogic VDEC_1 engine.
++ *
++ * Structurally this is the MPEG-4 codec's twin, and it shares that codec's
++ * one genuinely dangerous property: the microcode addresses its DC/AC
++ * prediction and MV scratch buffers at a FIXED physical base plus the offset
++ * it is handed in AV_SCRATCH_F.  The base differs (0x01f00000 here against
++ * MPEG-4's 0x02b00000) and the region is twice the size, but the failure mode
++ * for leaving AV_SCRATCH_F unwritten is identical: the microcode writes into
++ * whatever happens to live at that physical address, which on this SoC is
++ * ordinary kernel memory, and it does so at codec start before any bitstream
++ * is parsed.
++ *
++ * The g12a blob uses four canvases in AV_SCRATCH_0..3 and reports buffer
++ * numbers 1..4. Newer vendor source describes an incompatible eight-buffer
++ * protocol; do not use its zero-based BUFFEROUT interpretation here.
++ * AV_SCRATCH_J/K report the decoded width and height.
++ *
++ * Deliberately absent: the vendor driver opens its prot_init with a
++ * DOS_SW_RESET0 sequence.  That is not repeated here.  vdec_1 owns the reset
++ * and power-transition discipline on this driver, and issuing a DOS reset
++ * from codec start - after __vdec_1_start() has already reconnected the
++ * VDEC_1 DMC port - is itself a recorded way to hang this SoC.
++ */
++
++#include <media/v4l2-mem2mem.h>
++#include <media/videobuf2-dma-contig.h>
++
++#include "codec_vc1.h"
++#include "codec_vc1_parser.h"
++#include "dos_regs.h"
++#include "esparser.h"
++#include "amvdec_helpers.h"
++
++/* Scratch region for the microcode's own state */
++#define SIZE_WORKSPACE		(2 * SZ_1M)
++
++/* Physical base the microcode adds AV_SCRATCH_F to. Baked into the blob. */
++#define DCAC_BUFF_START_ADDR	0x01f00000
++
++/* map firmware registers to known VC-1 functions */
++/*
++ * Selects which VC-1 flavour the microcode expects: 0 for WMV3 (Simple and
++ * Main profile, size described by the container) and 1 for WVC1 (Advanced
++ * profile, in-band sequence header).  It is zero out of reset, so leaving it
++ * alone silently puts the microcode in WMV3 mode; fed Advanced Profile BDUs
++ * it then never recognises a picture, never raises an interrupt, and the
++ * session simply produces nothing.
++ */
++#define VC1_PROFILE_SEL		AV_SCRATCH_4
++#define VC1_ERROR_COUNT		AV_SCRATCH_6
++#define VC1_SOS_COUNT		AV_SCRATCH_7
++#define VC1_BUFFERIN		AV_SCRATCH_8
++#define VC1_BUFFEROUT		AV_SCRATCH_9
++#define VC1_OFFSET_REG		AV_SCRATCH_C
++#define MREG_BUF_OFFSET		AV_SCRATCH_F
++/* Geometry reported by the microcode */
++#define VC1_PIC_WIDTH		AV_SCRATCH_J
++#define VC1_PIC_HEIGHT		AV_SCRATCH_K
++
++#define INTERLACE_FLAG		0x80
++#define BOTTOM_FIELD_FIRST_FLAG	0x40
++
++#define VC1_MAX_WIDTH		1920
++#define VC1_MAX_HEIGHT		1088
++
++struct codec_vc1 {
++	struct vc1_stream stream;
++	bool draining;
++	u32 eos_offset;
++	void	  *workspace_vaddr;
++	dma_addr_t workspace_paddr;
++};
++
++u32 meson_amvdec_codec_vc1_prepare_input(struct amvdec_session *sess, struct vb2_buffer *vb)
++{
++	struct codec_vc1 *vc1 = sess->priv;
++	u32 len = vb2_get_plane_payload(vb, 0);
++	u32 capacity = vb2_plane_size(vb, 0);
++	int ret;
++
++	if (capacity < SZ_4K + SZ_512 || !vb2_plane_vaddr(vb, 0))
++		return 0;
++	ret = meson_amvdec_vc1_prepare_stream(&vc1->stream, vb2_plane_vaddr(vb, 0),
++				 &len, capacity - SZ_512, sess->width, sess->height);
++	if (ret) {
++		dev_err(sess->core->dev, "VC-1 input preparation failed: %d\n", ret);
++		return 0;
++	}
++	return len;
++}
++
++int meson_amvdec_codec_vc1_queue_eos(struct amvdec_session *sess, u32 offset)
++{
++	struct codec_vc1 *vc1 = sess->priv;
++	u8 *data;
++	int size, ret;
++
++	if (vc1->draining)
++		return 0;
++	data = kzalloc(SZ_16K, GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++
++	/* The legacy firmware holds two reference pictures at sequence end.
++	 * Two neutral P pictures release them. Discard any synthetic output
++	 * by its stream offset rather than returning it as a real frame.
++	 */
++	size = meson_amvdec_vc1_flush_picture(&vc1->stream, data + 4, sess->height);
++	if (size < 0) {
++		kfree(data);
++		return size;
++	}
++	data[2] = 1;
++	data[3] = 0x0d;
++	memcpy(data + SZ_4K, data, size + 4);
++	data[SZ_8K + 2] = 1;
++	data[SZ_8K + 3] = 0x0a;
++	vc1->eos_offset = offset;
++	vc1->draining = true;
++	ret = meson_amvdec_esparser_queue_eos(sess->core, data, SZ_16K);
++	kfree(data);
++	return ret;
++}
++
++static int codec_vc1_can_recycle(struct amvdec_core *core)
++{
++	return !meson_amvdec_read_dos(core, VC1_BUFFERIN);
++}
++
++static void codec_vc1_recycle(struct amvdec_core *core, u32 buf_idx)
++{
++	/* Complement of a one-hot mask, as MPEG-4 - not a 1-based index */
++	meson_amvdec_write_dos(core, VC1_BUFFERIN, ~(1 << buf_idx));
++}
++
++static int codec_vc1_start(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++	struct codec_vc1 *vc1;
++	u32 buf_offset;
++	int ret;
++
++	if (sess->width < 16 || sess->height < 16 ||
++	    sess->width > VC1_MAX_WIDTH || sess->height > VC1_MAX_HEIGHT) {
++		dev_err(core->dev, "VC-1: refusing implausible geometry %ux%u\n",
++			sess->width, sess->height);
++		return -EINVAL;
++	}
++
++	vc1 = kzalloc_obj(*vc1);
++	if (!vc1)
++		return -ENOMEM;
++
++	vc1->workspace_vaddr = dma_alloc_coherent(core->dev, SIZE_WORKSPACE,
++						  &vc1->workspace_paddr,
++						  GFP_KERNEL);
++	if (!vc1->workspace_vaddr) {
++		dev_err(core->dev, "Failed to request VC-1 workspace\n");
++		ret = -ENOMEM;
++		goto free_vc1;
++	}
++	memset(vc1->workspace_vaddr, 0, SIZE_WORKSPACE);
++
++	if (vc1->workspace_paddr < DCAC_BUFF_START_ADDR) {
++		dev_err(core->dev,
++			"VC-1: workspace at %pad is below the microcode's base %#x\n",
++			&vc1->workspace_paddr, DCAC_BUFF_START_ADDR);
++		ret = -ERANGE;
++		goto free_workspace;
++	}
++	buf_offset = vc1->workspace_paddr - DCAC_BUFF_START_ADDR;
++
++	/* Four canvases, matching the g12a firmware protocol. */
++	ret = meson_amvdec_set_canvases(sess, (u32[]){ AV_SCRATCH_0, 0 },
++				  (u32[]){ 4, 0 });
++	if (ret)
++		goto free_workspace;
++
++	meson_amvdec_write_dos(core, POWER_CTL_VLD, BIT(4));
++
++	/*
++	 * This microcode wants a deeper input FIFO than vdec_1's generic
++	 * setup leaves behind (which is FIFO_CNT 1 / level 4).
++	 */
++	meson_amvdec_clear_dos_bits(core, VLD_MEM_VIFIFO_CONTROL,
++			      (0x3 << MEM_FIFO_CNT_BIT) |
++			      (0x3f << MEM_LEVEL_CNT_BIT));
++	meson_amvdec_write_dos_bits(core, VLD_MEM_VIFIFO_CONTROL,
++			      (2 << MEM_FIFO_CNT_BIT) |
++			      (8 << MEM_LEVEL_CNT_BIT));
++
++	/* Tell the microcode where its scratch region actually is */
++	meson_amvdec_write_dos(core, MREG_BUF_OFFSET, buf_offset);
++
++	/* disable PSCALE for hardware sharing */
++	meson_amvdec_write_dos(core, PSCALE_CTRL, 0);
++
++	/* We only offer Annex G, which is Advanced Profile */
++	meson_amvdec_write_dos(core, VC1_PROFILE_SEL, 1);
++
++	meson_amvdec_write_dos(core, VC1_SOS_COUNT, 0);
++	meson_amvdec_write_dos(core, VC1_BUFFERIN, 0);
++	meson_amvdec_write_dos(core, VC1_BUFFEROUT, 0);
++
++	meson_amvdec_write_dos(core, ASSIST_MBOX1_CLR_REG, 1);
++	meson_amvdec_write_dos(core, ASSIST_MBOX1_MASK, 1);
++
++	sess->keyframe_found = 1;
++	sess->priv = vc1;
++
++	return 0;
++
++free_workspace:
++	dma_free_coherent(core->dev, SIZE_WORKSPACE, vc1->workspace_vaddr,
++			  vc1->workspace_paddr);
++free_vc1:
++	kfree(vc1);
++
++	return ret;
++}
++
++static int codec_vc1_stop(struct amvdec_session *sess)
++{
++	struct codec_vc1 *vc1 = sess->priv;
++	struct amvdec_core *core = sess->core;
++
++	if (vc1 && vc1->workspace_vaddr) {
++		dma_free_coherent(core->dev, SIZE_WORKSPACE,
++				  vc1->workspace_vaddr, vc1->workspace_paddr);
++		vc1->workspace_vaddr = NULL;
++	}
++
++	return 0;
++}
++
++static irqreturn_t codec_vc1_threaded_isr(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++	u32 reg;
++	u32 buffer_index;
++	u32 field = V4L2_FIELD_NONE;
++	u32 offset;
++	u32 w, h;
++
++	meson_amvdec_write_dos(core, ASSIST_MBOX1_CLR_REG, 1);
++
++	reg = meson_amvdec_read_dos(core, VC1_BUFFEROUT);
++	if (!reg)
++		return IRQ_HANDLED;
++
++	/*
++	 * The microcode reports the coded size it actually decoded.  Do not
++	 * silently follow it: the canvases were already built from the size
++	 * announced at source-change time, so a disagreement means the
++	 * microcode is writing to a geometry we did not size for.
++	 */
++	w = meson_amvdec_read_dos(core, VC1_PIC_WIDTH);
++	h = meson_amvdec_read_dos(core, VC1_PIC_HEIGHT);
++	if (w && h && w <= VC1_MAX_WIDTH && h <= VC1_MAX_HEIGHT &&
++	    (w != sess->width || h != sess->height)) {
++		dev_err_once(core->dev,
++			     "VC-1: microcode decoded %ux%u but canvases are %ux%u; aborting\n",
++			     w, h, sess->width, sess->height);
++		meson_amvdec_write_dos(core, VC1_BUFFEROUT, 0);
++		meson_amvdec_abort(sess);
++		return IRQ_HANDLED;
++	}
++
++	if (!(reg & 0x7) || (reg & 0x7) > 4) {
++		dev_err(core->dev, "VC-1: invalid firmware buffer %u\n", reg & 0x7);
++		meson_amvdec_write_dos(core, VC1_BUFFEROUT, 0);
++		meson_amvdec_abort(sess);
++		return IRQ_HANDLED;
++	}
++	buffer_index = (reg & 0x7) - 1;
++
++	if (reg & INTERLACE_FLAG)
++		field = (reg & BOTTOM_FIELD_FIRST_FLAG) ?
++			V4L2_FIELD_INTERLACED_BT :
++			V4L2_FIELD_INTERLACED_TB;
++
++	/* The reported offset can precede the picture BDU by one 256-byte
++	 * VLD fetch. ESPARSER pads each packet to at least 4 KiB, so this
++	 * allowance cannot cross into the following packet's timestamp.
++	 */
++	offset = meson_amvdec_read_dos(core, VC1_OFFSET_REG) + SZ_256;
++	if (((struct codec_vc1 *)sess->priv)->draining &&
++	    (s32)(offset - ((struct codec_vc1 *)sess->priv)->eos_offset) >= 0) {
++		meson_amvdec_write_dos(core, VC1_BUFFEROUT, 0);
++		return IRQ_HANDLED;
++	}
++	meson_amvdec_dst_buf_done_idx(sess, buffer_index, offset, field);
++
++	meson_amvdec_write_dos(core, VC1_BUFFEROUT, 0);
++	return IRQ_HANDLED;
++}
++
++static irqreturn_t codec_vc1_isr(struct amvdec_session *sess)
++{
++	return IRQ_WAKE_THREAD;
++}
++
++struct amvdec_codec_ops meson_amvdec_codec_vc1_ops = {
++	.start = codec_vc1_start,
++	.stop = codec_vc1_stop,
++	.isr = codec_vc1_isr,
++	.threaded_isr = codec_vc1_threaded_isr,
++	.can_recycle = codec_vc1_can_recycle,
++	.recycle = codec_vc1_recycle,
++};
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_vc1.h b/drivers/media/platform/amlogic/amvdec/codec_vc1.h
+new file mode 100644
+index 0000000000..ce35d3b895
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_vc1.h
+@@ -0,0 +1,16 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2026 Gus Bourg <gus@bourg.net>
++ */
++
++#ifndef __MESON_AMVDEC_CODEC_VC1_H_
++#define __MESON_AMVDEC_CODEC_VC1_H_
++
++#include "amvdec.h"
++
++extern struct amvdec_codec_ops meson_amvdec_codec_vc1_ops;
++u32 meson_amvdec_codec_vc1_prepare_input(struct amvdec_session *sess, struct vb2_buffer *vb);
++
++int meson_amvdec_codec_vc1_queue_eos(struct amvdec_session *sess, u32 offset);
++
++#endif
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_vc1_parser.c b/drivers/media/platform/amlogic/amvdec/codec_vc1_parser.c
+new file mode 100644
+index 0000000000..62d405be57
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_vc1_parser.c
+@@ -0,0 +1,338 @@
++// SPDX-License-Identifier: GPL-2.0+
++/* VC-1 Annex G preprocessing for the legacy Amlogic microcode. */
++#include <linux/errno.h>
++#include <linux/string.h>
++
++#include "codec_vc1_parser.h"
++
++static u32 vc1_bits(const u8 *data, u32 *pos, u32 count)
++{
++	u32 value = 0;
++
++	while (count--) {
++		value = (value << 1) | ((data[*pos / 8] >> (7 - *pos % 8)) & 1);
++		++*pos;
++	}
++	return value;
++}
++
++static void vc1_put_bits(u8 *data, u32 *pos, u32 count, u32 value)
++{
++	while (count--) {
++		data[*pos / 8] |= ((value >> count) & 1) << (7 - *pos % 8);
++		++*pos;
++	}
++}
++
++static u32 vc1_unescape(const u8 *src, u32 len, u8 *dst, u32 capacity)
++{
++	u32 i, n = 0, zeros = 0;
++
++	for (i = 0; i < len && n < capacity; ++i) {
++		if (zeros == 2 && src[i] == 3 && i + 1 < len && src[i + 1] <= 3) {
++			zeros = 0;
++			continue;
++		}
++		dst[n++] = src[i];
++		zeros = src[i] == 0 ? zeros + 1 : 0;
++		if (zeros > 2)
++			zeros = 2;
++	}
++	return n;
++}
++
++int meson_amvdec_vc1_sequence_header(const u8 *data, u32 length, u32 *width, u32 *height)
++{
++	u8 header[6];
++	u32 pos = 16;
++
++	if (vc1_unescape(data, length, header, sizeof(header)) < sizeof(header) ||
++	    header[0] >> 6 != 3 || ((header[0] >> 1) & 3) != 1)
++		return -EINVAL;
++	*width = (vc1_bits(header, &pos, 12) + 1) * 2;
++	*height = (vc1_bits(header, &pos, 12) + 1) * 2;
++	if (*width < 16 || *width > 1920 || *height < 16 || *height > 1088)
++		return -EINVAL;
++	return 0;
++}
++
++static u32 vc1_next_bdu(const u8 *data, u32 from, u32 len)
++{
++	u32 i;
++
++	for (i = from; i + 3 < len; ++i)
++		if (!data[i] && !data[i + 1] && data[i + 2] == 1)
++			return i;
++	return len;
++}
++
++/*
++ * G12 VC-1 microcode erratum (observed with g12a_vc1 SHA-256 e5aacc59...):
++ * it drops PTYPE=1111 pictures without advancing its references. B
++ * pictures between the skipped anchors can then read an uninitialised frame.
++ * Expand a progressive skipped P picture into a P picture with zero motion
++ * and every macroblock skipped. All reconstruction still runs on hardware.
++ *
++ * Inverted ROWSKIP encodes the all-one SKIPMB plane in one bit per row.
++ * PQINDEX=9 avoids HALFQP, 1MV uses zero spatially predicted motion, DQUANT
++ * is disabled (or uses equal quantizers), and there are no coded residuals.
++ * Preserve TFCNTR and RPTFRM from the original picture.
++ *
++ * This is a bounded firmware workaround, not a general picture encoder:
++ * only progressive skipped pictures are expanded, at most 48 bytes are
++ * generated, and unsupported pan-scan syntax fails rather than being lost.
++ * Testing SM1 microcode with the newer eight-buffer protocol did not yield
++ * a working replacement. Keep this until native reference handling is
++ * verified with an alternative firmware, including skipped anchors and EOS.
++ */
++static int vc1_expand_skip(const struct vc1_stream *s, const u8 *src,
++			   u32 len, u8 *dst, u32 height)
++{
++	u8 header[16], picture[32] = { 0 };
++	u32 n, in = 4, out = 0, i, zeros = 0, bytes;
++
++	n = vc1_unescape(src, len, header, sizeof(header));
++	if (!n || (header[0] >> 4) != 15)
++		return 0;
++	if (s->panscan || !height || height > 1088)
++		return -EOPNOTSUPP;
++	if (n * 8 < 4U + s->tfcntr * 8 + s->broadcast * 2)
++		return -EINVAL;
++
++	vc1_put_bits(picture, &out, 1, 0); /* PTYPE: P */
++	if (s->tfcntr)
++		vc1_put_bits(picture, &out, 8, vc1_bits(header, &in, 8));
++	if (s->broadcast)
++		vc1_put_bits(picture, &out, 2, vc1_bits(header, &in, 2));
++	vc1_put_bits(picture, &out, 1, 0); /* RNDCTRL */
++	if (s->finterp)
++		vc1_put_bits(picture, &out, 1, 0);
++	vc1_put_bits(picture, &out, 5, 9); /* PQINDEX */
++	if (s->quantizer == 1)
++		vc1_put_bits(picture, &out, 1, 1); /* PQUANTIZER */
++	if (s->postproc)
++		vc1_put_bits(picture, &out, 2, 0);
++	if (s->extended_mv)
++		vc1_put_bits(picture, &out, 1, 0); /* MVRANGE */
++	vc1_put_bits(picture, &out, 1, 1); /* MVMODE: 1MV */
++	vc1_put_bits(picture, &out, 1, 1); /* INVERT */
++	vc1_put_bits(picture, &out, 3, 2); /* IMODE: ROWSKIP */
++	for (i = 0; i < (height + 15) / 16; ++i)
++		vc1_put_bits(picture, &out, 1, 0);
++	vc1_put_bits(picture, &out, 4, 0); /* MVTAB, CBPTAB */
++	if (s->dquant == 2) {
++		vc1_put_bits(picture, &out, 3, 7); /* explicit ALTPQUANT */
++		vc1_put_bits(picture, &out, 5, 9);
++	} else if (s->dquant) {
++		vc1_put_bits(picture, &out, 1, 0); /* DQUANTFRM */
++	}
++	if (s->vstransform)
++		vc1_put_bits(picture, &out, 3, 4); /* TTMBF=1, TTFRM=8x8 */
++	vc1_put_bits(picture, &out, 2, 0); /* TRANSACFRM, TRANSDCTAB */
++
++	bytes = (out + 7) / 8;
++	for (i = 0, n = 0; i < bytes; ++i) {
++		if (zeros == 2 && picture[i] <= 3) {
++			dst[n++] = 3;
++			zeros = 0;
++		}
++		dst[n++] = picture[i];
++		zeros = picture[i] == 0 ? zeros + 1 : 0;
++	}
++	return n;
++}
++
++int meson_amvdec_vc1_flush_picture(const struct vc1_stream *stream, u8 *data, u32 height)
++{
++	const u8 skipped[] = { 0xf0, 0, 0 };
++
++	if (!stream->sequence_valid || !stream->entry_valid || stream->interlace)
++		return -EOPNOTSUPP;
++	return vc1_expand_skip(stream, skipped, sizeof(skipped), data, height);
++}
++
++/* Bounded header reads used only to locate a raw picture after ASF codec
++ * private data. FFmpeg concatenates that data and its first frame in one
++ * OUTPUT buffer, without retaining the boundary in V4L2 metadata.
++ */
++static u32 vc1_header_bits(const u8 *data, u32 n, u32 *pos, u32 count)
++{
++	if (*pos > n * 8 || count > n * 8 - *pos) {
++		*pos = n * 8 + 1;
++		return 0;
++	}
++	return vc1_bits(data, pos, count);
++}
++
++static int vc1_sequence_buckets(const u8 *data, u32 len)
++{
++	u8 header[160];
++	u32 n = vc1_unescape(data, len, header, sizeof(header));
++	u32 pos = 46, buckets = 0;
++
++	if (vc1_header_bits(header, n, &pos, 1)) { /* DISPLAY_EXT */
++		pos += 28;
++		if (vc1_header_bits(header, n, &pos, 1) &&
++		    vc1_header_bits(header, n, &pos, 4) == 15)
++			pos += 16;
++		if (vc1_header_bits(header, n, &pos, 1)) { /* FRAMERATE_FLAG */
++			if (vc1_header_bits(header, n, &pos, 1))
++				pos += 16;
++			else
++				pos += 12;
++		}
++		if (vc1_header_bits(header, n, &pos, 1))
++			pos += 24; /* COLOR_FORMAT */
++	}
++	if (vc1_header_bits(header, n, &pos, 1)) {
++		buckets = vc1_header_bits(header, n, &pos, 5);
++		pos += 8 + 32 * buckets;
++	}
++	return pos <= n * 8 ? (int)buckets : -EINVAL;
++}
++
++static int vc1_entry_size(const u8 *data, u32 len, u32 buckets,
++			  u32 width, u32 height)
++{
++	u8 header[48];
++	u32 n = vc1_unescape(data, len, header, sizeof(header));
++	u32 pos = 6, extended_mv, w, h, bytes, i, zeros = 0;
++
++	extended_mv = vc1_header_bits(header, n, &pos, 1);
++	pos = 13 + 8 * buckets;
++	if (vc1_header_bits(header, n, &pos, 1)) {
++		w = (vc1_header_bits(header, n, &pos, 12) + 1) * 2;
++		h = (vc1_header_bits(header, n, &pos, 12) + 1) * 2;
++		if (w != width || h != height)
++			return -EOPNOTSUPP;
++	}
++	pos += extended_mv;
++	if (vc1_header_bits(header, n, &pos, 1))
++		pos += 3;
++	if (vc1_header_bits(header, n, &pos, 1))
++		pos += 3;
++	/* Annex G headers end in a one bit followed by byte-alignment zeros. */
++	if (vc1_header_bits(header, n, &pos, 1) != 1)
++		return -EINVAL;
++	while (pos % 8 && pos <= n * 8)
++		if (vc1_header_bits(header, n, &pos, 1))
++			return -EINVAL;
++	if (pos > n * 8)
++		return -EINVAL;
++	bytes = pos / 8;
++	/* Map the parsed RBSP length back to the escaped input length. */
++	for (i = 0; i < len && bytes; ++i) {
++		if (zeros == 2 && data[i] == 3 && i + 1 < len && data[i + 1] <= 3) {
++			zeros = 0;
++			continue;
++		}
++		--bytes;
++		zeros = data[i] ? 0 : zeros < 2 ? zeros + 1 : 2;
++	}
++	return bytes ? -EINVAL : (int)i;
++}
++
++int meson_amvdec_vc1_prepare_stream(struct vc1_stream *s, u8 *data, u32 *length,
++		       u32 capacity, u32 width, u32 height)
++{
++	u32 start, end, pos, n, w, h, len = *length;
++	u8 header[8], replacement[48];
++	int size, buckets = -EINVAL;
++	bool asf_headers;
++
++	if (len > capacity)
++		return -EINVAL;
++	/* ASF codec private data has a one-byte prefix before its sequence BDU. */
++	asf_headers = len >= 5 && !data[1] && !data[2] &&
++		      data[3] == 1 && data[4] == 0x0f;
++	/* Some demuxers supply raw frame packets despite selecting Annex G.
++	 * Normalize once, before scanning BDUs or expanding skipped pictures.
++	 * Sequence/entry headers and already framed packets pass through.
++	 */
++	if (len && !asf_headers && (len < 3 || data[0] || data[1] || data[2] != 1)) {
++		if (capacity - len < 4)
++			return -ENOSPC;
++		memmove(data + 4, data, len);
++		data[0] = 0;
++		data[1] = 0;
++		data[2] = 1;
++		data[3] = 0x0d;
++		len += 4;
++	}
++	for (start = vc1_next_bdu(data, 0, len); start < len; start = end) {
++		end = vc1_next_bdu(data, start + 4, len);
++		n = vc1_unescape(data + start + 4, end - start - 4,
++				 header, sizeof(header));
++		switch (data[start + 3]) {
++		case 0x0f:
++			s->sequence_valid = false;
++			s->entry_valid = false;
++			if (meson_amvdec_vc1_sequence_header(data + start + 4,
++						   end - start - 4, &w, &h))
++				return -EINVAL;
++			/* Reject a new size before the microcode can write to old canvases. */
++			if (w != width || h != height)
++				return -EOPNOTSUPP;
++			pos = 15;
++			s->postproc = vc1_bits(header, &pos, 1);
++			pos = 40;
++			s->broadcast = vc1_bits(header, &pos, 1);
++			s->interlace = vc1_bits(header, &pos, 1);
++			s->tfcntr = vc1_bits(header, &pos, 1);
++			s->finterp = vc1_bits(header, &pos, 1);
++			if (asf_headers)
++				buckets = vc1_sequence_buckets(data + start + 4, end - start - 4);
++			s->sequence_valid = true;
++			break;
++		case 0x0e:
++			if (asf_headers && end == len) {
++				if (buckets < 0)
++					return buckets;
++				size = vc1_entry_size(data + start + 4, end - start - 4,
++						      buckets, width, height);
++				if (size < 0)
++					return size;
++				pos = start + 4 + size;
++				if (pos < len) {
++					if (capacity - len < 4)
++						return -ENOSPC;
++					memmove(data + pos + 4, data + pos, len - pos);
++					memcpy(data + pos, "\x00\x00\x01\x0d", 4);
++					len += 4;
++					end = pos;
++				}
++			}
++			if (n < 2)
++				return -EINVAL;
++			pos = 2;
++			s->panscan = vc1_bits(header, &pos, 1);
++			pos = 6;
++			s->extended_mv = vc1_bits(header, &pos, 1);
++			s->dquant = vc1_bits(header, &pos, 2);
++			s->vstransform = vc1_bits(header, &pos, 1);
++			++pos; /* OVERLAP */
++			s->quantizer = vc1_bits(header, &pos, 2);
++			s->entry_valid = true;
++			break;
++		case 0x0d:
++			if (!s->sequence_valid || !s->entry_valid || s->interlace)
++				break;
++			size = vc1_expand_skip(s, data + start + 4,
++					       end - start - 4, replacement, height);
++			if (size < 0)
++				return size;
++			if (!size)
++				break;
++			n = len - (end - start - 4);
++			if ((u32)size > capacity - n)
++				return -ENOSPC;
++			memmove(data + start + 4 + size, data + end, len - end);
++			memcpy(data + start + 4, replacement, size);
++			len = n + size;
++			end = start + 4 + size;
++			break;
++		}
++	}
++	*length = len;
++	return 0;
++}
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_vc1_parser.h b/drivers/media/platform/amlogic/amvdec/codec_vc1_parser.h
+new file mode 100644
+index 0000000000..43efb361f2
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_vc1_parser.h
+@@ -0,0 +1,21 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++#ifndef __MESON_AMVDEC_CODEC_VC1_PARSER_H_
++#define __MESON_AMVDEC_CODEC_VC1_PARSER_H_
++
++#include <linux/types.h>
++
++struct vc1_stream {
++	bool sequence_valid;
++	bool entry_valid;
++	u8 postproc, broadcast, interlace, tfcntr, finterp;
++	u8 panscan, extended_mv, dquant, vstransform, quantizer;
++};
++
++int meson_amvdec_vc1_prepare_stream(struct vc1_stream *stream, u8 *data, u32 *length,
++		       u32 capacity, u32 width, u32 height);
++
++int meson_amvdec_vc1_sequence_header(const u8 *data, u32 length, u32 *width, u32 *height);
++
++int meson_amvdec_vc1_flush_picture(const struct vc1_stream *stream, u8 *data, u32 height);
++
++#endif
+diff --git a/drivers/media/platform/amlogic/amvdec/esparser.c b/drivers/media/platform/amlogic/amvdec/esparser.c
+index 87a95d6883..43b7b8188c 100644
+--- a/drivers/media/platform/amlogic/amvdec/esparser.c
++++ b/drivers/media/platform/amlogic/amvdec/esparser.c
+@@ -20,6 +20,7 @@
+ 
+ #include "dos_regs.h"
+ #include "esparser.h"
++#include "codec_vc1.h"
+ #include "amvdec_helpers.h"
+ 
+ /* PARSER REGS (CBUS) */
+@@ -234,6 +235,16 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	vbuf->field = V4L2_FIELD_NONE;
+ 	vbuf->sequence = sess->sequence_out++;
+ 
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VC1_ANNEX_G) {
++		payload_size = meson_amvdec_codec_vc1_prepare_input(sess, vb);
++		if (!payload_size) {
++			meson_amvdec_remove_ts(sess, vb->timestamp);
++			esparser_src_error(sess, vbuf);
++			meson_amvdec_abort(sess);
++			return 0;
++		}
++	}
++
+ 	ret = esparser_pad_start_code(core, vb, payload_size);
+ 	if (ret < 0) {
+ 		meson_amvdec_remove_ts(sess, vb->timestamp);
+@@ -291,6 +302,13 @@ void meson_amvdec_esparser_queue_all_src(struct work_struct *work)
+ 			break;
+ 		fed++;
+ 	}
++	if (sess->eos_pending && !sess->should_stop &&
++	    !v4l2_m2m_num_src_bufs_ready(sess->m2m_ctx)) {
++		sess->eos_pending = false;
++		sess->should_stop = 1;
++		if (meson_amvdec_codec_vc1_queue_eos(sess, esparser_get_offset(sess)) < 0)
++			meson_amvdec_abort(sess);
++	}
+ 	/*
+ 	 * MPEG-1/2 completes picture N only once the start code of picture
+ 	 * N+1 reaches it, so input must keep flowing independently of output.
+-- 
+2.53.0
+

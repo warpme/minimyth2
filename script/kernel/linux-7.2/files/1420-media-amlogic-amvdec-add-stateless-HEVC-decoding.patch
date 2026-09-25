@@ -1,0 +1,2475 @@
+From 2b44c995e491e77a4727724ba479f5711fe79e98 Mon Sep 17 00:00:00 2001
+From: gus bourg <gus@bourg.net>
+Date: Thu, 24 Sep 2026 20:18:09 -0700
+Subject: [PATCH 12/17] media: amlogic: amvdec: add stateless HEVC decoding
+
+Add HEVC_SLICE decoding with synthesized parameter headers and
+request-owned input, capture and reference buffers. Validate CTB
+geometry and refuse single-column multi-row pictures and long-term
+prediction that cannot be decoded reliably.
+
+Assisted-by: Claude:claude-opus-5-5
+Assisted-by: Claude:claude-fable-5-1
+Assisted-by: Codex:gpt-5.6
+Assisted-by: Codex:gpt-6.0
+---
+ .../media/platform/amlogic/amvdec/amvdec.c    | 110 ++-
+ .../media/platform/amlogic/amvdec/amvdec.h    |  24 +-
+ .../platform/amlogic/amvdec/amvdec_helpers.c  |  77 +-
+ .../platform/amlogic/amvdec/amvdec_helpers.h  |  12 +-
+ .../platform/amlogic/amvdec/codec_hevc.c      | 634 ++++++++++++++++-
+ .../platform/amlogic/amvdec/codec_hevc.h      |   1 +
+ .../platform/amlogic/amvdec/codec_hevc_rps.h  | 114 +++
+ .../amlogic/amvdec/codec_hevc_synth.h         | 670 ++++++++++++++++++
+ .../media/platform/amlogic/amvdec/esparser.c  | 279 +++++++-
+ 9 files changed, 1877 insertions(+), 44 deletions(-)
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_hevc_rps.h
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_hevc_synth.h
+
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
+index 4e9992a2b5..9596d4a0ac 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
+@@ -24,6 +24,7 @@
+ #include "amvdec.h"
+ #include "codec_hevc_common.h"
+ #include "codec_hevc.h"
++#include "codec_hevc_synth.h"
+ #include "codec_h264_synth.h"
+ #include "codec_mpeg12_synth.h"
+ #include "codec_vc1_parser.h"
+@@ -322,7 +323,7 @@ static bool vdec_nv12m_needs_64k(struct amvdec_session *sess)
+ 	u32 pixfmt = sess->fmt_out->pixfmt;
+ 
+ 	return sess->core->platform->revision == AMVDEC_REVISION_GXBB &&
+-	       pixfmt == V4L2_PIX_FMT_HEVC;
++	       (pixfmt == V4L2_PIX_FMT_HEVC || pixfmt == V4L2_PIX_FMT_HEVC_SLICE);
+ }
+ 
+ static u32 vdec_nv12m_plane_size(struct amvdec_session *sess, u32 size)
+@@ -943,12 +944,20 @@ static void vdec_stop_streaming(struct vb2_queue *q)
+ 		} else {
+ 			if (meson_amvdec_request_jobs(sess))
+ 				meson_amvdec_request_retire(sess, true);
++			if (sess->request_job.input_vaddr) {
++				dma_free_coherent(core->dev, sess->request_job.input_size,
++						  sess->request_job.input_vaddr,
++						  sess->request_job.input_paddr);
++				sess->request_job.input_vaddr = NULL;
++				sess->request_job.input_size = 0;
++			}
+ 			vdec_free_canvas(sess);
+ 			if (sess->vififo_vaddr)
+ 				dma_free_coherent(sess->core->dev,
+ 						  sess->vififo_size,
+ 						  sess->vififo_vaddr,
+ 						  sess->vififo_paddr);
++			sess->hevc_headers_valid = false;
+ 			vdec_reset_timestamps(sess);
+ 			vdec_reset_bufs_recycle(sess);
+ 			kfree(sess->priv);
+@@ -1162,6 +1171,7 @@ vdec_try_fmt_common(struct amvdec_session *sess, u32 size,
+ 			 * decoded pixels at widths such as 416 or 352.
+ 			 */
+ 			u32 align = (fmt_out->pixfmt == V4L2_PIX_FMT_HEVC ||
++				     fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE ||
+ 				     fmt_out->pixfmt == V4L2_PIX_FMT_VP9) ? 32 : 64;
+ 
+ 			pfmt[0].sizeimage = vdec_nv12m_plane_size(sess, output_size);
+@@ -1672,6 +1682,54 @@ static const struct v4l2_ctrl_ops vdec_h264_ctrl_ops = {
+ 	.try_ctrl = vdec_h264_try_ctrl,
+ };
+ 
++static int amvdec_hevc_try_ctrl(struct v4l2_ctrl *ctrl)
++{
++	switch (ctrl->id) {
++	case V4L2_CID_STATELESS_HEVC_SPS: {
++		const struct v4l2_ctrl_hevc_sps *sps = ctrl->p_new.p_hevc_sps;
++		const struct amvdec_format *fmt =
++			vdec_format_by_pixfmt(vdec_ctrl_session(ctrl)->core,
++					      V4L2_PIX_FMT_HEVC_SLICE);
++
++		if (fmt && (sps->pic_width_in_luma_samples > fmt->max_width ||
++			    sps->pic_height_in_luma_samples > fmt->max_height ||
++			    (fmt->max_bit_depth &&
++			     sps->bit_depth_luma_minus8 + 8 > fmt->max_bit_depth)))
++			return -EINVAL;
++		if (hevc_sps_bad_geometry(sps)) {
++			dev_dbg(vdec_ctrl_session(ctrl)->core->dev,
++				"HEVC pictures with one CTB column and multiple rows are unsupported\n");
++			return -EINVAL;
++		}
++		return hevc_sps_validate(sps) ? -EINVAL : 0;
++	}
++	case V4L2_CID_STATELESS_HEVC_PPS:
++		return hevc_pps_validate(ctrl->p_new.p_hevc_pps) ? -EINVAL : 0;
++	case V4L2_CID_STATELESS_HEVC_EXT_SPS_ST_RPS: {
++		struct hevc_rps *resolved;
++		int ret;
++
++		if (ctrl->new_elems > HEVC_RPS_MAX_SETS)
++			return -EINVAL;
++		resolved = kcalloc(ctrl->new_elems, sizeof(*resolved), GFP_KERNEL);
++		if (!resolved)
++			return -ENOMEM;
++		ret = hevc_rps_resolve(ctrl->p_new.p, ctrl->new_elems, resolved);
++		kfree(resolved);
++		return ret;
++	}
++	case V4L2_CID_STATELESS_HEVC_EXT_SPS_LT_RPS:
++		/* The primary image does not implement the SPS LT table ABI. */
++		return ctrl->new_elems ? -EINVAL : 0;
++	default:
++		return 0;
++	}
++}
++
++static const struct v4l2_ctrl_ops amvdec_hevc_ctrl_ops = {
++	.try_ctrl = amvdec_hevc_try_ctrl,
++};
++
+ static int vdec_mpeg2_try_ctrl(struct v4l2_ctrl *ctrl)
+ {
+ 	switch (ctrl->id) {
+@@ -1695,6 +1753,10 @@ static const struct v4l2_ctrl_h264_sps vdec_h264_sps_default = {
+ 	.flags = V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY,
+ };
+ 
++static const struct v4l2_ctrl_hevc_sps amvdec_hevc_sps_default = {
++	.chroma_format_idc = 1,
++};
++
+ static const struct v4l2_ctrl_mpeg2_sequence vdec_mpeg2_sequence_default = {
+ 	.horizontal_size = 16,
+ 	.vertical_size = 16,
+@@ -1789,6 +1851,52 @@ static int vdec_init_ctrls(struct amvdec_session *sess)
+ 				v4l2_ctrl_new_custom(ctrl_handler,
+ 						     &mpeg2_ctrls[i], NULL);
+ 		}
++
++		if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_HEVC_SLICE)) {
++			static const struct v4l2_ctrl_config hevc_ctrls[] = {
++				{
++					.id = V4L2_CID_STATELESS_HEVC_SPS,
++					.ops = &amvdec_hevc_ctrl_ops,
++					.p_def.p_const = &amvdec_hevc_sps_default,
++				}, {
++					.id = V4L2_CID_STATELESS_HEVC_PPS,
++					.ops = &amvdec_hevc_ctrl_ops,
++				}, {
++					.id = V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
++					.type = V4L2_CTRL_TYPE_HEVC_SLICE_PARAMS,
++					.flags = V4L2_CTRL_FLAG_DYNAMIC_ARRAY,
++					.dims = { AMVDEC_HEVC_MAX_SLICES },
++				}, {
++					.id = V4L2_CID_STATELESS_HEVC_DECODE_PARAMS,
++				}, {
++					.id = V4L2_CID_STATELESS_HEVC_EXT_SPS_ST_RPS,
++					.ops = &amvdec_hevc_ctrl_ops,
++					.flags = V4L2_CTRL_FLAG_DYNAMIC_ARRAY,
++					.dims = { HEVC_RPS_MAX_SETS },
++				}, {
++					.id = V4L2_CID_STATELESS_HEVC_EXT_SPS_LT_RPS,
++					.ops = &amvdec_hevc_ctrl_ops,
++					.flags = V4L2_CTRL_FLAG_DYNAMIC_ARRAY,
++					.dims = { 32 },
++				}, {
++					.id = V4L2_CID_STATELESS_HEVC_SCALING_MATRIX,
++				}, {
++					.id = V4L2_CID_STATELESS_HEVC_DECODE_MODE,
++					.min = V4L2_STATELESS_HEVC_DECODE_MODE_FRAME_BASED,
++					.max = V4L2_STATELESS_HEVC_DECODE_MODE_FRAME_BASED,
++					.def = V4L2_STATELESS_HEVC_DECODE_MODE_FRAME_BASED,
++				}, {
++					.id = V4L2_CID_STATELESS_HEVC_START_CODE,
++					.min = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B,
++					.max = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B,
++					.def = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B,
++				},
++			};
++			unsigned int i;
++
++			for (i = 0; i < ARRAY_SIZE(hevc_ctrls); i++)
++				v4l2_ctrl_new_custom(ctrl_handler, &hevc_ctrls[i], NULL);
++		}
+ 	}
+ 
+ 	ret = ctrl_handler->error;
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.h b/drivers/media/platform/amlogic/amvdec/amvdec.h
+index ab17f209c1..a00b4ed533 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.h
+@@ -21,6 +21,7 @@
+ 
+ /* 32 buffers in 3-plane YUV420 */
+ #define MAX_CANVAS (32 * 3)
++#define AMVDEC_HEVC_MAX_SLICES 800
+ 
+ struct amvdec_dma_guard {
+ 	void *raw_vaddr;
+@@ -63,7 +64,13 @@ struct amvdec_timestamp {
+ 	u64 ts;
+ 	u32 offset;
+ 	u32 flags;
++	struct v4l2_ctrl_hevc_sps hevc_sps;
++	struct v4l2_ctrl_hevc_pps hevc_pps;
++	struct v4l2_ctrl_hevc_slice_params hevc_slice;
++	struct v4l2_ctrl_hevc_decode_params hevc_decode;
++	bool has_hevc_slice;
+ 	u32 used_count;
++	u32 input_end; /* cumulative coded endpoint, excluding current tail padding */
+ };
+ 
+ struct amvdec_session;
+@@ -225,6 +232,8 @@ struct amvdec_format {
+ 	u32 max_buffers;
+ 	u32 max_width;
+ 	u32 max_height;
++	/* Highest coded bit depth this SoC decodes for the format; 0 = no cap */
++	u8 max_bit_depth;
+ 	u32 flags;
+ 
+ 	struct amvdec_ops *vdec_ops;
+@@ -310,6 +319,10 @@ enum amvdec_status {
+  */
+ struct amvdec_feed_scratch {
+ 	struct h264_parse_scratch h264_parse;
++	struct v4l2_ctrl_hevc_sps hevc_sps;
++	struct v4l2_ctrl_hevc_pps hevc_pps;
++	struct v4l2_ctrl_hevc_slice_params hevc_slice;
++	struct v4l2_ctrl_hevc_decode_params hevc_decode;
+ 	struct v4l2_ctrl_mpeg2_sequence mpeg2_seq;
+ 	struct v4l2_ctrl_mpeg2_picture mpeg2_pic;
+ 	struct v4l2_ctrl_mpeg2_picture mpeg2_job_pic;
+@@ -363,9 +376,18 @@ struct amvdec_session {
+ 		u64 ref_ts[16];
+ 		u64 timestamp;
+ 		bool error, credit;
++		struct v4l2_ctrl_hevc_slice_params *slices;
++		unsigned int num_slices;
++		void *input_vaddr;
++		dma_addr_t input_paddr;
++		size_t input_size;
+ 	} request_job;
+-
+ 	struct amvdec_feed_scratch feed;
++	/* Synthetic completion metadata, protected by ts_spinlock. */
++	struct vb2_v4l2_buffer metadata_src;
++	u8 hevc_cached_headers[8192];
++	u32 hevc_cached_headers_len;
++	bool hevc_headers_valid;
+ 
+ 	unsigned int streamon_cap, streamon_out;
+ 	unsigned int sequence_cap, sequence_out;
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+index 0c8b981d55..4f723e6f76 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+@@ -742,7 +742,11 @@ void meson_amvdec_src_buf_done(struct amvdec_session *sess,
+ }
+ 
+ int meson_amvdec_add_ts(struct amvdec_session *sess, u64 ts,
+-		  struct v4l2_timecode tc, u32 offset, u32 vbuf_flags)
++		  struct v4l2_timecode tc, u32 offset, u32 vbuf_flags,
++		  const struct v4l2_ctrl_hevc_sps *hevc_sps,
++		  const struct v4l2_ctrl_hevc_pps *hevc_pps,
++		  const struct v4l2_ctrl_hevc_slice_params *hevc_slice,
++		  const struct v4l2_ctrl_hevc_decode_params *hevc_decode)
+ {
+ 	struct amvdec_timestamp *new_ts;
+ 	unsigned long flags;
+@@ -755,6 +759,13 @@ int meson_amvdec_add_ts(struct amvdec_session *sess, u64 ts,
+ 	new_ts->tc = tc;
+ 	new_ts->offset = offset;
+ 	new_ts->flags = vbuf_flags;
++	if (hevc_sps && hevc_pps && hevc_slice && hevc_decode) {
++		new_ts->hevc_sps = *hevc_sps;
++		new_ts->hevc_pps = *hevc_pps;
++		new_ts->hevc_slice = *hevc_slice;
++		new_ts->hevc_decode = *hevc_decode;
++		new_ts->has_hevc_slice = true;
++	}
+ 
+ 	spin_lock_irqsave(&sess->ts_spinlock, flags);
+ 	list_add_tail(&new_ts->list, &sess->timestamps);
+@@ -762,6 +773,24 @@ int meson_amvdec_add_ts(struct amvdec_session *sess, u64 ts,
+ 	return 0;
+ }
+ 
++int meson_amvdec_set_input_end(struct amvdec_session *sess, u64 ts, u32 end)
++{
++	struct amvdec_timestamp *tmp;
++	unsigned long flags;
++	int ret = -ENOENT;
++
++	spin_lock_irqsave(&sess->ts_spinlock, flags);
++	list_for_each_entry(tmp, &sess->timestamps, list) {
++		if (tmp->ts == ts) {
++			tmp->input_end = end;
++			ret = 0;
++			break;
++		}
++	}
++	spin_unlock_irqrestore(&sess->ts_spinlock, flags);
++	return ret;
++}
++
+ void meson_amvdec_remove_ts(struct amvdec_session *sess, u64 ts)
+ {
+ 	struct amvdec_timestamp *tmp;
+@@ -954,6 +983,9 @@ void meson_amvdec_request_retire(struct amvdec_session *sess, bool cancel)
+ 	meson_amvdec_src_buf_done(sess, src, error ? VB2_BUF_STATE_ERROR : VB2_BUF_STATE_DONE);
+ 	if (sess->request_job.credit)
+ 		atomic_dec(&sess->esparser_queued_bufs);
++	kfree(sess->request_job.slices);
++	sess->request_job.slices = NULL;
++	sess->request_job.num_slices = 0;
+ 	sess->request_job.src = NULL;
+ 	sess->request_job.dst = NULL;
+ 	atomic_set(&sess->request_job.state, 0);
+@@ -1003,6 +1035,49 @@ void meson_amvdec_dst_buf_done(struct amvdec_session *sess,
+ 		v4l2_m2m_job_finish(sess->m2m_dev, sess->m2m_ctx);
+ }
+ 
++/* Keep the offset record for reordered completion; copy controls at allocation,
++ * before another picture can resolve this CAPTURE timestamp as a reference.
++ */
++int meson_amvdec_dst_buf_prepare_hevc(struct amvdec_session *sess,
++				struct vb2_v4l2_buffer *vbuf, u32 offset,
++			      struct v4l2_ctrl_hevc_slice_params *slice,
++			      struct v4l2_ctrl_hevc_decode_params *decode, u32 *input_end,
++			      u32 *input_offset)
++{
++	struct amvdec_timestamp *tmp, *match = NULL;
++	struct vb2_v4l2_buffer *src = &sess->metadata_src;
++	unsigned long flags;
++
++	spin_lock_irqsave(&sess->ts_spinlock, flags);
++	list_for_each_entry(tmp, &sess->timestamps, list) {
++		if (tmp->offset > offset)
++			break;
++		match = tmp;
++	}
++	if (!match || !match->has_hevc_slice) {
++		spin_unlock_irqrestore(&sess->ts_spinlock, flags);
++		dev_err_ratelimited(sess->core->dev,
++				    "HEVC no request snapshot at offset %u\n", offset);
++		return -ENOENT;
++	}
++	*slice = match->hevc_slice;
++	*decode = match->hevc_decode;
++	*input_end = match->input_end;
++	*input_offset = match->offset;
++	src->vb2_buf.timestamp = match->ts;
++	src->timecode = match->tc;
++	src->flags = match->flags;
++	src->field = V4L2_FIELD_NONE;
++	v4l2_m2m_buf_copy_metadata(src, vbuf);
++	spin_unlock_irqrestore(&sess->ts_spinlock, flags);
++	dev_dbg(sess->core->dev,
++		"prepare idx=%u timestamp=%llu copied=%u poc=%d offset=%u start=%u end=%u\n",
++		 vbuf->vb2_buf.index, vbuf->vb2_buf.timestamp,
++		 vbuf->vb2_buf.copied_timestamp, decode->pic_order_cnt_val,
++		 offset, *input_offset, *input_end);
++	return 0;
++}
++
+ void meson_amvdec_dst_buf_done_stateless(struct amvdec_session *sess,
+ 				   struct vb2_v4l2_buffer *vbuf, u32 field)
+ {
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
+index 4a0a66f2b6..9bfce13438 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
+@@ -155,6 +155,11 @@ void meson_amvdec_dst_buf_done_idx(struct amvdec_session *sess, u32 buf_idx,
+ 			     u32 offset, u32 field);
+ void meson_amvdec_dst_buf_done(struct amvdec_session *sess,
+ 			 struct vb2_v4l2_buffer *vbuf, u32 field);
++int meson_amvdec_dst_buf_prepare_hevc(struct amvdec_session *sess,
++				struct vb2_v4l2_buffer *vbuf, u32 offset,
++			      struct v4l2_ctrl_hevc_slice_params *slice,
++			      struct v4l2_ctrl_hevc_decode_params *decode,
++			      u32 *input_end, u32 *input_offset);
+ void meson_amvdec_dst_buf_done_stateless(struct amvdec_session *sess,
+ 				   struct vb2_v4l2_buffer *vbuf, u32 field);
+ void meson_amvdec_dst_buf_error_stateless(struct amvdec_session *sess,
+@@ -173,7 +178,12 @@ void meson_amvdec_dst_buf_done_offset(struct amvdec_session *sess,
+  * @flags: the vb2_v4l2_buffer flags
+  */
+ int meson_amvdec_add_ts(struct amvdec_session *sess, u64 ts,
+-		  struct v4l2_timecode tc, u32 offset, u32 flags);
++		  struct v4l2_timecode tc, u32 offset, u32 flags,
++		  const struct v4l2_ctrl_hevc_sps *hevc_sps,
++		  const struct v4l2_ctrl_hevc_pps *hevc_pps,
++		  const struct v4l2_ctrl_hevc_slice_params *hevc_slice,
++		  const struct v4l2_ctrl_hevc_decode_params *hevc_decode);
++int meson_amvdec_set_input_end(struct amvdec_session *sess, u64 ts, u32 end);
+ void meson_amvdec_remove_ts(struct amvdec_session *sess, u64 ts);
+ int meson_amvdec_next_ts_offset(struct amvdec_session *sess, u32 after,
+ 			  bool after_valid, u32 *offset);
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_hevc.c b/drivers/media/platform/amlogic/amvdec/codec_hevc.c
+index d60d50021b..28a944a9af 100644
+--- a/drivers/media/platform/amlogic/amvdec/codec_hevc.c
++++ b/drivers/media/platform/amlogic/amvdec/codec_hevc.c
+@@ -61,7 +61,7 @@
+ #define MAX_REF_ACTIVE		16
+ #define MAX_TILE_COL_NUM	10
+ #define MAX_TILE_ROW_NUM	20
+-#define MAX_SLICE_NUM		800
++#define MAX_SLICE_NUM		AMVDEC_HEVC_MAX_SLICES
+ #define INVALID_POC		0x80000000
+ 
+ /* HEVC Workspace layout */
+@@ -250,7 +250,9 @@ struct hevc_frame {
+ 	struct list_head list;
+ 	struct vb2_v4l2_buffer *vbuf;
+ 	u32 offset;
++	u32 header_offset;
+ 	u32 poc;
++	u32 input_end;
+ 
+ 	int referenced;
+ 	int show;
+@@ -262,6 +264,9 @@ struct hevc_frame {
+ 	/* 2 lists (L0/L1) ; 800 slices ; 16 refs */
+ 	u32 ref_poc_list[2][MAX_SLICE_NUM][MAX_REF_ACTIVE];
+ 	u32 ref_num[2];
++	struct v4l2_ctrl_hevc_slice_params slice_ctrl;
++	struct v4l2_ctrl_hevc_decode_params decode_ctrl;
++	struct hevc_frame *ctrl_refs[2][MAX_REF_ACTIVE];
+ };
+ 
+ struct codec_hevc {
+@@ -360,6 +365,8 @@ struct codec_hevc {
+ 
+ 	/* The workspace is borrowed from the module cache, not owned */
+ 	bool ws_cached;
++	bool request_mode, request_size, request_parked;
++	u32 request_origin;
+ };
+ 
+ static void codec_hevc_stall_arm(struct codec_hevc *hevc);
+@@ -627,6 +634,12 @@ static void codec_hevc_show_frames(struct amvdec_session *sess)
+ 		hevc->frames_num--;
+ 	}
+ 
++	/* Stateless metadata remains attached to its CAPTURE buffer until reuse.
++	 * It is not an authoritative reference map; requests choose timestamps.
++	 */
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE)
++		return;
++
+ 	/* clean output frame buffer */
+ 	list_for_each_entry_safe(tmp, n, &hevc->ref_frames_list, list) {
+ 		if (tmp->referenced || tmp->show)
+@@ -1051,6 +1064,14 @@ static int codec_hevc_start(struct amvdec_session *sess)
+ 	sess->priv = hevc;
+ 
+ 	codec_hevc_hw_init(sess);
++	hevc->request_mode = sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE;
++	hevc->request_size = true;
++	if (hevc->request_mode) {
++		/* Firmware has not started and no input has been fed. */
++		hevc->request_origin = meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT);
++		dev_dbg(core->dev, "request start origin=%u size_enabled=%u\n",
++			hevc->request_origin, hevc->request_size);
++	}
+ 
+ 	return 0;
+ 
+@@ -1064,7 +1085,8 @@ static void codec_hevc_flush_output(struct amvdec_session *sess)
+ 	struct codec_hevc *hevc = sess->priv;
+ 	struct hevc_frame *tmp, *n;
+ 
+-	while ((tmp = codec_hevc_get_next_ready_frame(hevc))) {
++	while (!meson_amvdec_request_jobs(sess) &&
++	       (tmp = codec_hevc_get_next_ready_frame(hevc))) {
+ 		if (codec_hevc_verify_or_fail(sess, "hevc.flush"))
+ 			v4l2_m2m_buf_done(tmp->vbuf, VB2_BUF_STATE_ERROR);
+ 		else
+@@ -1253,20 +1275,48 @@ void meson_amvdec_codec_hevc_cancel_drain(struct amvdec_session *sess)
+ static void codec_hevc_drain(struct amvdec_session *sess)
+ {
+ 	struct codec_hevc *hevc = sess->priv;
++	/* EOS NAL plus parser padding lets the final entropy-decoder reads
++	 * finish even when no following picture is queued.
++	 */
++	static const u8 eos[ESPARSER_MIN_PACKET_SIZE] = {
++		0, 0, 0, 1, 0x48, 0x01, 0x80
++	};
++	unsigned int i;
+ 
+-	if (sess->should_stop || sess->status != STATUS_NEEDS_RESUME)
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC &&
++	    (sess->should_stop || sess->status != STATUS_NEEDS_RESUME))
+ 		return;
+ 
+ 	/* The recovery worker also owns the reorder list. */
+ 	atomic_set(&hevc->stall_state, STALL_IDLE);
+ 	cancel_delayed_work_sync(&hevc->stall_work);
+ 	mutex_lock(&hevc->lock);
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE &&
++	    !sess->should_stop && hevc->cur_frame) {
++		hevc->eos_expected = true;
++		if (meson_amvdec_esparser_queue_eos(sess->core, eos, sizeof(eos)) <= 0) {
++			dev_err(sess->core->dev, "HEVC drain EOS feed failed\n");
++			goto unlock;
++		}
++		for (i = 0; i < 200; i++) {
++			if ((meson_amvdec_read_dos(sess->core, HEVC_PARSER_LCU_START) &
++			     0xffffff) == hevc->lcu_total - 1)
++				break;
++			usleep_range(1000, 2000);
++		}
++		if (i == 200) {
++			dev_err(sess->core->dev,
++				"HEVC drain: final picture not complete; retaining buffers\n");
++			goto unlock;
++		}
++	}
+ 	dev_dbg(sess->core->dev,
+ 		"drain frames=%u queued=%d lcu=%08x total_lcu=%u status=%08x\n",
+ 		 hevc->frames_num, atomic_read(&sess->esparser_queued_bufs),
+ 		 meson_amvdec_read_dos(sess->core, HEVC_PARSER_LCU_START),
+ 		 hevc->lcu_total, meson_amvdec_read_dos(sess->core, HEVC_DEC_STATUS_REG));
+ 	codec_hevc_flush_output(sess);
++unlock:
+ 	mutex_unlock(&hevc->lock);
+ }
+ 
+@@ -1274,25 +1324,30 @@ static int codec_hevc_stop(struct amvdec_session *sess)
+ {
+ 	struct codec_hevc *hevc = sess->priv;
+ 	struct amvdec_core *core = sess->core;
+-	struct hevc_frame *frame, *next;
+ 
+ 	atomic_set(&hevc->stall_state, STALL_DISABLED);
+ 	cancel_delayed_work_sync(&hevc->stall_work);
+ 	cancel_delayed_work_sync(&hevc->drain_timeout);
+ 	mutex_lock(&hevc->lock);
+-	/* __vdec_hevc_stop() has quiesced the firmware and decode engines. */
+-	list_for_each_entry_safe(frame, next, &hevc->ref_frames_list, list) {
+-		if (frame->show) {
+-			v4l2_m2m_buf_done(frame->vbuf, VB2_BUF_STATE_ERROR);
+-			atomic_dec(&sess->esparser_queued_bufs);
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC) {
++		struct hevc_frame *frame, *next;
++
++		/* __vdec_hevc_stop() has quiesced the firmware and decode engines. */
++		list_for_each_entry_safe(frame, next, &hevc->ref_frames_list, list) {
++			if (frame->show) {
++				v4l2_m2m_buf_done(frame->vbuf, VB2_BUF_STATE_ERROR);
++				atomic_dec(&sess->esparser_queued_bufs);
++			}
++			list_del(&frame->list);
++			kfree(frame);
+ 		}
+-		list_del(&frame->list);
+-		kfree(frame);
++		hevc->frames_num = 0;
++		hevc->cur_frame = NULL;
++		hevc->col_frame = NULL;
++		codec_hevc_set_resync(sess, true);
++	} else {
++		codec_hevc_flush_output(sess);
+ 	}
+-	hevc->frames_num = 0;
+-	hevc->cur_frame = NULL;
+-	hevc->col_frame = NULL;
+-	codec_hevc_set_resync(sess, true);
+ 
+ 	if (codec_hevc_verify_or_fail(sess, "hevc.stop"))
+ 		sess->resyncing = 1;
+@@ -1376,12 +1431,14 @@ codec_hevc_prepare_new_frame(struct amvdec_session *sess)
+ 	struct codec_hevc *hevc = sess->priv;
+ 	struct vb2_v4l2_buffer *vbuf;
+ 	union rpm_param *params = &hevc->rpm_param;
++	u32 poc, lsb_mask;
+ 
+ 	new_frame = kzalloc_obj(*new_frame);
+ 	if (!new_frame)
+ 		return NULL;
+ 
+-	vbuf = v4l2_m2m_dst_buf_remove(sess->m2m_ctx);
++	vbuf = meson_amvdec_request_jobs(sess) ? sess->request_job.dst :
++		v4l2_m2m_dst_buf_remove(sess->m2m_ctx);
+ 	if (!vbuf) {
+ 		dev_err_ratelimited(sess->core->dev, "No dst buffer available\n");
+ 		kfree(new_frame);
+@@ -1395,18 +1452,67 @@ codec_hevc_prepare_new_frame(struct amvdec_session *sess)
+ 	 */
+ 	if (meson_amvdec_codec_hevc_ensure_frame_buffer(sess, &hevc->common,
+ 					   &vbuf->vb2_buf, hevc->is_10bit)) {
+-		v4l2_m2m_buf_queue(sess->m2m_ctx, vbuf);
++		if (!meson_amvdec_request_jobs(sess))
++			v4l2_m2m_buf_queue(sess->m2m_ctx, vbuf);
+ 		kfree(new_frame);
+ 		return NULL;
+ 	}
+ 
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) {
++		struct hevc_frame *old, *n;
++
++		/* A QBUF transfers this buffer back to the decoder. Retire its
++		 * old metadata before assigning a new timestamp and MV contents.
++		 */
++		list_for_each_entry_safe(old, n, &hevc->ref_frames_list, list) {
++			if (old->vbuf != vbuf)
++				continue;
++			if (old->show) {
++				if (!meson_amvdec_request_jobs(sess))
++					v4l2_m2m_buf_queue(sess->m2m_ctx, vbuf);
++				kfree(new_frame);
++				return NULL;
++			}
++			if (hevc->col_frame == old)
++				hevc->col_frame = NULL;
++			if (hevc->cur_frame == old)
++				hevc->cur_frame = NULL;
++			list_del(&old->list);
++			kfree(old);
++		}
++		if (meson_amvdec_dst_buf_prepare_hevc(sess, vbuf,
++						meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++				&new_frame->slice_ctrl, &new_frame->decode_ctrl,
++				&new_frame->input_end, &new_frame->offset)) {
++			meson_amvdec_dst_buf_error_stateless(sess, vbuf);
++			kfree(new_frame);
++			return NULL;
++		}
++		/*
++		 * The POC derived here follows prevTid0Pic through the
++		 * pictures this driver was given, and a request client drops
++		 * some: RASL pictures at a random access point, sub-layers it
++		 * does not want.  The client's POC is the one its references
++		 * are named by; take it when the LSBs agree.
++		 */
++		poc = new_frame->decode_ctrl.pic_order_cnt_val;
++		lsb_mask = (1U << (params->p.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1;
++		if (poc != hevc->curr_poc && !((poc ^ hevc->curr_poc) & lsb_mask)) {
++			if (hevc->prev_tid0_poc == hevc->curr_poc)
++				hevc->prev_tid0_poc = poc;
++			hevc->curr_poc = poc;
++		}
++	}
++
+ 	new_frame->vbuf = vbuf;
+ 	new_frame->referenced = 1;
+ 	new_frame->show = 1;
+ 	new_frame->poc = hevc->curr_poc;
+ 	new_frame->cur_slice_type = params->p.slice_type;
+ 	new_frame->num_reorder_pic = params->p.sps_num_reorder_pics_0;
+-	new_frame->offset = meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT);
++	new_frame->header_offset = meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT);
++	if (sess->fmt_out->pixfmt != V4L2_PIX_FMT_HEVC_SLICE)
++		new_frame->offset = new_frame->header_offset;
+ 
+ 	list_add_tail(&new_frame->list, &hevc->ref_frames_list);
+ 	hevc->frames_num++;
+@@ -1703,6 +1809,28 @@ static bool codec_hevc_locate_tile(struct codec_hevc *hevc)
+ 	return true;
+ }
+ 
++/* Raster LCU address to tile scan, the order slice segments arrive in */
++static u32 codec_hevc_addr_ts(struct codec_hevc *hevc, u32 addr)
++{
++	u32 x, y, tx = 0, ty = 0, w, ts;
++
++	if (!hevc->tile_enabled || !hevc->tile_cols || !hevc->lcu_x_num)
++		return addr;
++	x = addr % hevc->lcu_x_num;
++	y = addr / hevc->lcu_x_num;
++	while (tx + 1 < hevc->tile_cols && x >= hevc->tile_col_start[tx + 1])
++		tx++;
++	while (ty + 1 < hevc->tile_rows && y >= hevc->tile_row_start[ty + 1])
++		ty++;
++	w = hevc->tile_col_start[tx + 1] - hevc->tile_col_start[tx];
++	/* whole tile rows above, then the tiles to the left in this row */
++	ts = hevc->tile_row_start[ty] * hevc->lcu_x_num +
++	     (hevc->tile_row_start[ty + 1] - hevc->tile_row_start[ty]) *
++	     hevc->tile_col_start[tx];
++	return ts + (y - hevc->tile_row_start[ty]) * w +
++	       x - hevc->tile_col_start[tx];
++}
++
+ static void
+ codec_hevc_set_mpred_ctrl(struct amvdec_core *core, struct codec_hevc *hevc,
+ 			  bool new_tile)
+@@ -1933,7 +2061,7 @@ static void codec_hevc_set_mcrcc(struct amvdec_session *sess)
+ 
+ static void codec_hevc_set_ref_list(struct amvdec_session *sess,
+ 				    struct hevc_frame *cur_frame,
+-				    u32 ref_num, u32 *ref_poc_list)
++				    u32 ref_num, u32 *ref_poc_list, unsigned int list_no)
+ {
+ 	struct codec_hevc *hevc = sess->priv;
+ 	struct hevc_frame *ref_frame;
+@@ -1943,7 +2071,14 @@ static void codec_hevc_set_ref_list(struct amvdec_session *sess,
+ 	u32 buf_id_uv;
+ 
+ 	for (i = 0; i < ref_num; i++) {
+-		ref_frame = codec_hevc_get_frame_by_poc(hevc, ref_poc_list[i]);
++		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE)
++			ref_frame = cur_frame->ctrl_refs[list_no][i];
++		else
++			ref_frame = codec_hevc_get_frame_by_poc(hevc, ref_poc_list[i]);
++
++		if (!ref_frame && sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE)
++			return;
++
+ 		if (!ref_frame) {
+ 			dev_warn_ratelimited(core->dev, "Couldn't find ref. frame %u\n",
+ 					     ref_poc_list[i]);
+@@ -1993,7 +2128,7 @@ static void codec_hevc_set_mc(struct amvdec_session *sess,
+ 
+ 	meson_amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR, 1);
+ 	codec_hevc_set_ref_list(sess, frame, frame->ref_num[0],
+-				frame->ref_poc_list[0][frame->cur_slice_idx]);
++				frame->ref_poc_list[0][frame->cur_slice_idx], 0);
+ 
+ 	if (frame->cur_slice_type == P_SLICE)
+ 		return;
+@@ -2001,7 +2136,7 @@ static void codec_hevc_set_mc(struct amvdec_session *sess,
+ 	meson_amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
+ 			 BIT(12) | BIT(0));
+ 	codec_hevc_set_ref_list(sess, frame, frame->ref_num[1],
+-				frame->ref_poc_list[1][frame->cur_slice_idx]);
++				frame->ref_poc_list[1][frame->cur_slice_idx], 1);
+ }
+ 
+ static void codec_hevc_update_col_frame(struct codec_hevc *hevc)
+@@ -2402,6 +2537,16 @@ static void codec_hevc_stall_work(struct work_struct *work)
+ 		return;
+ 
+ 	mutex_lock(&hevc->lock);
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) {
++		struct hevc_frame *frame;
++
++		list_for_each_entry(frame, &hevc->ref_frames_list, list)
++			dev_dbg(core->dev,
++				"held poc=%u show=%u referenced=%u current=%u reorder=%u\n",
++				 frame->poc, frame->show, frame->referenced,
++				 frame == hevc->cur_frame, frame->num_reorder_pic);
++	}
++
+ 	{
+ 		u32 ready = v4l2_m2m_num_dst_bufs_ready(sess->m2m_ctx);
+ 		u32 total = hevc->frames_num + ready;
+@@ -2409,7 +2554,8 @@ static void codec_hevc_stall_work(struct work_struct *work)
+ 		dev_dbg(core->dev,
+ 			"credit frames_num=%u dst_bufs_ready=%u num_dst_bufs=%u esparser_queued_bufs=%d src_ready=%u\n",
+ 			 hevc->frames_num, ready,
+-			 total > 3 ? total - 3 : 0,
++			 sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE ?
++			 total : (total > 3 ? total - 3 : 0),
+ 			 atomic_read(&sess->esparser_queued_bufs),
+ 			 v4l2_m2m_num_src_bufs_ready(sess->m2m_ctx));
+ 	}
+@@ -2420,6 +2566,17 @@ static void codec_hevc_stall_work(struct work_struct *work)
+ 		 hevc->stall_recoveries, meson_amvdec_read_dos(core, HEVC_WAIT_FLAG),
+ 		 meson_amvdec_read_dos(core, HEVC_STREAM_RD_PTR),
+ 		 meson_amvdec_read_dos(core, HEVC_STREAM_WR_PTR));
++	if (hevc->request_mode) {
++		dev_err(core->dev,
++			"request stall status=%x shift=%u size=%u lcu=%x total=%u; abort, no recovery completion\n",
++			status, shift, meson_amvdec_read_dos(core, HEVC_DECODE_SIZE),
++			meson_amvdec_read_dos(core, HEVC_PARSER_LCU_START), hevc->lcu_total);
++		hevc->drain_failed = true;
++		atomic_set(&hevc->stall_state, STALL_DISABLED);
++		meson_amvdec_abort(sess);
++		mutex_unlock(&hevc->lock);
++		return;
++	}
+ 	ret = codec_hevc_stall_recover(sess);
+ 	mutex_unlock(&hevc->lock);
+ 
+@@ -2433,6 +2590,177 @@ static void codec_hevc_stall_work(struct work_struct *work)
+ 	codec_hevc_stall_arm(hevc);
+ }
+ 
++/* Request indices are UAPI DPB indices, not indices into a private POC map.
++ * Resolve every named entry before writing any MC or collocated-MV address.
++ */
++static int codec_hevc_refs_from_ctrl(struct amvdec_session *sess)
++{
++	struct codec_hevc *hevc = sess->priv;
++	struct hevc_frame *frame = hevc->cur_frame;
++	const struct v4l2_ctrl_hevc_decode_params *d = &frame->decode_ctrl;
++	const struct v4l2_ctrl_hevc_slice_params *s = &frame->slice_ctrl;
++	struct hevc_frame *dpb[MAX_REF_ACTIVE] = { 0 };
++	u8 order[2][MAX_REF_ACTIVE];
++	u32 used = 0;
++	unsigned int i, j, list, total;
++
++	/*
++	 * A stream may keep long-term pictures; predicting from one is
++	 * another matter.  With HEVC_MPRED_LT_REF flagging the long-term
++	 * list entries RPS_E_qualcomm_5 goes from 15 dB to 41 dB on its
++	 * first such picture, and no further: fail the picture rather than
++	 * return a wrong one.
++	 */
++	if (d->num_poc_lt_curr) {
++		dev_err_ratelimited(sess->core->dev, "HEVC prediction from long-term references unsupported\n");
++		return -EOPNOTSUPP;
++	}
++	if (d->num_active_dpb_entries > MAX_REF_ACTIVE ||
++	    d->num_poc_st_curr_before > MAX_REF_ACTIVE ||
++	    d->num_poc_st_curr_after > MAX_REF_ACTIVE)
++		return -EINVAL;
++	total = d->num_poc_st_curr_before + d->num_poc_st_curr_after;
++	if (total > d->num_active_dpb_entries || total > MAX_REF_ACTIVE)
++		return -EINVAL;
++	if ((u32)d->pic_order_cnt_val != hevc->curr_poc ||
++	    s->slice_pic_order_cnt != d->pic_order_cnt_val ||
++	    s->slice_type != hevc->rpm_param.p.slice_type ||
++	    s->slice_segment_addr != hevc->rpm_param.p.slice_segment_address) {
++		dev_err_ratelimited(sess->core->dev,
++				    "HEVC control/RPM disagreement: poc=%d slice_poc=%d rpm_poc=%d\n",
++			d->pic_order_cnt_val, s->slice_pic_order_cnt, (s32)hevc->curr_poc);
++		return -EINVAL;
++	}
++	frame->poc = d->pic_order_cnt_val;
++	for (i = 0; i < d->num_active_dpb_entries; i++) {
++		const struct v4l2_hevc_dpb_entry *e = &d->dpb[i];
++		struct vb2_buffer *vb;
++		struct hevc_frame *tmp;
++
++		if ((e->flags & ~V4L2_HEVC_DPB_ENTRY_LONG_TERM_REFERENCE) ||
++		    e->field_pic) {
++			dev_err_ratelimited(sess->core->dev, "HEVC field DPB entry unsupported\n");
++			return -EOPNOTSUPP;
++		}
++		for (j = 0; j < i; j++)
++			if (d->dpb[j].timestamp == e->timestamp ||
++			    d->dpb[j].pic_order_cnt_val == e->pic_order_cnt_val)
++				return -EINVAL;
++		vb = sess->request_job.refs[i];
++		if (sess->request_job.ref_ts[i] != e->timestamp)
++			return -EINVAL;
++		/*
++		 * A DPB entry this picture does not predict from may name a
++		 * picture that was never decoded here: one the client made up
++		 * for a reference lost at a random access point, and keeps for
++		 * the pictures that follow.  Only the current sets, checked
++		 * below, have to exist.
++		 */
++		if (!vb)
++			continue;
++		if (vb == &frame->vbuf->vb2_buf)
++			return -EINVAL;
++		list_for_each_entry(tmp, &hevc->ref_frames_list, list)
++			if (&tmp->vbuf->vb2_buf == vb) {
++				dpb[i] = tmp;
++				break;
++			}
++		/* Or a buffer the client filled in for a picture it never sent. */
++		if (!dpb[i] || (s32)dpb[i]->poc != e->pic_order_cnt_val) {
++			dpb[i] = NULL;
++			continue;
++		}
++		dev_dbg(sess->core->dev,
++			"dpb current=%d slot=%u timestamp=%llu idx=%u copied=%u poc=%d pending_display=%d\n",
++			 d->pic_order_cnt_val, i, e->timestamp, vb->index,
++			 vb->copied_timestamp, e->pic_order_cnt_val, dpb[i]->show);
++	}
++
++	/* Validate the current POC sets and construct the default list order. */
++	for (list = 0; list < 2; list++) {
++		unsigned int n = list ? d->num_poc_st_curr_after : d->num_poc_st_curr_before;
++		const u8 *set = list ? d->poc_st_curr_after : d->poc_st_curr_before;
++		s32 previous = d->pic_order_cnt_val;
++
++		for (i = 0; i < n; i++) {
++			u8 idx = set[i];
++			s32 poc;
++
++			if (idx >= d->num_active_dpb_entries || (used & BIT(idx)))
++				return -EINVAL;
++			if (!dpb[idx]) {
++				dev_err_ratelimited(sess->core->dev,
++						    "HEVC DPB[%u] reference timestamp %llu not found\n",
++					idx, d->dpb[idx].timestamp);
++				return -ENOENT;
++			}
++			poc = d->dpb[idx].pic_order_cnt_val;
++			if (list ? poc <= previous : poc >= previous)
++				return -EINVAL;
++			previous = poc;
++			used |= BIT(idx);
++			order[0][list ? d->num_poc_st_curr_before + i : i] = idx;
++			order[1][list ? i : d->num_poc_st_curr_after + i] = idx;
++		}
++	}
++	memset(frame->ctrl_refs, 0, sizeof(frame->ctrl_refs));
++	frame->ref_num[0] = s->slice_type == I_SLICE ? 0 :
++			   (unsigned int)s->num_ref_idx_l0_active_minus1 + 1;
++	frame->ref_num[1] = s->slice_type == B_SLICE ?
++			   (unsigned int)s->num_ref_idx_l1_active_minus1 + 1 : 0;
++	for (list = 0; list < 2; list++) {
++		const u8 *indices = list ? s->ref_idx_l1 : s->ref_idx_l0;
++		u32 *pocs = frame->ref_poc_list[list][frame->cur_slice_idx];
++
++		memset(pocs, 0, sizeof(frame->ref_poc_list[list][0]));
++		if (frame->ref_num[list] > MAX_REF_ACTIVE ||
++		    (frame->ref_num[list] && !total))
++			return -EINVAL;
++		for (i = 0; i < frame->ref_num[list]; i++) {
++			u8 idx = indices[i];
++
++			/*
++			 * The slice control carries the FINAL lists.  Without
++			 * list modification they must be the default order
++			 * built above; with it, any picture of the current RPS
++			 * may appear at any position, as the firmware will find
++			 * when it parses the same modification from the slice.
++			 */
++			if (idx >= d->num_active_dpb_entries || !(used & BIT(idx)) ||
++			    (!hevc->rpm_param.p.modification_flag &&
++			     idx != order[list][i % total])) {
++				dev_err_ratelimited(sess->core->dev,
++						    "HEVC invalid reference list L%u[%u]\n",
++						    list, i);
++				return -EINVAL;
++			}
++			frame->ctrl_refs[list][i] = dpb[idx];
++			pocs[i] = d->dpb[idx].pic_order_cnt_val;
++		}
++	}
++	/* The MC list and its collocated MV source use the same resolved buffers. */
++	hevc->col_frame = frame;
++	hevc->col_poc = frame->poc;
++	if (s->slice_type != I_SLICE) {
++		bool from_l0 = s->flags & V4L2_HEVC_SLICE_PARAMS_FLAG_COLLOCATED_FROM_L0;
++		bool tmvp = s->flags & V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_TEMPORAL_MVP_ENABLED;
++
++		if (frame->ref_num[0] != hevc->rpm_param.p.num_ref_idx_l0_active ||
++		    (s->slice_type == B_SLICE &&
++		     frame->ref_num[1] != hevc->rpm_param.p.num_ref_idx_l1_active) ||
++		    tmvp != !!hevc->rpm_param.p.slice_temporal_mvp_enable_flag ||
++		    (tmvp && (from_l0 != !!hevc->rpm_param.p.collocated_from_l0_flag ||
++		     s->collocated_ref_idx != hevc->rpm_param.p.collocated_ref_idx)))
++			return -EINVAL;
++		list = s->slice_type == B_SLICE ? !from_l0 : 0;
++		if (s->collocated_ref_idx >= frame->ref_num[list])
++			return -EINVAL;
++		hevc->col_frame = frame->ctrl_refs[list][s->collocated_ref_idx];
++		hevc->col_poc = hevc->col_frame->poc;
++	}
++	return 0;
++}
++
+ static int codec_hevc_process_segment(struct amvdec_session *sess)
+ {
+ 	struct codec_hevc *hevc = sess->priv;
+@@ -2461,7 +2789,8 @@ static int codec_hevc_process_segment(struct amvdec_session *sess)
+ 
+ 	/* First slice: new frame */
+ 	if (slice_segment_address == 0) {
+-		codec_hevc_update_referenced(hevc);
++		if (sess->fmt_out->pixfmt != V4L2_PIX_FMT_HEVC_SLICE)
++			codec_hevc_update_referenced(hevc);
+ 		codec_hevc_show_frames(sess);
+ 
+ 		hevc->cur_frame = codec_hevc_prepare_new_frame(sess);
+@@ -2500,8 +2829,40 @@ static int codec_hevc_process_segment(struct amvdec_session *sess)
+ 		hevc->cur_frame->cur_slice_idx++;
+ 	}
+ 
+-	codec_hevc_update_frame_refs(sess, hevc->cur_frame);
+-	codec_hevc_update_col_frame(hevc);
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) {
++		struct hevc_frame *f = hevc->cur_frame;
++		unsigned int idx = f->cur_slice_idx;
++
++		if (idx >= sess->request_job.num_slices || idx >= MAX_SLICE_NUM ||
++		    sess->request_job.slices[idx].slice_segment_addr != slice_segment_address ||
++		    (idx && codec_hevc_addr_ts(hevc, slice_segment_address) <=
++		     codec_hevc_addr_ts(hevc,
++					sess->request_job.slices[idx - 1].slice_segment_addr))) {
++			dev_err(core->dev, "slice order/address disagreement idx=%u addr=%u count=%u\n",
++				idx, slice_segment_address, sess->request_job.num_slices);
++			return -EINVAL;
++		}
++		f->slice_ctrl = sess->request_job.slices[idx];
++		dev_dbg(core->dev, "segment ts=%llu slice=%u/%u addr=%u lcu=%x\n",
++			sess->request_job.timestamp, idx, sess->request_job.num_slices,
++			slice_segment_address, meson_amvdec_read_dos(core, HEVC_PARSER_LCU_START));
++		if (codec_hevc_refs_from_ctrl(sess)) {
++			struct hevc_frame *bad = hevc->cur_frame;
++
++			dev_err_ratelimited(core->dev, "HEVC invalid request references; failing current picture\n");
++			meson_amvdec_dst_buf_error_stateless(sess, bad->vbuf);
++			meson_amvdec_remove_ts(sess, bad->vbuf->vb2_buf.timestamp);
++			hevc->frames_num--;
++			list_del(&bad->list);
++			hevc->cur_frame = NULL;
++			hevc->col_frame = NULL;
++			kfree(bad);
++			return -EINVAL;
++		}
++	} else {
++		codec_hevc_update_frame_refs(sess, hevc->cur_frame);
++		codec_hevc_update_col_frame(hevc);
++	}
+ 	codec_hevc_update_ldc_flag(hevc);
+ 	if (codec_hevc_use_mmu(core->platform->revision, sess->pixfmt_cap,
+ 			       hevc->is_10bit) &&
+@@ -2541,6 +2902,34 @@ static int codec_hevc_process_segment(struct amvdec_session *sess)
+ 		 atomic_read(&sess->esparser_queued_bufs), hevc->frames_num,
+ 		 hevc->cur_frame->vbuf->vb2_buf.index);
+ 
++	if (hevc->request_mode) {
++		struct hevc_frame *f = hevc->cur_frame;
++		bool final_segment = f->cur_slice_idx + 1 == sess->request_job.num_slices;
++		u32 header_shift = meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT);
++		u32 decode_size = 0;
++
++		/* Protocol A: the request boundary is checked against the
++		 * cumulative SOURCE range, not the firmware shifter position at
++		 * header hold.  Tiny all-skip pictures can be shorter than the
++		 * parser's word read-ahead; CAINIT_D showed a valid 18-byte
++		 * request whose header hold had already reached the endpoint.
++		 * Keep the overrun guard, but apply it only to a shifter value
++		 * that has moved past this request plus one 64-bit fetch.
++		 */
++		if (hevc->request_origin || !f->input_end ||
++		    f->input_end <= f->offset ||
++		    header_shift > f->input_end + 8)
++			return -EINVAL;
++		if (final_segment)
++			decode_size = f->input_end;
++		meson_amvdec_write_dos(core, HEVC_DECODE_SIZE, decode_size);
++		dev_dbg(core->dev, "kick ts=%llu idx=%u poc=%d slice=%u/%u start=%u endpoint=%u origin=%u header_shift=%u size=%u queued=%d\n",
++			f->vbuf->vb2_buf.timestamp, f->vbuf->vb2_buf.index,
++			 (s32)f->poc, f->cur_slice_idx, sess->request_job.num_slices,
++			 f->offset, f->input_end, hevc->request_origin, header_shift,
++			 meson_amvdec_read_dos(core, HEVC_DECODE_SIZE),
++			 atomic_read(&sess->esparser_queued_bufs));
++	}
+ 	meson_amvdec_write_dos_bits(core, HEVC_WAIT_FLAG, BIT(1));
+ 	meson_amvdec_write_dos_action(core, HEVC_DEC_STATUS_REG,
+ 				HEVC_CODED_SLICE_SEGMENT_DAT);
+@@ -2578,14 +2967,43 @@ static int codec_hevc_process_rpm(struct codec_hevc *hevc)
+ 	if (lcu_size_log2 < 4 || lcu_size_log2 > 6)
+ 		return -EINVAL;
+ 	lcu_size = 1U << lcu_size_log2;
+-	if (param->p.pic_width_in_luma_samples < 256 ||
+-	    param->p.pic_height_in_luma_samples < 144) {
++	if (param->p.pic_width_in_luma_samples <= lcu_size &&
++	    param->p.pic_height_in_luma_samples > lcu_size) {
++		dev_dbg(hevc->sess->core->dev,
++			"HEVC pictures with one CTB column and multiple rows are unsupported\n");
++		return -EOPNOTSUPP;
++	}
++
++	if (param->p.pic_width_in_luma_samples <
++		amvdec_min_coded_width(hevc->sess->fmt_out->pixfmt) ||
++	    param->p.pic_height_in_luma_samples <
++		amvdec_min_coded_height(hevc->sess->fmt_out->pixfmt)) {
+ 		dev_err_ratelimited(hevc->sess->core->dev,
+ 				    "HEVC coded size %ux%u below hardware floor\n",
+ 				    param->p.pic_width_in_luma_samples,
+ 				    param->p.pic_height_in_luma_samples);
+ 		return -EINVAL;
+ 	}
++	if (param->p.pic_width_in_luma_samples >
++		hevc->sess->fmt_out->max_width ||
++	    param->p.pic_height_in_luma_samples >
++		hevc->sess->fmt_out->max_height) {
++		dev_err_ratelimited(hevc->sess->core->dev,
++				    "HEVC coded size %ux%u above format maximum\n",
++				    param->p.pic_width_in_luma_samples,
++				    param->p.pic_height_in_luma_samples);
++		return -EINVAL;
++	}
++	if (amvdec_pixfmt_is_stateless(hevc->sess->fmt_out->pixfmt) &&
++	    (param->p.pic_width_in_luma_samples != hevc->sess->width ||
++	     param->p.pic_height_in_luma_samples != hevc->sess->height)) {
++		dev_err_ratelimited(hevc->sess->core->dev,
++				    "HEVC coded size changed from negotiated %ux%u to %ux%u\n",
++				    hevc->sess->width, hevc->sess->height,
++				    param->p.pic_width_in_luma_samples,
++				    param->p.pic_height_in_luma_samples);
++		return -EINVAL;
++	}
+ 
+ 	if (param->p.bit_depth)
+ 		is_10bit = 1;
+@@ -2692,6 +3110,76 @@ static void codec_hevc_resume(struct amvdec_session *sess)
+ 		meson_amvdec_abort(sess);
+ }
+ 
++/* Called after input DMA and input-credit publication. The corresponding
++ * request snapshot and CAPTURE backing were queued before the feed.
++ */
++void meson_amvdec_codec_hevc_request_input_ready(struct amvdec_session *sess, u64 ts, u32 end)
++{
++	struct codec_hevc *hevc = sess->priv;
++	struct amvdec_core *core = sess->core;
++
++	if (!hevc || !hevc->request_mode)
++		return;
++	mutex_lock(&hevc->lock);
++	/*
++	 * A small picture can be decoded, and the firmware parked at 0x0a,
++	 * before the feed worker that submitted it gets here.  The input being
++	 * reported is then the picture that has just completed, not the next
++	 * one: there is nothing to release and nothing wrong.
++	 */
++	if (hevc->request_parked && hevc->cur_frame &&
++	    end == hevc->cur_frame->input_end) {
++		mutex_unlock(&hevc->lock);
++		return;
++	}
++	if (hevc->request_parked && !hevc->drain_failed) {
++		if (!hevc->cur_frame || end <= hevc->cur_frame->input_end ||
++		    meson_amvdec_read_dos(core, HEVC_DEC_STATUS_REG) != 0x0a) {
++			hevc->drain_failed = true;
++			dev_err(core->dev, "invalid next request\n");
++			meson_amvdec_abort(sess);
++		} else {
++			/*
++			 * Resume by status alone.  The firmware parked at 0x0a
++			 * polls HEVC_DEC_STATUS_REG and needs no interrupt to
++			 * see 0xff.  This used to kick HEVC_MCPU_INTR_REQ as
++			 * well - the same request bit the firmware raises on
++			 * itself once it has found the next slice.  A kick that
++			 * landed late stayed pending, the firmware took it just
++			 * after posting 0x08, and its command dispatcher, finding
++			 * no command in the status register, rewrote the 0x08 to
++			 * 0xff.  The header report was lost, the firmware
++			 * searched on through the slice data and starved at the
++			 * write pointer, and the request never completed: a
++			 * silent stall, then the client timed out and lost every
++			 * picture referencing this one.  About one 4K picture in
++			 * a few thousand.  VP9 on this core has always resumed
++			 * without the kick, and so does the vendor driver for
++			 * its poll-waits.
++			 *
++			 * HOST-owned engine-work-pending bit: clear only bit 1
++			 * after observed 0a for this generation, before ff and
++			 * with no intervening status-5 kick. Never clear here
++			 * for intermediate headers, 20/0e/errors or timeout.
++			 * The next kick sets it again. The 0a drain consumed
++			 * the MPRED event; repeating that wait would stall.
++			 * This also bypasses the PPS/IPP wait, so PPS changes
++			 * require their own exact-pixel continuity qualification.
++			 */
++			meson_amvdec_clear_dos_bits(core, HEVC_WAIT_FLAG, BIT(1));
++			meson_amvdec_write_dos_action(core, HEVC_DEC_STATUS_REG, 0xff);
++			/* Order the park acknowledgment before the next endpoint. */
++			wmb();
++			meson_amvdec_write_dos(core, HEVC_DECODE_SIZE, end);
++			hevc->request_parked = false;
++			dev_dbg(core->dev, "resume ts=%llu endpoint=%u queued=%d\n",
++				ts, end, atomic_read(&sess->esparser_queued_bufs));
++			codec_hevc_stall_arm(hevc);
++		}
++	}
++	mutex_unlock(&hevc->lock);
++}
++
+ static irqreturn_t codec_hevc_threaded_isr(struct amvdec_session *sess)
+ {
+ 	struct amvdec_core *core = sess->core;
+@@ -2705,6 +3193,93 @@ static irqreturn_t codec_hevc_threaded_isr(struct amvdec_session *sess)
+ 	mutex_lock(&hevc->lock);
+ 	if (hevc->drain_failed)
+ 		goto unlock;
++	if (hevc->request_mode) {
++		dev_dbg(core->dev, "irq ts=%llu status=%x slice=%d/%u lcu=%x\n",
++			sess->request_job.timestamp, dec_status,
++			hevc->cur_frame ? (int)hevc->cur_frame->cur_slice_idx : -1,
++			sess->request_job.num_slices,
++			meson_amvdec_read_dos(core, HEVC_PARSER_LCU_START));
++		dev_dbg(core->dev, "request irq status=%x shift=%u size=%u lcu=%x total=%u queued=%d\n",
++			dec_status, meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++			meson_amvdec_read_dos(core, HEVC_DECODE_SIZE),
++			meson_amvdec_read_dos(core, HEVC_PARSER_LCU_START), hevc->lcu_total,
++			atomic_read(&sess->esparser_queued_bufs));
++		if (dec_status == 0x0a) {
++			struct hevc_frame *f = hevc->cur_frame;
++			u32 lcu = meson_amvdec_read_dos(core, HEVC_PARSER_LCU_START) & 0xffffff;
++
++			if (!hevc->request_size || !f || !f->show || hevc->request_parked ||
++			    f->vbuf != sess->request_job.dst) {
++				dev_err(core->dev, "unassociated/duplicate done\n");
++				hevc->drain_failed = true;
++				meson_amvdec_abort(sess);
++				goto unlock;
++			}
++			dev_dbg(core->dev, "end ts=%llu slice=%u/%u lcu=%x total=%u\n",
++				sess->request_job.timestamp, f->cur_slice_idx,
++				sess->request_job.num_slices, lcu, hevc->lcu_total);
++			if (f->cur_slice_idx + 1 != sess->request_job.num_slices ||
++			    !hevc->lcu_total || lcu != hevc->lcu_total - 1) {
++				dev_err(core->dev,
++					"early completion: slice=%u/%u lcu=%x total=%u\n",
++					f->cur_slice_idx, sess->request_job.num_slices,
++					lcu, hevc->lcu_total);
++				hevc->drain_failed = true;
++				meson_amvdec_abort(sess);
++				goto unlock;
++			}
++			meson_amvdec_write_dos(core, HEVC_DECODE_SIZE, 0);
++			/* Publish the zero endpoint before completing this request. */
++			wmb();
++			hevc->request_parked = true;
++			f->show = 0;
++			hevc->frames_num--;
++			dev_dbg(core->dev, "done ts=%llu idx=%u poc=%d; parked\n",
++				f->vbuf->vb2_buf.timestamp, f->vbuf->vb2_buf.index, (s32)f->poc);
++			meson_amvdec_request_signal(sess, f->vbuf);
++			goto unlock;
++		}
++		/*
++		 * Running dry is recoverable and happens under load: a feed
++		 * that has not landed yet leaves the firmware with nothing to
++		 * shift.  Aborting here turned one transient stall into a dead
++		 * session and thousands of skipped frames.  Wait for the input
++		 * instead - which is what the VP9 codec on this same core has
++		 * always done for the identical status.
++		 */
++		if (dec_status == HEVC_SEARCH_BUFEMPTY ||
++		    dec_status == HEVC_DECODE_BUFEMPTY) {
++			dev_dbg(core->dev,
++				"input starved status=%x queued=%d; waiting\n",
++				dec_status,
++				atomic_read(&sess->esparser_queued_bufs));
++			goto unlock;
++		}
++		/*
++		 * 0xff is never posted with an interrupt: the firmware writes
++		 * it only on paths that return to NAL search silently.  Read
++		 * back here it means a real post was overwritten before we
++		 * got to it - which is how the resume kick lost 0x08 reports
++		 * (see meson_amvdec_codec_hevc_request_input_ready()).  The picture is gone
++		 * and nothing will complete this request, so fail it loudly
++		 * rather than let the session stall; it used to be ignored as
++		 * our own resume token.
++		 */
++		if (dec_status != HEVC_SLICE_SEGMENT_DONE) {
++			dev_err(core->dev,
++				"non-picture-done status=%x parked=%d queued=%d frames=%u cur=%d size=%u shift=%u origin=%u\n",
++				dec_status, hevc->request_parked,
++				atomic_read(&sess->esparser_queued_bufs),
++				hevc->frames_num,
++				hevc->cur_frame ? (int)hevc->cur_frame->cur_slice_idx : -1,
++				meson_amvdec_read_dos(core, HEVC_DECODE_SIZE),
++				meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++				hevc->request_origin);
++			hevc->drain_failed = true;
++			meson_amvdec_abort(sess);
++			goto unlock;
++		}
++	}
+ 	/* Firmware reports the injected EOS as NAL_SEARCH_DONE. The vendor
+ 	 * EOS handshake replies DISCARD_NAL (0xf0) and resumes NAL search.
+ 	 */
+@@ -2714,7 +3289,8 @@ static irqreturn_t codec_hevc_threaded_isr(struct amvdec_session *sess)
+ 		meson_amvdec_write_dos_action(core, HEVC_DEC_STATUS_REG, 0xf0);
+ 		meson_amvdec_write_dos(core, HEVC_MCPU_INTR_REQ, AMRISC_MAIN_REQ);
+ 		dev_dbg(core->dev, "EOS acknowledged\n");
+-		if (READ_ONCE(sess->hevc_draining) && hevc->drain_eos_queued) {
++		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC &&
++		    READ_ONCE(sess->hevc_draining) && hevc->drain_eos_queued) {
+ 			if (hevc->cur_frame &&
+ 			    (meson_amvdec_read_dos(core, HEVC_PARSER_LCU_START) & 0xffffff) !=
+ 			    hevc->lcu_total - 1) {
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_hevc.h b/drivers/media/platform/amlogic/amvdec/codec_hevc.h
+index 7285f998ce..752fb09b25 100644
+--- a/drivers/media/platform/amlogic/amvdec/codec_hevc.h
++++ b/drivers/media/platform/amlogic/amvdec/codec_hevc.h
+@@ -10,6 +10,7 @@
+ 
+ extern struct amvdec_codec_ops meson_amvdec_codec_hevc_ops;
+ 
++void meson_amvdec_codec_hevc_request_input_ready(struct amvdec_session *sess, u64 ts, u32 end);
+ void meson_amvdec_codec_hevc_workspace_release(void);
+ int meson_amvdec_codec_hevc_decoder_cmd(struct amvdec_session *sess, struct v4l2_decoder_cmd *cmd);
+ void meson_amvdec_codec_hevc_stateful_eos(struct amvdec_session *sess);
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_hevc_rps.h b/drivers/media/platform/amlogic/amvdec/codec_hevc_rps.h
+new file mode 100644
+index 0000000000..1e8fef38be
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_hevc_rps.h
+@@ -0,0 +1,114 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++#ifndef __MESON_AMVDEC_HEVC_RPS_H
++#define __MESON_AMVDEC_HEVC_RPS_H
++
++#define HEVC_RPS_MAX_SETS 64
++#define HEVC_RPS_MAX_REFS 16
++
++struct hevc_rps {
++	int delta[HEVC_RPS_MAX_REFS];
++	u16 used;
++	u8 negative;
++	u8 positive;
++};
++
++/* Insert in syntax order: negative closest first, then positive closest first.
++ * The firmware's packed RPS records carry a signed 14-bit delta.
++ */
++static inline int hevc_rps_insert(struct hevc_rps *r, int delta, bool used)
++{
++	unsigned int n = r->negative + r->positive, at = 0, i;
++
++	if (!delta || delta < -8192 || delta > 8191 || n >= HEVC_RPS_MAX_REFS)
++		return -EINVAL;
++	while (at < n) {
++		int old = r->delta[at];
++
++		if (delta == old)
++			return -EINVAL;
++		if ((delta < 0 && (old > 0 || delta > old)) ||
++		    (delta > 0 && old > 0 && delta < old))
++			break;
++		at++;
++	}
++	for (i = n; i > at; i--) {
++		r->delta[i] = r->delta[i - 1];
++		if (r->used & (1U << (i - 1)))
++			r->used |= 1U << i;
++		else
++			r->used &= ~(1U << i);
++	}
++	r->delta[at] = delta;
++	r->used = (r->used & ~(1U << at)) | ((unsigned int)used << at);
++	if (delta < 0)
++		r->negative++;
++	else
++		r->positive++;
++	return 0;
++}
++
++/* Resolve the entire ordered SPS table. Prediction in an SPS refers to the
++ * immediately preceding set; delta_idx_minus1 exists only for slice RPS.
++ * Ignore fields/bits outside the signalled syntax: Detlev's raw transport
++ * leaves inferred use_delta_flag bits set beyond the source candidate count.
++ */
++static inline int hevc_rps_resolve(const struct v4l2_ctrl_hevc_ext_sps_st_rps *src,
++				   unsigned int count, struct hevc_rps *out)
++{
++	unsigned int i, j;
++
++	if (count > HEVC_RPS_MAX_SETS || (count && (!src || !out)))
++		return -EINVAL;
++	for (i = 0; i < count; i++) {
++		const struct v4l2_ctrl_hevc_ext_sps_st_rps *s = src + i;
++		struct hevc_rps *r = out + i;
++		int ret, delta;
++
++		memset(r, 0, sizeof(*r));
++		if (s->flags & ~V4L2_HEVC_EXT_SPS_ST_RPS_FLAG_INTER_REF_PIC_SET_PRED ||
++		    s->num_negative_pics + s->num_positive_pics > HEVC_RPS_MAX_REFS)
++			return -EINVAL;
++		if (s->flags & V4L2_HEVC_EXT_SPS_ST_RPS_FLAG_INTER_REF_PIC_SET_PRED) {
++			const struct hevc_rps *prev;
++			unsigned int n;
++
++			if (!i || s->delta_idx_minus1 || s->delta_rps_sign > 1)
++				return -EINVAL;
++			prev = out + i - 1;
++			n = prev->negative + prev->positive;
++			delta = (int)s->abs_delta_rps_minus1 + 1;
++			if (s->delta_rps_sign)
++				delta = -delta;
++			for (j = 0; j <= n; j++) {
++				if (!((s->used_by_curr_pic | s->use_delta_flag) & (1U << j)))
++					continue;
++				ret = hevc_rps_insert(r, delta + (j < n ? prev->delta[j] : 0),
++						      !!(s->used_by_curr_pic & (1U << j)));
++				if (ret)
++					return ret;
++			}
++		} else {
++			delta = 0;
++			for (j = 0; j < s->num_negative_pics; j++) {
++				delta -= (int)s->delta_poc_s0_minus1[j] + 1;
++				ret = hevc_rps_insert(r, delta,
++						      !!(s->used_by_curr_pic & (1U << j)));
++				if (ret)
++					return ret;
++			}
++			delta = 0;
++			for (j = 0; j < s->num_positive_pics; j++) {
++				delta += (int)s->delta_poc_s1_minus1[j] + 1;
++				ret = hevc_rps_insert(r, delta,
++						      !!(s->used_by_curr_pic &
++						 (1U << (j + s->num_negative_pics))));
++				if (ret)
++					return ret;
++			}
++		}
++		if (r->negative != s->num_negative_pics || r->positive != s->num_positive_pics)
++			return -EINVAL;
++	}
++	return 0;
++}
++#endif
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_hevc_synth.h b/drivers/media/platform/amlogic/amvdec/codec_hevc_synth.h
+new file mode 100644
+index 0000000000..dfd489b143
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_hevc_synth.h
+@@ -0,0 +1,670 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++#ifndef __MESON_AMVDEC_CODEC_HEVC_SYNTH_H_
++#define __MESON_AMVDEC_CODEC_HEVC_SYNTH_H_
++
++#ifdef __KERNEL__
++#include <linux/types.h>
++#include <linux/string.h>
++#include <linux/errno.h>
++#include <linux/bits.h>
++#include <linux/slab.h>
++#include <media/v4l2-ctrls.h>
++#else
++#include <stdint.h>
++#include <stdlib.h>
++#include <stdbool.h>
++#include <string.h>
++#include <errno.h>
++typedef uint8_t u8;
++typedef int8_t s8;
++typedef uint16_t u16;
++typedef uint32_t u32;
++typedef uint64_t u64;
++#ifndef BIT_ULL
++#define BIT_ULL(nr) (1ULL << (nr))
++#endif
++#include <linux/v4l2-controls.h>
++#endif
++
++#include "codec_hevc_rps.h"
++
++#define HEVC_SYNTH_MAX_HEADERS 8192
++#define HEVC_SYNTH_SPS_RBSP_SIZE 4096
++/* 992 scaling coefficients of up to 17 bits each, and change */
++#define HEVC_SYNTH_PPS_RBSP_SIZE 2560
++
++struct hevc_bw {
++	u8 *buf;
++	u32 cap;
++	u32 bitpos;
++	int err;
++};
++
++static inline void hevc_bw_init(struct hevc_bw *bw, u8 *buf, u32 cap)
++{
++	bw->buf = buf;
++	bw->cap = cap;
++	bw->bitpos = 0;
++	bw->err = 0;
++	memset(buf, 0, cap);
++}
++
++static inline void hevc_bw_bit(struct hevc_bw *bw, u32 bit)
++{
++	u32 byte = bw->bitpos >> 3;
++
++	if (bw->err)
++		return;
++	if (byte >= bw->cap) {
++		bw->err = -ENOSPC;
++		return;
++	}
++	if (bit)
++		bw->buf[byte] |= 1 << (7 - (bw->bitpos & 7));
++	bw->bitpos++;
++}
++
++static inline void hevc_bw_u(struct hevc_bw *bw, u64 val, u32 bits)
++{
++	while (bits--)
++		hevc_bw_bit(bw, (val >> bits) & 1);
++}
++
++static inline void hevc_bw_ue(struct hevc_bw *bw, u32 val)
++{
++	u32 code = val + 1;
++	u32 bits = 0;
++	u32 tmp = code;
++
++	while (tmp) {
++		bits++;
++		tmp >>= 1;
++	}
++	while (--bits)
++		hevc_bw_bit(bw, 0);
++	hevc_bw_u(bw, code, 32 - __builtin_clz(code));
++}
++
++static inline void hevc_bw_se(struct hevc_bw *bw, int val)
++{
++	u32 code = val <= 0 ? (u32)(-2 * val) : (u32)(2 * val - 1);
++
++	hevc_bw_ue(bw, code);
++}
++
++static inline void hevc_bw_trailing(struct hevc_bw *bw)
++{
++	hevc_bw_bit(bw, 1);
++	while (bw->bitpos & 7)
++		hevc_bw_bit(bw, 0);
++}
++
++static inline u32 hevc_bw_bytes(const struct hevc_bw *bw)
++{
++	return (bw->bitpos + 7) >> 3;
++}
++
++static inline int hevc_epb_copy(u8 *dst, u32 dst_cap, const u8 *src, u32 src_len,
++				u32 *out_len)
++{
++	u32 z = 0, o = 0, i;
++
++	for (i = 0; i < src_len; i++) {
++		if (z >= 2 && src[i] <= 3) {
++			if (o >= dst_cap)
++				return -ENOSPC;
++			dst[o++] = 3;
++			z = 0;
++		}
++		if (o >= dst_cap)
++			return -ENOSPC;
++		dst[o++] = src[i];
++		if (src[i] == 0)
++			z++;
++		else
++			z = 0;
++	}
++	*out_len = o;
++	return 0;
++}
++
++static inline int hevc_emit_nal(u8 *dst, u32 dst_cap, u8 nal_type,
++				const u8 *rbsp, u32 rbsp_len, u32 *out_len)
++{
++	u32 epb_len;
++	int ret;
++
++	if (dst_cap < 6)
++		return -ENOSPC;
++	dst[0] = 0; dst[1] = 0; dst[2] = 0; dst[3] = 1;
++	dst[4] = nal_type << 1;
++	dst[5] = 1;
++	ret = hevc_epb_copy(dst + 6, dst_cap - 6, rbsp, rbsp_len, &epb_len);
++	if (ret)
++		return ret;
++	*out_len = 6 + epb_len;
++	return 0;
++}
++
++static inline void hevc_ptl_write(struct hevc_bw *bw, const struct v4l2_ctrl_hevc_sps *sps)
++{
++	int i;
++
++	hevc_bw_u(bw, 0, 2); /* general_profile_space */
++	hevc_bw_u(bw, 0, 1); /* general_tier_flag */
++	hevc_bw_u(bw, sps->bit_depth_luma_minus8 == 2 ? 2 : 1, 5); /* Main 10 / Main */
++	for (i = 0; i < 32; i++)
++		hevc_bw_u(bw, i == 2 || (!sps->bit_depth_luma_minus8 && i == 1), 1);
++	hevc_bw_u(bw, 1, 1); /* progressive_source */
++	hevc_bw_u(bw, 0, 1); /* interlaced_source */
++	hevc_bw_u(bw, 0, 1); /* non_packed_constraint */
++	hevc_bw_u(bw, 1, 1); /* frame_only_constraint */
++	hevc_bw_u(bw, 0, 44);
++	/* Main 10 test streams include 1080p60 and 2160p60. Preserve the
++	 * established Main header; signal sufficient level for Main 10.
++	 */
++	hevc_bw_u(bw, sps->bit_depth_luma_minus8 == 2 ?
++		  (sps->pic_width_in_luma_samples > 1920 ||
++		   sps->pic_height_in_luma_samples > 1080 ? 153 : 123) : 120, 8);
++	for (i = 0; i < sps->sps_max_sub_layers_minus1; i++) {
++		hevc_bw_u(bw, 0, 1);
++		hevc_bw_u(bw, 0, 1);
++	}
++	if (sps->sps_max_sub_layers_minus1)
++		for (i = 0; i < 8 - sps->sps_max_sub_layers_minus1; i++)
++			hevc_bw_u(bw, 0, 2);
++}
++
++/* One-column pictures with multiple CTB rows return wrong inter pictures. */
++static inline bool hevc_sps_bad_geometry(const struct v4l2_ctrl_hevc_sps *sps)
++{
++	u32 ctb_log2 = sps->log2_min_luma_coding_block_size_minus3 + 3 +
++		       sps->log2_diff_max_min_luma_coding_block_size;
++
++	return ctb_log2 >= 4 && ctb_log2 <= 6 &&
++	       sps->pic_width_in_luma_samples <= (1U << ctb_log2) &&
++	       sps->pic_height_in_luma_samples > (1U << ctb_log2);
++}
++
++static inline int hevc_sps_validate(const struct v4l2_ctrl_hevc_sps *sps)
++{
++	const u64 unsupported_sps = V4L2_HEVC_SPS_FLAG_SEPARATE_COLOUR_PLANE;
++
++	if (hevc_sps_bad_geometry(sps))
++		return -EOPNOTSUPP;
++
++	if (sps->bit_depth_luma_minus8 != sps->bit_depth_chroma_minus8 ||
++	    (sps->bit_depth_luma_minus8 != 0 && sps->bit_depth_luma_minus8 != 2))
++		return -EOPNOTSUPP;
++	if (sps->chroma_format_idc != 1)
++		return -EOPNOTSUPP;
++	if (sps->flags & unsupported_sps)
++		return -EOPNOTSUPP;
++	/*
++	 * Long-term pictures named in the slice header are fine.  The
++	 * firmware's SPS parser does not get past a table of candidates,
++	 * and never raises an interrupt again.
++	 */
++	if (sps->num_long_term_ref_pics_sps)
++		return -EOPNOTSUPP;
++	/* H.265 7.4.3.2.1: PCM depth within the coded depth, blocks of 8 to 32 */
++	if ((sps->flags & V4L2_HEVC_SPS_FLAG_PCM_ENABLED) &&
++	    (sps->pcm_sample_bit_depth_luma_minus1 > 7 + sps->bit_depth_luma_minus8 ||
++	     sps->pcm_sample_bit_depth_chroma_minus1 > 7 + sps->bit_depth_chroma_minus8 ||
++	     sps->log2_min_pcm_luma_coding_block_size_minus3 > 2 ||
++	     sps->log2_min_pcm_luma_coding_block_size_minus3 +
++	     sps->log2_diff_max_min_pcm_luma_coding_block_size > 2))
++		return -EINVAL;
++	if (sps->num_short_term_ref_pic_sets > HEVC_RPS_MAX_SETS ||
++	    sps->sps_max_sub_layers_minus1 > 6)
++		return -EINVAL;
++	return 0;
++}
++
++/*
++ * The firmware's PPS parser spins forever on a tile count it has no case
++ * for: more than five explicitly sized tiles on an axis, or a uniform count
++ * other than 1-5 and 8.
++ */
++static inline bool hevc_tile_count_ok(u32 count, bool uniform)
++{
++	return count <= 5 || (uniform && count == 8);
++}
++
++/*
++ * One axis of the tile grid, in CTBs.  Explicit sizes must leave a positive
++ * final tile.  The firmware's eight-way uniform split gives every tile but
++ * the last floor(extent / 8), which is the H.265 (6-3)/(6-4) split only
++ * when the remainder is 0 or 1.
++ */
++static inline bool hevc_tile_axis_ok(u32 extent, u32 count, bool uniform,
++				     const u8 *size_minus1)
++{
++	u32 i, sum = 0;
++
++	if (!count || count > extent)
++		return false;
++	if (uniform)
++		return count != 8 || extent % 8 <= 1;
++	for (i = 0; i + 1 < count; i++)
++		sum += size_minus1[i] + 1;
++	return sum < extent;
++}
++
++static inline int hevc_pps_validate(const struct v4l2_ctrl_hevc_pps *pps)
++{
++	if (pps->flags & V4L2_HEVC_PPS_FLAG_TILES_ENABLED) {
++		bool uniform = pps->flags & V4L2_HEVC_PPS_FLAG_UNIFORM_SPACING;
++
++		if (!hevc_tile_count_ok(pps->num_tile_columns_minus1 + 1, uniform) ||
++		    !hevc_tile_count_ok(pps->num_tile_rows_minus1 + 1, uniform))
++			return -EOPNOTSUPP;
++	}
++	/* H.265 7.4.3.3.1: both offsets are in -6..6 */
++	if ((pps->flags & V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT) &&
++	    (pps->pps_beta_offset_div2 < -6 || pps->pps_beta_offset_div2 > 6 ||
++	     pps->pps_tc_offset_div2 < -6 || pps->pps_tc_offset_div2 > 6))
++		return -EINVAL;
++	return 0;
++}
++
++static inline int hevc_synth_validate(const struct v4l2_ctrl_hevc_sps *sps,
++				      const struct v4l2_ctrl_hevc_pps *pps)
++{
++	int ret;
++
++	ret = hevc_sps_validate(sps);
++	if (ret)
++		return ret;
++	ret = hevc_pps_validate(pps);
++	if (ret)
++		return ret;
++
++	/*
++	 * Wavefront sync over a picture one CTB wide: the firmware returns
++	 * wrong pixels, about 20 dB, and says nothing.  Two CTB columns and
++	 * wider are exact (WPP_D_ericsson_MAIN_2 at 64x240 against WPP_E and
++	 * WPP_F at 128 and 192).
++	 */
++	if (pps->flags & V4L2_HEVC_PPS_FLAG_ENTROPY_CODING_SYNC_ENABLED) {
++		u32 ctb_log2 = sps->log2_min_luma_coding_block_size_minus3 + 3 +
++			       sps->log2_diff_max_min_luma_coding_block_size;
++
++		if (sps->pic_width_in_luma_samples <= (1U << ctb_log2))
++			return -EOPNOTSUPP;
++	}
++
++	return 0;
++}
++
++static inline int hevc_synth_vps(const struct v4l2_ctrl_hevc_sps *sps,
++				 u8 *dst, u32 cap, u32 *len)
++{
++	u8 rbsp[64];
++	struct hevc_bw bw;
++	u32 rbsp_len;
++	int ret;
++
++	hevc_bw_init(&bw, rbsp, sizeof(rbsp));
++	hevc_bw_u(&bw, sps->video_parameter_set_id, 4);
++	hevc_bw_u(&bw, 1, 1);
++	hevc_bw_u(&bw, 1, 1);
++	hevc_bw_u(&bw, 0, 6);
++	hevc_bw_u(&bw, sps->sps_max_sub_layers_minus1, 3);
++	hevc_bw_u(&bw, 1, 1);
++	hevc_bw_u(&bw, 0xffff, 16);
++	hevc_ptl_write(&bw, sps);
++	/* Only the highest-layer tuple exists in the SPS control; lower
++	 * layers inherit it when ordering_info_present_flag is zero.
++	 */
++	hevc_bw_u(&bw, 0, 1);
++	hevc_bw_ue(&bw, sps->sps_max_dec_pic_buffering_minus1);
++	hevc_bw_ue(&bw, sps->sps_max_num_reorder_pics);
++	hevc_bw_ue(&bw, sps->sps_max_latency_increase_plus1);
++	hevc_bw_u(&bw, 0, 6);
++	hevc_bw_ue(&bw, 0);
++	hevc_bw_u(&bw, 0, 1);
++	hevc_bw_u(&bw, 0, 1);
++	hevc_bw_trailing(&bw);
++	if (bw.err)
++		return bw.err;
++	rbsp_len = hevc_bw_bytes(&bw);
++	ret = hevc_emit_nal(dst, cap, 32, rbsp, rbsp_len, len);
++	return ret;
++}
++
++static inline int hevc_synth_sps(const struct v4l2_ctrl_hevc_sps *sps,
++				 const struct hevc_rps *rps,
++				 u8 *dst, u32 cap, u32 *len)
++{
++#ifdef __KERNEL__
++	u8 *rbsp = kmalloc(HEVC_SYNTH_SPS_RBSP_SIZE, GFP_KERNEL);
++#else
++	u8 *rbsp = malloc(HEVC_SYNTH_SPS_RBSP_SIZE);
++#endif
++	struct hevc_bw bw;
++	u32 rbsp_len;
++	int ret;
++
++	unsigned int i, j;
++
++	if (!rbsp)
++		return -ENOMEM;
++	if (sps->num_short_term_ref_pic_sets > HEVC_RPS_MAX_SETS ||
++	    (sps->num_short_term_ref_pic_sets && !rps)) {
++		ret = -EINVAL;
++		goto out;
++	}
++	hevc_bw_init(&bw, rbsp, HEVC_SYNTH_SPS_RBSP_SIZE);
++	hevc_bw_u(&bw, sps->video_parameter_set_id, 4);
++	hevc_bw_u(&bw, sps->sps_max_sub_layers_minus1, 3);
++	hevc_bw_u(&bw, 1, 1);
++	hevc_ptl_write(&bw, sps);
++	hevc_bw_ue(&bw, sps->seq_parameter_set_id);
++	hevc_bw_ue(&bw, sps->chroma_format_idc);
++	hevc_bw_ue(&bw, sps->pic_width_in_luma_samples);
++	hevc_bw_ue(&bw, sps->pic_height_in_luma_samples);
++	hevc_bw_u(&bw, 0, 1); /* conformance_window_flag */
++	hevc_bw_ue(&bw, sps->bit_depth_luma_minus8);
++	hevc_bw_ue(&bw, sps->bit_depth_chroma_minus8);
++	hevc_bw_ue(&bw, sps->log2_max_pic_order_cnt_lsb_minus4);
++	/* Only the highest-layer tuple exists in the SPS control; lower
++	 * layers inherit it when ordering_info_present_flag is zero.
++	 */
++	hevc_bw_u(&bw, 0, 1);
++	hevc_bw_ue(&bw, sps->sps_max_dec_pic_buffering_minus1);
++	hevc_bw_ue(&bw, sps->sps_max_num_reorder_pics);
++	hevc_bw_ue(&bw, sps->sps_max_latency_increase_plus1);
++	hevc_bw_ue(&bw, sps->log2_min_luma_coding_block_size_minus3);
++	hevc_bw_ue(&bw, sps->log2_diff_max_min_luma_coding_block_size);
++	hevc_bw_ue(&bw, sps->log2_min_luma_transform_block_size_minus2);
++	hevc_bw_ue(&bw, sps->log2_diff_max_min_luma_transform_block_size);
++	hevc_bw_ue(&bw, sps->max_transform_hierarchy_depth_inter);
++	hevc_bw_ue(&bw, sps->max_transform_hierarchy_depth_intra);
++	/* sps_scaling_list_data_present_flag = 0: the PPS carries the lists */
++	hevc_bw_u(&bw, (sps->flags & V4L2_HEVC_SPS_FLAG_SCALING_LIST_ENABLED) ? 2 : 0,
++		  (sps->flags & V4L2_HEVC_SPS_FLAG_SCALING_LIST_ENABLED) ? 2 : 1);
++	hevc_bw_u(&bw, !!(sps->flags & V4L2_HEVC_SPS_FLAG_AMP_ENABLED), 1);
++	hevc_bw_u(&bw, !!(sps->flags & V4L2_HEVC_SPS_FLAG_SAMPLE_ADAPTIVE_OFFSET), 1);
++	hevc_bw_u(&bw, !!(sps->flags & V4L2_HEVC_SPS_FLAG_PCM_ENABLED), 1);
++	if (sps->flags & V4L2_HEVC_SPS_FLAG_PCM_ENABLED) {
++		hevc_bw_u(&bw, sps->pcm_sample_bit_depth_luma_minus1, 4);
++		hevc_bw_u(&bw, sps->pcm_sample_bit_depth_chroma_minus1, 4);
++		hevc_bw_ue(&bw, sps->log2_min_pcm_luma_coding_block_size_minus3);
++		hevc_bw_ue(&bw, sps->log2_diff_max_min_pcm_luma_coding_block_size);
++		hevc_bw_u(&bw, !!(sps->flags & V4L2_HEVC_SPS_FLAG_PCM_LOOP_FILTER_DISABLED), 1);
++	}
++	hevc_bw_ue(&bw, sps->num_short_term_ref_pic_sets);
++	for (i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
++		const struct hevc_rps *r = rps + i;
++		int prev = 0;
++
++		if (i)
++			hevc_bw_bit(&bw, 0); /* explicit; keep original set ordinal */
++		hevc_bw_ue(&bw, r->negative);
++		hevc_bw_ue(&bw, r->positive);
++		for (j = 0; j < r->negative; j++) {
++			hevc_bw_ue(&bw, prev - r->delta[j] - 1);
++			hevc_bw_bit(&bw, !!(r->used & (1U << j)));
++			prev = r->delta[j];
++		}
++		prev = 0;
++		for (; j < r->negative + r->positive; j++) {
++			hevc_bw_ue(&bw, r->delta[j] - prev - 1);
++			hevc_bw_bit(&bw, !!(r->used & (1U << j)));
++			prev = r->delta[j];
++		}
++	}
++	hevc_bw_u(&bw, !!(sps->flags & V4L2_HEVC_SPS_FLAG_LONG_TERM_REF_PICS_PRESENT), 1);
++	if (sps->flags & V4L2_HEVC_SPS_FLAG_LONG_TERM_REF_PICS_PRESENT)
++		hevc_bw_ue(&bw, 0); /* num_long_term_ref_pics_sps */
++	hevc_bw_u(&bw, !!(sps->flags & V4L2_HEVC_SPS_FLAG_SPS_TEMPORAL_MVP_ENABLED), 1);
++	hevc_bw_u(&bw, !!(sps->flags & V4L2_HEVC_SPS_FLAG_STRONG_INTRA_SMOOTHING_ENABLED), 1);
++	/* H15 fixed VUI: SAR 1:1, video signal present, timing 1/30. */
++	hevc_bw_u(&bw, 1, 1);
++	hevc_bw_u(&bw, 1, 1); hevc_bw_u(&bw, 1, 8);
++	hevc_bw_u(&bw, 0, 1);
++	hevc_bw_u(&bw, 1, 1); hevc_bw_u(&bw, 5, 3); hevc_bw_u(&bw, 0, 1); hevc_bw_u(&bw, 0, 1);
++	hevc_bw_u(&bw, 0, 1);
++	hevc_bw_u(&bw, 0, 1); hevc_bw_u(&bw, 0, 1); hevc_bw_u(&bw, 0, 1); hevc_bw_u(&bw, 0, 1);
++	hevc_bw_u(&bw, 1, 1); hevc_bw_u(&bw, 1, 32); hevc_bw_u(&bw, 30, 32);
++	hevc_bw_u(&bw, 0, 1); hevc_bw_u(&bw, 0, 1);
++	hevc_bw_u(&bw, 0, 1);
++	hevc_bw_u(&bw, 0, 1); /* sps_extension_present_flag */
++	hevc_bw_trailing(&bw);
++	if (bw.err) {
++		ret = bw.err;
++		goto out;
++	}
++	rbsp_len = hevc_bw_bytes(&bw);
++	ret = hevc_emit_nal(dst, cap, 33, rbsp, rbsp_len, len);
++out:
++#ifdef __KERNEL__
++	kfree(rbsp);
++#else
++	free(rbsp);
++#endif
++	return ret;
++}
++
++/* H.265 6.5.3 up-right diagonal scan, as raster positions */
++static const u8 hevc_diag_scan4x4[16] = {
++	 0,  4,  1,  8,  5,  2, 12,  9,
++	 6,  3, 13, 10,  7, 14, 11, 15,
++};
++
++static const u8 hevc_diag_scan8x8[64] = {
++	 0,  8,  1, 16,  9,  2, 24, 17,
++	10,  3, 32, 25, 18, 11,  4, 40,
++	33, 26, 19, 12,  5, 48, 41, 34,
++	27, 20, 13,  6, 56, 49, 42, 35,
++	28, 21, 14,  7, 57, 50, 43, 36,
++	29, 22, 15, 58, 51, 44, 37, 30,
++	23, 59, 52, 45, 38, 31, 60, 53,
++	46, 39, 61, 54, 47, 62, 55, 63,
++};
++
++static inline void hevc_synth_scaling_list(struct hevc_bw *bw, const u8 *list,
++					   u32 num, int dc)
++{
++	const u8 *scan = num == 16 ? hevc_diag_scan4x4 : hevc_diag_scan8x8;
++	int next = 8, delta;
++	u32 i;
++
++	hevc_bw_u(bw, 1, 1); /* scaling_list_pred_mode_flag */
++	if (dc >= 0) {
++		if (dc < 1 || dc > 255)
++			bw->err = -EINVAL;
++		hevc_bw_se(bw, dc - 8);
++		next = dc;
++	}
++	for (i = 0; i < num; i++) {
++		int coef = list[scan[i]];
++
++		if (!coef)
++			bw->err = -EINVAL;
++		delta = coef - next;
++		if (delta > 127)
++			delta -= 256;
++		else if (delta < -128)
++			delta += 256;
++		hevc_bw_se(bw, delta);
++		next = coef;
++	}
++}
++
++/*
++ * The scaling matrix control carries the effective lists whatever their
++ * source was: SPS or PPS, explicit, predicted or the Table 7-5/7-6
++ * defaults.  Spell every one of them out, so the firmware needs neither
++ * the defaults nor the prediction.
++ */
++static inline void
++hevc_synth_scaling_list_data(struct hevc_bw *bw,
++			     const struct v4l2_ctrl_hevc_scaling_matrix *sm)
++{
++	u32 m;
++
++	for (m = 0; m < 6; m++)
++		hevc_synth_scaling_list(bw, sm->scaling_list_4x4[m], 16, -1);
++	for (m = 0; m < 6; m++)
++		hevc_synth_scaling_list(bw, sm->scaling_list_8x8[m], 64, -1);
++	for (m = 0; m < 6; m++)
++		hevc_synth_scaling_list(bw, sm->scaling_list_16x16[m], 64,
++					sm->scaling_list_dc_coef_16x16[m]);
++	for (m = 0; m < 2; m++)
++		hevc_synth_scaling_list(bw, sm->scaling_list_32x32[m], 64,
++					sm->scaling_list_dc_coef_32x32[m]);
++}
++
++static inline int hevc_synth_pps(const struct v4l2_ctrl_hevc_sps *sps,
++				 const struct v4l2_ctrl_hevc_pps *pps,
++				 const struct v4l2_ctrl_hevc_scaling_matrix *sm,
++				 u8 *dst, u32 cap, u32 *len)
++{
++	bool tiles = pps->flags & V4L2_HEVC_PPS_FLAG_TILES_ENABLED;
++	bool uniform = pps->flags & V4L2_HEVC_PPS_FLAG_UNIFORM_SPACING;
++	bool scaling = sps->flags & V4L2_HEVC_SPS_FLAG_SCALING_LIST_ENABLED;
++#ifdef __KERNEL__
++	u8 *rbsp = kmalloc(HEVC_SYNTH_PPS_RBSP_SIZE, GFP_KERNEL);
++#else
++	u8 *rbsp = malloc(HEVC_SYNTH_PPS_RBSP_SIZE);
++#endif
++	struct hevc_bw bw;
++	u32 rbsp_len, i;
++	int ret;
++
++	if (!rbsp)
++		return -ENOMEM;
++	if (scaling && !sm) {
++		ret = -EINVAL;
++		goto out;
++	}
++
++	if (tiles) {
++		u32 ctb_log2 = sps->log2_min_luma_coding_block_size_minus3 + 3 +
++			       sps->log2_diff_max_min_luma_coding_block_size;
++		u32 ctb = 1U << ctb_log2;
++		u32 w = (sps->pic_width_in_luma_samples + ctb - 1) >> ctb_log2;
++		u32 h = (sps->pic_height_in_luma_samples + ctb - 1) >> ctb_log2;
++
++		if (!hevc_tile_count_ok(pps->num_tile_columns_minus1 + 1, uniform) ||
++		    !hevc_tile_count_ok(pps->num_tile_rows_minus1 + 1, uniform) ||
++		    !hevc_tile_axis_ok(w, pps->num_tile_columns_minus1 + 1, uniform,
++				       pps->column_width_minus1) ||
++		    !hevc_tile_axis_ok(h, pps->num_tile_rows_minus1 + 1, uniform,
++				       pps->row_height_minus1)) {
++			ret = -EOPNOTSUPP;
++			goto out;
++		}
++	}
++	hevc_bw_init(&bw, rbsp, HEVC_SYNTH_PPS_RBSP_SIZE);
++	hevc_bw_ue(&bw, pps->pic_parameter_set_id);
++	hevc_bw_ue(&bw, sps->seq_parameter_set_id);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_DEPENDENT_SLICE_SEGMENT_ENABLED), 1);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_OUTPUT_FLAG_PRESENT), 1);
++	hevc_bw_u(&bw, pps->num_extra_slice_header_bits, 3);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_SIGN_DATA_HIDING_ENABLED), 1);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_CABAC_INIT_PRESENT), 1);
++	hevc_bw_ue(&bw, pps->num_ref_idx_l0_default_active_minus1);
++	hevc_bw_ue(&bw, pps->num_ref_idx_l1_default_active_minus1);
++	hevc_bw_se(&bw, pps->init_qp_minus26);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_CONSTRAINED_INTRA_PRED), 1);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_TRANSFORM_SKIP_ENABLED), 1);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_CU_QP_DELTA_ENABLED), 1);
++	if (pps->flags & V4L2_HEVC_PPS_FLAG_CU_QP_DELTA_ENABLED)
++		hevc_bw_ue(&bw, pps->diff_cu_qp_delta_depth);
++	hevc_bw_se(&bw, pps->pps_cb_qp_offset);
++	hevc_bw_se(&bw, pps->pps_cr_qp_offset);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_PPS_SLICE_CHROMA_QP_OFFSETS_PRESENT), 1);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_WEIGHTED_PRED), 1);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_WEIGHTED_BIPRED), 1);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_TRANSQUANT_BYPASS_ENABLED), 1);
++	hevc_bw_u(&bw, tiles, 1);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_ENTROPY_CODING_SYNC_ENABLED), 1);
++	if (tiles) {
++		hevc_bw_ue(&bw, pps->num_tile_columns_minus1);
++		hevc_bw_ue(&bw, pps->num_tile_rows_minus1);
++		hevc_bw_u(&bw, uniform, 1);
++		if (!uniform) {
++			for (i = 0; i < pps->num_tile_columns_minus1; i++)
++				hevc_bw_ue(&bw, pps->column_width_minus1[i]);
++			for (i = 0; i < pps->num_tile_rows_minus1; i++)
++				hevc_bw_ue(&bw, pps->row_height_minus1[i]);
++		}
++		hevc_bw_u(&bw,
++			  !!(pps->flags & V4L2_HEVC_PPS_FLAG_LOOP_FILTER_ACROSS_TILES_ENABLED), 1);
++	}
++	hevc_bw_u(&bw,
++		  !!(pps->flags & V4L2_HEVC_PPS_FLAG_PPS_LOOP_FILTER_ACROSS_SLICES_ENABLED), 1);
++	/*
++	 * The slices are fed as coded, so every PPS flag that gates slice
++	 * header syntax has to be the stream's own: the firmware parses the
++	 * deblocking override and the list modification from those slices.
++	 */
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT), 1);
++	if (pps->flags & V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT) {
++		bool disabled = pps->flags & V4L2_HEVC_PPS_FLAG_PPS_DISABLE_DEBLOCKING_FILTER;
++
++		hevc_bw_u(&bw,
++			  !!(pps->flags & V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_OVERRIDE_ENABLED),
++			  1);
++		hevc_bw_u(&bw, disabled, 1);
++		if (!disabled) {
++			hevc_bw_se(&bw, pps->pps_beta_offset_div2);
++			hevc_bw_se(&bw, pps->pps_tc_offset_div2);
++		}
++	}
++	hevc_bw_u(&bw, scaling, 1); /* pps_scaling_list_data_present_flag */
++	if (scaling)
++		hevc_synth_scaling_list_data(&bw, sm);
++	hevc_bw_u(&bw, !!(pps->flags & V4L2_HEVC_PPS_FLAG_LISTS_MODIFICATION_PRESENT), 1);
++	hevc_bw_ue(&bw, pps->log2_parallel_merge_level_minus2);
++	hevc_bw_u(&bw,
++		  !!(pps->flags & V4L2_HEVC_PPS_FLAG_SLICE_SEGMENT_HEADER_EXTENSION_PRESENT), 1);
++	hevc_bw_u(&bw, 0, 1);
++	hevc_bw_trailing(&bw);
++	if (bw.err) {
++		ret = bw.err;
++		goto out;
++	}
++	rbsp_len = hevc_bw_bytes(&bw);
++	ret = hevc_emit_nal(dst, cap, 34, rbsp, rbsp_len, len);
++out:
++#ifdef __KERNEL__
++	kfree(rbsp);
++#else
++	free(rbsp);
++#endif
++	return ret;
++}
++
++static inline int hevc_synth_headers(const struct v4l2_ctrl_hevc_sps *sps,
++				     const struct hevc_rps *rps,
++				     const struct v4l2_ctrl_hevc_pps *pps,
++				     const struct v4l2_ctrl_hevc_scaling_matrix *sm,
++				     u8 *dst, u32 cap, u32 *len)
++{
++	u32 l, off = 0;
++	int ret;
++
++	ret = hevc_synth_validate(sps, pps);
++	if (ret)
++		return ret;
++	ret = hevc_synth_vps(sps, dst + off, cap - off, &l);
++	if (ret)
++		return ret;
++	off += l;
++	ret = hevc_synth_sps(sps, rps, dst + off, cap - off, &l);
++	if (ret)
++		return ret;
++	off += l;
++	ret = hevc_synth_pps(sps, pps, sm, dst + off, cap - off, &l);
++	if (ret)
++		return ret;
++	off += l;
++	*len = off;
++	return 0;
++}
++
++#endif
+diff --git a/drivers/media/platform/amlogic/amvdec/esparser.c b/drivers/media/platform/amlogic/amvdec/esparser.c
+index 786e39056e..67143bc921 100644
+--- a/drivers/media/platform/amlogic/amvdec/esparser.c
++++ b/drivers/media/platform/amlogic/amvdec/esparser.c
+@@ -9,6 +9,7 @@
+ 
+ #include <linux/init.h>
+ #include <linux/slab.h>
++#include <linux/cleanup.h>
+ #include <linux/ioctl.h>
+ #include <linux/list.h>
+ #include <linux/module.h>
+@@ -23,11 +24,17 @@
+ #include "codec_vc1.h"
+ #include "amvdec_helpers.h"
+ #include "codec_h264_synth.h"
++#include "codec_hevc_synth.h"
+ #include "codec_mpeg12.h"
+ #include "codec_mpeg12_synth.h"
+ #include "codec_h264.h"
+ #include "codec_hevc.h"
+ 
++/* Zero lookahead appended after each HEVC request payload; not part of the
++ * coded endpoint.
++ */
++#define REQUEST_TAIL_SIZE	SZ_4K
++
+ /* PARSER REGS (CBUS) */
+ #define PARSER_CONTROL 0x00
+ 	#define ES_PACK_SIZE_BIT	8
+@@ -367,8 +374,17 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	const struct v4l2_ctrl_h264_pps *h264_pps;
+ 	const struct v4l2_ctrl_h264_scaling_matrix *h264_sm = NULL;
+ 	bool h264_idr = false;
++	struct v4l2_ctrl_hevc_sps *hevc_sps_ptr = NULL;
++	struct v4l2_ctrl_hevc_pps *hevc_pps_ptr = NULL;
++	struct v4l2_ctrl_hevc_slice_params *hevc_slice_ptr = NULL;
++	struct v4l2_ctrl_hevc_decode_params *hevc_decode_ptr = NULL;
++
++	u8 *hevc_headers __free(kfree) = NULL;
++	struct hevc_rps *hevc_rps __free(kfree) = NULL;
++	u32 hevc_headers_len = 0;
+ 	u32 h264_headers_len = 0;
+ 	u32 num_dst_bufs = 0;
++	u32 pending, ready;
+ 	u32 offset;
+ 	u32 pad_size;
+ 	bool direct_h264 = codec_h264_direct_input(sess);
+@@ -405,7 +421,8 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	 * resume on this notification.
+ 	 */
+ 	if ((sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9 ||
+-	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC) &&
++	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC ||
++	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) &&
+ 	    sess->streamon_cap) {
+ 		/*
+ 		 * This throttle only makes sense once the CAPTURE queue
+@@ -423,7 +440,9 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		if (codec_ops->num_pending_bufs)
+ 			num_dst_bufs = codec_ops->num_pending_bufs(sess);
+ 
+-		num_dst_bufs += v4l2_m2m_num_dst_bufs_ready(sess->m2m_ctx);
++		pending = num_dst_bufs;
++		ready = v4l2_m2m_num_dst_bufs_ready(sess->m2m_ctx);
++		num_dst_bufs += ready;
+ 		/*
+ 		 * The three-buffer reserve protects the stateful path, where
+ 		 * userspace hands over the whole CAPTURE set up front and the
+@@ -443,6 +462,13 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		 */
+ 		if (!amvdec_pixfmt_is_stateless(sess->fmt_out->pixfmt))
+ 			num_dst_bufs = num_dst_bufs > 3 ? num_dst_bufs - 3 : 0;
++		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE)
++			dev_dbg(core->dev,
++				"credit gate frames_num=%u dst_bufs_ready=%u limit=%u queued=%d src_ready=%u\n",
++				 pending, ready, num_dst_bufs,
++				 atomic_read(&sess->esparser_queued_bufs),
++				 v4l2_m2m_num_src_bufs_ready(sess->m2m_ctx));
++
+ 		if (esparser_vififo_get_free_space(sess) < payload_size)
+ 			return -EAGAIN;
+ 
+@@ -502,7 +528,158 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 			return ret;
+ 		}
+ 
+-		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG2_SLICE) {
++		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) {
++			u8 *vaddr = vb2_plane_vaddr(vb, 0);
++			u32 plane_size = vb2_plane_size(vb, 0);
++			bool irap;
++
++			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++					      V4L2_CID_STATELESS_HEVC_SPS);
++			if (!ctrl || !ctrl->p_cur.p_hevc_sps) {
++				dev_err_ratelimited(core->dev, "HEVC SPS request control missing\n");
++				esparser_src_error(sess, vbuf);
++				return -EINVAL;
++			}
++			f->hevc_sps = *ctrl->p_cur.p_hevc_sps;
++			/* Request setup has applied p_cur, but a missing control can
++			 * otherwise silently reuse the previous request's table.
++			 * Require SPS and its complete array in this request itself.
++			 */
++			{
++				struct v4l2_ctrl_handler *hdl;
++				struct v4l2_ctrl *table;
++				u32 rps_id = V4L2_CID_STATELESS_HEVC_EXT_SPS_ST_RPS;
++
++				hdl = v4l2_ctrl_request_hdl_find(req, &sess->ctrl_handler);
++				if (!hdl) {
++					esparser_src_error(sess, vbuf);
++					return -EINVAL;
++				}
++				table = v4l2_ctrl_request_hdl_ctrl_find(hdl, rps_id);
++				ret = 0;
++				if (!v4l2_ctrl_request_hdl_ctrl_find(hdl,
++								     V4L2_CID_STATELESS_HEVC_SPS) ||
++				    (f->hevc_sps.num_short_term_ref_pic_sets && !table) ||
++				    (table && table->elems !=
++				     f->hevc_sps.num_short_term_ref_pic_sets))
++					ret = -EINVAL;
++				if (!ret && table) {
++					hevc_rps = kcalloc(table->elems, sizeof(*hevc_rps),
++							   GFP_KERNEL);
++					ret = hevc_rps ? hevc_rps_resolve(table->p_cur.p,
++						table->elems, hevc_rps) : -ENOMEM;
++				}
++				rps_id = V4L2_CID_STATELESS_HEVC_EXT_SPS_LT_RPS;
++				if (v4l2_ctrl_request_hdl_ctrl_find(hdl, rps_id))
++					ret = -EINVAL;
++				v4l2_ctrl_request_hdl_put(hdl);
++				if (ret) {
++					dev_err_ratelimited(core->dev,
++							    "HEVC request SPS/RPS mismatch: %d\n",
++							    ret);
++					esparser_src_error(sess, vbuf);
++					return ret;
++				}
++			}
++			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++					      V4L2_CID_STATELESS_HEVC_PPS);
++			if (!ctrl || !ctrl->p_cur.p_hevc_pps) {
++				dev_err_ratelimited(core->dev, "HEVC PPS request control missing\n");
++				esparser_src_error(sess, vbuf);
++				return -EINVAL;
++			}
++			f->hevc_pps = *ctrl->p_cur.p_hevc_pps;
++			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++					      V4L2_CID_STATELESS_HEVC_SLICE_PARAMS);
++			if (!ctrl || !ctrl->p_cur.p_hevc_slice_params) {
++				dev_err_ratelimited(core->dev, "HEVC slice params request control missing\n");
++				esparser_src_error(sess, vbuf);
++				return -EINVAL;
++			}
++			if (!ctrl->elems || ctrl->elems > AMVDEC_HEVC_MAX_SLICES) {
++				dev_err_ratelimited(core->dev,
++						    "HEVC slice count %u outside supported range\n",
++						    ctrl->elems);
++				esparser_src_error(sess, vbuf);
++				return -EINVAL;
++			}
++			sess->request_job.slices = kmemdup(ctrl->p_cur.p,
++							   ctrl->elems * sizeof(f->hevc_slice),
++							   GFP_KERNEL);
++			if (!sess->request_job.slices) {
++				esparser_src_error(sess, vbuf);
++				return -ENOMEM;
++			}
++			sess->request_job.num_slices = ctrl->elems;
++			f->hevc_slice = sess->request_job.slices[0];
++			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++					      V4L2_CID_STATELESS_HEVC_DECODE_PARAMS);
++			if (!ctrl || !ctrl->p_cur.p) {
++				dev_err_ratelimited(core->dev, "HEVC decode params request control missing\n");
++				esparser_src_error(sess, vbuf);
++				return -EINVAL;
++			}
++			f->hevc_decode = *(struct v4l2_ctrl_hevc_decode_params *)ctrl->p_cur.p;
++			ret = hevc_synth_validate(&f->hevc_sps, &f->hevc_pps);
++			if (ret || (offset && sess->bitdepth !=
++				    8 + f->hevc_sps.bit_depth_luma_minus8)) {
++				dev_err_ratelimited(core->dev, "HEVC unsupported SPS/PPS or midstream depth change\n");
++				esparser_src_error(sess, vbuf);
++				return ret ? ret : -EOPNOTSUPP;
++			}
++			/* Stateless CAPTURE is already configured. Publish the first
++			 * request's depth before RPM resume allocates MMU/FBC storage;
++			 * an 8-bit default would instead emit an unhandled source change.
++			 */
++			if (!offset)
++				sess->bitdepth = 8 + f->hevc_sps.bit_depth_luma_minus8;
++
++			hevc_sps_ptr = &f->hevc_sps;
++			hevc_pps_ptr = &f->hevc_pps;
++			hevc_slice_ptr = &f->hevc_slice;
++			hevc_decode_ptr = &f->hevc_decode;
++
++			irap = f->hevc_slice.nal_unit_type >= 16 &&
++			       f->hevc_slice.nal_unit_type <= 23;
++			hevc_headers = kmalloc(HEVC_SYNTH_MAX_HEADERS, GFP_KERNEL);
++			if (!hevc_headers) {
++				esparser_src_error(sess, vbuf);
++				return -ENOMEM;
++			}
++			BUILD_BUG_ON(HEVC_SYNTH_MAX_HEADERS >
++				     sizeof(sess->hevc_cached_headers));
++			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++					      V4L2_CID_STATELESS_HEVC_SCALING_MATRIX);
++			ret = hevc_synth_headers(&f->hevc_sps, hevc_rps, &f->hevc_pps,
++						 ctrl ? ctrl->p_cur.p : NULL,
++					 hevc_headers, HEVC_SYNTH_MAX_HEADERS,
++					 &hevc_headers_len);
++			if (ret) {
++				dev_err_ratelimited(core->dev,
++						    "HEVC header synthesis rejected controls: %d\n",
++					ret);
++				esparser_src_error(sess, vbuf);
++				return ret;
++			}
++			if (!irap && sess->hevc_headers_valid &&
++			    hevc_headers_len == sess->hevc_cached_headers_len &&
++			    !memcmp(hevc_headers, sess->hevc_cached_headers,
++				    hevc_headers_len))
++				hevc_headers_len = 0;
++			if (hevc_headers_len) {
++				if (!vaddr || hevc_headers_len > plane_size ||
++				    payload_size > plane_size - hevc_headers_len) {
++					dev_err_ratelimited(core->dev,
++							    "HEVC buffer too small for synthesized headers\n");
++					esparser_src_error(sess, vbuf);
++					return -ENOSPC;
++				}
++				memmove(vaddr + hevc_headers_len, vaddr, payload_size);
++				memcpy(vaddr, hevc_headers, hevc_headers_len);
++				payload_size += hevc_headers_len;
++				vb2_set_plane_payload(vb, 0, payload_size);
++			}
++		} else if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG2_SLICE) {
+ 			u8 *vaddr = vb2_plane_vaddr(vb, 0);
+ 			u32 plane_size = vb2_plane_size(vb, 0);
+ 			bool have_quant = false;
+@@ -708,7 +885,8 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	}
+ 
+ 	ret = meson_amvdec_add_ts(sess, vb->timestamp, vbuf->timecode, offset,
+-			    vbuf->flags);
++			    vbuf->flags, hevc_sps_ptr, hevc_pps_ptr,
++			    hevc_slice_ptr, hevc_decode_ptr);
+ 	if (ret) {
+ 		esparser_src_error(sess, vbuf);
+ 		return ret;
+@@ -786,7 +964,15 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		unsigned int i, n = 0;
+ 		u64 refs[16];
+ 
+-		if (mpeg2_job) {
++		if (hevc_decode_ptr) {
++			n = f->hevc_decode.num_active_dpb_entries;
++			if (n > ARRAY_SIZE(refs)) {
++				esparser_src_error(sess, vbuf);
++				return -EINVAL;
++			}
++			for (i = 0; i < n; i++)
++				refs[i] = f->hevc_decode.dpb[i].timestamp;
++		} else if (mpeg2_job) {
+ 			if (f->mpeg2_job_pic.picture_coding_type !=
+ 			    V4L2_MPEG2_PIC_CODING_TYPE_I)
+ 				refs[n++] = f->mpeg2_job_pic.forward_ref_ts;
+@@ -796,6 +982,12 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		}
+ 		for (i = 0; i < n; i++) {
+ 			if (meson_amvdec_request_resolve_ref(sess, i, refs[i])) {
++				/* The codec checks the entries the picture uses. */
++				if (hevc_decode_ptr) {
++					sess->request_job.refs[i] = NULL;
++					sess->request_job.ref_ts[i] = refs[i];
++					continue;
++				}
+ 				/* A P field may have only its mate to predict from. */
+ 				if (mpeg2_second && f->mpeg2_job_pic.picture_coding_type ==
+ 				    V4L2_MPEG2_PIC_CODING_TYPE_P)
+@@ -825,17 +1017,68 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 			return 0;
+ 		}
+ 	}
+-	ret = esparser_pad_start_code(core, vb, payload_size);
+-	if (ret < 0) {
+-		meson_amvdec_remove_ts(sess, vb->timestamp);
++	/* Record the framed/synthesized coded endpoint before padding or DMA.
++	 * Reading PARSER_VIDEO_WP for offset includes previous transport bytes.
++	 */
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE &&
++	    meson_amvdec_set_input_end(sess, vb->timestamp, offset + payload_size)) {
+ 		esparser_src_error(sess, vbuf);
+-		return 0;
++		return -EINVAL;
++	}
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) {
++		u32 tail = REQUEST_TAIL_SIZE;
++		u32 plane_size = vb2_plane_size(vb, 0);
++		u8 *data = vb2_plane_vaddr(vb, 0);
++
++		size_t needed = (size_t)payload_size + tail + ESPARSER_SEARCH_PATTERN_SIZE;
++
++		if (!data || payload_size > plane_size ||
++		    esparser_vififo_get_free_space(sess) < payload_size + tail) {
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
++		}
++		/* The transport tail belongs to the driver, not the client's
++		 * negotiated OUTPUT padding. Previous DMA has completed before
++		 * another request can resize or reuse this storage.
++		 */
++		if (sess->request_job.input_size < needed) {
++			void *new_data;
++			dma_addr_t new_phy;
++
++			new_data = dma_alloc_coherent(core->dev, needed, &new_phy,
++						      GFP_KERNEL);
++			if (!new_data) {
++				esparser_src_error(sess, vbuf);
++				return -ENOMEM;
++			}
++			if (sess->request_job.input_vaddr)
++				dma_free_coherent(core->dev, sess->request_job.input_size,
++						  sess->request_job.input_vaddr,
++						sess->request_job.input_paddr);
++			sess->request_job.input_vaddr = new_data;
++			sess->request_job.input_paddr = new_phy;
++			sess->request_job.input_size = needed;
++		}
++		memcpy(sess->request_job.input_vaddr, data, payload_size);
++		data = sess->request_job.input_vaddr;
++		phy = sess->request_job.input_paddr;
++		memset(data + payload_size, 0, tail + ESPARSER_SEARCH_PATTERN_SIZE);
++		data[payload_size + tail + 2] = 1;
++		data[payload_size + tail + 3] = 0xff;
++		pad_size = tail;
++	} else {
++		ret = esparser_pad_start_code(core, vb, payload_size);
++		if (ret < 0) {
++			meson_amvdec_remove_ts(sess, vb->timestamp);
++			esparser_src_error(sess, vbuf);
++			return 0;
++		}
++		pad_size = ret;
+ 	}
+-	pad_size = ret;
+ 	dev_dbg(core->dev,
+ 		"feed mode=%08x idx=%u ts=%llu original=%u headers=%u payload=%u pad=%u write=%u fetch=%u offset=%u free=%u queued=%d\n",
+ 		 sess->fmt_out->pixfmt, vb->index, vb->timestamp,
+-		 original_payload_size, 0,
++		 original_payload_size, hevc_headers_len,
+ 		 payload_size, pad_size,
+ 		 payload_size + pad_size, payload_size + pad_size + ESPARSER_SEARCH_PATTERN_SIZE,
+ 		 offset, esparser_vififo_get_free_space(sess),
+@@ -846,6 +1089,17 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	}
+ 	ret = esparser_write_data(core, phy, payload_size + pad_size);
+ 
++	if (ret > 0) {
++		/* Only a successful feed establishes the firmware's cached headers. */
++		if (hevc_headers_len) {
++			memcpy(sess->hevc_cached_headers, hevc_headers, hevc_headers_len);
++			sess->hevc_cached_headers_len = hevc_headers_len;
++			sess->hevc_headers_valid = true;
++			dev_dbg(core->dev, "HEVC parameter sets sent ts=%llu bytes=%u\n",
++				vb->timestamp, hevc_headers_len);
++		}
++	}
++
+ 	if (ret <= 0) {
+ 		dev_warn_ratelimited(core->dev, "esparser: input parsing error\n");
+ 		meson_amvdec_remove_ts(sess, vb->timestamp);
+@@ -861,6 +1115,9 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		 atomic_read(&sess->esparser_queued_bufs));
+ 	if (!meson_amvdec_request_jobs(sess))
+ 		atomic_inc(&sess->esparser_queued_bufs);
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE)
++		meson_amvdec_codec_hevc_request_input_ready(sess, vb->timestamp,
++						     offset + payload_size);
+ 	if (!meson_amvdec_request_jobs(sess))
+ 		meson_amvdec_src_buf_done(sess, vbuf, VB2_BUF_STATE_DONE);
+ 
+-- 
+2.53.0
+
