@@ -1,6 +1,6 @@
 
 GARNAME      = swig
-GARVERSION   = 4.1.1
+GARVERSION   = 4.5.1
 CATEGORIES   = lib
 MASTER_SITES = https://downloads.sourceforge.net/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.gz
