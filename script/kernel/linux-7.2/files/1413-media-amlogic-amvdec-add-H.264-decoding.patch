@@ -5,151 +5,61 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 
-From 11da6fdced8886085fc85abdb2eb5578a8e1033a Mon Sep 17 00:00:00 2001
-From: gus bourg <gus@bourg.net>
-Date: Thu, 24 Sep 2026 20:15:32 -0700
-Subject: [PATCH 11/17] media: amlogic: amvdec: add stateless H.264 decoding
+From 4a4283383b5c55d80da13bb323fde80f0b4563e0 Mon Sep 17 00:00:00 2001
+From: Gus Bourg <gus@bourg.net>
+Date: Sat, 26 Sep 2026 01:59:32 -0700
+Subject: [PATCH 5/8] media: amlogic: amvdec: add H.264 decoding
 
-Add H264_SLICE decoding with multi-instance firmware and direct VLD
-input. Translate request controls into firmware picture and reference
-state, including field references and weighted prediction. Keep parser
-and reference-list scratch out of kernel stack frames. Refuse CAVLC
-slice prefixes that overlap encoded macroblock data.
+Decode frame-based H.264 slice requests with multi-instance firmware.
+Validate SPS/PPS and slice syntax, synthesize in-band headers and build
+frame and field reference lists from request controls and timestamps.
 
-Assisted-by: Claude:claude-opus-5-5
-Assisted-by: Claude:claude-fable-5-1
-Assisted-by: Codex:gpt-5.6
-Assisted-by: Codex:gpt-6.0
+Keep parser scratch in the session and retain the direct-input buffer
+until decode completion. Track field-pair provenance and canvas lifetime,
+program colocated motion-vector storage and stop processor DMA before
+releasing request buffers. Advertise profiles and levels from the
+per-compatible capability tables.
+
+Assisted-by: Claude:claude-opus-5.5 Claude:claude-fable-5.1 Codex:gpt-5.6 Codex:gpt-6.0
 ---
- drivers/media/platform/amlogic/amvdec/Kconfig |    1 +
- .../media/platform/amlogic/amvdec/amvdec.c    |  145 +-
- .../media/platform/amlogic/amvdec/amvdec.h    |   12 +
- .../media/platform/amlogic/amvdec/amvdec_1.c  |   14 +-
- .../platform/amlogic/amvdec/amvdec_helpers.c  |  108 +
- .../platform/amlogic/amvdec/amvdec_helpers.h  |   12 +
- .../platform/amlogic/amvdec/codec_h264.c      | 2426 ++++++++++++++++-
- .../platform/amlogic/amvdec/codec_h264.h      |   45 +
- .../platform/amlogic/amvdec/codec_h264_refs.h |  211 ++
- .../amlogic/amvdec/codec_h264_scratch.h       |   12 +
- .../amlogic/amvdec/codec_h264_synth.h         | 1131 ++++++++
- .../media/platform/amlogic/amvdec/esparser.c  |  222 +-
- 12 files changed, 4309 insertions(+), 30 deletions(-)
+ .../media/platform/amlogic/amvdec/Makefile    |    1 +
+ .../media/platform/amlogic/amvdec/amvdec.c    |   98 +
+ .../platform/amlogic/amvdec/amvdec_platform.c |   66 +-
+ .../platform/amlogic/amvdec/codec_h264.c      | 2336 +++++++++++++++++
+ .../platform/amlogic/amvdec/codec_h264.h      |   59 +
+ .../platform/amlogic/amvdec/codec_h264_refs.h |  208 ++
+ .../amlogic/amvdec/codec_h264_synth.h         | 1108 ++++++++
+ .../media/platform/amlogic/amvdec/esparser.c  |  204 +-
+ 8 files changed, 4071 insertions(+), 9 deletions(-)
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_h264.c
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_h264.h
  create mode 100644 drivers/media/platform/amlogic/amvdec/codec_h264_refs.h
- create mode 100644 drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h
  create mode 100644 drivers/media/platform/amlogic/amvdec/codec_h264_synth.h
 
-diff --git a/drivers/media/platform/amlogic/amvdec/Kconfig b/drivers/media/platform/amlogic/amvdec/Kconfig
-index 90a6f6aa22..a1f17763b9 100644
---- a/drivers/media/platform/amlogic/amvdec/Kconfig
-+++ b/drivers/media/platform/amlogic/amvdec/Kconfig
-@@ -8,6 +8,7 @@ config VIDEO_MESON_AMVDEC
- 	depends on ARCH_MESON || COMPILE_TEST
- 	select VIDEOBUF2_DMA_CONTIG
- 	select V4L2_MEM2MEM_DEV
-+	select V4L2_H264
- 	select MESON_CANVAS
- 	help
- 	Support for the video decoder found in the Amlogic GXBB, GXL, GXM,
+diff --git a/drivers/media/platform/amlogic/amvdec/Makefile b/drivers/media/platform/amlogic/amvdec/Makefile
+index 0e79f63e36..1a38a3228c 100644
+--- a/drivers/media/platform/amlogic/amvdec/Makefile
++++ b/drivers/media/platform/amlogic/amvdec/Makefile
+@@ -5,5 +5,6 @@ meson-amvdec-objs = esparser.o amvdec.o amvdec_helpers.o amvdec_platform.o
+ meson-amvdec-objs += amvdec_1.o
+ meson-amvdec-objs += amvdec_hevc.o
+ meson-amvdec-objs += codec_mpeg12.o
++meson-amvdec-objs += codec_h264.o
+ 
+ obj-$(CONFIG_VIDEO_MESON_AMVDEC) += meson-amvdec.o
 diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
-index f7a002704a..4e9992a2b5 100644
+index f42bf435fc..557829eabf 100644
 --- a/drivers/media/platform/amlogic/amvdec/amvdec.c
 +++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
 @@ -24,6 +24,7 @@
+ 
  #include "amvdec.h"
- #include "codec_hevc_common.h"
- #include "codec_hevc.h"
+ #include "hevc_regs.h"
 +#include "codec_h264_synth.h"
  #include "codec_mpeg12_synth.h"
- #include "codec_vc1_parser.h"
  #include "esparser.h"
-@@ -124,6 +125,11 @@ static int vdec_recycle_thread(void *data)
- 	return 0;
- }
- 
-+static bool vdec_needs_parser_vififo(struct amvdec_session *sess)
-+{
-+	return !sess->fmt_out->codec_ops->direct_input;
-+}
-+
- static int vdec_poweron(struct amvdec_session *sess)
- {
- 	int ret;
-@@ -141,7 +147,8 @@ static int vdec_poweron(struct amvdec_session *sess)
- 	if (ret)
- 		goto disable_dos;
- 
--	meson_amvdec_esparser_power_up(sess);
-+	if (vdec_needs_parser_vififo(sess))
-+		meson_amvdec_esparser_power_up(sess);
- 
- 	return 0;
- 
-@@ -242,7 +249,10 @@ static void vdec_m2m_device_run(void *priv)
- static void vdec_m2m_job_abort(void *priv)
- {
- 	struct amvdec_session *sess = priv;
-+	struct amvdec_codec_ops *codec_ops = sess->fmt_out->codec_ops;
- 
-+	if (codec_ops->job_abort)
-+		codec_ops->job_abort(sess);
- 	v4l2_m2m_job_finish(sess->m2m_dev, sess->m2m_ctx);
- }
- 
-@@ -780,14 +790,19 @@ static int vdec_start_streaming(struct vb2_queue *q, unsigned int count)
- 	    sess->status == STATUS_INIT)
- 		return 0;
- 
--	sess->vififo_size = SIZE_VIFIFO;
--	sess->vififo_vaddr =
--		dma_alloc_coherent(sess->core->dev, sess->vififo_size,
--				   &sess->vififo_paddr, GFP_KERNEL);
--	if (!sess->vififo_vaddr) {
--		dev_err(sess->core->dev, "Failed to request VIFIFO buffer\n");
--		ret = -ENOMEM;
--		goto bufs_done;
-+	sess->vififo_size = 0;
-+	sess->vififo_vaddr = NULL;
-+	sess->vififo_paddr = 0;
-+	if (vdec_needs_parser_vififo(sess)) {
-+		sess->vififo_size = SIZE_VIFIFO;
-+		sess->vififo_vaddr =
-+			dma_alloc_coherent(sess->core->dev, sess->vififo_size,
-+					   &sess->vififo_paddr, GFP_KERNEL);
-+		if (!sess->vififo_vaddr) {
-+			dev_err(sess->core->dev, "Failed to request VIFIFO buffer\n");
-+			ret = -ENOMEM;
-+			goto bufs_done;
-+		}
- 	}
- 
- 	sess->should_stop = 0;
-@@ -839,8 +854,9 @@ static int vdec_start_streaming(struct vb2_queue *q, unsigned int count)
- 		sess->recycle_thread = NULL;
- 	}
- vififo_free:
--	dma_free_coherent(sess->core->dev, sess->vififo_size,
--			  sess->vififo_vaddr, sess->vififo_paddr);
-+	if (sess->vififo_vaddr)
-+		dma_free_coherent(sess->core->dev, sess->vififo_size,
-+				  sess->vififo_vaddr, sess->vififo_paddr);
- bufs_done:
- 	mutex_lock(&core->claim_lock);
- 	if (core->cur_sess == sess)
-@@ -928,8 +944,11 @@ static void vdec_stop_streaming(struct vb2_queue *q)
- 			if (meson_amvdec_request_jobs(sess))
- 				meson_amvdec_request_retire(sess, true);
- 			vdec_free_canvas(sess);
--			dma_free_coherent(sess->core->dev, sess->vififo_size,
--					  sess->vififo_vaddr, sess->vififo_paddr);
-+			if (sess->vififo_vaddr)
-+				dma_free_coherent(sess->core->dev,
-+						  sess->vififo_size,
-+						  sess->vififo_vaddr,
-+						  sess->vififo_paddr);
- 			vdec_reset_timestamps(sess);
- 			vdec_reset_bufs_recycle(sess);
- 			kfree(sess->priv);
-@@ -1600,6 +1619,11 @@ static int m2m_queue_init(void *priv, struct vb2_queue *src_vq,
+ #include "amvdec_helpers.h"
+@@ -935,6 +936,11 @@ static int m2m_queue_init(void *priv, struct vb2_queue *src_vq,
  	return vb2_queue_init(dst_vq);
  }
  
@@ -158,10 +68,10 @@ index f7a002704a..4e9992a2b5 100644
 +	.scaling_list_8x8 = { [0 ... 1] = { [0 ... 63] = 16 } },
 +};
 +
- /* The format this SoC's table offers for a coded pixel format, if any */
+ /* Find the coded format in the selected compatible's capability table. */
  static const struct amvdec_format *
  vdec_format_by_pixfmt(struct amvdec_core *core, u32 pixfmt)
-@@ -1613,6 +1637,41 @@ vdec_format_by_pixfmt(struct amvdec_core *core, u32 pixfmt)
+@@ -948,6 +954,41 @@ vdec_format_by_pixfmt(struct amvdec_core *core, u32 pixfmt)
  	return NULL;
  }
  
@@ -183,7 +93,7 @@ index f7a002704a..4e9992a2b5 100644
 +		u32 h = (sps->pic_height_in_map_units_minus1 + 1) * 16 *
 +			((sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) ? 1 : 2);
 +
-+		/* This SoC's coded-size limit, not the codec's */
++		/* Enforce the coded-size limit from platform data. */
 +		if (fmt && (w > fmt->max_width || h > fmt->max_height))
 +			return -EINVAL;
 +		return h264_sps_validate(sps) ? -EINVAL : 0;
@@ -203,7 +113,7 @@ index f7a002704a..4e9992a2b5 100644
  static int vdec_mpeg2_try_ctrl(struct v4l2_ctrl *ctrl)
  {
  	switch (ctrl->id) {
-@@ -1629,6 +1688,13 @@ static const struct v4l2_ctrl_ops vdec_mpeg2_ctrl_ops = {
+@@ -964,6 +1005,13 @@ static const struct v4l2_ctrl_ops vdec_mpeg2_ctrl_ops = {
  };
  
  /* Compound controls must have defaults accepted by their try_ctrl callback. */
@@ -217,343 +127,218 @@ index f7a002704a..4e9992a2b5 100644
  static const struct v4l2_ctrl_mpeg2_sequence vdec_mpeg2_sequence_default = {
  	.horizontal_size = 16,
  	.vertical_size = 16,
-@@ -1652,6 +1718,59 @@ static int vdec_init_ctrls(struct amvdec_session *sess)
+@@ -980,6 +1028,56 @@ static int vdec_init_ctrls(struct amvdec_session *sess)
+ 		return ret;
  
- 	/* Stateless controls for exactly the codecs this SoC's table offers */
- 	if (stateless) {
-+		if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_H264_SLICE)) {
-+			const struct amvdec_format *fmt =
-+				vdec_format_by_pixfmt(sess->core,
-+						      V4L2_PIX_FMT_H264_SLICE);
-+			static const struct v4l2_ctrl_config h264_ctrls[] = {
-+				{
-+					.id = V4L2_CID_STATELESS_H264_SPS,
-+					.ops = &vdec_h264_ctrl_ops,
-+					.p_def.p_const = &vdec_h264_sps_default,
-+				}, {
-+					.id = V4L2_CID_STATELESS_H264_PPS,
-+					.ops = &vdec_h264_ctrl_ops,
-+				}, {
-+					.id = V4L2_CID_STATELESS_H264_SCALING_MATRIX,
-+					.ops = &vdec_h264_ctrl_ops,
-+					.p_def.p_const = &vdec_h264_scaling_default,
-+				}, {
-+					.id = V4L2_CID_STATELESS_H264_PRED_WEIGHTS,
-+				}, {
-+					.id = V4L2_CID_STATELESS_H264_SLICE_PARAMS,
-+				}, {
-+					.id = V4L2_CID_STATELESS_H264_DECODE_PARAMS,
-+				}, {
-+					.id = V4L2_CID_STATELESS_H264_DECODE_MODE,
-+					.min = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED,
-+					.max = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED,
-+					.def = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED,
-+				}, {
-+					.id = V4L2_CID_STATELESS_H264_START_CODE,
-+					.min = V4L2_STATELESS_H264_START_CODE_ANNEX_B,
-+					.max = V4L2_STATELESS_H264_START_CODE_ANNEX_B,
-+					.def = V4L2_STATELESS_H264_START_CODE_ANNEX_B,
-+				},
-+			};
-+			unsigned int i;
+ 	/* Create controls for the formats in the selected capability table. */
++	if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_H264_SLICE)) {
++		const struct amvdec_format *fmt =
++			vdec_format_by_pixfmt(sess->core,
++					      V4L2_PIX_FMT_H264_SLICE);
++		static const struct v4l2_ctrl_config h264_ctrls[] = {
++			{
++				.id = V4L2_CID_STATELESS_H264_SPS,
++				.ops = &vdec_h264_ctrl_ops,
++				.p_def.p_const = &vdec_h264_sps_default,
++			}, {
++				.id = V4L2_CID_STATELESS_H264_PPS,
++				.ops = &vdec_h264_ctrl_ops,
++			}, {
++				.id = V4L2_CID_STATELESS_H264_SCALING_MATRIX,
++				.ops = &vdec_h264_ctrl_ops,
++				.p_def.p_const = &vdec_h264_scaling_default,
++			}, {
++				.id = V4L2_CID_STATELESS_H264_PRED_WEIGHTS,
++			}, {
++				.id = V4L2_CID_STATELESS_H264_SLICE_PARAMS,
++			}, {
++				.id = V4L2_CID_STATELESS_H264_DECODE_PARAMS,
++			}, {
++				.id = V4L2_CID_STATELESS_H264_DECODE_MODE,
++				.min = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED,
++				.max = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED,
++				.def = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED,
++			}, {
++				.id = V4L2_CID_STATELESS_H264_START_CODE,
++				.min = V4L2_STATELESS_H264_START_CODE_ANNEX_B,
++				.max = V4L2_STATELESS_H264_START_CODE_ANNEX_B,
++				.def = V4L2_STATELESS_H264_START_CODE_ANNEX_B,
++			},
++		};
++		unsigned int i;
 +
-+			for (i = 0; i < ARRAY_SIZE(h264_ctrls); i++)
-+				v4l2_ctrl_new_custom(ctrl_handler, &h264_ctrls[i], NULL);
++		for (i = 0; i < ARRAY_SIZE(h264_ctrls); i++)
++			v4l2_ctrl_new_custom(ctrl_handler, &h264_ctrls[i], NULL);
 +
-+			v4l2_ctrl_new_std_menu(ctrl_handler, NULL,
-+					       V4L2_CID_MPEG_VIDEO_H264_PROFILE,
-+				V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
-+				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED),
-+				V4L2_MPEG_VIDEO_H264_PROFILE_MAIN);
-+			/* 1080p-class SoCs stop at 4.2, the 4K-class ones at 5.1 */
-+			v4l2_ctrl_new_std_menu(ctrl_handler, NULL,
-+					       V4L2_CID_MPEG_VIDEO_H264_LEVEL,
-+				fmt->max_width > 1920 ?
-+					V4L2_MPEG_VIDEO_H264_LEVEL_5_1 :
-+					V4L2_MPEG_VIDEO_H264_LEVEL_4_2, 0,
-+				V4L2_MPEG_VIDEO_H264_LEVEL_4_1);
-+		}
-+
- 		if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_MPEG2_SLICE)) {
- 			static const struct v4l2_ctrl_config mpeg2_ctrls[] = {
- 				{
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.h b/drivers/media/platform/amlogic/amvdec/amvdec.h
-index 96a61b9589..ab17f209c1 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec.h
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec.h
-@@ -17,6 +17,7 @@
- #include <linux/soc/amlogic/meson-canvas.h>
++		v4l2_ctrl_new_std_menu(ctrl_handler, NULL,
++				       V4L2_CID_MPEG_VIDEO_H264_PROFILE,
++			fls(fmt->profiles) - 1,
++			~fmt->profiles,
++			V4L2_MPEG_VIDEO_H264_PROFILE_MAIN);
++		/* Advertise the H.264 level from platform data. */
++		v4l2_ctrl_new_std_menu(ctrl_handler, NULL,
++				       V4L2_CID_MPEG_VIDEO_H264_LEVEL,
++			fmt->max_level, 0,
++			V4L2_MPEG_VIDEO_H264_LEVEL_4_1);
++	}
  
- #include "amvdec_platform.h"
-+#include "codec_h264_scratch.h"
+ 	if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_MPEG2_SLICE)) {
+ 		static const struct v4l2_ctrl_config mpeg2_ctrls[] = {
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+index c19b73a25e..0f70bffcf6 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -12,10 +12,34 @@
+ #include "amvdec_1.h"
+ #include "amvdec_hevc.h"
+ #include "codec_mpeg12.h"
++#include "codec_h264.h"
  
- /* 32 buffers in 3-plane YUV420 */
- #define MAX_CANVAS (32 * 3)
-@@ -165,25 +166,34 @@ struct amvdec_ops {
-  * @stop: mandatory call when the codec needs to stop
-  * @load_firmware: optional call to load/prepare the complete firmware image
-  * @load_extended_firmware: optional call to load additional firmware bits
-+ * @post_start: optional call after the firmware processor is started
-  * @num_pending_bufs: optional call to get the number of dst buffers on hold
-  * @can_recycle: optional call to know if the codec is ready to recycle
-  *		 a dst buffer
-  * @recycle: optional call to tell the codec to recycle a dst buffer. Must go
-  *	     in pair with @can_recycle
-  * @drain: optional call if the codec has a custom way of draining
-+ * @pre_stop: optional live-domain call before vdec_ops->stop powers down
-+ * @job_abort: optional call when videobuf2 requests a job abort/timeout
-  * @resume: optional call to resume after a resolution change
-  * @eos_sequence: optional call to get an end sequence to send to esparser
-  *		  for flush. Mutually exclusive with @drain.
-  * @isr: mandatory call when the ISR triggers
-  * @threaded_isr: mandatory call for the threaded ISR
-+ * @direct_input: the codec points the decoder's stream FIFO at the OUTPUT
-+ *	buffer itself: the core leaves the firmware processors halted at
-+ *	start and does not power up the parser VIFIFO
-  */
- struct amvdec_codec_ops {
- 	int (*start)(struct amvdec_session *sess);
- 	int (*stop)(struct amvdec_session *sess);
-+	void (*pre_stop)(struct amvdec_session *sess);
-+	void (*job_abort)(struct amvdec_session *sess);
- 	int (*load_firmware)(struct amvdec_session *sess,
- 			     const u8 *data, u32 len);
- 	int (*load_extended_firmware)(struct amvdec_session *sess,
- 				      const u8 *data, u32 len);
-+	void (*post_start)(struct amvdec_session *sess);
- 	u32 (*num_pending_bufs)(struct amvdec_session *sess);
- 	int (*can_recycle)(struct amvdec_core *core);
- 	void (*recycle)(struct amvdec_core *core, u32 buf_idx);
-@@ -192,6 +202,7 @@ struct amvdec_codec_ops {
- 	const u8 * (*eos_sequence)(u32 *len);
- 	irqreturn_t (*isr)(struct amvdec_session *sess);
- 	irqreturn_t (*threaded_isr)(struct amvdec_session *sess);
-+	bool direct_input;
+ /* GXBB, GXL, GXLX and GXM support H.264, MPEG-2 and 8-bit HEVC at 1920x1088. */
++#define AMVDEC_H264_PROFILES (BIT(V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE) | \
++	BIT(V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE) | \
++	BIT(V4L2_MPEG_VIDEO_H264_PROFILE_MAIN) | \
++	BIT(V4L2_MPEG_VIDEO_H264_PROFILE_HIGH))
++
++#define AMVDEC_FORMAT_GX_H264_SLICE(fw)					\
++	{								\
++		.pixfmt = V4L2_PIX_FMT_H264_SLICE,			\
++		.profiles = AMVDEC_H264_PROFILES,			\
++		.max_level = V4L2_MPEG_VIDEO_H264_LEVEL_4_2,	\
++		.max_bit_depth = 8,				\
++		.min_buffers = 16,					\
++		.max_buffers = 24,					\
++		.max_width = 1920,					\
++		/* 1080-line video has a macroblock-aligned coded height of 1088 */ \
++		.max_height = 1088,					\
++		.vdec_ops = &meson_amvdec_1_ops,				\
++		.codec_ops = &meson_amvdec_codec_h264_multi_ops,			\
++		.firmware_path = fw,					\
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },		\
++		.flags = V4L2_FMT_FLAG_COMPRESSED,			\
++	}
++
+ static const struct amvdec_format amvdec_formats_gxbb[] = {
+-	{
++	AMVDEC_FORMAT_GX_H264_SLICE("meson/vdec/gxl_h264_multi.bin"), {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
+ 		.min_buffers = 2,
+ 		.max_buffers = 24,
+@@ -30,7 +54,7 @@ static const struct amvdec_format amvdec_formats_gxbb[] = {
  };
  
- /**
-@@ -298,6 +309,7 @@ enum amvdec_status {
-  * touches them, under sess->lock.
-  */
- struct amvdec_feed_scratch {
-+	struct h264_parse_scratch h264_parse;
- 	struct v4l2_ctrl_mpeg2_sequence mpeg2_seq;
- 	struct v4l2_ctrl_mpeg2_picture mpeg2_pic;
- 	struct v4l2_ctrl_mpeg2_picture mpeg2_job_pic;
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_1.c b/drivers/media/platform/amlogic/amvdec/amvdec_1.c
-index 4bae1ecca4..ce05230c76 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec_1.c
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec_1.c
-@@ -230,6 +230,9 @@ static void __vdec_1_stop(struct amvdec_session *sess)
+ static const struct amvdec_format amvdec_formats_gxl[] = {
+-	{
++	AMVDEC_FORMAT_GX_H264_SLICE("meson/vdec/gxl_h264_multi.bin"), {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
+ 		.min_buffers = 2,
+ 		.max_buffers = 24,
+@@ -45,7 +69,7 @@ static const struct amvdec_format amvdec_formats_gxl[] = {
+ };
  
- 	meson_amvdec_write_dos(core, ASSIST_MBOX1_MASK, 0);
+ static const struct amvdec_format amvdec_formats_gxlx[] = {
+-	{
++	AMVDEC_FORMAT_GX_H264_SLICE("meson/vdec/gxl_h264_multi.bin"), {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
+ 		.min_buffers = 2,
+ 		.max_buffers = 24,
+@@ -61,7 +85,7 @@ static const struct amvdec_format amvdec_formats_gxlx[] = {
  
-+	if (codec_ops->pre_stop)
-+		codec_ops->pre_stop(sess);
-+
- 	/* Stop the firmware processors and drain their DMA first */
- 	amvdec_1_stop_armrisc(core);
+ /* GXM: as the other GX parts, with its own H.264 multi-instance image */
+ static const struct amvdec_format amvdec_formats_gxm[] = {
+-	{
++	AMVDEC_FORMAT_GX_H264_SLICE("meson/vdec/gxm_h264_multi.bin"), {
+ 		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
+ 		.min_buffers = 2,
+ 		.max_buffers = 24,
+@@ -77,6 +101,21 @@ static const struct amvdec_format amvdec_formats_gxm[] = {
  
-@@ -357,11 +360,20 @@ static int amvdec_1_start(struct amvdec_session *sess)
- 	else
- 		meson_amvdec_clear_dos_bits(core, MDEC_PIC_DC_CTRL, BIT(17));
+ static const struct amvdec_format amvdec_formats_g12a[] = {
+ 	{
++		/* Multi-instance firmware, fed straight from the OUTPUT buffer. */
++		.pixfmt = V4L2_PIX_FMT_H264_SLICE,
++		.profiles = AMVDEC_H264_PROFILES,
++		.max_level = V4L2_MPEG_VIDEO_H264_LEVEL_5_1,
++		.max_bit_depth = 8,
++		.min_buffers = 16,
++		.max_buffers = 24,
++		.max_width = 3840,
++		.max_height = 2160,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_h264_multi_ops,
++		.firmware_path = "meson/vdec/g12a_h264_multi.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}, {
+ 		/*
+ 		 * The firmware parses sequence and picture headers synthesized from
+ 		 * controls.
+@@ -98,6 +137,21 @@ static const struct amvdec_format amvdec_formats_g12a[] = {
+ /* SM1: as G12A, with its own VP9 firmware image */
+ static const struct amvdec_format amvdec_formats_sm1[] = {
+ 	{
++		/* Multi-instance firmware, fed straight from the OUTPUT buffer. */
++		.pixfmt = V4L2_PIX_FMT_H264_SLICE,
++		.profiles = AMVDEC_H264_PROFILES,
++		.max_level = V4L2_MPEG_VIDEO_H264_LEVEL_5_1,
++		.max_bit_depth = 8,
++		.min_buffers = 16,
++		.max_buffers = 24,
++		.max_width = 3840,
++		.max_height = 2160,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_h264_multi_ops,
++		.firmware_path = "meson/vdec/sm1_h264_multi.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}, {
+ 		/*
+ 		 * The firmware parses sequence and picture headers synthesized from
+ 		 * controls.
+@@ -152,4 +206,8 @@ const struct amvdec_platform meson_amvdec_platform_sm1 = {
+ 	.revision = AMVDEC_REVISION_SM1,
+ };
  
--	if (sess->fmt_out->pixfmt != V4L2_PIX_FMT_MPEG2_SLICE) {
-+	/* A direct-input codec supplies the first input/context before releasing
-+	 * AMRISC. Starting it on an empty FIFO and halting it in post_start races
-+	 * the firmware's initialization against the host and leaves an unknown
-+	 * partially initialized decoder even after a clean session start.
-+	 */
-+	if (sess->fmt_out->pixfmt != V4L2_PIX_FMT_MPEG2_SLICE &&
-+	    !codec_ops->direct_input) {
- 		meson_amvdec_write_dos(core, MPSR, 1);
- 		usleep_range(10, 20);
- 	}
- 
-+	if (codec_ops->post_start)
-+		codec_ops->post_start(sess);
-+
- 	return 0;
- 
- stop:
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-index 13c433cc75..0c8b981d55 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-@@ -610,6 +610,114 @@ int meson_amvdec_refresh_capture_canvases(struct amvdec_session *sess,
- 	return 0;
- }
- 
-+/*
-+ * Give one CAPTURE buffer a canvas, if it does not already have one.
-+ *
-+ * meson_amvdec_set_canvases() maps the whole m2m ready queue in one go, which suits
-+ * the stateful codecs: userspace hands over the complete CAPTURE set before
-+ * streaming and the map never changes.  A stateless client does not work that
-+ * way - ffmpeg sets AVHWFramesContext.initial_pool_size = 1 and then grows the
-+ * pool one VIDIOC_CREATE_BUFS at a time while decoding - so buffers have to be
-+ * picked up as they appear.
-+ *
-+ * Map exactly the buffer being decoded into, at the moment it is taken off the
-+ * ready queue, and never walk the queue's buffer array.  Walking it from the
-+ * interrupt thread raced userspace creating and freeing buffers and oopsed in
-+ * vb2_dma_contig_plane_dma_addr(), which dereferences planes[].mem_priv with
-+ * no NULL check; a buffer that is merely allocated has no memory behind it
-+ * yet, while one taken from the ready queue is prepared by definition.
-+ *
-+ * Mapping is sticky: a buffer keeps its firmware index for the life of the
-+ * session, so reference lists programmed for earlier pictures stay valid, and
-+ * canvas_alloc() is called once per buffer rather than once per picture.
-+ */
-+int meson_amvdec_map_capture_buffer(struct amvdec_session *sess,
-+			      struct vb2_buffer *vb,
-+			      u32 reg_base[], u32 reg_num[])
-+{
-+	u32 pixfmt = sess->pixfmt_cap;
-+	u32 width = ALIGN(sess->width, 64);
-+	u32 height = ALIGN(sess->height, 32);
-+	u32 reg_cur, reg_num_cur, reg_base_cur;
-+	unsigned int i;
-+	int fw_idx, ret;
-+
-+	if (!vb || vb->index >= ARRAY_SIZE(sess->vb2_idx_to_fw_idx))
-+		return -EINVAL;
-+
-+	/* First buffer of the session: nothing is mapped yet. */
-+	if (!sess->num_fw_bufs) {
-+		for (i = 0; i < ARRAY_SIZE(sess->fw_idx_to_vb2_idx); ++i)
-+			sess->fw_idx_to_vb2_idx[i] = VB2_IDX_UNMAPPED;
-+		for (i = 0; i < ARRAY_SIZE(sess->vb2_idx_to_fw_idx); ++i)
-+			sess->vb2_idx_to_fw_idx[i] = VB2_IDX_UNMAPPED;
-+	}
-+
-+	if (vb->num_planes > ARRAY_SIZE(sess->fw_buf_paddr[0]))
-+		return -EINVAL;
-+	for (i = 0; i < vb->num_planes; i++) {
-+		if (!vb->planes[i].mem_priv) {
-+			dev_err(sess->core->dev,
-+				"CAPTURE buffer %u plane %u has no memory\n",
-+				vb->index, i);
-+			return -EINVAL;
-+		}
-+	}
-+
-+	fw_idx = sess->vb2_idx_to_fw_idx[vb->index];
-+	if (fw_idx != VB2_IDX_UNMAPPED) {
-+		/*
-+		 * Already mapped.  A DMABUF index can be requeued with other
-+		 * memory behind it: reprogram its canvases in place if so.
-+		 */
-+		if (amvdec_fw_buf_paddr_match(sess, fw_idx, vb))
-+			return 0;
-+	} else {
-+		fw_idx = sess->num_fw_bufs;
-+		if (fw_idx >= ARRAY_SIZE(sess->fw_idx_to_vb2_idx)) {
-+			dev_err(sess->core->dev,
-+				"Too many CAPTURE buffers to map (fw %d)\n", fw_idx);
-+			return -EINVAL;
-+		}
-+		sess->fw_buf_canvas[fw_idx] = 0;
-+	}
-+
-+	/* Walk reg_base[]/reg_num[] to the register slot for this index. */
-+	reg_base_cur = 0;
-+	reg_num_cur = fw_idx;
-+	while (reg_base[reg_base_cur] && reg_num_cur >= reg_num[reg_base_cur]) {
-+		reg_num_cur -= reg_num[reg_base_cur];
-+		reg_base_cur++;
-+	}
-+	if (!reg_base[reg_base_cur])
-+		return -EINVAL;
-+	reg_cur = reg_base[reg_base_cur] + reg_num_cur * 4;
-+
-+	switch (pixfmt) {
-+	case V4L2_PIX_FMT_NV12M:
-+		ret = set_canvas_nv12m(sess, vb, width, height, reg_cur,
-+				       &sess->fw_buf_canvas[fw_idx]);
-+		break;
-+	case V4L2_PIX_FMT_YUV420M:
-+		ret = set_canvas_yuv420m(sess, vb, width, height, reg_cur,
-+					 &sess->fw_buf_canvas[fw_idx]);
-+		break;
-+	default:
-+		dev_err(sess->core->dev, "Unsupported pixfmt %08X\n", pixfmt);
-+		return -EINVAL;
-+	}
-+	if (ret)
-+		return ret;
-+
-+	amvdec_record_fw_buf_paddr(sess, fw_idx, vb);
-+	if (fw_idx == sess->num_fw_bufs) {
-+		sess->fw_idx_to_vb2_idx[fw_idx] = vb->index;
-+		sess->vb2_idx_to_fw_idx[vb->index] = fw_idx;
-+		sess->num_fw_bufs = fw_idx + 1;
-+	}
-+	return 0;
-+}
-+
- /*
-  * Finish an OUTPUT buffer, completing its request first.
-  *
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-index 98d637a0a1..4a0a66f2b6 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-@@ -78,6 +78,18 @@ int meson_amvdec_set_canvases(struct amvdec_session *sess,
- int meson_amvdec_refresh_capture_canvases(struct amvdec_session *sess,
- 				    struct vb2_buffer *vb);
- 
-+/**
-+ * meson_amvdec_map_capture_buffer() - give one CAPTURE buffer a canvas
-+ *
-+ * Maps a single buffer, taken from the ready queue, if it is not already
-+ * mapped.  Stateless clients grow the CAPTURE pool with VIDIOC_CREATE_BUFS
-+ * while decoding, so buffers must be picked up as they are used rather than
-+ * enumerated up front.
-+ */
-+int meson_amvdec_map_capture_buffer(struct amvdec_session *sess,
-+			      struct vb2_buffer *vb,
-+			      u32 reg_base[], u32 reg_num[]);
-+
- /**
-  * meson_amvdec_src_buf_done() - finish an OUTPUT buffer and complete its request
-  *
++MODULE_FIRMWARE("meson/vdec/g12a_h264_multi.bin");
++MODULE_FIRMWARE("meson/vdec/gxl_h264_multi.bin");
+ MODULE_FIRMWARE("meson/vdec/gxl_mpeg12_multi.bin");
++MODULE_FIRMWARE("meson/vdec/gxm_h264_multi.bin");
++MODULE_FIRMWARE("meson/vdec/sm1_h264_multi.bin");
 diff --git a/drivers/media/platform/amlogic/amvdec/codec_h264.c b/drivers/media/platform/amlogic/amvdec/codec_h264.c
-index e7ac781416..939af09918 100644
---- a/drivers/media/platform/amlogic/amvdec/codec_h264.c
+new file mode 100644
+index 0000000000..e22ad16845
+--- /dev/null
 +++ b/drivers/media/platform/amlogic/amvdec/codec_h264.c
-@@ -4,23 +4,42 @@
-  * Author: Maxime Jourdan <mjourdan@baylibre.com>
-  */
- 
+@@ -0,0 +1,2336 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2019 BayLibre, SAS
++ * Author: Maxime Jourdan <mjourdan@baylibre.com>
++ *
++ * H.264 request decoding with multi-instance firmware.
++ */
++
 +#include <linux/delay.h>
- #include <linux/dma-mapping.h>
- #include <media/v4l2-mem2mem.h>
- #include <media/videobuf2-dma-contig.h>
++#include <linux/dma-mapping.h>
++#include <media/v4l2-mem2mem.h>
++#include <media/videobuf2-dma-contig.h>
 +#include <media/v4l2-h264.h>
- 
- #include "amvdec_helpers.h"
- #include "dos_regs.h"
++
++#include "amvdec_helpers.h"
++#include "dos_regs.h"
 +#include <linux/spinlock.h>
- 
- #include "codec_h264.h"
--
++
++#include "codec_h264.h"
 +#include "codec_h264_refs.h"
- #define SIZE_EXT_FW	(20 * SZ_1K)
 +#define SIZE_EXT_FW_MULTI	((20 + 16) * SZ_1K)
 +#define SIZE_MULTI_FW_MIN	0x7000
 +#define SIZE_MULTI_AUX	SZ_16K
- #define SIZE_WORKSPACE	0x200000
++#define SIZE_WORKSPACE	0x200000
 +#define SIZE_WORKSPACE_MULTI	0x228080
 +#define SIZE_WORKSPACE_MULTI_RP	(SIZE_WORKSPACE_MULTI + 2 * SZ_4K)
- #define SIZE_SEI	(8 * SZ_1K)
++#define SIZE_SEI	(8 * SZ_1K)
 +#define SIZE_LMEM	PAGE_SIZE
 +
- /*
-  * Offset added by the firmware which must be subtracted
-  * from the workspace phyaddr
-  */
- #define WORKSPACE_BUF_OFFSET	0x1000000
 +#define DCAC_READ_MARGIN	SZ_64K
 +
 +#define MC_OFFSET_HEADER	0x0000
@@ -563,17 +348,6 @@ index e7ac781416..939af09918 100644
 +#define MC_OFFSET_SLICE		0x4000
 +#define MC_OFFSET_MAIN		0x5000
 +#define MC_SWAP_SIZE		SZ_4K
- 
- /* ISR status */
- #define CMD_MASK		GENMASK(7, 0)
-@@ -58,9 +77,91 @@
- #define AR_PRESENT_FLAG	BIT(0)
- #define AR_EXTEND	0xff
- 
-+/* Defaults from the vendor vmh264.c; used there for DPB sizing. */
-+#define H264_MULTI_DPB_MARGIN	6
-+#define H264_MULTI_REF_MARGIN	4
-+#define H264_MULTI_MAX_BUFS	24
 +
 +#define LMEM_DUMP_ADR	AV_SCRATCH_L
 +#define H264_DECODE_MODE	AV_SCRATCH_4
@@ -587,7 +361,6 @@ index e7ac781416..939af09918 100644
 +#define NAL_SEARCH_CTL		AV_SCRATCH_9
 +
 +#define DECODE_MODE_MULTI_FRAMEBASE	0x1
-+#define DECODE_MODE_MULTI_STREAMBASE	0x2
 +#define H264_SLICE_HEAD_DONE		0x01
 +#define H264_PIC_DATA_DONE		0x02
 +#define H264_CONFIG_REQUEST		0x11
@@ -596,27 +369,18 @@ index e7ac781416..939af09918 100644
 +#define H264_ACTION_CONFIG_DONE		0xf2
 +#define H264_ACTION_DECODE_NEWPIC	0xf3
 +
-+/* Vendor word offsets scaled to this driver's byte-addressed accessors. */
++/* Scale register word offsets for byte-addressed accessors. */
 +#define VDEC_ASSIST_MMC_CTRL1	0x0008	/* 0x0002 */
-+#define MPC_E			0x0c20	/* 0x0308 */
 +#define WRRSP_LMEM		0x0d4c	/* 0x0353 */
 +#define AV_SCRATCH_M		0x2758	/* 0x09d6 */
-+#define AV_SCRATCH_N		0x275c	/* 0x09d7 */
 +#define MDEC_PIC_DC_MUX_CTRL	0x2634	/* 0x098d */
 +#define MDEC_EXTIF_CFG1		0x2794	/* 0x09e5 */
 +#define MDEC_EXTIF_CFG2		0x2798	/* 0x09e6 */
-+#define VLD_DECODE_CONTROL	0x3060	/* 0x0c18 */
-+#define VLD_MEM_VIFIFO_BYTES_AVAIL 0x310c	/* 0x0c43 */
 +#define IQIDCT_CONTROL		0x3838	/* 0x0e0e */
 +#define FRAME_COUNTER_REG	AV_SCRATCH_I
 +#define DEBUG_REG1		AV_SCRATCH_M
 +
-+/*
-+ * Per-picture decode state registers. The vendor driver names these after the
-+ * generic VLD/PMV registers they are multiplexed onto; the addresses below are
-+ * its word offsets scaled to the byte addressing this driver uses (verified
-+ * against MPSR 0x0301->0x0c04 and AV_SCRATCH_0 0x09c0->0x2700).
-+ */
++/* Per-picture decode registers, expressed as byte offsets. */
 +#define DBKR_CANVAS_ADDR		0x26c0
 +#define DBKW_CANVAS_ADDR		0x26c4
 +#define REC_CANVAS_ADDR			0x26c8
@@ -630,7 +394,7 @@ index e7ac781416..939af09918 100644
 +#define H264_CO_MB_RW_CTL		0x30f4	/* VLD_C3D 0x0c3d */
 +#define H264_MBY_MBX			0x301c	/* MB_MOTION_MODE 0x0c07 */
 +
-+/* RPM (LMEM) word offsets, from the vendor's h264_dpb.h field map */
++/* RPM (LMEM) word offsets */
 +#define H264_RPM_LOG2_MAX_FRAME_NUM	0x83
 +#define H264_RPM_FRAME_MBS_ONLY_FLAG	0x84
 +#define H264_RPM_PIC_ORDER_CNT_TYPE	0x85
@@ -641,52 +405,43 @@ index e7ac781416..939af09918 100644
 +#define H264_RPM_PREV_MB_WIDTH		0xf1
 +#define H264_RPM_PREV_FRAME_SIZE_IN_MB	0xf2
 +
-+/* Colocated MV store: 96 bytes per macroblock, one buffer per CAPTURE frame. */
- /* Canvas-table slots reserved for CAPTURE buffers (ANC0_CANVAS_ADDR). */
- #define H264_MULTI_MAX_FW_BUFS		24
- 
++/* Canvas-table slots reserved for CAPTURE buffers (ANC0_CANVAS_ADDR). */
++#define H264_MULTI_MAX_FW_BUFS		24
++
 +#define H264_COLOCATE_BYTES_PER_MB	96
 +
 +/*
-+ * Observed on G12B with the multi-instance firmware: status 0x53 raised at
-+ * the first interrupt; writing 0x54 advances the firmware to 0x11
-+ * (CONFIG_REQUEST). Not present in the vendor vmh264.c, nor in the S4 series.
++ * G12B firmware reports SEI status 0x53; acknowledge with 0x54 to advance
++ * to CONFIG_REQUEST (0x11).
 + */
 +#define H264_SEI_DATA_READY		0x53
 +#define H264_SEI_DATA_DONE		0x54
 +
- /*
-  * Buffer to send to the ESPARSER to signal End Of Stream for H.264.
-  * This is a 16x16 encoded picture that will trigger drain firmware-side.
-@@ -126,11 +227,23 @@ static const u8 *codec_h264_eos_sequence(u32 *len)
- 	return eos_sequence;
- }
- 
 +struct h264_field_ref_scratch {
 +	struct v4l2_h264_reflist_builder builder;
 +	struct v4l2_h264_reference ordered[2][V4L2_H264_REF_LIST_LEN];
 +	struct v4l2_ctrl_h264_decode_params params;
 +};
 +
- struct codec_h264 {
- 	/* H.264 decoder requires an extended firmware */
- 	void      *ext_fw_vaddr;
- 	dma_addr_t ext_fw_paddr;
- 	u32        ext_fw_size;
-+	bool       multi_blob;
++struct codec_h264 {
++	/* H.264 decoder requires an extended firmware */
++	void      *ext_fw_vaddr;
++	dma_addr_t ext_fw_paddr;
++	u32        ext_fw_size;
 +	u32        multi_irq_count;
 +	bool       multi_powered;
 +	bool       multi_hw_started;
-+	u32        multi_dpb_size;
-+	u32        multi_max_reference_size;
- 
- 	/* Buffer for the H.264 Workspace */
- 	void      *workspace_vaddr;
-@@ -146,6 +259,92 @@ struct codec_h264 {
- 	void      *sei_vaddr;
- 	dma_addr_t sei_paddr;
- 
-+	/* Aux buffer used by the vendor multi stream-base path */
++
++	/* Buffer for the H.264 Workspace */
++	void      *workspace_vaddr;
++	dma_addr_t workspace_paddr;
++	u32        workspace_size;
++
++	/* Buffer for parsed SEI data */
++	void      *sei_vaddr;
++	dma_addr_t sei_paddr;
++
++	/* Auxiliary firmware buffer. */
 +	void      *aux_vaddr;
 +	dma_addr_t aux_paddr;
 +
@@ -772,13 +527,10 @@ index e7ac781416..939af09918 100644
 +	struct v4l2_h264_dpb_entry multi_dpb[V4L2_H264_NUM_DPB_ENTRIES];
 +	u8         multi_nal_ref_idc;
 +
- 	u32 mb_width;
- 	u32 mb_height;
- 	u32 max_refs;
-@@ -170,13 +369,1390 @@ static void codec_h264_recycle(struct amvdec_core *core, u32 buf_idx)
- 	dev_dbg(core->dev, "h264 recycle fw_idx=%u\n", buf_idx);
- }
- 
++	u32 mb_width;
++	u32 mb_height;
++};
++
 +static u16 codec_h264_multi_lmem_word(const struct codec_h264 *h264, u32 i)
 +{
 +	const u16 *lmem = h264->lmem_vaddr;
@@ -800,14 +552,7 @@ index e7ac781416..939af09918 100644
 +	return h264->workspace_paddr + DCAC_READ_MARGIN;
 +}
 +
-+/*
-+ * Answer the firmware's configuration request from host-parsed values.
-+ *
-+ * The vendor derives these from what its firmware parsed out of an in-band SPS
-+ * and then raises a resolution-change event. A stateless session has the SPS in
-+ * a V4L2 control and has already negotiated CAPTURE, so it answers directly and
-+ * never signals a source change.
-+ */
++/* Answer firmware configuration requests from the negotiated format and SPS. */
 +static void codec_h264_multi_write_dpb_config(struct amvdec_session *sess)
 +{
 +	struct codec_h264 *h264 = sess->priv;
@@ -826,11 +571,7 @@ index e7ac781416..939af09918 100644
 +	dev_dbg(core->dev_dec, "h264 multi scratch0: %#x\n", config);
 +}
 +
-+/*
-+ * Reference resolution from the V4L2 DPB: each active entry names the CAPTURE
-+ * buffer holding that picture by timestamp, exactly as HEVC does here. The
-+ * firmware slot is the canvas position of that buffer.
-+ */
++/* Resolve active DPB timestamps to CAPTURE buffers and their firmware canvas slots. */
 +static int codec_h264_multi_ref_fw_idx(struct amvdec_session *sess,
 +				       const struct v4l2_h264_dpb_entry *e)
 +{
@@ -865,17 +606,11 @@ index e7ac781416..939af09918 100644
 +}
 +
 +/*
-+ * Reference lists from the V4L2 DPB, per 8.2.4.2 for frame pictures.
-+ *
-+ * P: short-term by descending PicNum, then long-term ascending.
-+ * B list0: short-term with POC below the current picture by descending POC,
-+ *          then those above by ascending POC, then long-term ascending.
-+ * B list1: the two short-term groups the other way round; if it comes out
-+ *          identical to list0 and has more than one entry, the first two are
-+ *          swapped.
-+ *
-+ * Each entry is packed as (canvas_pos & 0x1f) | (frame << 5), four per word,
-+ * eight words per list, padded with the last entry as the vendor does.
++ * Build frame reference lists per H.264 8.2.4.2. P uses descending PicNum
++ * then ascending long-term indices. B orders short-term references around
++ * the current POC, then appends long-term references. Swap the first two
++ * entries of an identical B list1 when it contains multiple entries.
++ * Pack four canvas/structure entries per word and pad with the last entry.
 + */
 +static void codec_h264_multi_write_list(struct amvdec_session *sess, u32 index,
 +					const struct h264_ref *refs, u32 n, u32 view)
@@ -904,12 +639,7 @@ index e7ac781416..939af09918 100644
 +		meson_amvdec_write_dos(core, H264_BUFFER_INFO_DATA, val);
 +}
 +
-+/*
-+ * Reference list modification commands for the picture about to be decoded.
-+ *
-+ * Read from the slice header by the feed path, because frame-based mode gives
-+ * us no per-slice controls and the firmware does not reorder for us.
-+ */
++/* Read reference-list modifications from slice headers in frame-based mode. */
 +void meson_amvdec_codec_h264_multi_set_slice_refs(struct amvdec_session *sess,
 +				     const struct h264_slice_refs *sr)
 +{
@@ -925,17 +655,8 @@ index e7ac781416..939af09918 100644
 +}
 +
 +/*
-+ * Has the PPS changed since the last one the firmware was given in-band?
-+ *
-+ * The multi blob parses SPS/PPS only from the bitstream and ignores the
-+ * records the host writes, so what it decodes with is whatever was last
-+ * spliced ahead of a slice.  Splicing only at IDR was wrong: a stream may
-+ * re-send the PPS with different content under the same id at any picture.
-+ * Every JVT-AVC_V1 vector from one encoder does exactly that - the default
-+ * reference counts step up GOP by GOP - and every one of them hung once the
-+ * firmware's stale PPS disagreed with the slice it was parsing.
-+ *
-+ * Records the PPS as the current one; the caller emits it when this is true.
++ * Compare the SPS and PPS syntax against the firmware header cache. Emit
++ * changed headers before any picture, including changes under the same ID.
 + */
 +int meson_amvdec_codec_h264_multi_headers(struct amvdec_session *sess,
 +			     const struct v4l2_ctrl_h264_sps *sps,
@@ -1145,14 +866,8 @@ index e7ac781416..939af09918 100644
 +		refs[n].structure = h264->multi_field_slots[fw].structure;
 +		refs[n].lt = !!(e->flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM);
 +		/*
-+		 * PicNum must be FrameNumWrap (8-27/8-28): frame_num, less
-+		 * MaxFrameNum for any reference whose frame_num is above the
-+		 * current one.  The uAPI says pic_num already carries that,
-+		 * but ffmpeg fills it from pic_id, which its own header calls
-+		 * the "no wrap version of pic_num" and which is just frame_num
-+		 * (h264_refs.c:90).  Taken at face value the descending-PicNum
-+		 * P list comes out in the wrong order from the first frame_num
-+		 * wrap onwards, so derive it here instead of trusting it.
++		 * Derive signed FrameNumWrap from frame_num and MaxFrameNum for short-term
++		 * references, as specified by H.264 (8-27) and (8-28).
 +		 */
 +		if (refs[n].lt || !h264->multi_slice_refs.valid) {
 +			refs[n].pic_num = (s32)e->pic_num;
@@ -1234,11 +949,7 @@ index e7ac781416..939af09918 100644
 +		}
 +	}
 +
-+	/*
-+	 * Reorder per the slice header, then cut each list to the number of
-+	 * entries the slice actually activates - which is what the vendor
-+	 * writes (vmh264.c uses pSlice->listXsize[]).
-+	 */
++	/* Apply slice-header modifications and limit each list to its active count. */
 +	if (h264->multi_slice_refs.valid) {
 +		const struct h264_slice_refs *sr = &h264->multi_slice_refs;
 +		u32 max_pic_num = 1u << (h264->multi_sps.log2_max_frame_num_minus4 + 4);
@@ -1285,11 +996,7 @@ index e7ac781416..939af09918 100644
 +	return 0;
 +}
 +
-+/*
-+ * Choose the CAPTURE buffer this picture decodes into. The multi firmware does
-+ * not allocate for us - the host programs the canvas - so take the next ready
-+ * destination buffer and remember its firmware canvas slot.
-+ */
++/* Select the ready CAPTURE buffer and retain its firmware canvas slot. */
 +static int codec_h264_multi_pick_capture(struct amvdec_session *sess)
 +{
 +	struct codec_h264 *h264 = sess->priv;
@@ -1310,10 +1017,8 @@ index e7ac781416..939af09918 100644
 +		return -EINVAL;
 +	}
 +	/*
-+	 * A stateless client creates CAPTURE buffers as it needs them, so this
-+	 * may be the first time this one has been seen.  Map it here, where it
-+	 * is queued and prepared, rather than scanning the queue's buffer
-+	 * array - which races userspace and oopses on unbacked buffers.
++	 * Map this prepared buffer on first use; the client may grow the pool
++	 * while decoding.
 +	 */
 +	if (meson_amvdec_map_capture_buffer(sess, &dst->vb2_buf,
 +				      (u32[]){ ANC0_CANVAS_ADDR, 0 },
@@ -1367,15 +1072,6 @@ index e7ac781416..939af09918 100644
 +}
 +
 +/*
-+ * Program the per-picture decode state the multi firmware expects before it is
-+ * told to decode. Ported from the vendor's config_decode_buf(), reduced to the
-+ * frame, MBAFF and supported field-picture cases.
-+ *
-+ * The canvas, POC and colocated-MV slot all key off the CAPTURE buffer this
-+ * driver picked for the picture, so the host - not the firmware - decides where
-+ * the frame lands.
-+ */
-+/*
 + * Only field terminal state/provenance use this lock; never hold it over
 + * MMIO, queue completion or queue abort. Completion linearizes at claim.
 + */
@@ -1394,19 +1090,18 @@ index e7ac781416..939af09918 100644
 +	return advanced;
 +}
 +
-+static void codec_h264_multi_vendor_stop(struct amvdec_session *sess,
-+					 const char *tag)
++static void codec_h264_multi_stop_processor(struct amvdec_session *sess,
++					    const char *tag)
 +{
 +	struct codec_h264 *h264 = sess->priv;
 +	struct amvdec_core *core = sess->core;
 +	u32 rp0, rp1;
 +	int i;
 +
-+	if (!h264 || !h264->multi_blob ||
-+	    !h264->multi_powered || !h264->multi_hw_started)
++	if (!h264 || !h264->multi_powered || !h264->multi_hw_started)
 +		return;
 +
-+	dev_dbg(core->dev_dec, "h264 vendor stop: tag=%s begin\n", tag);
++	dev_dbg(core->dev_dec, "h264 stop: tag=%s begin\n", tag);
 +	meson_amvdec_write_dos(core, MPSR, 0);
 +	meson_amvdec_write_dos(core, CPSR, 0);
 +
@@ -1416,7 +1111,7 @@ index e7ac781416..939af09918 100644
 +		udelay(10);
 +	}
 +	if (i == 1000)
-+		dev_warn(core->dev_dec, "h264 vendor stop: tag=%s IMEM DMA did not drain ctrl=%#x\n",
++		dev_warn(core->dev_dec, "h264 stop: tag=%s IMEM DMA did not drain ctrl=%#x\n",
 +			 tag, meson_amvdec_read_dos(core, IMEM_DMA_CTRL));
 +
 +	for (i = 0; i < 1000; i++) {
@@ -1425,7 +1120,7 @@ index e7ac781416..939af09918 100644
 +		udelay(10);
 +	}
 +	if (i == 1000)
-+		dev_warn(core->dev_dec, "h264 vendor stop: tag=%s LMEM DMA did not drain ctrl=%#x\n",
++		dev_warn(core->dev_dec, "h264 stop: tag=%s LMEM DMA did not drain ctrl=%#x\n",
 +			 tag, meson_amvdec_read_dos(core, LMEM_DMA_CTRL));
 +
 +	for (i = 0; i < 1000; i++) {
@@ -1434,7 +1129,7 @@ index e7ac781416..939af09918 100644
 +		udelay(10);
 +	}
 +	if (i == 1000)
-+		dev_warn(core->dev_dec, "h264 vendor stop: tag=%s WRRSP_LMEM did not drain wrrsp=%#x\n",
++		dev_warn(core->dev_dec, "h264 stop: tag=%s WRRSP_LMEM did not drain wrrsp=%#x\n",
 +			 tag, meson_amvdec_read_dos(core, WRRSP_LMEM));
 +
 +	meson_amvdec_write_dos(core, DOS_SW_RESET0, BIT(12) | BIT(11));
@@ -1449,25 +1144,25 @@ index e7ac781416..939af09918 100644
 +			break;
 +	}
 +	if (i == 100)
-+		dev_warn(core->dev_dec, "h264 vendor stop: tag=%s VIFIFO_RP still moving rp0=%#x rp1=%#x\n",
++		dev_warn(core->dev_dec, "h264 stop: tag=%s VIFIFO_RP still moving rp0=%#x rp1=%#x\n",
 +			 tag, rp0, rp1);
 +
 +	meson_amvdec_write_dos(core, VLD_MEM_VIFIFO_CONTROL, BIT(15));
 +	h264->multi_hw_started = false;
 +	dev_dbg(core->dev_dec,
-+		"h264 vendor stop: tag=%s done rp0=%#x rp1=%#x level=%#x bitcnt=%#x\n",
++		"h264 stop: tag=%s done rp0=%#x rp1=%#x level=%#x bitcnt=%#x\n",
 +		 tag, rp0, rp1, meson_amvdec_read_dos(core, VLD_MEM_VIFIFO_LEVEL),
 +		 meson_amvdec_read_dos(core, VIFF_BIT_CNT));
 +}
 +
 +static void codec_h264_job_abort(struct amvdec_session *sess)
 +{
-+	codec_h264_multi_vendor_stop(sess, "timeout");
++	codec_h264_multi_stop_processor(sess, "timeout");
 +}
 +
 +static void codec_h264_pre_stop(struct amvdec_session *sess)
 +{
-+	codec_h264_multi_vendor_stop(sess, "stop");
++	codec_h264_multi_stop_processor(sess, "stop");
 +}
 +
 +static void codec_h264_multi_abort(struct amvdec_session *sess)
@@ -1475,8 +1170,8 @@ index e7ac781416..939af09918 100644
 +	struct codec_h264 *h264 = sess->priv;
 +	unsigned long flags;
 +
-+	if (h264 && h264->multi_blob)
-+		codec_h264_multi_vendor_stop(sess, "abort");
++	if (h264)
++		codec_h264_multi_stop_processor(sess, "abort");
 +
 +	if (h264->multi_field_picture) {
 +		spin_lock_irqsave(&h264->multi_field_lock, flags);
@@ -1772,8 +1467,7 @@ index e7ac781416..939af09918 100644
 +		top_poc = first_poc;
 +		bottom_poc = first_poc;
 +	}
-+	/* A matched field mate restores frame_poc=min(top,bottom), vendor DPB. */
-+	/* Picture order counts: frame, then top, then bottom. */
++	/* Write frame POC as min(top, bottom), followed by top and bottom POC. */
 +	meson_amvdec_write_dos(core, H264_CURRENT_POC_IDX_RESET, 0);
 +	meson_amvdec_write_dos(core, H264_CURRENT_POC,
 +			 min(top_poc, bottom_poc));
@@ -1788,17 +1482,11 @@ index e7ac781416..939af09918 100644
 +	meson_amvdec_write_dos(core, DBKW_CANVAS_ADDR, canvas);
 +
 +	/*
-+	 * Buffer info table, written exactly as the vendor does it. Index 16
-+	 * onwards carries one info0/top_poc/bottom_poc triple per frame slot:
-+	 * 0xf480 is "progressive frame", bit 8 marks a bottom-first pair and
-+	 * the low nibble marks the slot being decoded into. Indices 0 and 8
-+	 * carry reference lists 0 and 1, four packed entries per word, eight
-+	 * words each - written even when a list is empty.
-+	 */
-+	/*
-+	 * Picture structure, as the vendor encodes it (vmh264.c:2100):
-+	 * 0xf4c0 MBAFF frame, 0xf400 top field, 0xf440 bottom field,
-+	 * 0xf480 progressive frame; retain this tag for legacy single-I fields.
++	 * Buffer-info indices 16 onward hold info0/top_poc/bottom_poc per canvas
++	 * slot. Bit 8 marks bottom-first pairs; the low nibble marks the decode
++	 * slot. Indices 0 and 8 hold the packed reference lists, including padding.
++	 * Picture-structure tags: 0xf4c0 MBAFF, 0xf400 top field, 0xf440 bottom
++	 * field and 0xf480 progressive frame.
 +	 */
 +	switch (codec_h264_multi_current_structure(h264)) {
 +	case 0:
@@ -1819,12 +1507,8 @@ index e7ac781416..939af09918 100644
 +		info0 |= 0x100;
 +
 +	/*
-+	 * This table is indexed by firmware canvas position, not DPB entry.
-+	 * CAPTURE allocation/reordering can put a retained picture above slot
-+	 * 16 even with at most 16 DPB entries. Cover the same 24 slots as
-+	 * canvas mapping and the colocated MV allocation. The vendor writes
-+	 * one triple per canvas position across mDPB.size (up to 27).
-+	 * Leave every unused slot zero, including slots not mapped yet.
++	 * Index by firmware canvas position, covering all 24 capture slots.
++	 * Zero unused slots, including those without a mapping.
 +	 */
 +	meson_amvdec_write_dos(core, H264_BUFFER_INFO_INDEX, 16);
 +	for (i = 0; i < H264_MULTI_MAX_FW_BUFS; i++) {
@@ -1839,12 +1523,9 @@ index e7ac781416..939af09918 100644
 +			r_bot = bottom_poc;
 +		} else if (ref) {
 +			/*
-+			 * A reference keeps the structure it was decoded with:
-+			 * the vendor replays the per-buffer info0 it stored at
-+			 * decode time (vmh264.c:2100-2107, 2139-2140), so an
-+			 * MBAFF reference reads 0xf4c0, not "progressive frame".
-+			 * MbaffFrameFlag is constant across a sequence of frame
-+			 * pictures, so the current flag applies to every slot.
++			 * Retain each reference picture structure. MbaffFrameFlag is
++			 * constant
++			 * across frame pictures in a sequence.
 +			 */
 +			const struct h264_field_surface *surface = &h264->multi_field_slots[i];
 +
@@ -1879,10 +1560,8 @@ index e7ac781416..939af09918 100644
 +		return -EINVAL;
 +
 +	/*
-+	 * Colocated MV store. One slot per CAPTURE frame keyed by canvas
-+	 * index, so a later B picture can find the MVs of its L1[0].
-+	 * Each slice writes/reads at its macroblock (or MBAFF pair) offset.
-+	 * Slot spacing remains the existing per-CAPTURE allocation stride.
++	 * Use one colocated-MV slot per capture canvas. Each slice addresses its
++	 * macroblock or MBAFF-pair offset within that slot.
 +	 */
 +	if (!h264->colocate_vaddr || !h264->colocate_buf_size) {
 +		dev_err_ratelimited(core->dev_dec, "h264 multi decbuf: no colocated MV store\n");
@@ -1911,7 +1590,7 @@ index e7ac781416..939af09918 100644
 +		 * Direct mode reads the colocated MVs of L1[0]. Bits 31:30
 +		 * carry that picture's coding structure (2 = frame) and bit
 +		 * 29 selects which field of it to use; for a frame picture
-+		 * the vendor picks by POC distance.
++		 * select the field by POC distance.
 +		 */
 +		u32 rd = h264->colocate_paddr +
 +			 h264->colocate_buf_size * h264->multi_l1_fw_idx;
@@ -1963,15 +1642,8 @@ index e7ac781416..939af09918 100644
 +}
 +
 +/*
-+ * Write the sequence-level RPM fields the firmware needs but has not got.
-+ *
-+ * Measured at H264_SLICE_HEAD_DONE on g12a_h264_multi.bin: the firmware parses
-+ * the slice header correctly (NAL type, slice type, QP, first_mb) and, with an
-+ * in-band PPS, the PPS fields too - but the SPS-derived geometry is never
-+ * populated: MB_X_NUM reads 0xffff, MB_HEIGHT and TOTAL_MB_HEIGHT read 0. With
-+ * no picture dimensions it then decodes zero macroblocks. Supply them from the
-+ * host-parsed SPS, in the window after the firmware's slice-header parse has
-+ * landed and before it is told to decode.
++ * Supply SPS-derived geometry in RPM after SLICE_HEAD_DONE and before
++ * starting reconstruction; the firmware leaves these fields unset.
 + */
 +static void codec_h264_multi_inject_sps_rpm(struct amvdec_session *sess)
 +{
@@ -2011,14 +1683,7 @@ index e7ac781416..939af09918 100644
 +
 +static int codec_h264_multi_host_config(struct amvdec_session *sess);
 +
-+/*
-+ * Host-parsed picture parameters for the multi blob.
-+ *
-+ * Per Amlogic, the host parses SPS/PPS and decides which frame is displayed
-+ * or referenced; the firmware parses only part of the slice header.
-+ * esparser_queue() already holds the request's controls when it feeds an access
-+ * unit, so stash what the per-picture programming needs from there.
-+ */
++/* Cache request controls for per-picture hardware programming. */
 +void meson_amvdec_codec_h264_multi_set_params(struct amvdec_session *sess,
 +				 const struct v4l2_ctrl_h264_sps *sps,
 +				 const struct v4l2_ctrl_h264_pps *pps,
@@ -2029,7 +1694,7 @@ index e7ac781416..939af09918 100644
 +	u32 cfg, frame_size, max_refs, max_list, pic_h_mbs;
 +	u32 req_width_mbs, req_height_mbs, fmt_width_mbs, fmt_height_mbs;
 +
-+	if (!h264 || !h264->multi_blob || !h264->workspace_vaddr)
++	if (!h264 || !h264->workspace_vaddr)
 +		return;
 +
 +	h264->multi_pic_top_poc = dec->top_field_order_cnt;
@@ -2113,11 +1778,8 @@ index e7ac781416..939af09918 100644
 +	h264->multi_sps_mbaff = !(sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) &&
 +			    !!(sps->flags & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD);
 +	/*
-+	 * The decoder applies the frame implicit weights to the field
-+	 * macroblock pairs of an MBAFF B picture instead of the per-field
-+	 * weights of 8.4.2.3.1, on every SoC this driver supports. The stateful
-+	 * firmware gives the same output as the multi-instance firmware, so
-+	 * nothing the driver programs changes it. Say so.
++	 * The decoder applies frame implicit weights to MBAFF field pairs,
++	 * without the per-field weights required by H.264 8.4.2.3.1.
 +	 */
 +	if (h264->multi_sps_mbaff && pps->weighted_bipred_idc == 2)
 +		dev_warn_once(core->dev_dec,
@@ -2152,108 +1814,107 @@ index e7ac781416..939af09918 100644
 +		 h264->mb_width, h264->mb_height, cfg, max_refs);
 +}
 +
- static int codec_h264_start(struct amvdec_session *sess)
- {
- 	u32 workspace_offset;
- 	struct amvdec_core *core = sess->core;
- 	struct codec_h264 *h264 = sess->priv;
++static int codec_h264_start(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++	struct codec_h264 *h264 = sess->priv;
 +	int ret;
 +
 +	BUILD_BUG_ON(DCAC_READ_MARGIN + 0x218000 + 0x10 > SIZE_WORKSPACE_MULTI);
 +	BUILD_BUG_ON(SIZE_WORKSPACE_MULTI > SIZE_WORKSPACE_MULTI_RP);
- 
--	h264->workspace_size = SIZE_WORKSPACE;
-+	h264->workspace_size = h264->multi_blob ? SIZE_WORKSPACE_MULTI_RP : SIZE_WORKSPACE;
- 
- 	/* Allocate some memory for the H.264 decoder's state */
- 	h264->workspace_vaddr =
-@@ -191,6 +1767,24 @@ static int codec_h264_start(struct amvdec_session *sess)
- 	if (!h264->sei_vaddr)
- 		return -ENOMEM;
- 
-+	if (h264->multi_blob) {
-+		h264->aux_vaddr = dma_alloc_coherent(core->dev, SIZE_MULTI_AUX,
-+						     &h264->aux_paddr, GFP_KERNEL);
-+		if (!h264->aux_vaddr)
-+			return -ENOMEM;
-+	}
 +
-+	if (h264->multi_blob) {
-+		h264->lmem_vaddr = dma_alloc_coherent(core->dev, SIZE_LMEM,
-+						      &h264->lmem_paddr,
-+						      GFP_KERNEL);
-+		if (!h264->lmem_vaddr)
-+			return -ENOMEM;
-+	}
++	h264->workspace_size = SIZE_WORKSPACE_MULTI_RP;
 +
-+	if (h264->multi_blob)
-+		memset(h264->workspace_vaddr, 0, h264->workspace_size);
++	/* Allocate some memory for the H.264 decoder's state */
++	h264->workspace_vaddr =
++		dma_alloc_coherent(core->dev, h264->workspace_size,
++				   &h264->workspace_paddr, GFP_KERNEL);
++	if (!h264->workspace_vaddr)
++		return -ENOMEM;
 +
- 	/*
- 	 * Re-pulse the decode-pipeline resets (VLD_PART, IQIDCT, MC, then
- 	 * DBLK, PIC_DC) now that the clocks are running and the DOS
-@@ -218,10 +1812,36 @@ static int codec_h264_start(struct amvdec_session *sess)
- 	meson_amvdec_write_dos_bits(core, POWER_CTL_VLD, BIT(9) | BIT(6));
- 
- 	workspace_offset = h264->workspace_paddr - WORKSPACE_BUF_OFFSET;
--	meson_amvdec_write_dos(core, AV_SCRATCH_1, workspace_offset);
--	meson_amvdec_write_dos(core, AV_SCRATCH_I, h264->sei_paddr -
--				     workspace_offset);
-+	if (h264->multi_blob) {
-+		h264->multi_powered = true;
-+		h264->multi_hw_started = false;
-+		meson_amvdec_write_dos(core, AV_SCRATCH_8,
-+				 codec_h264_multi_workspace_base(h264));
-+		meson_amvdec_write_dos(core, H264_AUX_ADR, h264->aux_paddr);
-+		meson_amvdec_write_dos(core, H264_AUX_DATA_SIZE,
-+				 ((SIZE_MULTI_AUX >> 4) << 16));
-+		meson_amvdec_write_dos(core, H264_DECODE_MODE,
-+				 DECODE_MODE_MULTI_FRAMEBASE);
-+		meson_amvdec_write_dos(core, H264_DECODE_SEQINFO, 0);
-+		meson_amvdec_write_dos(core, HEAD_PADING_REG, 0);
-+		meson_amvdec_write_dos(core, INIT_FLAG_REG, 0);
-+		meson_amvdec_write_dos(core, DPB_STATUS_REG, 0);
-+		dev_dbg(core->dev_dec,
-+			"h264 multi init: mode=framebase workspace=%pad aux=%pad ext=%pad\n",
-+			 &h264->workspace_paddr, &h264->aux_paddr,
-+			 &h264->ext_fw_paddr);
++	/* Allocate some memory for the H.264 SEI dump */
++	h264->sei_vaddr = dma_alloc_coherent(core->dev, SIZE_SEI,
++					     &h264->sei_paddr, GFP_KERNEL);
++	if (!h264->sei_vaddr)
++		return -ENOMEM;
 +
-+		ret = codec_h264_multi_host_config(sess);
-+		if (ret)
-+			return ret;
-+	} else {
-+		meson_amvdec_write_dos(core, AV_SCRATCH_1, workspace_offset);
-+		meson_amvdec_write_dos(core, AV_SCRATCH_I, h264->sei_paddr -
-+					     workspace_offset);
-+	}
- 	meson_amvdec_write_dos(core, AV_SCRATCH_G, h264->ext_fw_paddr);
++	h264->aux_vaddr = dma_alloc_coherent(core->dev, SIZE_MULTI_AUX,
++					     &h264->aux_paddr, GFP_KERNEL);
++	if (!h264->aux_vaddr)
++		return -ENOMEM;
++
++	h264->lmem_vaddr = dma_alloc_coherent(core->dev, SIZE_LMEM,
++					      &h264->lmem_paddr,
++					      GFP_KERNEL);
++	if (!h264->lmem_vaddr)
++		return -ENOMEM;
++
++	memset(h264->workspace_vaddr, 0, h264->workspace_size);
++
++	/*
++	 * Reset VLD_PART, IQIDCT, MC, DBLK and PIC_DC after clocks and memories
++	 * are enabled, following the vendor driver initialization sequence.
++	 */
++	meson_amvdec_write_dos(core, DOS_SW_RESET0, BIT(7) | BIT(6) | BIT(4));
++	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0);
++	meson_amvdec_read_dos(core, DOS_SW_RESET0);
++	meson_amvdec_read_dos(core, DOS_SW_RESET0);
++	meson_amvdec_read_dos(core, DOS_SW_RESET0);
++	meson_amvdec_write_dos(core, DOS_SW_RESET0, BIT(7) | BIT(6) | BIT(4));
++	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0);
++	meson_amvdec_write_dos(core, DOS_SW_RESET0, BIT(9) | BIT(8));
++	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0);
++	meson_amvdec_read_dos(core, DOS_SW_RESET0);
++	meson_amvdec_read_dos(core, DOS_SW_RESET0);
++	meson_amvdec_read_dos(core, DOS_SW_RESET0);
++
++	meson_amvdec_write_dos_bits(core, POWER_CTL_VLD, BIT(9) | BIT(6));
++
++	h264->multi_powered = true;
++	h264->multi_hw_started = false;
++	meson_amvdec_write_dos(core, AV_SCRATCH_8,
++			       codec_h264_multi_workspace_base(h264));
++	meson_amvdec_write_dos(core, H264_AUX_ADR, h264->aux_paddr);
++	meson_amvdec_write_dos(core, H264_AUX_DATA_SIZE,
++			       ((SIZE_MULTI_AUX >> 4) << 16));
++	meson_amvdec_write_dos(core, H264_DECODE_MODE,
++			       DECODE_MODE_MULTI_FRAMEBASE);
++	meson_amvdec_write_dos(core, H264_DECODE_SEQINFO, 0);
++	meson_amvdec_write_dos(core, HEAD_PADING_REG, 0);
++	meson_amvdec_write_dos(core, INIT_FLAG_REG, 0);
++	meson_amvdec_write_dos(core, DPB_STATUS_REG, 0);
++	dev_dbg(core->dev_dec,
++		"h264 multi init: mode=framebase workspace=%pad aux=%pad ext=%pad\n",
++		 &h264->workspace_paddr, &h264->aux_paddr,
++		 &h264->ext_fw_paddr);
++
++	ret = codec_h264_multi_host_config(sess);
++	if (ret)
++		return ret;
++	meson_amvdec_write_dos(core, AV_SCRATCH_G, h264->ext_fw_paddr);
 +	if (h264->lmem_vaddr)
 +		meson_amvdec_write_dos(core, LMEM_DUMP_ADR, h264->lmem_paddr);
- 
- 	/* Enable "error correction" */
- 	meson_amvdec_write_dos(core, AV_SCRATCH_F,
-@@ -230,6 +1850,10 @@ static int codec_h264_start(struct amvdec_session *sess)
- 
- 	meson_amvdec_write_dos(core, MDEC_PIC_DC_THRESH, 0x404038aa);
- 
-+	/* Match the vendor ordering: NAL_SEARCH_CTL before the processor starts. */
++
++	/* Enable "error correction" */
++	meson_amvdec_write_dos(core, AV_SCRATCH_F,
++			 (meson_amvdec_read_dos(core, AV_SCRATCH_F) & 0xffffffc3) |
++			 BIT(4) | BIT(7));
++
++	meson_amvdec_write_dos(core, MDEC_PIC_DC_THRESH, 0x404038aa);
++
++	/* Set NAL_SEARCH_CTL before starting the processor. */
 +	if (h264->lmem_vaddr)
 +		meson_amvdec_write_dos(core, NAL_SEARCH_CTL, 0);
 +
- 	return 0;
- }
- 
-@@ -238,6 +1862,24 @@ static int codec_h264_stop(struct amvdec_session *sess)
- 	struct codec_h264 *h264 = sess->priv;
- 	struct amvdec_core *core = sess->core;
- 
-+	/*
-+	 * An access unit in flight is off the m2m ready queue and owned by
-+	 * this codec, so vdec_stop_streaming()'s drain cannot see it. Return
-+	 * it here or vb2 waits for a buffer that is never coming back, which
-+	 * leaves the module unremovable and takes the board down on the next
-+	 * session.
-+	 */
++	return 0;
++}
++
++static int codec_h264_stop(struct amvdec_session *sess)
++{
++	struct codec_h264 *h264 = sess->priv;
++	struct amvdec_core *core = sess->core;
++
++	/* Return the active OUTPUT buffer owned by the codec before vb2 teardown. */
 +	if (h264->multi_src_vbuf) {
 +		h264->multi_slice_data = NULL;
 +		meson_amvdec_src_buf_done(sess, h264->multi_src_vbuf, VB2_BUF_STATE_ERROR);
@@ -2265,13 +1926,18 @@ index e7ac781416..939af09918 100644
 +	h264->multi_powered = false;
 +	h264->multi_headers_valid = false;
 +
- 	if (h264->ext_fw_vaddr)
- 		dma_free_coherent(core->dev, h264->ext_fw_size,
- 				  h264->ext_fw_vaddr, h264->ext_fw_paddr);
-@@ -254,6 +1896,18 @@ static int codec_h264_stop(struct amvdec_session *sess)
- 		dma_free_coherent(core->dev, SIZE_SEI,
- 				  h264->sei_vaddr, h264->sei_paddr);
- 
++	if (h264->ext_fw_vaddr)
++		dma_free_coherent(core->dev, h264->ext_fw_size,
++				  h264->ext_fw_vaddr, h264->ext_fw_paddr);
++
++	if (h264->workspace_vaddr)
++		dma_free_coherent(core->dev, h264->workspace_size,
++				  h264->workspace_vaddr, h264->workspace_paddr);
++
++	if (h264->sei_vaddr)
++		dma_free_coherent(core->dev, SIZE_SEI,
++				  h264->sei_vaddr, h264->sei_paddr);
++
 +	if (h264->aux_vaddr)
 +		dma_free_coherent(core->dev, SIZE_MULTI_AUX,
 +				  h264->aux_vaddr, h264->aux_paddr);
@@ -2284,80 +1950,63 @@ index e7ac781416..939af09918 100644
 +		dma_free_coherent(core->dev, h264->colocate_size,
 +				  h264->colocate_vaddr, h264->colocate_paddr);
 +
- 	return 0;
- }
- 
-@@ -262,28 +1916,56 @@ static int codec_h264_load_firmware(struct amvdec_session *sess,
- {
- 	struct codec_h264 *h264;
- 	struct amvdec_core *core = sess->core;
--	u32 ext_size = SIZE_EXT_FW;
-+	bool multi = sess->fmt_out->codec_ops == &meson_amvdec_codec_h264_multi_ops;
-+	u32 ext_size = multi ? SIZE_EXT_FW_MULTI : SIZE_EXT_FW;
- 
--	if (len < SZ_16K + SIZE_EXT_FW)
-+	if (!multi && len < SZ_16K + SIZE_EXT_FW)
++	return 0;
++}
++
++static int codec_h264_load_firmware(struct amvdec_session *sess,
++				    const u8 *data, u32 len)
++{
++	struct codec_h264 *h264;
++	struct amvdec_core *core = sess->core;
++	u32 ext_size = SIZE_EXT_FW_MULTI;
++
++	if (len < SIZE_MULTI_FW_MIN)
 +		return -EINVAL;
-+	if (multi && len < SIZE_MULTI_FW_MIN)
- 		return -EINVAL;
- 
- 	h264 = kzalloc_obj(*h264);
- 	if (!h264)
- 		return -ENOMEM;
- 
++
++	h264 = kzalloc_obj(*h264);
++	if (!h264)
++		return -ENOMEM;
++
 +	spin_lock_init(&h264->multi_field_lock);
- 	h264->ext_fw_size = ext_size;
-+	h264->multi_blob = multi;
- 	h264->ext_fw_vaddr = dma_alloc_coherent(core->dev, ext_size,
- 						&h264->ext_fw_paddr,
- 						GFP_KERNEL);
- 	if (!h264->ext_fw_vaddr) {
++	h264->ext_fw_size = ext_size;
++	h264->ext_fw_vaddr = dma_alloc_coherent(core->dev, ext_size,
++						&h264->ext_fw_paddr,
++						GFP_KERNEL);
++	if (!h264->ext_fw_vaddr) {
 +		kvfree(h264->scan_copy);
- 		kfree(h264);
- 		return -ENOMEM;
- 	}
- 
--	memcpy(h264->ext_fw_vaddr, data + SZ_16K, SIZE_EXT_FW);
--	dev_dbg(core->dev_dec,
--		 "h264 fw layout: legacy size=%u ext_size=%u\n",
--		 len, ext_size);
-+	if (multi) {
-+		memcpy(h264->ext_fw_vaddr + MC_OFFSET_HEADER,
-+		       data + 0x4000, MC_SWAP_SIZE);
-+		memcpy(h264->ext_fw_vaddr + MC_OFFSET_DATA,
-+		       data + 0x2000, MC_SWAP_SIZE);
-+		memcpy(h264->ext_fw_vaddr + MC_OFFSET_MMCO,
-+		       data + 0x6000, MC_SWAP_SIZE);
-+		memcpy(h264->ext_fw_vaddr + MC_OFFSET_LIST,
-+		       data + 0x3000, MC_SWAP_SIZE);
-+		memcpy(h264->ext_fw_vaddr + MC_OFFSET_SLICE,
-+		       data + 0x5000, MC_SWAP_SIZE);
-+		memcpy(h264->ext_fw_vaddr + MC_OFFSET_MAIN,
-+		       data, 0x2000);
-+		memcpy(h264->ext_fw_vaddr + MC_OFFSET_MAIN + 0x2000,
-+		       data + 0x2000, 0x1000);
-+		memcpy(h264->ext_fw_vaddr + MC_OFFSET_MAIN + 0x3000,
-+		       data + 0x5000, 0x1000);
-+		dev_dbg(core->dev_dec,
-+			"h264 fw layout: multi size=%u ext_size=%u\n",
-+			 len, ext_size);
-+	} else {
-+		memcpy(h264->ext_fw_vaddr, data + SZ_16K, SIZE_EXT_FW);
-+		dev_dbg(core->dev_dec,
-+			"h264 fw layout: legacy size=%u ext_size=%u\n",
-+			 len, ext_size);
++		kfree(h264);
++		return -ENOMEM;
 +	}
- 
- 	sess->priv = h264;
- 
-@@ -321,6 +2003,87 @@ static void codec_h264_set_par(struct amvdec_session *sess)
- 	sess->pixelaspect = par_table[ar_idc];
- }
- 
++
++	memcpy(h264->ext_fw_vaddr + MC_OFFSET_HEADER,
++	       data + 0x4000, MC_SWAP_SIZE);
++	memcpy(h264->ext_fw_vaddr + MC_OFFSET_DATA,
++	       data + 0x2000, MC_SWAP_SIZE);
++	memcpy(h264->ext_fw_vaddr + MC_OFFSET_MMCO,
++	       data + 0x6000, MC_SWAP_SIZE);
++	memcpy(h264->ext_fw_vaddr + MC_OFFSET_LIST,
++	       data + 0x3000, MC_SWAP_SIZE);
++	memcpy(h264->ext_fw_vaddr + MC_OFFSET_SLICE,
++	       data + 0x5000, MC_SWAP_SIZE);
++	memcpy(h264->ext_fw_vaddr + MC_OFFSET_MAIN,
++	       data, 0x2000);
++	memcpy(h264->ext_fw_vaddr + MC_OFFSET_MAIN + 0x2000,
++	       data + 0x2000, 0x1000);
++	memcpy(h264->ext_fw_vaddr + MC_OFFSET_MAIN + 0x3000,
++	       data + 0x5000, 0x1000);
++	dev_dbg(core->dev_dec,
++		"h264 fw layout: multi size=%u ext_size=%u\n",
++		 len, ext_size);
++
++	sess->priv = h264;
++
++	return 0;
++}
++
 +/*
 + * One colocated MV slot per CAPTURE frame, indexed by canvas position, so a B
 + * picture can read the MVs of its L1[0] without the firmware owning the
-+ * mapping. 96 bytes per macroblock, as the vendor driver sizes it.
++ * mapping. Each slot holds 96 bytes per macroblock.
 + */
 +static int codec_h264_multi_alloc_colocate(struct amvdec_session *sess)
 +{
@@ -2373,16 +2022,10 @@ index e7ac781416..939af09918 100644
 +		return -EINVAL;
 +
 +	/*
-+	 * Sized for every slot the canvas table can hold, not for the buffers
-+	 * that happen to exist right now: a stateless client keeps adding
-+	 * CAPTURE buffers while decoding, and the store is allocated once.
-+	 * Sizing it to the current count would leave the firmware writing
-+	 * colocated motion vectors past the end of the allocation.
-+	 */
-+	/*
-+	 * An MBAFF frame stores colocated motion vectors for both field
-+	 * halves of each macroblock pair, so it needs twice the room -
-+	 * ((structure == FRAME && !mb_aff) ? 1 : 2) * 96 in vmh264.c:2322.
++	 * Allocate MV storage for every firmware canvas slot so CAPTURE can grow
++	 * without resizing the store during decoding.
++	 * MBAFF stores motion vectors for both halves of each macroblock pair
++	 * and requires twice the progressive-frame storage.
 +	 */
 +	h264->colocate_buf_size = mb_total * H264_COLOCATE_BYTES_PER_MB *
 +				  (h264->multi_sps_mbaff ? 2 : 1);
@@ -2405,15 +2048,7 @@ index e7ac781416..939af09918 100644
 +	return 0;
 +}
 +
-+/*
-+ * Configure from the host, not from a firmware source-change.
-+ *
-+ * Per Amlogic: the host parses SPS/PPS and decides which frame is displayed
-+ * or referenced; the firmware parses only part of the slice headers.
-+ * So a stateless session takes its geometry from the negotiated CAPTURE format
-+ * and programs the canvases and colocated store up front. The firmware-driven
-+ * CONFIG_REQUEST/source-change round trip never happens in this mode.
-+ */
++/* Configure capture canvases and colocated-MV storage before feeding pictures. */
 +static int codec_h264_multi_host_config(struct amvdec_session *sess)
 +{
 +	struct codec_h264 *h264 = sess->priv;
@@ -2422,11 +2057,7 @@ index e7ac781416..939af09918 100644
 +	h264->mb_width = DIV_ROUND_UP(sess->width, 16);
 +	h264->mb_height = DIV_ROUND_UP(sess->height, 16);
 +
-+	/*
-+	 * Sequence geometry is not guessed from the negotiated format: it
-+	 * arrives with the SPS control and is taken in
-+	 * meson_amvdec_codec_h264_multi_set_params().
-+	 */
++	/* Apply sequence geometry from each request SPS. */
 +	dev_dbg(core->dev_dec,
 +		"h264 multi host config: %ux%u mb=%ux%u fw_bufs=%u\n",
 +		 sess->width, sess->height, h264->mb_width, h264->mb_height,
@@ -2435,60 +2066,20 @@ index e7ac781416..939af09918 100644
 +	return codec_h264_multi_alloc_colocate(sess);
 +}
 +
- static void codec_h264_resume(struct amvdec_session *sess)
- {
- 	struct amvdec_core *core = sess->core;
-@@ -331,7 +2094,33 @@ static void codec_h264_resume(struct amvdec_session *sess)
- 	if (meson_amvdec_set_canvases(sess,
- 				(u32[]){ ANC0_CANVAS_ADDR, 0 },
- 				(u32[]){ H264_MULTI_MAX_FW_BUFS, 0 }) || !sess->num_fw_bufs) {
--		meson_amvdec_abort(sess);
-+		codec_h264_multi_abort(sess);
-+		return;
-+	}
-+	if (h264->multi_blob) {
-+		u32 config;
-+
-+		if (!h264->multi_dpb_size ||
-+		    sess->num_fw_bufs < h264->multi_dpb_size) {
-+			dev_err_ratelimited(core->dev_dec,
-+					    "h264 multi config blocked: fw_bufs=%u required=%u\n",
-+				sess->num_fw_bufs, h264->multi_dpb_size);
-+			return;
-+		}
-+
-+		if (codec_h264_multi_alloc_colocate(sess))
-+			return;
-+
-+		config = (h264->multi_max_reference_size << 24) |
-+			 (h264->multi_dpb_size << 16) |
-+			 (h264->multi_dpb_size << 8);
-+		meson_amvdec_write_dos(core, AV_SCRATCH_0, config);
-+		dev_dbg(core->dev_dec,
-+			"h264 multi config write: time_ns=%llu scratch0=%#x fw_bufs=%u required=%u scratch1=%#x scratch4=%#x\n",
-+			 (unsigned long long)ktime_get_ns(), config,
-+			 sess->num_fw_bufs, h264->multi_dpb_size,
-+			 meson_amvdec_read_dos(core, AV_SCRATCH_1),
-+			 meson_amvdec_read_dos(core, AV_SCRATCH_4));
- 		return;
- 	}
- 
-@@ -480,10 +2269,163 @@ static void codec_h264_frames_ready(struct amvdec_session *sess, u32 status)
- static irqreturn_t codec_h264_threaded_isr(struct amvdec_session *sess)
- {
- 	struct amvdec_core *core = sess->core;
++static irqreturn_t codec_h264_threaded_isr(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
 +	struct codec_h264 *h264 = sess->priv;
- 	u32 status;
- 	u32 size;
- 	u8 cmd;
- 
-+	if (h264 && h264->multi_blob) {
++	u32 status;
++
++	if (h264) {
 +		u32 level = meson_amvdec_read_dos(core, VLD_MEM_VIFIFO_LEVEL);
 +		u32 wp = meson_amvdec_read_dos(core, VLD_MEM_VIFIFO_WP);
 +		u32 rp = meson_amvdec_read_dos(core, VLD_MEM_VIFIFO_RP);
 +		u32 bit_count = meson_amvdec_read_dos(core, VIFF_BIT_CNT);
 +
 +		status = meson_amvdec_read_dos(core, DPB_STATUS_REG);
++		meson_amvdec_trace(sess, AMVDEC_TR_IRQ, status, level, bit_count);
 +		dev_dbg(core->dev,
 +			"H264 multi status: time_ns=%llu irq=%u status=%#04x level=%#x wp=%#x rp=%#x bits=%#x\n",
 +			 (unsigned long long)ktime_get_ns(),
@@ -2515,10 +2106,8 @@ index e7ac781416..939af09918 100644
 +				"H264 multi reply: status=%#04x action=%#04x\n",
 +				 status, H264_ACTION_CONFIG_DONE);
 +			/*
-+			 * Answer from the host. Deriving geometry from the
-+			 * firmware's parse and raising a source change is the
-+			 * stateful flow; a stateless session already knows
-+			 * both and must not signal one.
++			 * Answer the configuration request from the host SPS and capture
++			 * format.
 +			 */
 +			codec_h264_multi_write_dpb_config(sess);
 +		} else if (status == H264_SLICE_HEAD_DONE) {
@@ -2551,6 +2140,7 @@ index e7ac781416..939af09918 100644
 +				}
 +				action = H264_ACTION_DECODE_SLICE;
 +			}
++			meson_amvdec_trace(sess, AMVDEC_TR_KICK, action, status, 0);
 +			meson_amvdec_write_dos_action(core, DPB_STATUS_REG, action);
 +			dev_dbg(core->dev_dec,
 +				"H264 multi reply: status=%#04x action=%#04x\n",
@@ -2558,6 +2148,8 @@ index e7ac781416..939af09918 100644
 +		} else if (status == H264_PIC_DATA_DONE) {
 +			u32 mby_mbx = meson_amvdec_read_dos(core, H264_MBY_MBX);
 +
++			meson_amvdec_trace(sess, AMVDEC_TR_DONE, status,
++				     h264->multi_pic_vb2_idx, mby_mbx);
 +			u32 decoded_mbs = ((mby_mbx & 0xff) + 1) *
 +					  (((mby_mbx >> 8) & 0xff) + 1);
 +			u32 expected_mb_width = h264->multi_sps.pic_width_in_mbs_minus1 + 1;
@@ -2583,12 +2175,8 @@ index e7ac781416..939af09918 100644
 +				h264->multi_done_error = true;
 +			}
 +			/*
-+			 * Do not touch the m2m queues from here. The feed
-+			 * worker owns them; completing the OUTPUT buffer in
-+			 * this context raced its removal from the ready
-+			 * queue, and the worker then dropped the following
-+			 * buffer unfed. Record the completion and wake the
-+			 * worker to retire it.
++			 * Record completion and wake the feed worker, which owns removal and
++			 * retirement of m2m buffers.
 +			 */
 +			if (h264->multi_field_picture) {
 +				u32 w = h264->multi_sps.pic_width_in_mbs_minus1 + 1;
@@ -2634,18 +2222,23 @@ index e7ac781416..939af09918 100644
 +		return IRQ_HANDLED;
 +	}
 +
- 	status = meson_amvdec_read_dos(core, AV_SCRATCH_0);
- 	cmd = status & CMD_MASK;
- 	dev_dbg(core->dev, "h264 irq sess=%p status=%#x cmd=%u\n",
-@@ -537,10 +2479,450 @@ static irqreturn_t codec_h264_isr(struct amvdec_session *sess)
- 	return IRQ_WAKE_THREAD;
- }
- 
++	return IRQ_HANDLED;
++}
++
++static irqreturn_t codec_h264_isr(struct amvdec_session *sess)
++{
++	struct amvdec_core *core = sess->core;
++
++	meson_amvdec_write_dos(core, ASSIST_MBOX1_CLR_REG, 1);
++
++	return IRQ_WAKE_THREAD;
++}
++
 +static void codec_h264_post_start(struct amvdec_session *sess)
 +{
 +	struct codec_h264 *h264 = sess->priv;
 +
-+	if (!h264 || !h264->multi_blob)
++	if (!h264)
 +		return;
 +
 +	/* amvdec_1_start() leaves direct-input firmware halted. The first feed
@@ -2657,13 +2250,8 @@ index e7ac781416..939af09918 100644
 +}
 +
 +/*
-+ * Point the VLD straight at the OUTPUT buffer.
-+ *
-+ * Stateless decode gives the driver one access unit in one physically
-+ * contiguous buffer, so the stream FIFO is aimed at that buffer instead of at
-+ * a ring the ESPARSER copies into. Sequence follows the S4 stateless driver's
-+ * input setup; VDEC_FIFO_ALIGN is 8 and the VLD reads a padding window past
-+ * the payload.
++ * Use OUTPUT as the VLD stream FIFO. Align the base to eight bytes and
++ * provide a padding window for hardware read-ahead.
 + */
 +#define VDEC_FIFO_ALIGN		8
 +#define VLD_PADDING_SIZE	1024
@@ -2677,10 +2265,8 @@ index e7ac781416..939af09918 100644
 +}
 +
 +/*
-+ * Retire the picture the firmware has just finished, from worker context.
-+ * Both buffers are released here: the CAPTURE frame, carrying the OUTPUT
-+ * buffer's timestamp so later pictures can name it as a reference, and the
-+ * OUTPUT buffer itself, which was the VLD's FIFO until now.
++ * Retire OUTPUT and CAPTURE from the feed worker. Copy the OUTPUT
++ * timestamp to CAPTURE so later requests can name it as a reference.
 + */
 +void meson_amvdec_codec_h264_multi_finish_picture(struct amvdec_session *sess)
 +{
@@ -2771,6 +2357,7 @@ index e7ac781416..939af09918 100644
 +				 dst->field, h264->multi_pic_top_poc, h264->multi_pic_bottom_poc);
 +		dst->sequence = sess->sequence_cap++;
 +		v4l2_m2m_buf_done(dst, VB2_BUF_STATE_DONE);
++		meson_amvdec_trace(sess, AMVDEC_TR_SIGNAL, dst->vb2_buf.index, 0, 0);
 +		dev_dbg(core->dev_dec, "h264 multi done: vb2=%u ts=%llu\n",
 +			dst->vb2_buf.index, dst->vb2_buf.timestamp);
 +	} else if (!dst) {
@@ -2779,9 +2366,7 @@ index e7ac781416..939af09918 100644
 +			h264->multi_done_fw_idx);
 +	} else {
 +		/*
-+		 * dst was removed from the ready queue but there is no OUTPUT
-+		 * buffer to take metadata from, so it was never completed and
-+		 * userspace waits on it forever.
++		 * Return the owned destination as an error when no source supplies metadata.
 +		 */
 +		dev_err_ratelimited(core->dev_dec,
 +				    "h264 multi drop: vb2=%u removed with no OUTPUT buffer\n",
@@ -2805,7 +2390,7 @@ index e7ac781416..939af09918 100644
 +	 * tear down this session and start the next stream on a clean decoder.
 +	 */
 +	if (abort_session) {
-+		codec_h264_multi_vendor_stop(sess, "done-error");
++		codec_h264_multi_stop_processor(sess, "done-error");
 +		codec_h264_multi_abort(sess);
 +	}
 +
@@ -2850,24 +2435,9 @@ index e7ac781416..939af09918 100644
 +}
 +
 +/*
-+ * OUTPUT buffers are allocated coherent, and nothing the driver can do at
-+ * queue init changes that: vb2 resets non_coherent_mem at every REQBUFS to
-+ * whatever userspace asked for, and players do not ask. On this
-+ * non-coherent SoC the kernel therefore sees every access unit through an
-+ * uncached mapping, where a byte load costs about 125 ns.
-+ *
-+ * The H.264 path parses each access unit in software four times - request
-+ * preflight, first-slice search, frame preflight and the per-slice walk in
-+ * the slice-head interrupt - all one byte at a time. At 1080p that was
-+ * 13 ms of the 15 ms spent between pictures, and the reason 1080p60 H.264
-+ * could not play: 45 fps against a 7 ms hardware decode.
-+ *
-+ * Copy the access unit once, with the wide loads memcpy() uses, into
-+ * ordinary cached memory and parse the copy. The hardware still reads the
-+ * OUTPUT buffer, and the driver's writes into it still go there directly.
-+ * Only one access unit is in flight, so one buffer per session serves the
-+ * pre-feed parse and the decode that follows it. Falls back to the source
-+ * if the copy cannot be allocated, which is slow but correct.
++ * Copy each access unit into cached memory for repeated byte-wise header
++ * parsing. Hardware and synthesized-header writes still use the coherent
++ * OUTPUT buffer. Fall back to parsing OUTPUT if allocation fails.
 + */
 +const u8 *meson_amvdec_codec_h264_scan_copy(struct amvdec_session *sess, const u8 *src,
 +			       u32 len, u32 cap)
@@ -2926,8 +2496,8 @@ index e7ac781416..939af09918 100644
 +		return ret;
 +	}
 +
-+	/* The vendor clears padding on every frame-block fill. Never expose
-+	 * bytes left by an earlier OUTPUT when VLD reads beyond this payload.
++	/*
++	 * Clear padding so VLD cannot read stale OUTPUT bytes beyond the payload.
 +	 */
 +	memset(h264->multi_src_vaddr + payload, 0, VLD_PADDING_SIZE);
 +	dma_sync_single_for_device(core->dev, src_dma + payload,
@@ -2936,12 +2506,7 @@ index e7ac781416..939af09918 100644
 +	dev_dbg(core->dev_dec, "h264 multi feed enter: pic=%u paddr=%pad payload=%u\n",
 +		h264->multi_pic_count, &src_dma, payload);
 +
-+	/*
-+	 * Halt the processors first. The VLD reset below is not safe with the
-+	 * AMRISC live - doing it under a running firmware hung the SoC hard.
-+	 * S4 gets this for free because it stops the hardware at the end of
-+	 * every picture; this driver keeps it running, so stop it here.
-+	 */
++	/* Halt AMRISC before resetting the VLD to avoid outstanding bus transactions. */
 +	meson_amvdec_write_dos(core, MPSR, 0);
 +	meson_amvdec_write_dos(core, CPSR, 0);
 +	for (i = 0; i < 1000; i++) {
@@ -2956,15 +2521,9 @@ index e7ac781416..939af09918 100644
 +	}
 +
 +	/*
-+	 * The multi firmware is restarted for every picture: this is the
-+	 * multi-instance model, where each access unit is a fresh decode
-+	 * against a context the host restores. Resetting the VLD while the
-+	 * AMRISC is still running is what hung the SoC, so the order below
-+	 * follows the S4 stateless driver exactly - set up the input, restore
-+	 * the context, then reset and restart the processors.
++	 * Restore input and per-picture context before resetting and restarting
++	 * the firmware processors. Use OUTPUT as the VLD FIFO.
 +	 */
-+
-+	/* ---- input: the VLD FIFO *is* the OUTPUT buffer ---- */
 +	meson_amvdec_write_dos(core, VLD_MEM_VIFIFO_CONTROL, 0);
 +	meson_amvdec_write_dos(core, DOS_SW_RESET0, BIT(5) | BIT(4) | BIT(3));
 +	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0);
@@ -2996,7 +2555,7 @@ index e7ac781416..939af09918 100644
 +	meson_amvdec_write_dos(core, H264_DECODE_SIZE, payload);
 +	meson_amvdec_write_dos(core, VIFF_BIT_CNT, payload * 8);
 +
-+	/* ---- restore the per-picture hardware context ---- */
++	/* Restore the per-picture hardware context. */
 +	meson_amvdec_write_dos(core, POWER_CTL_VLD,
 +			 meson_amvdec_read_dos(core, POWER_CTL_VLD) |
 +			 BIT(9) | BIT(6));
@@ -3023,28 +2582,22 @@ index e7ac781416..939af09918 100644
 +			 (meson_amvdec_read_dos(core, AV_SCRATCH_F) & 0xffffffc3) |
 +			 BIT(4));
 +	meson_amvdec_clear_dos_bits(core, AV_SCRATCH_F, BIT(6));
-+	/* The vendor driver sets this only on GXL and newer, not on GXBB */
++	/* The vendor driver sets this register only on GXL and newer, not on GXBB. */
 +	if (core->platform->revision >= AMVDEC_REVISION_GXL)
 +		meson_amvdec_write_dos(core, IQIDCT_CONTROL, 0x200);
 +
-+	/* ---- decode mode and stream-input enables ---- */
++	/* Enable frame-based decode and stream input. */
 +	meson_amvdec_write_dos(core, H264_DECODE_MODE, DECODE_MODE_MULTI_FRAMEBASE);
 +	meson_amvdec_write_dos(core, HEAD_PADING_REG, 0);
 +	meson_amvdec_write_dos(core, H264_DECODE_SEQINFO, h264->multi_seq_cfg);
 +
 +	/*
-+	 * Sequence words, after the VLD reset that would otherwise clear them.
-+	 * AV_SCRATCH_1 is deliberately left at the 0 written in the input
-+	 * section: the S4 driver clears it there and never restores it, so the
-+	 * firmware takes the sequence from H264_DECODE_SEQINFO instead.
++	 * Restore sequence words after VLD reset. Leave AV_SCRATCH_1 zero so the
++	 * firmware takes geometry from H264_DECODE_SEQINFO.
 +	 */
 +	meson_amvdec_write_dos(core, AV_SCRATCH_2, h264->multi_seq_cfg2);
 +	meson_amvdec_write_dos(core, AV_SCRATCH_B, h264->multi_seq_cfgb);
-+	/*
-+	 * INIT_FLAG_REG is AV_SCRATCH_2. S4 writes the sequence word there
-+	 * early and INIT_FLAG_REG = 1 last, so the firmware sees 1; keep that
-+	 * order rather than clobbering the flag with the sequence word.
-+	 */
++	/* INIT_FLAG_REG aliases AV_SCRATCH_2; write the initialization flag last. */
 +	meson_amvdec_write_dos(core, INIT_FLAG_REG, 1);
 +	meson_amvdec_write_dos(core, AV_SCRATCH_0, h264->multi_seq_scratch0);
 +	meson_amvdec_write_dos(core, NAL_SEARCH_CTL, h264->multi_nal_search_or);
@@ -3055,7 +2608,7 @@ index e7ac781416..939af09918 100644
 +	meson_amvdec_clear_dos_bits(core, NAL_SEARCH_CTL, 0x2);
 +	meson_amvdec_clear_dos_bits(core, VDEC_ASSIST_MMC_CTRL1, BIT(3));
 +
-+	/* ---- restart the processors, then ask for the slice head ---- */
++	/* Restart the processors and request the slice header. */
 +	meson_amvdec_read_dos(core, DOS_SW_RESET0);
 +	meson_amvdec_read_dos(core, DOS_SW_RESET0);
 +	meson_amvdec_read_dos(core, DOS_SW_RESET0);
@@ -3078,26 +2631,9 @@ index e7ac781416..939af09918 100644
 +	return 0;
 +}
 +
- struct amvdec_codec_ops meson_amvdec_codec_h264_ops = {
- 	.start = codec_h264_start,
- 	.stop = codec_h264_stop,
-+	.pre_stop = codec_h264_pre_stop,
-+	.job_abort = codec_h264_job_abort,
- 	.load_firmware = codec_h264_load_firmware,
-+	.post_start = codec_h264_post_start,
- 	.isr = codec_h264_isr,
- 	.threaded_isr = codec_h264_threaded_isr,
- 	.can_recycle = codec_h264_can_recycle,
-@@ -548,3 +2930,23 @@ struct amvdec_codec_ops meson_amvdec_codec_h264_ops = {
- 	.eos_sequence = codec_h264_eos_sequence,
- 	.resume = codec_h264_resume,
- };
-+
 +/*
-+ * Stateless H.264 on every SoC: the multi-instance firmware with the OUTPUT
-+ * buffer as the VLD's stream FIFO, so the core leaves the processors halted
-+ * at start and the parser VIFIFO unused, and the firmware has no recycle
-+ * mailbox - it takes returned frames through the buffer info table instead.
++ * H.264 uses multi-instance firmware with direct OUTPUT input. Keep the
++ * processors halted until the first request supplies input and context.
 + */
 +struct amvdec_codec_ops meson_amvdec_codec_h264_multi_ops = {
 +	.start = codec_h264_start,
@@ -3108,24 +2644,29 @@ index e7ac781416..939af09918 100644
 +	.post_start = codec_h264_post_start,
 +	.isr = codec_h264_isr,
 +	.threaded_isr = codec_h264_threaded_isr,
-+	.eos_sequence = codec_h264_eos_sequence,
-+	.resume = codec_h264_resume,
 +	.direct_input = true,
 +};
 diff --git a/drivers/media/platform/amlogic/amvdec/codec_h264.h b/drivers/media/platform/amlogic/amvdec/codec_h264.h
-index f0108c1390..e35959ee88 100644
---- a/drivers/media/platform/amlogic/amvdec/codec_h264.h
+new file mode 100644
+index 0000000000..7a058c2ef6
+--- /dev/null
 +++ b/drivers/media/platform/amlogic/amvdec/codec_h264.h
-@@ -7,8 +7,53 @@
- #ifndef __MESON_AMVDEC_CODEC_H264_H_
- #define __MESON_AMVDEC_CODEC_H264_H_
- 
+@@ -0,0 +1,59 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2019 BayLibre, SAS
++ * Author: Maxime Jourdan <mjourdan@baylibre.com>
++ *
++ * H.264 request decoding with multi-instance firmware.
++ */
++
++#ifndef __MESON_AMVDEC_CODEC_H264_H_
++#define __MESON_AMVDEC_CODEC_H264_H_
++
 +#include "codec_h264_synth.h"
- #include "amvdec.h"
- 
-+/* Single-instance firmware, parser fed: the stateful formats */
- extern struct amvdec_codec_ops meson_amvdec_codec_h264_ops;
-+/* Multi-instance firmware fed straight from the OUTPUT buffer: stateless */
++#include "amvdec.h"
++
++/* H.264 request decoder with direct OUTPUT input. */
 +extern struct amvdec_codec_ops meson_amvdec_codec_h264_multi_ops;
 +
 +/* True when this session decodes on the multi-instance firmware. */
@@ -3168,26 +2709,29 @@ index f0108c1390..e35959ee88 100644
 +			    const struct v4l2_ctrl_h264_pps *pps,
 +			    const struct v4l2_ctrl_h264_scaling_matrix *sm,
 +			    bool force, u8 *dst, u32 cap, u32 *len);
- 
- #endif
++
++#endif
 diff --git a/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h b/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h
 new file mode 100644
-index 0000000000..bb0204d6a1
+index 0000000000..ca6e68dada
 --- /dev/null
 +++ b/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h
-@@ -0,0 +1,211 @@
+@@ -0,0 +1,208 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2026 Gus Bourg <gus@bourg.net>
++ *
++ * H.264 frame and field reference-list helpers.
++ */
++
 +#ifndef __MESON_AMVDEC_CODEC_H264_REFS_H_
 +#define __MESON_AMVDEC_CODEC_H264_REFS_H_
 +
 +#include "codec_h264_synth.h"
 +
 +/*
-+ * pic_num is FrameNumWrap for a short-term reference, which is NEGATIVE for any
-+ * picture whose frame_num is above the current one after a frame_num wrap
-+ * (8-27/8-28).  v4l2_h264_dpb_entry declares it __u32, so it arrives as a huge
-+ * unsigned value and an unsigned sort puts that reference at the head of the
-+ * P list instead of the tail.  Keep it signed here.
++ * Keep FrameNumWrap signed: short-term references above the current
++ * frame_num wrap to negative PicNum values (H.264 8-27 and 8-28).
 + */
 +
 +struct h264_ref {
@@ -3198,7 +2742,7 @@ index 0000000000..bb0204d6a1
 +	u8 view, dpb_idx, structure;
 +};
 +
-+/* Vendor config_decode_buf() C19: field rows share one interleaved MV slot. */
++/* Field rows share one interleaved motion-vector slot. */
 +static inline u32 h264_colocate_read_offset(u32 first_mb, u32 mb_width,
 +					    u8 cur_structure, u8 ref_structure,
 +					 bool direct_8x8)
@@ -3227,11 +2771,8 @@ index 0000000000..bb0204d6a1
 +};
 +
 +/*
-+ * Vendor check_frame_store_same_pic_num pairs opposite fields of the same
-+ * frame_num/reference class. Each restarted request supplies its own PPS;
-+ * defaults, entropy mode and scaling are not properties of the stored field.
-+ * Keep the same SPS (including geometry and POC interpretation) and the
-+ * capture generation identity while allowing a different PPS.
++ * Pair opposite fields with the same frame_num, reference class, SPS and
++ * capture generation. Each field request may supply a different PPS.
 + */
 +static inline bool h264_field_is_mate(const struct h264_field_surface *surface,
 +				      const struct h264_slice_refs *picture,
@@ -3295,10 +2836,9 @@ index 0000000000..bb0204d6a1
 +}
 +
 +/*
-+ * Frame/field-picture 8.2.4.3 list modification. Inventory is independent of the
-+ * mutable list: a previously inserted reference may be selected again.
-+ * Remove duplicates only AFTER the newly fixed prefix, never from that prefix.
-+ * Caller supplies space for 32 entries. On error list and length are unchanged.
++ * Apply H.264 8.2.4.3 list modifications from an immutable inventory.
++ * Remove duplicates only after the newly fixed prefix. The caller provides
++ * 32 entries; errors leave the list and length unchanged.
 + */
 +#ifdef __KERNEL__
 +static noinline
@@ -3375,10 +2915,8 @@ index 0000000000..bb0204d6a1
 +		n = dst > V4L2_H264_REF_LIST_LEN ? V4L2_H264_REF_LIST_LEN : dst;
 +	}
 +	/*
-+	 * Preserve the existing short-list contract: nominal active count can
-+	 * exceed the available suffix. Return only initialized entries; the
-+	 * register writer retains its established last-entry padding policy.
-+	 * Every explicitly modified target was still required in inventory.
++	 * Limit the active count to initialized entries. Every explicit target
++	 * must exist in the inventory; the register writer pads with the last entry.
 +	 */
 +	if (n > active)
 +		n = active;
@@ -3387,31 +2925,19 @@ index 0000000000..bb0204d6a1
 +	return 0;
 +}
 +#endif
-diff --git a/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h b/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h
-new file mode 100644
-index 0000000000..fa7b15b7fa
---- /dev/null
-+++ b/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h
-@@ -0,0 +1,12 @@
-+/* SPDX-License-Identifier: GPL-2.0+ */
-+#ifndef __MESON_AMVDEC_CODEC_H264_SCRATCH_H_
-+#define __MESON_AMVDEC_CODEC_H264_SCRATCH_H_
-+
-+/* Two bounded lists of 32 UE-coded commands can exceed 128 bytes. */
-+#define H264_PARSE_RBSP_SIZE 1024
-+
-+struct h264_parse_scratch {
-+	unsigned char rbsp[H264_PARSE_RBSP_SIZE];
-+};
-+
-+#endif
 diff --git a/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h b/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h
 new file mode 100644
-index 0000000000..6c3bbb6e14
+index 0000000000..1c83aa2b57
 --- /dev/null
 +++ b/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h
-@@ -0,0 +1,1131 @@
+@@ -0,0 +1,1108 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2026 Gus Bourg <gus@bourg.net>
++ *
++ * H.264 header synthesis and slice parsing.
++ */
++
 +#ifndef __MESON_AMVDEC_CODEC_H264_SYNTH_H_
 +#define __MESON_AMVDEC_CODEC_H264_SYNTH_H_
 +
@@ -3574,12 +3100,9 @@ index 0000000000..6c3bbb6e14
 +		V4L2_H264_SPS_FLAG_QPPRIME_Y_ZERO_TRANSFORM_BYPASS;
 +
 +	/*
-+	 * Baseline and Main, plus the High family - which is most real-world
-+	 * H.264.  The extra syntax those profiles carry is written out below;
-+	 * chroma format and bit depth are still constrained to 4:2:0 8-bit by
-+	 * the next check, so this admits High but not Hi10P or 4:2:2/4:4:4.
++	 * Accept supported Baseline, Main and High syntax with 4:2:0 8-bit samples.
++	 * Extended streams asserting constraint_set1 conform to Main (A.2.2).
 +	 */
-+	/* Extended streams asserting constraint_set1 conform to Main (A.2.2). */
 +	if (sps->profile_idc != 66 && sps->profile_idc != 77 &&
 +	    !(sps->profile_idc == 88 &&
 +	      (sps->constraint_set_flags & V4L2_H264_SPS_CONSTRAINT_SET1_FLAG)) &&
@@ -3589,12 +3112,8 @@ index 0000000000..6c3bbb6e14
 +	    sps->bit_depth_chroma_minus8)
 +		return -EOPNOTSUPP;
 +	/*
-+	 * frame_mbs_only_flag = 0 covers two different things.  MBAFF codes
-+	 * macroblock pairs adaptively but the picture is still a frame, and
-+	 * the firmware handles the pairs internally - the host only has to
-+	 * say so.  Field pictures (field_pic_flag = 1 per slice) are a
-+	 * different job entirely and are refused where they are visible, in
-+	 * the slice header.
++	 * Frame geometry uses map-unit height; field-picture admission is checked
++	 * from the slice header.
 +	 */
 +	if (sps->flags & unsupported_sps)
 +		return -EOPNOTSUPP;
@@ -3761,17 +3280,7 @@ index 0000000000..6c3bbb6e14
 +			       V4L2_H264_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT));
 +	h264_bw_bit(&bw, !!(pps->flags & V4L2_H264_PPS_FLAG_CONSTRAINED_INTRA_PRED));
 +	h264_bw_bit(&bw, !!(pps->flags & V4L2_H264_PPS_FLAG_REDUNDANT_PIC_CNT_PRESENT));
-+	/*
-+	 * The trailing block is optional in the bitstream, but it must be
-+	 * present whenever 8x8 transform is in use - High profile streams
-+	 * almost always use it, and dropping the flag silently decodes them
-+	 * with the wrong transform.
-+	 */
-+	/*
-+	 * Judge the matrix, not the flag: ffmpeg's V4L2 Request client sets
-+	 * V4L2_H264_PPS_FLAG_SCALING_MATRIX_PRESENT on every picture and then
-+	 * hands over the flat default, which needs no explicit lists.
-+	 */
++	/* Emit explicit scaling lists only when they differ from flat defaults. */
 +	emit_scaling = sm &&
 +		       (pps->flags & V4L2_H264_PPS_FLAG_SCALING_MATRIX_PRESENT) &&
 +		       !h264_scaling_matrix_flat(sps, pps, sm);
@@ -3808,16 +3317,8 @@ index 0000000000..6c3bbb6e14
 +}
 +
 +/*
-+ * Minimal slice-header reader, for reference list modification only.
-+ *
-+ * DECODE_MODE_MULTI_FRAMEBASE gives the driver no per-slice controls: ffmpeg
-+ * sends SPS, PPS, SCALING_MATRIX and DECODE_PARAMS and nothing else, so
-+ * ref_pic_list0[]/ref_pic_list1[] never arrive.  The firmware does not apply
-+ * ref_pic_list_modification either - the vendor driver writes the final,
-+ * already-reordered list into H264_BUFFER_INFO_DATA (vmh264.c, pSlice->listX).
-+ * So the driver has to read the commands out of the slice header itself.
-+ *
-+ * Only what the reordering needs is parsed; everything up to it is skipped.
++ * Parse slice-header reference-list modifications for frame-based requests;
++ * the host supplies final lists to the firmware.
 + */
 +
 +#define H264_MAX_RPLM	32
@@ -3897,11 +3398,7 @@ index 0000000000..6c3bbb6e14
 +	return (k & 1) ? (s32)((k + 1) >> 1) : -(s32)(k >> 1);
 +}
 +
-+/*
-+ * Strip emulation prevention bytes into @dst, stopping once @want bytes of
-+ * RBSP exist.  A slice header is short, so a small window is enough and we
-+ * never copy a whole access unit.
-+ */
++/* Copy a bounded RBSP prefix to @dst, removing emulation-prevention bytes. */
 +static inline u32 h264_unescape(const u8 *src, u32 len, u8 *dst, u32 want)
 +{
 +	u32 i = 0, o = 0, zeros = 0;
@@ -4252,7 +3749,7 @@ index 0000000000..6c3bbb6e14
 +	return 0;
 +}
 +
-+/* Keep ordinary frame/single-field callers on the established parser subset. */
++/* Use the frame and single-field parser subset. */
 +static inline int h264_parse_slice_refs(const u8 *nal, u32 len,
 +					const struct v4l2_ctrl_h264_sps *sps,
 +					const struct v4l2_ctrl_h264_pps *pps,
@@ -4543,21 +4040,21 @@ index 0000000000..6c3bbb6e14
 +
 +#endif
 diff --git a/drivers/media/platform/amlogic/amvdec/esparser.c b/drivers/media/platform/amlogic/amvdec/esparser.c
-index 279ad6646c..786e39056e 100644
+index aa46a9809d..6e2c8e0234 100644
 --- a/drivers/media/platform/amlogic/amvdec/esparser.c
 +++ b/drivers/media/platform/amlogic/amvdec/esparser.c
 @@ -22,8 +22,10 @@
  #include "esparser.h"
- #include "codec_vc1.h"
+ #include "amvdec_hevc.h"
  #include "amvdec_helpers.h"
 +#include "codec_h264_synth.h"
  #include "codec_mpeg12.h"
  #include "codec_mpeg12_synth.h"
 +#include "codec_h264.h"
- #include "codec_hevc.h"
  
- /* PARSER REGS (CBUS) */
-@@ -314,6 +316,26 @@ static u32 esparser_get_offset(struct amvdec_session *sess)
+ /* Zero lookahead appended after each HEVC/VP9 request payload; not part of
+  * the coded endpoint.
+@@ -151,6 +153,26 @@ static u32 esparser_get_offset(struct amvdec_session *sess)
  static void esparser_src_error(struct amvdec_session *sess,
  			       struct vb2_v4l2_buffer *src)
  {
@@ -4584,27 +4081,35 @@ index 279ad6646c..786e39056e 100644
  	if (meson_amvdec_request_jobs(sess) && sess->request_job.src == src) {
  		if (sess->request_job.credit) {
  			/* Hardware may have consumed input: ownership ends at stop. */
-@@ -326,6 +348,8 @@ static void esparser_src_error(struct amvdec_session *sess,
+@@ -163,7 +185,8 @@ static void esparser_src_error(struct amvdec_session *sess,
  	}
  	/* Also completes the OUTPUT's media-request control-handler object. */
  	meson_amvdec_src_buf_done(sess, src, VB2_BUF_STATE_ERROR);
+-
 +	if (direct)
 +		v4l2_m2m_job_finish(sess->m2m_dev, sess->m2m_ctx);
  }
  
  static int
-@@ -339,14 +363,21 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- 	u32 payload_size = vb2_get_plane_payload(vb, 0);
- 	u32 original_payload_size = payload_size;
+@@ -177,6 +200,10 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
  	dma_addr_t phy = vb2_dma_contig_plane_dma_addr(vb, 0);
+ 	struct amvdec_feed_scratch *f = &sess->feed;
+ 	struct v4l2_ctrl_vp9_frame *vp9_frame_ptr = NULL;
 +	const struct v4l2_ctrl_h264_sps *h264_sps;
 +	const struct v4l2_ctrl_h264_pps *h264_pps;
 +	const struct v4l2_ctrl_h264_scaling_matrix *h264_sm = NULL;
 +	bool h264_idr = false;
+ 	struct v4l2_ctrl_hevc_sps *hevc_sps_ptr = NULL;
+ 	struct v4l2_ctrl_hevc_pps *hevc_pps_ptr = NULL;
+ 	struct v4l2_ctrl_hevc_slice_params *hevc_slice_ptr = NULL;
+@@ -184,14 +211,16 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 
+ 	u8 *hevc_headers __free(kfree) = NULL;
+ 	u32 hevc_headers_len = 0;
 +	u32 h264_headers_len = 0;
- 	u32 num_dst_bufs = 0;
  	u32 offset;
  	u32 pad_size;
+-
 +	bool direct_h264 = codec_h264_direct_input(sess);
  	u16 mpeg2_tref = 0;
  	bool mpeg2_second = false;
@@ -4616,158 +4121,144 @@ index 279ad6646c..786e39056e 100644
  
  	dev_dbg(core->dev, "feed attempt sess=%p idx=%u bytes=%u\n",
  		sess, vb->index, payload_size);
-@@ -357,6 +388,10 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+@@ -202,12 +231,15 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
  	 * so examining a buffer that is then deferred would overwrite the
  	 * parameters of the picture currently being decoded.
  	 */
 +	if (direct_h264 &&
 +	    (meson_amvdec_codec_h264_multi_busy(sess) || !READ_ONCE(sess->m2m_run_armed)))
 +		return -EAGAIN;
-+
+ 
  	if (meson_amvdec_request_jobs(sess) &&
  	    (!READ_ONCE(sess->m2m_run_armed) || atomic_read(&sess->request_job.state)))
  		return -EAGAIN;
-@@ -439,7 +474,8 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- 			return -EAGAIN;
- 		}
  
--	} else if (esparser_vififo_get_free_space(sess) < payload_size) {
-+	} else if (!direct_h264 &&
-+		   esparser_vififo_get_free_space(sess) < payload_size) {
+-	if (esparser_vififo_get_free_space(sess) < payload_size)
++	if (!direct_h264 && esparser_vififo_get_free_space(sess) < payload_size)
  		return -EAGAIN;
- 	}
  
-@@ -553,6 +589,121 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- 			dev_dbg(core->dev,
- 				"MPEG2 synthesized %d header bytes, coding_type=%u\n",
- 				hdrs_len, f->mpeg2_pic.picture_coding_type);
-+		} else {
-+			u8 *vaddr = vb2_plane_vaddr(vb, 0);
-+			u32 plane_size = vb2_plane_size(vb, 0);
-+			/* Parsed copy of vaddr, see meson_amvdec_codec_h264_scan_copy(). */
-+			const u8 *scan;
+ 	if (meson_amvdec_request_jobs(sess) && meson_amvdec_request_begin(sess, vbuf))
+@@ -314,6 +346,116 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		dev_dbg(core->dev,
+ 			"MPEG2 synthesized %d header bytes, coding_type=%u\n",
+ 			hdrs_len, f->mpeg2_pic.picture_coding_type);
++	} else {
++		u8 *vaddr = vb2_plane_vaddr(vb, 0);
++		u32 plane_size = vb2_plane_size(vb, 0);
++		/* Parsed copy of vaddr, see meson_amvdec_codec_h264_scan_copy(). */
++		const u8 *scan;
 +
-+			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
-+					      V4L2_CID_STATELESS_H264_SPS);
-+			if (!ctrl || !ctrl->p_cur.p_h264_sps) {
-+				dev_err_ratelimited(core->dev, "H.264 SPS request control missing\n");
-+				esparser_src_error(sess, vbuf);
-+				return -EINVAL;
-+			}
-+			h264_sps = ctrl->p_cur.p_h264_sps;
-+			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
-+					      V4L2_CID_STATELESS_H264_PPS);
-+			if (!ctrl || !ctrl->p_cur.p_h264_pps) {
-+				dev_err_ratelimited(core->dev, "H.264 PPS request control missing\n");
-+				esparser_src_error(sess, vbuf);
-+				return -EINVAL;
-+			}
-+			h264_pps = ctrl->p_cur.p_h264_pps;
-+			scan = meson_amvdec_codec_h264_scan_copy(sess, vaddr, payload_size,
-+						    plane_size);
-+			ret = h264_request_preflight(scan, payload_size, h264_pps);
++		ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++				      V4L2_CID_STATELESS_H264_SPS);
++		if (!ctrl || !ctrl->p_cur.p_h264_sps) {
++			dev_err_ratelimited(core->dev, "H.264 SPS request control missing\n");
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
++		}
++		h264_sps = ctrl->p_cur.p_h264_sps;
++		ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++				      V4L2_CID_STATELESS_H264_PPS);
++		if (!ctrl || !ctrl->p_cur.p_h264_pps) {
++			dev_err_ratelimited(core->dev, "H.264 PPS request control missing\n");
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
++		}
++		h264_pps = ctrl->p_cur.p_h264_pps;
++		scan = meson_amvdec_codec_h264_scan_copy(sess, vaddr, payload_size,
++							 plane_size);
++		ret = h264_request_preflight(scan, payload_size, h264_pps);
++		if (ret) {
++			dev_err_ratelimited(core->dev,
++					    "h264 syntax refused before feed: %d slice_groups=%u\n",
++				ret, h264_pps->num_slice_groups_minus1);
++			esparser_src_error(sess, vbuf);
++			return ret;
++		}
++		ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++				      V4L2_CID_STATELESS_H264_DECODE_PARAMS);
++		if (!ctrl || !ctrl->p_cur.p_h264_decode_params) {
++			dev_err_ratelimited(core->dev, "H.264 decode params request control missing\n");
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
++		}
++		h264_idr = ctrl->p_cur.p_h264_decode_params->flags &
++			   V4L2_H264_DECODE_PARAM_FLAG_IDR_PIC;
++		meson_amvdec_codec_h264_multi_set_params(sess, h264_sps, h264_pps,
++							 ctrl->p_cur.p_h264_decode_params);
++		ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++				      V4L2_CID_STATELESS_H264_SCALING_MATRIX);
++		h264_sm = ctrl ? ctrl->p_cur.p_h264_scaling_matrix : NULL;
++		ret = h264_synth_validate(h264_sps, h264_pps, h264_sm);
++		if (ret) {
++			dev_err_ratelimited(core->dev,
++					    "H.264 header synthesis rejected controls: %d (profile=%u chroma=%u depth=%u/%u sps_flags=%#llx pps_flags=%#x slice_groups=%u poc_type=%u)\n",
++				ret, h264_sps->profile_idc,
++				h264_sps->chroma_format_idc,
++				h264_sps->bit_depth_luma_minus8,
++				h264_sps->bit_depth_chroma_minus8,
++				(unsigned long long)h264_sps->flags,
++				h264_pps->flags,
++				h264_pps->num_slice_groups_minus1,
++				h264_sps->pic_order_cnt_type);
++			esparser_src_error(sess, vbuf);
++			return ret;
++		}
++
++		/*
++		 * Read reference-list modifications from slice headers before prepending
++		 * headers. Frame-based requests do not supply final reference lists.
++		 */
++		if (vaddr) {
++			struct h264_slice_refs sr;
++			const u8 *nal;
++			u32 nal_len = 0;
++
++			nal = h264_find_first_slice(scan, payload_size,
++						    &nal_len);
++			if (nal && !h264_parse_slice_refs(nal, nal_len,
++							  h264_sps,
++							  h264_pps, &sr, &f->h264_parse))
++				meson_amvdec_codec_h264_multi_set_slice_refs(sess, &sr);
++			else
++				meson_amvdec_codec_h264_multi_set_slice_refs(sess, NULL);
++		}
++
++		/* The multi firmware consumes SPS/PPS in band. Its cache must
++		 * include every emitted dependency, not just the PPS control.
++		 */
++		ret = meson_amvdec_codec_h264_multi_headers(sess, h264_sps, h264_pps,
++							    h264_sm, h264_idr,
++							    f->headers, sizeof(f->headers),
++							    &h264_headers_len);
++		if (h264_headers_len || ret) {
 +			if (ret) {
 +				dev_err_ratelimited(core->dev,
-+						    "h264 syntax refused before feed: %d slice_groups=%u\n",
-+					ret, h264_pps->num_slice_groups_minus1);
++						    "H.264 header synthesis failed: %d\n",
++						    ret);
 +				esparser_src_error(sess, vbuf);
 +				return ret;
 +			}
-+			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
-+					      V4L2_CID_STATELESS_H264_DECODE_PARAMS);
-+			if (!ctrl || !ctrl->p_cur.p_h264_decode_params) {
-+				dev_err_ratelimited(core->dev, "H.264 decode params request control missing\n");
-+				esparser_src_error(sess, vbuf);
-+				return -EINVAL;
-+			}
-+			h264_idr = ctrl->p_cur.p_h264_decode_params->flags &
-+				   V4L2_H264_DECODE_PARAM_FLAG_IDR_PIC;
-+			meson_amvdec_codec_h264_multi_set_params(sess, h264_sps, h264_pps,
-+						    ctrl->p_cur.p_h264_decode_params);
-+			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
-+					      V4L2_CID_STATELESS_H264_SCALING_MATRIX);
-+			h264_sm = ctrl ? ctrl->p_cur.p_h264_scaling_matrix : NULL;
-+			ret = h264_synth_validate(h264_sps, h264_pps, h264_sm);
-+			if (ret) {
++			if (!vaddr || payload_size + h264_headers_len > plane_size) {
 +				dev_err_ratelimited(core->dev,
-+						    "H.264 header synthesis rejected controls: %d (profile=%u chroma=%u depth=%u/%u sps_flags=%#llx pps_flags=%#x slice_groups=%u poc_type=%u)\n",
-+					ret, h264_sps->profile_idc,
-+					h264_sps->chroma_format_idc,
-+					h264_sps->bit_depth_luma_minus8,
-+					h264_sps->bit_depth_chroma_minus8,
-+					(unsigned long long)h264_sps->flags,
-+					h264_pps->flags,
-+					h264_pps->num_slice_groups_minus1,
-+					h264_sps->pic_order_cnt_type);
++						    "H.264 buffer too small for synthesized headers\n");
 +				esparser_src_error(sess, vbuf);
-+				return ret;
++				return -ENOSPC;
 +			}
-+
-+			/*
-+			 * Reference list modification lives in the slice
-+			 * header and nowhere else in frame-based mode: ffmpeg
-+			 * sends no SLICE_PARAMS, and the firmware writes no
-+			 * reordering of its own (the vendor driver hands it an
-+			 * already-reordered list).  Read it here, from the
-+			 * unmodified payload, before any headers are spliced
-+			 * in ahead of it.
-+			 */
-+			if (vaddr) {
-+				struct h264_slice_refs sr;
-+				const u8 *nal;
-+				u32 nal_len = 0;
-+
-+				nal = h264_find_first_slice(scan, payload_size,
-+							    &nal_len);
-+				if (nal && !h264_parse_slice_refs(nal, nal_len,
-+								  h264_sps,
-+								  h264_pps, &sr, &f->h264_parse))
-+					meson_amvdec_codec_h264_multi_set_slice_refs(sess, &sr);
-+				else
-+					meson_amvdec_codec_h264_multi_set_slice_refs(sess, NULL);
-+			}
-+
-+			/* The multi firmware consumes SPS/PPS in band. Its cache must
-+			 * include every emitted dependency, not just the PPS control.
-+			 */
-+			ret = meson_amvdec_codec_h264_multi_headers(sess, h264_sps, h264_pps,
-+						       h264_sm, h264_idr,
-+						       f->headers, sizeof(f->headers),
-+						       &h264_headers_len);
-+			if (h264_headers_len || ret) {
-+				if (ret) {
-+					dev_err_ratelimited(core->dev,
-+							    "H.264 header synthesis failed: %d\n",
-+							    ret);
-+					esparser_src_error(sess, vbuf);
-+					return ret;
-+				}
-+				if (!vaddr || payload_size + h264_headers_len > plane_size) {
-+					dev_err_ratelimited(core->dev,
-+							    "H.264 buffer too small for synthesized headers\n");
-+					esparser_src_error(sess, vbuf);
-+					return -ENOSPC;
-+				}
-+				memmove(vaddr + h264_headers_len, vaddr, payload_size);
-+				memcpy(vaddr, f->headers, h264_headers_len);
-+				payload_size += h264_headers_len;
-+				vb2_set_plane_payload(vb, 0, payload_size);
-+				dev_dbg(core->dev,
-+					"H.264 synthesized %u header bytes ahead of %s\n",
-+					h264_headers_len, h264_idr ? "IDR" : "picture");
-+			}
- 		}
++			memmove(vaddr + h264_headers_len, vaddr, payload_size);
++			memcpy(vaddr, f->headers, h264_headers_len);
++			payload_size += h264_headers_len;
++			vb2_set_plane_payload(vb, 0, payload_size);
++			dev_dbg(core->dev,
++				"H.264 synthesized %u header bytes ahead of %s\n",
++				h264_headers_len, h264_idr ? "IDR" : "picture");
++		}
  	}
  
-@@ -592,6 +743,45 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- 		}
- 	}
- 
-+	/*
-+	 * The multi blob takes the OUTPUT buffer as its stream FIFO directly:
-+	 * no ESPARSER copy, no start-code padding, and the buffer stays owned
-+	 * by the hardware until the picture completes.
-+	 */
+ 	ret = meson_amvdec_add_ts(sess, vb->timestamp, vbuf->timecode, offset,
+@@ -336,6 +478,41 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	 * no ESPARSER copy, no start-code padding, and the buffer stays owned
+ 	 * by the hardware until the picture completes.
+ 	 */
 +	if (direct_h264) {
 +		/*
 +		 * Only one access unit can be in flight: the VLD is pointed at
@@ -4792,7 +4283,9 @@ index 279ad6646c..786e39056e 100644
 +		 */
 +		meson_amvdec_remove_ts(sess, vb->timestamp);
 +		atomic_inc(&sess->esparser_queued_bufs);
++		meson_amvdec_trace(sess, AMVDEC_TR_FEED, vb->index, payload_size, 0);
 +		ret = meson_amvdec_codec_h264_multi_feed_buffer(sess, vb);
++		meson_amvdec_trace(sess, AMVDEC_TR_FED, ret, 0, 0);
 +		if (ret) {
 +			meson_amvdec_codec_h264_multi_hold_src(sess, NULL);
 +			atomic_dec(&sess->esparser_queued_bufs);
@@ -4801,28 +4294,21 @@ index 279ad6646c..786e39056e 100644
 +		}
 +		return 0;
 +	}
-+
- 	if (meson_amvdec_request_jobs(sess)) {
- 		unsigned int i, n = 0;
- 		u64 refs[16];
-@@ -643,9 +833,10 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 
+ 	unsigned int i, n = 0;
+ 	u64 refs[16];
+@@ -381,6 +558,7 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 			return -EINVAL;
+ 		}
  	}
- 	pad_size = ret;
- 	dev_dbg(core->dev,
--		 "feed mode=%08x idx=%u ts=%llu original=%u payload=%u pad=%u write=%u fetch=%u offset=%u free=%u queued=%d\n",
-+		"feed mode=%08x idx=%u ts=%llu original=%u headers=%u payload=%u pad=%u write=%u fetch=%u offset=%u free=%u queued=%d\n",
- 		 sess->fmt_out->pixfmt, vb->index, vb->timestamp,
--		 original_payload_size, payload_size, pad_size,
-+		 original_payload_size, 0,
-+		 payload_size, pad_size,
- 		 payload_size + pad_size, payload_size + pad_size + ESPARSER_SEARCH_PATTERN_SIZE,
- 		 offset, esparser_vififo_get_free_space(sess),
- 		 atomic_read(&sess->esparser_queued_bufs));
-@@ -690,6 +881,22 @@ void meson_amvdec_esparser_queue_all_src(struct work_struct *work)
- 		atomic_read(&sess->esparser_queued_bufs));
++	v4l2_m2m_buf_copy_metadata(vbuf, sess->request_job.dst);
+ 	if (mpeg2_job) {
+ 		/* The VLD reads this buffer directly; nothing goes
+ 		 * through the parser FIFO.
+@@ -502,6 +680,21 @@ void meson_amvdec_esparser_queue_all_src(struct work_struct *work)
  	if (meson_amvdec_request_jobs(sess))
  		meson_amvdec_request_retire(sess, false);
-+	/* Retire a finished picture before feeding the next one. */
+ 	/* Retire a finished picture before feeding the next one. */
 +	if (codec_h264_direct_input(sess)) {
 +		struct v4l2_m2m_buffer *b;
 +		char q[48] = "";
@@ -4839,22 +4325,18 @@ index 279ad6646c..786e39056e 100644
 +			 meson_amvdec_codec_h264_multi_busy(sess), q);
 +	}
  
- 	v4l2_m2m_for_each_src_buf_safe(sess->m2m_ctx, buf, n) {
- 		if (sess->should_stop ||
-@@ -702,6 +909,13 @@ void meson_amvdec_esparser_queue_all_src(struct work_struct *work)
- 		fed++;
- 		if (meson_amvdec_request_jobs(sess))
- 			break;
-+		/*
-+		 * One access unit per decode: the buffer is already off the
-+		 * ready queue (esparser_queue() dequeues what it feeds), and
-+		 * the VLD is pointed at it until the picture completes.
-+		 */
+ 	/*
+ 	 * The stream position counter must not reach 0x80000000. Restart the
+@@ -525,7 +718,8 @@ void meson_amvdec_esparser_queue_all_src(struct work_struct *work)
+ 		 * ready queue (esparser_queue() dequeues what it feeds), and
+ 		 * the VLD is pointed at it until the picture completes.
+ 		 */
+-
 +		if (codec_h264_direct_input(sess))
 +			break;
- 		if (sess->hevc_draining && --sess->hevc_drain_src_remaining == 0)
- 			sess->hevc_input_done = true;
  	}
+ 	dev_dbg(sess->core->dev,
+ 		"worker end fed=%u ret=%d src=%u queued=%d dst=%u\n",
 -- 
 2.53.0
 

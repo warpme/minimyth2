@@ -5,50 +5,60 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 
-From 81c53d7d14f81ad43ec04c32a7b2878ce3521a70 Mon Sep 17 00:00:00 2001
-From: gus bourg <gus@bourg.net>
-Date: Thu, 24 Sep 2026 20:15:30 -0700
-Subject: [PATCH 10/17] media: amlogic: amvdec: add stateless MPEG-2 decoding
+From 9ad095a2d7f660a6358f773cb2d87288ac12bb0a Mon Sep 17 00:00:00 2001
+From: Gus Bourg <gus@bourg.net>
+Date: Sat, 26 Sep 2026 01:59:30 -0700
+Subject: [PATCH 4/8] media: amlogic: amvdec: add MPEG-2 decoding
 
-Add MPEG2_SLICE decoding with sequence and picture header synthesis,
-request reference selection and incremental capture-canvas mapping.
-Validate sequence dimensions against the negotiated allocation and
-keep synthesis scratch in the session.
+Decode MPEG-2 slice requests with the multi-instance firmware. Synthesize
+sequence and picture headers from controls, resolve prediction buffers
+by timestamp and feed the OUTPUT buffer directly to the VLD.
 
-Assisted-by: Claude:claude-opus-5-5
-Assisted-by: Claude:claude-fable-5-1
-Assisted-by: Codex:gpt-5.6
-Assisted-by: Codex:gpt-6.0
+Track paired fields and complete each request with its destination
+buffer. Advertise the 1920x1088 coded limit on each compatible SoC.
+
+Assisted-by: Claude:claude-opus-5.5 Claude:claude-fable-5.1 Codex:gpt-5.6 Codex:gpt-6.0
 ---
- .../media/platform/amlogic/amvdec/amvdec.c    |  58 +++
- .../media/platform/amlogic/amvdec/amvdec.h    |  15 +
- .../media/platform/amlogic/amvdec/amvdec_1.c  |   6 +-
- .../platform/amlogic/amvdec/amvdec_helpers.c  |  31 ++
- .../platform/amlogic/amvdec/amvdec_helpers.h  |   2 +
- .../platform/amlogic/amvdec/codec_mpeg12.c    | 381 ++++++++++++++++++
- .../platform/amlogic/amvdec/codec_mpeg12.h    |   8 +
- .../amlogic/amvdec/codec_mpeg12_synth.h       | 245 +++++++++++
- .../media/platform/amlogic/amvdec/esparser.c  | 141 ++++++-
- 9 files changed, 884 insertions(+), 3 deletions(-)
+ .../media/platform/amlogic/amvdec/Makefile    |   1 +
+ .../media/platform/amlogic/amvdec/amvdec.c    |  57 ++-
+ .../platform/amlogic/amvdec/amvdec_platform.c |  84 ++++
+ .../platform/amlogic/amvdec/codec_mpeg12.c    | 406 ++++++++++++++++++
+ .../platform/amlogic/amvdec/codec_mpeg12.h    |  23 +
+ .../amlogic/amvdec/codec_mpeg12_synth.h       | 237 ++++++++++
+ .../media/platform/amlogic/amvdec/esparser.c  | 115 ++++-
+ 7 files changed, 919 insertions(+), 4 deletions(-)
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
+ create mode 100644 drivers/media/platform/amlogic/amvdec/codec_mpeg12.h
  create mode 100644 drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h
 
+diff --git a/drivers/media/platform/amlogic/amvdec/Makefile b/drivers/media/platform/amlogic/amvdec/Makefile
+index 566b21e557..0e79f63e36 100644
+--- a/drivers/media/platform/amlogic/amvdec/Makefile
++++ b/drivers/media/platform/amlogic/amvdec/Makefile
+@@ -4,5 +4,6 @@
+ meson-amvdec-objs = esparser.o amvdec.o amvdec_helpers.o amvdec_platform.o
+ meson-amvdec-objs += amvdec_1.o
+ meson-amvdec-objs += amvdec_hevc.o
++meson-amvdec-objs += codec_mpeg12.o
+ 
+ obj-$(CONFIG_VIDEO_MESON_AMVDEC) += meson-amvdec.o
 diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
-index 7de142c3a1..f7a002704a 100644
+index 36afd032fd..f42bf435fc 100644
 --- a/drivers/media/platform/amlogic/amvdec/amvdec.c
 +++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
 @@ -24,6 +24,7 @@
+ 
  #include "amvdec.h"
- #include "codec_hevc_common.h"
- #include "codec_hevc.h"
+ #include "hevc_regs.h"
 +#include "codec_mpeg12_synth.h"
- #include "codec_vc1_parser.h"
  #include "esparser.h"
  #include "amvdec_helpers.h"
-@@ -1599,6 +1600,41 @@ static int m2m_queue_init(void *priv, struct vb2_queue *src_vq,
+ 
+@@ -934,7 +935,41 @@ static int m2m_queue_init(void *priv, struct vb2_queue *src_vq,
  	return vb2_queue_init(dst_vq);
  }
  
-+/* The format this SoC's table offers for a coded pixel format, if any */
++/* Find the coded format in the selected compatible's capability table. */
 +static const struct amvdec_format *
 +vdec_format_by_pixfmt(struct amvdec_core *core, u32 pixfmt)
 +{
@@ -76,7 +86,7 @@ index 7de142c3a1..f7a002704a 100644
 +	.try_ctrl = vdec_mpeg2_try_ctrl,
 +};
 +
-+/* Compound controls must have defaults accepted by their try_ctrl callback. */
+ /* Compound controls must have defaults accepted by their try_ctrl callback. */
 +static const struct v4l2_ctrl_mpeg2_sequence vdec_mpeg2_sequence_default = {
 +	.horizontal_size = 16,
 +	.vertical_size = 16,
@@ -86,157 +96,205 @@ index 7de142c3a1..f7a002704a 100644
  static int vdec_init_ctrls(struct amvdec_session *sess)
  {
  	struct v4l2_ctrl_handler *ctrl_handler = &sess->ctrl_handler;
-@@ -1614,6 +1650,28 @@ static int vdec_init_ctrls(struct amvdec_session *sess)
- 					  V4L2_CID_MIN_BUFFERS_FOR_CAPTURE,
- 					  1, 32, 1, 1);
+@@ -946,6 +981,25 @@ static int vdec_init_ctrls(struct amvdec_session *sess)
  
-+	/* Stateless controls for exactly the codecs this SoC's table offers */
-+	if (stateless) {
-+		if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_MPEG2_SLICE)) {
-+			static const struct v4l2_ctrl_config mpeg2_ctrls[] = {
-+				{
-+					.id = V4L2_CID_STATELESS_MPEG2_SEQUENCE,
-+					.ops = &vdec_mpeg2_ctrl_ops,
-+					.p_def.p_const = &vdec_mpeg2_sequence_default,
-+				}, {
-+					.id = V4L2_CID_STATELESS_MPEG2_PICTURE,
-+				}, {
-+					.id = V4L2_CID_STATELESS_MPEG2_QUANTISATION,
-+				},
-+			};
-+			unsigned int i;
+ 	/* Create controls for the formats in the selected capability table. */
+ 
++	if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_MPEG2_SLICE)) {
++		static const struct v4l2_ctrl_config mpeg2_ctrls[] = {
++			{
++				.id = V4L2_CID_STATELESS_MPEG2_SEQUENCE,
++				.ops = &vdec_mpeg2_ctrl_ops,
++				.p_def.p_const = &vdec_mpeg2_sequence_default,
++			}, {
++				.id = V4L2_CID_STATELESS_MPEG2_PICTURE,
++			}, {
++				.id = V4L2_CID_STATELESS_MPEG2_QUANTISATION,
++			},
++		};
++		unsigned int i;
 +
-+			for (i = 0; i < ARRAY_SIZE(mpeg2_ctrls); i++)
-+				v4l2_ctrl_new_custom(ctrl_handler,
-+						     &mpeg2_ctrls[i], NULL);
-+		}
++		for (i = 0; i < ARRAY_SIZE(mpeg2_ctrls); i++)
++			v4l2_ctrl_new_custom(ctrl_handler,
++					     &mpeg2_ctrls[i], NULL);
 +	}
 +
  	ret = ctrl_handler->error;
  	if (ret) {
  		v4l2_ctrl_handler_free(ctrl_handler);
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.h b/drivers/media/platform/amlogic/amvdec/amvdec.h
-index dbead1f6a5..96a61b9589 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec.h
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec.h
-@@ -292,6 +292,19 @@ enum amvdec_status {
-  * @status: current decoding status
-  * @priv: codec private data
-  */
+@@ -963,9 +1017,6 @@ static int vdec_open(struct file *file)
+ 	struct amvdec_session *sess;
+ 	int ret;
+ 
+-	if (!core->platform->num_formats)
+-		return -ENODEV;
+-
+ 	sess = kzalloc_obj(*sess);
+ 	if (!sess)
+ 		return -ENOMEM;
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+index dd83a6c956..c19b73a25e 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -11,26 +11,109 @@
+ 
+ #include "amvdec_1.h"
+ #include "amvdec_hevc.h"
++#include "codec_mpeg12.h"
+ 
+ /* GXBB, GXL, GXLX and GXM support H.264, MPEG-2 and 8-bit HEVC at 1920x1088. */
+ static const struct amvdec_format amvdec_formats_gxbb[] = {
++	{
++		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
++		.min_buffers = 2,
++		.max_buffers = 24,
++		.max_width = 1920,
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_mpeg12_sl_ops,
++		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}
+ };
+ 
+ static const struct amvdec_format amvdec_formats_gxl[] = {
++	{
++		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
++		.min_buffers = 2,
++		.max_buffers = 24,
++		.max_width = 1920,
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_mpeg12_sl_ops,
++		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}
+ };
+ 
+ static const struct amvdec_format amvdec_formats_gxlx[] = {
++	{
++		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
++		.min_buffers = 2,
++		.max_buffers = 24,
++		.max_width = 1920,
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_mpeg12_sl_ops,
++		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}
+ };
+ 
+ /* GXM: as the other GX parts, with its own H.264 multi-instance image */
+ static const struct amvdec_format amvdec_formats_gxm[] = {
++	{
++		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
++		.min_buffers = 2,
++		.max_buffers = 24,
++		.max_width = 1920,
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_mpeg12_sl_ops,
++		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}
+ };
+ 
+ static const struct amvdec_format amvdec_formats_g12a[] = {
++	{
++		/*
++		 * The firmware parses sequence and picture headers synthesized from
++		 * controls.
++		 */
++		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
++		.min_buffers = 2,
++		.max_buffers = 24,
++		.max_width = 1920,
++		/* 1080 lines are coded as 1088: whole macroblocks, in field pairs */
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_mpeg12_sl_ops,
++		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}
+ };
+ 
+ /* SM1: as G12A, with its own VP9 firmware image */
+ static const struct amvdec_format amvdec_formats_sm1[] = {
++	{
++		/*
++		 * The firmware parses sequence and picture headers synthesized from
++		 * controls.
++		 */
++		.pixfmt = V4L2_PIX_FMT_MPEG2_SLICE,
++		.min_buffers = 2,
++		.max_buffers = 24,
++		.max_width = 1920,
++		/* 1080 lines are coded as 1088: whole macroblocks, in field pairs */
++		.max_height = 1088,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_mpeg12_sl_ops,
++		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}
+ };
+ 
+ const struct amvdec_platform meson_amvdec_platform_gxbb = {
+@@ -69,3 +152,4 @@ const struct amvdec_platform meson_amvdec_platform_sm1 = {
+ 	.revision = AMVDEC_REVISION_SM1,
+ };
+ 
++MODULE_FIRMWARE("meson/vdec/gxl_mpeg12_multi.bin");
+diff --git a/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c b/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
+new file mode 100644
+index 0000000000..1953fba726
+--- /dev/null
++++ b/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
+@@ -0,0 +1,406 @@
++// SPDX-License-Identifier: GPL-2.0+
 +/*
-+ * Per-request control copies and synthesised headers for esparser_queue(),
-+ * kept in the session rather than on its stack.  Only the feed worker
-+ * touches them, under sess->lock.
++ * Copyright (C) 2018 BayLibre, SAS
++ * Author: Maxime Jourdan <mjourdan@baylibre.com>
++ *
++ * MPEG-2 request decoding with multi-instance firmware.
 + */
-+struct amvdec_feed_scratch {
-+	struct v4l2_ctrl_mpeg2_sequence mpeg2_seq;
-+	struct v4l2_ctrl_mpeg2_picture mpeg2_pic;
-+	struct v4l2_ctrl_mpeg2_picture mpeg2_job_pic;
-+	struct v4l2_ctrl_mpeg2_quantisation mpeg2_quant;
-+	u8 headers[512];
-+};
 +
- struct amvdec_session {
- 	struct amvdec_core *core;
- 
-@@ -340,6 +353,8 @@ struct amvdec_session {
- 		bool error, credit;
- 	} request_job;
- 
-+	struct amvdec_feed_scratch feed;
++#include <linux/delay.h>
++#include <media/v4l2-mem2mem.h>
++#include <media/videobuf2-dma-contig.h>
 +
- 	unsigned int streamon_cap, streamon_out;
- 	unsigned int sequence_cap, sequence_out;
- 	unsigned int resyncing;
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_1.c b/drivers/media/platform/amlogic/amvdec/amvdec_1.c
-index a6e9c84558..4bae1ecca4 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec_1.c
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec_1.c
-@@ -357,8 +357,10 @@ static int amvdec_1_start(struct amvdec_session *sess)
- 	else
- 		meson_amvdec_clear_dos_bits(core, MDEC_PIC_DC_CTRL, BIT(17));
- 
--	meson_amvdec_write_dos(core, MPSR, 1);
--	usleep_range(10, 20);
-+	if (sess->fmt_out->pixfmt != V4L2_PIX_FMT_MPEG2_SLICE) {
-+		meson_amvdec_write_dos(core, MPSR, 1);
-+		usleep_range(10, 20);
-+	}
- 
- 	return 0;
- 
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-index 666b75cc66..13c433cc75 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-@@ -442,6 +442,37 @@ static int set_canvas_nv12m(struct amvdec_session *sess,
-  * by codecs whose host names the destination and references per picture.
-  * Pass the previous spec to reconfigure the same canvases in place.
-  */
-+int meson_amvdec_canvas_nv12m_spec(struct amvdec_session *sess, struct vb2_buffer *vb,
-+			     u32 width, u32 height, u32 *spec)
++#include "codec_mpeg12.h"
++#include "dos_regs.h"
++#include "amvdec_helpers.h"
++
++#define SIZE_WORKSPACE		SZ_128K
++
++/* map firmware registers to known MPEG1/2 functions */
++#define MREG_SEQ_INFO		AV_SCRATCH_4
++#define MREG_PIC_INFO		AV_SCRATCH_5
++#define MREG_PIC_WIDTH		AV_SCRATCH_6
++#define MREG_PIC_HEIGHT		AV_SCRATCH_7
++#define MREG_BUFFEROUT		AV_SCRATCH_9
++#define MREG_CMD		AV_SCRATCH_A
++#define MREG_CO_MV_START	AV_SCRATCH_B
++#define MREG_ERROR_COUNT	AV_SCRATCH_C
++#define MREG_WAIT_BUFFER	AV_SCRATCH_E
++#define MREG_FATAL_ERROR	AV_SCRATCH_F
++
++static irqreturn_t codec_mpeg12_isr(struct amvdec_session *sess)
 +{
-+	struct amvdec_core *core = sess->core;
-+	u8 id[NUM_CANVAS_NV12];
-+	int ret, i;
-+
-+	if (*spec) {
-+		id[0] = *spec & 0xff;
-+		id[1] = (*spec >> 8) & 0xff;
-+	} else {
-+		for (i = 0; i < NUM_CANVAS_NV12; i++) {
-+			ret = canvas_alloc(sess, &id[i]);
-+			if (ret)
-+				return ret;
-+		}
-+	}
-+	meson_canvas_config(core->canvas, id[0],
-+			    vb2_dma_contig_plane_dma_addr(vb, 0),
-+			    width, height, MESON_CANVAS_WRAP_NONE,
-+			    MESON_CANVAS_BLKMODE_LINEAR,
-+			    MESON_CANVAS_ENDIAN_SWAP64);
-+	meson_canvas_config(core->canvas, id[1],
-+			    vb2_dma_contig_plane_dma_addr(vb, 1),
-+			    width, height / 2, MESON_CANVAS_WRAP_NONE,
-+			    MESON_CANVAS_BLKMODE_LINEAR,
-+			    MESON_CANVAS_ENDIAN_SWAP64);
-+	*spec = (id[1] << 16) | (id[1] << 8) | id[0];
-+	return 0;
++	return IRQ_WAKE_THREAD;
 +}
 +
- /* Remember the plane addresses the canvases of @fw_idx now describe. */
- static void amvdec_record_fw_buf_paddr(struct amvdec_session *sess,
- 				       u32 fw_idx, struct vb2_buffer *vb)
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-index 3002b6148d..98d637a0a1 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-@@ -92,6 +92,8 @@ void meson_amvdec_src_buf_done(struct amvdec_session *sess,
- /* Helpers to read/write to the various IPs (DOS, PARSER) */
- u32 meson_amvdec_read_dos(struct amvdec_core *core, u32 reg);
- void meson_amvdec_write_dos(struct amvdec_core *core, u32 reg, u32 val);
-+int meson_amvdec_canvas_nv12m_spec(struct amvdec_session *sess, struct vb2_buffer *vb,
-+			     u32 width, u32 height, u32 *spec);
- bool meson_amvdec_request_jobs(struct amvdec_session *sess);
- int meson_amvdec_request_begin(struct amvdec_session *sess, struct vb2_v4l2_buffer *src);
- int meson_amvdec_request_resolve_ref(struct amvdec_session *sess, unsigned int index, u64 ts);
-diff --git a/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c b/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
-index 67197577f7..d2536721de 100644
---- a/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
-+++ b/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
-@@ -200,6 +200,387 @@ static irqreturn_t codec_mpeg12_isr(struct amvdec_session *sess)
- 	return IRQ_WAKE_THREAD;
- }
- 
 +/*
-+ * Stateless MPEG-2 on the multi-instance firmware.
-+ *
-+ * The single-instance image above chooses its own destination and rotates its
-+ * own references, which no request client can work with: the client names the
-+ * CAPTURE buffer for each picture and the references by timestamp.  The
-+ * multi-instance image takes both from the host for every picture (REC/ANC2
-+ * and REF0/REF1), is restarted per picture against a fresh context, and posts
-+ * a per-picture status.  One request is one frame picture.
++ * MPEG-2 multi-instance firmware takes destination and reference buffers
++ * from each request. The host prepends sequence and picture headers.
 + */
 +#define MPEG12_SL_WORKSPACE_SIZE	(4 * SZ_64K)
 +#define MPEG12_SL_CCBUF_SIZE		SZ_64K
@@ -250,7 +308,6 @@ index 67197577f7..d2536721de 100644
 +
 +#define MPEG12_PIC_DONE		1
 +#define MPEG12_DATA_REQUEST	4
-+#define PICINFO_ERROR		0x80000000
 +#define PICINFO_PAIR_ERRORS	0xc0000000
 +
 +struct codec_mpeg12_sl {
@@ -299,7 +356,6 @@ index 67197577f7..d2536721de 100644
 +	memset(m->workspace_vaddr, 0, MPEG12_SL_WORKSPACE_SIZE);
 +	memset(m->ccbuf_vaddr, 0, MPEG12_SL_CCBUF_SIZE);
 +
-+	sess->keyframe_found = 1;
 +	sess->priv = m;
 +	return 0;
 +}
@@ -335,9 +391,8 @@ index 67197577f7..d2536721de 100644
 +}
 +
 +/*
-+ * Is the job at hand the second field of the pair the firmware has open?  If
-+ * so it must carry the first field's temporal reference, which the firmware
-+ * checks, and no sequence header.
++ * Match the second field to the open pair and reuse its temporal reference
++ * without inserting a sequence header.
 + */
 +bool meson_amvdec_codec_mpeg12_sl_second_field(struct amvdec_session *sess,
 +				  const struct v4l2_ctrl_mpeg2_picture *pic,
@@ -608,18 +663,25 @@ index 67197577f7..d2536721de 100644
 +	.isr = codec_mpeg12_isr,
 +	.threaded_isr = codec_mpeg12_sl_threaded_isr,
 +};
-+
- struct amvdec_codec_ops meson_amvdec_codec_mpeg12_ops = {
- 	.start = codec_mpeg12_start,
- 	.stop = codec_mpeg12_stop,
 diff --git a/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h b/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h
-index 1a7e66984d..a326ad360b 100644
---- a/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h
+new file mode 100644
+index 0000000000..71dd352a24
+--- /dev/null
 +++ b/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h
-@@ -10,5 +10,13 @@
- #include "amvdec.h"
- 
- extern struct amvdec_codec_ops meson_amvdec_codec_mpeg12_ops;
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2018 BayLibre, SAS
++ * Author: Maxime Jourdan <mjourdan@baylibre.com>
++ *
++ * MPEG-2 request decoding with multi-instance firmware.
++ */
++
++#ifndef __MESON_AMVDEC_CODEC_MPEG12_H_
++#define __MESON_AMVDEC_CODEC_MPEG12_H_
++
++#include "amvdec.h"
++
 +extern struct amvdec_codec_ops meson_amvdec_codec_mpeg12_sl_ops;
 +
 +int meson_amvdec_codec_mpeg12_sl_feed(struct amvdec_session *sess, struct vb2_buffer *vb,
@@ -628,26 +690,19 @@ index 1a7e66984d..a326ad360b 100644
 +bool meson_amvdec_codec_mpeg12_sl_second_field(struct amvdec_session *sess,
 +				  const struct v4l2_ctrl_mpeg2_picture *pic,
 +				  u16 *temporal_ref);
- 
- #endif
++
++#endif
 diff --git a/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h b/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h
 new file mode 100644
-index 0000000000..e57d5934fc
+index 0000000000..3b5388b479
 --- /dev/null
 +++ b/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h
-@@ -0,0 +1,245 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
+@@ -0,0 +1,237 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
-+ * MPEG-1/2 header synthesis for the stateless V4L2 path.
-+ *
-+ * V4L2_PIX_FMT_MPEG2_SLICE hands the driver slice data only: every slice
-+ * starts at a 0x00000101..0x000001AF start code and carries no sequence or
-+ * picture header.  The Amlogic microcode, however, parses those headers out of
-+ * the elementary stream itself.  So the driver rebuilds them from
-+ * V4L2_CID_STATELESS_MPEG2_{SEQUENCE,PICTURE,QUANTISATION} and prepends them,
-+ * exactly as codec_hevc_synth.h does for HEVC.
-+ *
 + * Copyright (C) 2026 Gus Bourg <gus@bourg.net>
++ *
++ * MPEG-2 header synthesis from request controls.
 + */
 +
 +#ifndef __MESON_AMVDEC_CODEC_MPEG12_SYNTH_H_
@@ -716,9 +771,8 @@ index 0000000000..e57d5934fc
 +}
 +
 +/*
-+ * Fields the stateless controls do not carry.  None of them affect the decoded
-+ * samples: they are display metadata the microcode only needs to be able to
-+ * parse past.
++ * Supply display metadata absent from request controls so firmware can
++ * parse the synthesized headers.
 + */
 +#define MPEG12_ASPECT_SQUARE	1
 +#define MPEG12_FRAME_RATE_CODE	4	/* 30000/1001 */
@@ -732,7 +786,7 @@ index 0000000000..e57d5934fc
 +		return -EINVAL;
 +	if (!seq->horizontal_size || !seq->vertical_size)
 +		return -EINVAL;
-+	/* 4:2:0 only; the CAPTURE formats we offer are NV12M/YUV420M. */
++	/* Require 4:2:0 chroma for the supported capture formats. */
 +	if (seq->chroma_format != 1)
 +		return -EINVAL;
 +	return 0;
@@ -882,193 +936,167 @@ index 0000000000..e57d5934fc
 +
 +#endif
 diff --git a/drivers/media/platform/amlogic/amvdec/esparser.c b/drivers/media/platform/amlogic/amvdec/esparser.c
-index f642567010..279ad6646c 100644
+index b2966f5e04..aa46a9809d 100644
 --- a/drivers/media/platform/amlogic/amvdec/esparser.c
 +++ b/drivers/media/platform/amlogic/amvdec/esparser.c
 @@ -22,6 +22,8 @@
  #include "esparser.h"
- #include "codec_vc1.h"
+ #include "amvdec_hevc.h"
  #include "amvdec_helpers.h"
 +#include "codec_mpeg12.h"
 +#include "codec_mpeg12_synth.h"
- #include "codec_hevc.h"
  
- /* PARSER REGS (CBUS) */
-@@ -329,6 +331,7 @@ static void esparser_src_error(struct amvdec_session *sess,
- static int
- esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- {
-+	struct amvdec_feed_scratch *f = &sess->feed;
- 	int ret;
- 	struct vb2_buffer *vb = &vbuf->vb2_buf;
- 	struct amvdec_core *core = sess->core;
-@@ -339,6 +342,11 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- 	u32 num_dst_bufs = 0;
+ /* Zero lookahead appended after each HEVC/VP9 request payload; not part of
+  * the coded endpoint.
+@@ -185,7 +187,11 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
  	u32 offset;
  	u32 pad_size;
+ 
 +	u16 mpeg2_tref = 0;
-+	bool mpeg2_second = false;
+ 	bool mpeg2_second = false;
 +	bool mpeg2_job = false;
 +
 +	BUILD_BUG_ON(sizeof(f->headers) < MPEG12_SYNTH_MAX_HEADERS);
  
  	dev_dbg(core->dev, "feed attempt sess=%p idx=%u bytes=%u\n",
  		sess, vb->index, payload_size);
-@@ -443,6 +451,7 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+@@ -211,6 +217,7 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	offset = esparser_get_offset(sess);
  
- 	if (amvdec_pixfmt_is_stateless(sess->fmt_out->pixfmt)) {
- 		struct media_request *req = vb->req_obj.req;
-+		struct v4l2_ctrl *ctrl;
+ 	struct media_request *req = vb->req_obj.req;
++	struct v4l2_ctrl *ctrl;
  
- 		if (!req) {
- 			dev_err_ratelimited(core->dev, "stateless buffer has no request\n");
-@@ -456,6 +465,95 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- 			esparser_src_error(sess, vbuf);
- 			return ret;
- 		}
-+
-+		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG2_SLICE) {
-+			u8 *vaddr = vb2_plane_vaddr(vb, 0);
-+			u32 plane_size = vb2_plane_size(vb, 0);
-+			bool have_quant = false;
-+			int hdrs_len;
-+
-+			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
-+					      V4L2_CID_STATELESS_MPEG2_SEQUENCE);
-+			if (!ctrl || !ctrl->p_cur.p_mpeg2_sequence) {
-+				dev_err_ratelimited(core->dev, "MPEG2 SEQUENCE control missing\n");
-+				esparser_src_error(sess, vbuf);
-+				return -EINVAL;
-+			}
-+			f->mpeg2_seq = *ctrl->p_cur.p_mpeg2_sequence;
-+			/*
-+			 * The canvases and CAPTURE planes are sized from the
-+			 * negotiated format; a larger picture would be written
-+			 * past them.  Compare in macroblocks, as for H.264.
-+			 */
-+			if (DIV_ROUND_UP(f->mpeg2_seq.horizontal_size, 16) >
-+			    DIV_ROUND_UP(sess->width, 16) ||
-+			    DIV_ROUND_UP(f->mpeg2_seq.vertical_size, 16) >
-+			    DIV_ROUND_UP(sess->height, 16)) {
-+				dev_err_ratelimited(core->dev,
-+						    "MPEG2 sequence size %ux%u exceeds negotiated %ux%u\n",
-+					f->mpeg2_seq.horizontal_size,
-+					f->mpeg2_seq.vertical_size,
-+					sess->width, sess->height);
-+				esparser_src_error(sess, vbuf);
-+				return -EINVAL;
-+			}
-+
-+			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
-+					      V4L2_CID_STATELESS_MPEG2_PICTURE);
-+			if (!ctrl || !ctrl->p_cur.p_mpeg2_picture) {
-+				dev_err_ratelimited(core->dev, "MPEG2 PICTURE control missing\n");
-+				esparser_src_error(sess, vbuf);
-+				return -EINVAL;
-+			}
-+			f->mpeg2_pic = *ctrl->p_cur.p_mpeg2_picture;
-+			f->mpeg2_job_pic = f->mpeg2_pic;
-+			mpeg2_job = true;
-+
-+			ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
-+					      V4L2_CID_STATELESS_MPEG2_QUANTISATION);
-+			if (ctrl && ctrl->p_cur.p_mpeg2_quantisation) {
-+				f->mpeg2_quant = *ctrl->p_cur.p_mpeg2_quantisation;
-+				have_quant = true;
-+			}
-+
-+			/*
-+			 * Emit the sequence header on every picture.  Repeated
-+			 * sequence headers are legal MPEG-2 (broadcast relies on
-+			 * it) and it keeps the feed path stateless, which is the
-+			 * whole point here.
-+			 */
-+			/*
-+			 * Nothing may come between the fields of a frame, and
-+			 * both carry the same temporal reference.
-+			 */
-+			mpeg2_tref = sess->sequence_out;
-+			mpeg2_second = meson_amvdec_codec_mpeg12_sl_second_field(
-+				sess, &f->mpeg2_pic, &mpeg2_tref);
-+			hdrs_len = mpeg12_synth_headers(&f->mpeg2_seq, &f->mpeg2_pic,
-+							have_quant ? &f->mpeg2_quant : NULL,
-+							mpeg2_tref, !mpeg2_second,
-+							f->headers, sizeof(f->headers));
-+			if (hdrs_len < 0) {
-+				dev_err_ratelimited(core->dev,
-+						    "MPEG2 header synthesis rejected controls: %d\n",
-+					hdrs_len);
-+				esparser_src_error(sess, vbuf);
-+				return hdrs_len;
-+			}
-+			if (!vaddr || payload_size + hdrs_len > plane_size) {
-+				dev_err_ratelimited(core->dev,
-+						    "MPEG2 buffer too small for synthesized headers\n");
-+				esparser_src_error(sess, vbuf);
-+				return -ENOSPC;
-+			}
-+			memmove(vaddr + hdrs_len, vaddr, payload_size);
-+			memcpy(vaddr, f->headers, hdrs_len);
-+			payload_size += hdrs_len;
-+			vb2_set_plane_payload(vb, 0, payload_size);
-+			dev_dbg(core->dev,
-+				"MPEG2 synthesized %d header bytes, coding_type=%u\n",
-+				hdrs_len, f->mpeg2_pic.picture_coding_type);
-+		}
+ 	if (!req) {
+ 		dev_err_ratelimited(core->dev, "stateless buffer has no request\n");
+@@ -225,6 +232,90 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		return ret;
  	}
  
- 	ret = meson_amvdec_add_ts(sess, vb->timestamp, vbuf->timecode, offset,
-@@ -494,8 +592,49 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- 		}
- 	}
- 
--	if (meson_amvdec_request_jobs(sess))
-+	if (meson_amvdec_request_jobs(sess)) {
-+		unsigned int i, n = 0;
-+		u64 refs[16];
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_MPEG2_SLICE) {
++		u8 *vaddr = vb2_plane_vaddr(vb, 0);
++		u32 plane_size = vb2_plane_size(vb, 0);
++		bool have_quant = false;
++		int hdrs_len;
 +
-+		if (mpeg2_job) {
-+			if (f->mpeg2_job_pic.picture_coding_type !=
-+			    V4L2_MPEG2_PIC_CODING_TYPE_I)
-+				refs[n++] = f->mpeg2_job_pic.forward_ref_ts;
-+			if (f->mpeg2_job_pic.picture_coding_type ==
-+			    V4L2_MPEG2_PIC_CODING_TYPE_B)
-+				refs[n++] = f->mpeg2_job_pic.backward_ref_ts;
++		ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++				      V4L2_CID_STATELESS_MPEG2_SEQUENCE);
++		if (!ctrl || !ctrl->p_cur.p_mpeg2_sequence) {
++			dev_err_ratelimited(core->dev, "MPEG2 SEQUENCE control missing\n");
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
 +		}
-+		for (i = 0; i < n; i++) {
-+			if (meson_amvdec_request_resolve_ref(sess, i, refs[i])) {
-+				/* A P field may have only its mate to predict from. */
-+				if (mpeg2_second && f->mpeg2_job_pic.picture_coding_type ==
-+				    V4L2_MPEG2_PIC_CODING_TYPE_P)
-+					continue;
-+				dev_err(core->dev,
-+					"prefeed reference %u timestamp %llu missing/current\n",
-+					i, refs[i]);
-+				esparser_src_error(sess, vbuf);
-+				return -EINVAL;
-+			}
++		f->mpeg2_seq = *ctrl->p_cur.p_mpeg2_sequence;
++		/*
++		 * The canvases and CAPTURE planes are sized from the
++		 * negotiated format; a larger picture would be written
++		 * past them.  Compare in macroblocks, as for H.264.
++		 */
++		if (DIV_ROUND_UP(f->mpeg2_seq.horizontal_size, 16) >
++		    DIV_ROUND_UP(sess->width, 16) ||
++		    DIV_ROUND_UP(f->mpeg2_seq.vertical_size, 16) >
++		    DIV_ROUND_UP(sess->height, 16)) {
++			dev_err_ratelimited(core->dev,
++					    "MPEG2 sequence size %ux%u exceeds negotiated %ux%u\n",
++				f->mpeg2_seq.horizontal_size,
++				f->mpeg2_seq.vertical_size,
++				sess->width, sess->height);
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
 +		}
- 		v4l2_m2m_buf_copy_metadata(vbuf, sess->request_job.dst);
-+		if (mpeg2_job) {
-+			/* The VLD reads this buffer directly; nothing goes
-+			 * through the parser FIFO.
-+			 */
-+			sess->request_job.credit = true;
-+			atomic_inc(&sess->esparser_queued_bufs);
-+			ret = meson_amvdec_codec_mpeg12_sl_feed(sess, vb, &f->mpeg2_job_pic,
-+							     mpeg2_tref);
-+			if (ret) {
-+				sess->request_job.credit = false;
-+				atomic_dec(&sess->esparser_queued_bufs);
-+				esparser_src_error(sess, vbuf);
-+				return ret;
-+			}
-+			return 0;
++
++		ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++				      V4L2_CID_STATELESS_MPEG2_PICTURE);
++		if (!ctrl || !ctrl->p_cur.p_mpeg2_picture) {
++			dev_err_ratelimited(core->dev, "MPEG2 PICTURE control missing\n");
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
 +		}
++		f->mpeg2_pic = *ctrl->p_cur.p_mpeg2_picture;
++		f->mpeg2_job_pic = f->mpeg2_pic;
++		mpeg2_job = true;
++
++		ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++				      V4L2_CID_STATELESS_MPEG2_QUANTISATION);
++		if (ctrl && ctrl->p_cur.p_mpeg2_quantisation) {
++			f->mpeg2_quant = *ctrl->p_cur.p_mpeg2_quantisation;
++			have_quant = true;
++		}
++
++		/*
++		 * Prepend a sequence header except between paired fields, which share
++		 * the same temporal reference.
++		 */
++		mpeg2_tref = sess->sequence_out;
++		mpeg2_second =
++			meson_amvdec_codec_mpeg12_sl_second_field(sess, &f->mpeg2_pic,
++								  &mpeg2_tref);
++		hdrs_len = mpeg12_synth_headers(&f->mpeg2_seq, &f->mpeg2_pic,
++						have_quant ? &f->mpeg2_quant : NULL,
++						mpeg2_tref, !mpeg2_second,
++						f->headers, sizeof(f->headers));
++		if (hdrs_len < 0) {
++			dev_err_ratelimited(core->dev,
++					    "MPEG2 header synthesis rejected controls: %d\n",
++				hdrs_len);
++			esparser_src_error(sess, vbuf);
++			return hdrs_len;
++		}
++		if (!vaddr || payload_size + hdrs_len > plane_size) {
++			dev_err_ratelimited(core->dev,
++					    "MPEG2 buffer too small for synthesized headers\n");
++			esparser_src_error(sess, vbuf);
++			return -ENOSPC;
++		}
++		memmove(vaddr + hdrs_len, vaddr, payload_size);
++		memcpy(vaddr, f->headers, hdrs_len);
++		payload_size += hdrs_len;
++		vb2_set_plane_payload(vb, 0, payload_size);
++		dev_dbg(core->dev,
++			"MPEG2 synthesized %d header bytes, coding_type=%u\n",
++			hdrs_len, f->mpeg2_pic.picture_coding_type);
 +	}
- 	ret = esparser_pad_start_code(core, vb, payload_size);
- 	if (ret < 0) {
- 		meson_amvdec_remove_ts(sess, vb->timestamp);
++
+ 	ret = meson_amvdec_add_ts(sess, vb->timestamp, vbuf->timecode, offset,
+ 			    vbuf->flags, vp9_frame_ptr, hevc_sps_ptr, hevc_pps_ptr,
+ 			    hevc_slice_ptr, hevc_decode_ptr);
+@@ -257,6 +348,13 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		}
+ 		for (i = 0; i < n; i++)
+ 			refs[i] = f->hevc_decode.dpb[i].timestamp;
++	} else if (mpeg2_job) {
++		if (f->mpeg2_job_pic.picture_coding_type !=
++		    V4L2_MPEG2_PIC_CODING_TYPE_I)
++			refs[n++] = f->mpeg2_job_pic.forward_ref_ts;
++		if (f->mpeg2_job_pic.picture_coding_type ==
++		    V4L2_MPEG2_PIC_CODING_TYPE_B)
++			refs[n++] = f->mpeg2_job_pic.backward_ref_ts;
+ 	} else if (vp9_frame_ptr && !(f->vp9_frame.flags &
+ 		   (V4L2_VP9_FRAME_FLAG_KEY_FRAME | V4L2_VP9_FRAME_FLAG_INTRA_ONLY))) {
+ 		n = 3;
+@@ -283,7 +381,22 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 			return -EINVAL;
+ 		}
+ 	}
+-
++	if (mpeg2_job) {
++		/* The VLD reads this buffer directly; nothing goes
++		 * through the parser FIFO.
++		 */
++		sess->request_job.credit = true;
++		atomic_inc(&sess->esparser_queued_bufs);
++		ret = meson_amvdec_codec_mpeg12_sl_feed(sess, vb, &f->mpeg2_job_pic,
++							mpeg2_tref);
++		if (ret) {
++			sess->request_job.credit = false;
++			atomic_dec(&sess->esparser_queued_bufs);
++			esparser_src_error(sess, vbuf);
++			return ret;
++		}
++		return 0;
++	}
+ 	/* Record the framed/synthesized coded endpoint before padding or DMA.
+ 	 * Reading PARSER_VIDEO_WP for offset includes previous transport bytes.
+ 	 */
 -- 
 2.53.0
 

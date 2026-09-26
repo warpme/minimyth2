@@ -119,30 +119,22 @@ PATCHFILES += 1301-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards
 PATCHFILES += 1302-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 1303-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
-# stateless amvdec https://github.com/gusbourg/linux/commits/amlogic-vdec/rfc/ 25.09.2026
+# stateless amvdec https://github.com/gusbourg/linux/commits/amlogic-vdec/rfc/ 26.09.2026 g8bb71d57f
 PATCHFILES += 1410-media-uapi-add-the-Amlogic-AM21C-compressed-format.patch
-PATCHFILES += 1411-media-amlogic-add-the-video-decoder-core-and-MPEG-1-.patch
-PATCHFILES += 1412-media-amlogic-amvdec-add-MPEG-4-H.263-and-VC-1-decod.patch
-PATCHFILES += 1413-media-amlogic-amvdec-add-stateful-H.264-decoding.patch
-PATCHFILES += 1414-media-amlogic-amvdec-add-shared-HEVC-and-FBC-support.patch
-PATCHFILES += 1415-media-amlogic-amvdec-add-stateful-HEVC-decoding.patch
-PATCHFILES += 1416-media-amlogic-amvdec-add-stateful-VP9-decoding.patch
-PATCHFILES += 1417-media-amlogic-amvdec-add-request-API-infrastructure.patch
-PATCHFILES += 1418-media-amlogic-amvdec-add-stateless-MPEG-2-decoding.patch
-PATCHFILES += 1419-media-amlogic-amvdec-add-stateless-H.264-decoding.patch
-PATCHFILES += 1420-media-amlogic-amvdec-add-stateless-HEVC-decoding.patch
-PATCHFILES += 1421-media-amlogic-amvdec-add-stateless-VP9-decoding.patch
-PATCHFILES += 1422-media-amlogic-amvdec-add-HEVC-stream-counter-restart.patch
-PATCHFILES += 1423-media-amlogic-amvdec-select-stateless-formats-per-So.patch
-PATCHFILES += 1424-media-amlogic-amvdec-add-a-job-watchdog-and-event-re.patch
+PATCHFILES += 1411-media-amlogic-add-the-video-decoder-core.patch
+PATCHFILES += 1412-media-amlogic-amvdec-add-MPEG-2-decoding.patch
+PATCHFILES += 1413-media-amlogic-amvdec-add-H.264-decoding.patch
+PATCHFILES += 1414-media-amlogic-amvdec-add-HEVC-decoding.patch
+PATCHFILES += 1415-media-amlogic-amvdec-add-VP9-decoding.patch
 # g12/sm1 dtsi additions
 PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 # g12/sm1 board dts additions
 PATCHFILES += 1600-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
 PATCHFILES += 1601-arm64-dts-meson-sm1-disable-cvbs-on-meson-sm1-ac2xx-boards.patch
 PATCHFILES += 1602-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
-PATCHFILES += 1603-arm64-dts-meson-sm1-x96air-add-vfd.patch
+PATCHFILES += 1603-arm64-dts-meson-sm1-x96air-add-vfd-const-mac.patch
 PATCHFILES += 1604-arm64-dts-amlogic-meson-sm1-khadas-vim3l-dec-sd-clk-add-improvements.patch
+PATCHFILES += 1605-arm64-dts-meson-gxl-tx3mini-add-vfd-const-mac.patch
 # s4/sc2 drivers additions
 PATCHFILES += 1700-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
 PATCHFILES += 1701-mmc-meson-gx-Add-support-for-Meson-S4.patch

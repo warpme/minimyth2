@@ -5,208 +5,211 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 
-From 559ea9d47e6ce929932eea9e0adab4d1a798b2b5 Mon Sep 17 00:00:00 2001
-From: gus bourg <gus@bourg.net>
-Date: Thu, 24 Sep 2026 20:15:20 -0700
-Subject: [PATCH 08/17] media: amlogic: amvdec: add stateful VP9 decoding
+From 9f7ac6454bc471b0aaff56af51bc49b447cda2a4 Mon Sep 17 00:00:00 2001
+From: Gus Bourg <gus@bourg.net>
+Date: Sat, 26 Sep 2026 01:59:48 -0700
+Subject: [PATCH 7/8] media: amlogic: amvdec: add VP9 decoding
 
-Add VP9 decoding with reference-slot management, probability updates
-and HEVC-core output handling. Bound superframe index parsing by the
-input payload and validate firmware dimensions against format limits.
+Decode VP9 frame requests on G12A, G12B and SM1 through VDEC_HEVC.
+Use request snapshots for frame parameters and timestamp references,
+with shared compressed capture backing and per-picture MV bounds.
 
-Assisted-by: Claude:claude-opus-5-5
-Assisted-by: Claude:claude-fable-5-1
-Assisted-by: Codex:gpt-5.6
-Assisted-by: Codex:gpt-6.0
+Support profiles 0 and 2, including dimensions down to eight pixels.
+Retain reference metadata until buffer reuse is safe, complete hidden
+frames through the request API and restart the stream counter at a key
+frame while preserving request ownership.
+
+Assisted-by: Claude:claude-opus-5.5 Claude:claude-fable-5.1 Codex:gpt-5.6 Codex:gpt-6.0
 ---
- drivers/media/platform/amlogic/amvdec/Kconfig |    2 +-
- .../media/platform/amlogic/amvdec/Makefile    |    2 +-
- .../media/platform/amlogic/amvdec/amvdec.c    |    9 +-
- .../platform/amlogic/amvdec/amvdec_helpers.c  |   49 +
- .../platform/amlogic/amvdec/amvdec_helpers.h  |    3 +
- .../platform/amlogic/amvdec/amvdec_platform.c |   52 +
- .../media/platform/amlogic/amvdec/codec_vp9.c | 2584 +++++++++++++++++
- .../media/platform/amlogic/amvdec/codec_vp9.h |   13 +
- .../media/platform/amlogic/amvdec/esparser.c  |  143 +-
- 9 files changed, 2846 insertions(+), 11 deletions(-)
+ .../media/platform/amlogic/amvdec/Makefile    |    7 +-
+ .../media/platform/amlogic/amvdec/amvdec.c    |   53 +
+ .../platform/amlogic/amvdec/amvdec_hevc.c     |    6 +-
+ .../platform/amlogic/amvdec/amvdec_platform.c |   47 +-
+ .../media/platform/amlogic/amvdec/codec_vp9.c | 2469 +++++++++++++++++
+ .../media/platform/amlogic/amvdec/codec_vp9.h |   20 +
+ .../media/platform/amlogic/amvdec/esparser.c  |  173 +-
+ 7 files changed, 2761 insertions(+), 14 deletions(-)
  create mode 100644 drivers/media/platform/amlogic/amvdec/codec_vp9.c
  create mode 100644 drivers/media/platform/amlogic/amvdec/codec_vp9.h
 
-diff --git a/drivers/media/platform/amlogic/amvdec/Kconfig b/drivers/media/platform/amlogic/amvdec/Kconfig
-index 55401cf493..301f11bbe4 100644
---- a/drivers/media/platform/amlogic/amvdec/Kconfig
-+++ b/drivers/media/platform/amlogic/amvdec/Kconfig
-@@ -11,7 +11,7 @@ config VIDEO_MESON_AMVDEC
- 	help
- 	Support for the video decoder found in the Amlogic GXBB, GXL, GXM,
- 	G12A, G12B and SM1 SoCs: stateful MPEG-1/2, MPEG-4, H.263, VC-1,
--	H.264 and HEVC decoding.
-+	H.264, HEVC and VP9 decoding.
- 
- 	To compile this driver as a module, choose M here: the module will
- 	be called meson-amvdec.
 diff --git a/drivers/media/platform/amlogic/amvdec/Makefile b/drivers/media/platform/amlogic/amvdec/Makefile
-index f8a37dc64d..b5aa6d20bd 100644
+index b7d5376796..d8c70f394b 100644
 --- a/drivers/media/platform/amlogic/amvdec/Makefile
 +++ b/drivers/media/platform/amlogic/amvdec/Makefile
-@@ -4,6 +4,6 @@
+@@ -2,11 +2,8 @@
+ # Makefile for the Amlogic meson-amvdec video decoder driver
+ 
  meson-amvdec-objs = esparser.o amvdec.o amvdec_helpers.o amvdec_platform.o
- meson-amvdec-objs += amvdec_1.o amvdec_hevc.o
- meson-amvdec-objs += codec_mpeg12.o codec_mpeg4.o codec_vc1.o codec_vc1_parser.o
--meson-amvdec-objs += codec_h264.o codec_hevc_common.o codec_hevc.o
+-meson-amvdec-objs += amvdec_1.o
+-meson-amvdec-objs += amvdec_hevc.o
++meson-amvdec-objs += amvdec_1.o amvdec_hevc.o
+ meson-amvdec-objs += codec_mpeg12.o
+-meson-amvdec-objs += codec_h264.o
+-meson-amvdec-objs += codec_hevc.o
+-meson-amvdec-objs += codec_hevc_common.o
 +meson-amvdec-objs += codec_h264.o codec_hevc_common.o codec_vp9.o codec_hevc.o
  
  obj-$(CONFIG_VIDEO_MESON_AMVDEC) += meson-amvdec.o
 diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
-index 8fdf227882..0a54a749a5 100644
+index e3cb9feabd..2a898f7800 100644
 --- a/drivers/media/platform/amlogic/amvdec/amvdec.c
 +++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
-@@ -1055,11 +1055,12 @@ vdec_try_fmt_common(struct amvdec_session *sess, u32 size,
- 		memset(pfmt[1].reserved, 0, sizeof(pfmt[1].reserved));
- 		if (pixmp->pixelformat == V4L2_PIX_FMT_NV12M) {
- 			/* The HEVC core's SAO stage writes linear output with a
--			 * 32-byte row pitch.  Allocation may be larger, but
--			 * userspace must not skip decoded pixels at widths such
--			 * as 416 or 352.
-+			 * 32-byte row pitch, for VP9 exactly as for HEVC.
-+			 * Allocation may be larger, but userspace must not skip
-+			 * decoded pixels at widths such as 416 or 352.
- 			 */
--			u32 align = fmt_out->pixfmt == V4L2_PIX_FMT_HEVC ? 32 : 64;
-+			u32 align = (fmt_out->pixfmt == V4L2_PIX_FMT_HEVC ||
-+				     fmt_out->pixfmt == V4L2_PIX_FMT_VP9) ? 32 : 64;
+@@ -1055,6 +1055,31 @@ static const struct v4l2_ctrl_ops vdec_mpeg2_ctrl_ops = {
+ 	.try_ctrl = vdec_mpeg2_try_ctrl,
+ };
  
- 			pfmt[0].sizeimage = vdec_nv12m_plane_size(sess, output_size);
- 			pfmt[0].bytesperline = ALIGN(pixmp->width, align);
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-index 9ab7b83606..2f7f289af3 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
-@@ -620,6 +620,55 @@ void meson_amvdec_remove_ts(struct amvdec_session *sess, u64 ts)
- 	spin_unlock_irqrestore(&sess->ts_spinlock, flags);
- }
- 
-+int meson_amvdec_next_ts_offset(struct amvdec_session *sess, u32 after,
-+			  bool after_valid, u32 *offset)
++static int vdec_vp9_try_ctrl(struct v4l2_ctrl *ctrl)
 +{
-+	struct amvdec_timestamp *tmp;
-+	unsigned long flags;
-+	int ret = -ENOENT;
++	const struct v4l2_ctrl_vp9_frame *frame = ctrl->p_new.p_vp9_frame;
++	const u32 subsampling = V4L2_VP9_FRAME_FLAG_X_SUBSAMPLING |
++				V4L2_VP9_FRAME_FLAG_Y_SUBSAMPLING;
 +
-+	spin_lock_irqsave(&sess->ts_spinlock, flags);
-+	list_for_each_entry(tmp, &sess->timestamps, list) {
-+		if (after_valid && tmp->offset <= after)
-+			continue;
++	if ((frame->profile != 0 && frame->profile != 2) ||
++	    frame->bit_depth != (frame->profile == 2 ? 10 : 8) ||
++	    (frame->flags & subsampling) != subsampling)
++		return -EINVAL;
 +
-+		*offset = tmp->offset;
-+		ret = 0;
-+		break;
-+	}
-+	spin_unlock_irqrestore(&sess->ts_spinlock, flags);
++	/* Keep control validation consistent with format negotiation. */
++	if (frame->frame_width_minus_1 + 1 <
++	    amvdec_min_coded_width(V4L2_PIX_FMT_VP9_FRAME) ||
++	    frame->frame_height_minus_1 + 1 <
++	    amvdec_min_coded_height(V4L2_PIX_FMT_VP9_FRAME))
++		return -EINVAL;
 +
-+	return ret;
++	return 0;
 +}
 +
-+void meson_amvdec_dst_buf_drop_offset(struct amvdec_session *sess, u32 offset)
-+{
-+	struct device *dev = sess->core->dev_dec;
-+	struct amvdec_timestamp *tmp, *n;
-+	bool found = false;
-+	unsigned long flags;
++static const struct v4l2_ctrl_ops vdec_vp9_ctrl_ops = {
++	.try_ctrl = vdec_vp9_try_ctrl,
++};
 +
-+	spin_lock_irqsave(&sess->ts_spinlock, flags);
-+	list_for_each_entry_safe(tmp, n, &sess->timestamps, list) {
-+		if (tmp->offset != offset)
-+			continue;
-+
-+		list_del(&tmp->list);
-+		kfree(tmp);
-+		found = true;
-+		break;
-+	}
-+	spin_unlock_irqrestore(&sess->ts_spinlock, flags);
-+
-+	if (!found) {
-+		dev_warn_ratelimited(dev, "Couldn't drop timestamp with offset %08X\n", offset);
-+		return;
-+	}
-+
-+	atomic_dec(&sess->esparser_queued_bufs);
-+	schedule_work(&sess->esparser_queue_work);
-+}
-+
- static void dst_buf_done(struct amvdec_session *sess,
- 			 struct vb2_v4l2_buffer *vbuf,
- 			 u32 field, u64 timestamp,
-diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-index dc7fdcc6c1..cd75638f55 100644
---- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-+++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
-@@ -103,6 +103,9 @@ void meson_amvdec_dst_buf_done_offset(struct amvdec_session *sess,
- int meson_amvdec_add_ts(struct amvdec_session *sess, u64 ts,
- 		  struct v4l2_timecode tc, u32 offset, u32 flags);
- void meson_amvdec_remove_ts(struct amvdec_session *sess, u64 ts);
-+int meson_amvdec_next_ts_offset(struct amvdec_session *sess, u32 after,
-+			  bool after_valid, u32 *offset);
-+void meson_amvdec_dst_buf_drop_offset(struct amvdec_session *sess, u32 offset);
+ /* Compound controls must have defaults accepted by their try_ctrl callback. */
+ static const struct v4l2_ctrl_h264_sps vdec_h264_sps_default = {
+ 	.profile_idc = 77,
+@@ -1073,6 +1098,12 @@ static const struct v4l2_ctrl_mpeg2_sequence vdec_mpeg2_sequence_default = {
+ 	.chroma_format = 1,
+ };
  
- /**
-  * meson_amvdec_set_par_from_dar() - Set Pixel Aspect Ratio from Display Aspect Ratio
++static const struct v4l2_ctrl_vp9_frame vdec_vp9_frame_default = {
++	.flags = V4L2_VP9_FRAME_FLAG_X_SUBSAMPLING |
++		 V4L2_VP9_FRAME_FLAG_Y_SUBSAMPLING,
++	.bit_depth = 8,
++};
++
+ static int vdec_init_ctrls(struct amvdec_session *sess)
+ {
+ 	struct v4l2_ctrl_handler *ctrl_handler = &sess->ctrl_handler;
+@@ -1134,6 +1165,28 @@ static int vdec_init_ctrls(struct amvdec_session *sess)
+ 			V4L2_MPEG_VIDEO_H264_LEVEL_4_1);
+ 	}
+ 
++	if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_VP9_FRAME)) {
++		const struct amvdec_format *fmt =
++			vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_VP9_FRAME);
++		static const struct v4l2_ctrl_config vp9_frame_ctrl = {
++			.id = V4L2_CID_STATELESS_VP9_FRAME,
++			.ops = &vdec_vp9_ctrl_ops,
++			.p_def.p_const = &vdec_vp9_frame_default,
++		};
++
++		v4l2_ctrl_new_std_menu(ctrl_handler, NULL,
++				       V4L2_CID_MPEG_VIDEO_VP9_PROFILE,
++				       fls(fmt->profiles) - 1, ~fmt->profiles,
++				       V4L2_MPEG_VIDEO_VP9_PROFILE_0);
++
++		v4l2_ctrl_new_custom(ctrl_handler, &vp9_frame_ctrl, NULL);
++		v4l2_ctrl_new_std_compound(ctrl_handler, NULL,
++					   V4L2_CID_STATELESS_VP9_COMPRESSED_HDR,
++					   v4l2_ctrl_ptr_create(NULL),
++					   v4l2_ctrl_ptr_create(NULL),
++					   v4l2_ctrl_ptr_create(NULL));
++	}
++
+ 	if (vdec_format_by_pixfmt(sess->core, V4L2_PIX_FMT_MPEG2_SLICE)) {
+ 		static const struct v4l2_ctrl_config mpeg2_ctrls[] = {
+ 			{
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+index dae50448ee..0e71394e08 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+@@ -15,6 +15,7 @@
+ #include "amvdec_hevc.h"
+ #include "esparser.h"
+ #include "codec_hevc.h"
++#include "codec_vp9.h"
+ #include "hevc_regs.h"
+ #include "dos_regs.h"
+ 
+@@ -467,7 +468,10 @@ int meson_amvdec_hevc_restream(struct amvdec_session *sess)
+ 		return ret;
+ 
+ 	/* Both codecs on this core publish endpoints the same way. */
+-	ret = meson_amvdec_codec_hevc_restream_reinit(sess);
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9_FRAME)
++		ret = meson_amvdec_codec_vp9_restream_reinit(sess);
++	else
++		ret = meson_amvdec_codec_hevc_restream_reinit(sess);
+ 	if (ret)
+ 		return ret;
+ 
 diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
-index 890b987874..2a267c81ea 100644
+index b561085b3d..43f596ae5d 100644
 --- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
 +++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
 @@ -14,6 +14,7 @@
- #include "codec_vc1.h"
+ #include "codec_mpeg12.h"
  #include "codec_h264.h"
  #include "codec_hevc.h"
 +#include "codec_vp9.h"
  
- static const struct amvdec_format amvdec_formats_gxbb[] = {
- 	{
-@@ -67,6 +68,18 @@ static const struct amvdec_format amvdec_formats_gxbb[] = {
+ /* GXBB, GXL, GXLX and GXM support H.264, MPEG-2 and 8-bit HEVC at 1920x1088. */
+ #define AMVDEC_H264_PROFILES (BIT(V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE) | \
+@@ -64,7 +65,7 @@ static const struct amvdec_format amvdec_formats_gxbb[] = {
+ 		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
+-	}
++	},
+ };
  
  static const struct amvdec_format amvdec_formats_gxl[] = {
- 	{
-+		.pixfmt = V4L2_PIX_FMT_VP9,
-+		.min_buffers = 16,
-+		.max_buffers = 24,
-+		.max_width = 3840,
-+		.max_height = 2160,
-+		.vdec_ops = &meson_amvdec_hevc_ops,
-+		.codec_ops = &meson_amvdec_codec_vp9_ops,
-+		.firmware_path = "meson/vdec/gxl_vp9.bin",
-+		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
-+		.flags = V4L2_FMT_FLAG_COMPRESSED |
-+			 V4L2_FMT_FLAG_DYN_RESOLUTION,
-+	}, {
- 		.pixfmt = V4L2_PIX_FMT_HEVC,
- 		.min_buffers = 4,
- 		.max_buffers = 24,
-@@ -167,6 +180,18 @@ static const struct amvdec_format amvdec_formats_gxlx[] = {
+@@ -92,7 +93,7 @@ static const struct amvdec_format amvdec_formats_gxl[] = {
+ 		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
+-	}
++	},
+ };
  
- static const struct amvdec_format amvdec_formats_gxm[] = {
- 	{
-+		.pixfmt = V4L2_PIX_FMT_VP9,
-+		.min_buffers = 16,
-+		.max_buffers = 24,
-+		.max_width = 3840,
-+		.max_height = 2160,
-+		.vdec_ops = &meson_amvdec_hevc_ops,
-+		.codec_ops = &meson_amvdec_codec_vp9_ops,
-+		.firmware_path = "meson/vdec/gxl_vp9.bin",
-+		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
-+		.flags = V4L2_FMT_FLAG_COMPRESSED |
-+			 V4L2_FMT_FLAG_DYN_RESOLUTION,
-+	}, {
- 		.pixfmt = V4L2_PIX_FMT_HEVC,
- 		.min_buffers = 4,
- 		.max_buffers = 24,
-@@ -217,6 +242,18 @@ static const struct amvdec_format amvdec_formats_gxm[] = {
+ static const struct amvdec_format amvdec_formats_gxlx[] = {
+@@ -120,7 +121,7 @@ static const struct amvdec_format amvdec_formats_gxlx[] = {
+ 		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
+-	}
++	},
+ };
+ 
+ /* GXM: as the other GX parts, with its own H.264 multi-instance image */
+@@ -149,7 +150,7 @@ static const struct amvdec_format amvdec_formats_gxm[] = {
+ 		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
+-	}
++	},
+ };
  
  static const struct amvdec_format amvdec_formats_g12a[] = {
- 	{
-+		.pixfmt = V4L2_PIX_FMT_VP9,
+@@ -168,6 +169,22 @@ static const struct amvdec_format amvdec_formats_g12a[] = {
+ 		.firmware_path = "meson/vdec/g12a_h264_multi.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}, {
++		/* Stateless requests feed whole VP9 frames through the HEVC parser. */
++		.pixfmt = V4L2_PIX_FMT_VP9_FRAME,
++		.profiles = BIT(V4L2_MPEG_VIDEO_VP9_PROFILE_0) |
++			    BIT(V4L2_MPEG_VIDEO_VP9_PROFILE_2),
++		.max_bit_depth = 10,
 +		.min_buffers = 16,
 +		.max_buffers = 24,
 +		.max_width = 3840,
@@ -214,18 +217,31 @@ index 890b987874..2a267c81ea 100644
 +		.vdec_ops = &meson_amvdec_hevc_ops,
 +		.codec_ops = &meson_amvdec_codec_vp9_ops,
 +		.firmware_path = "meson/vdec/g12a_vp9.bin",
-+		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
-+		.flags = V4L2_FMT_FLAG_COMPRESSED |
-+			 V4L2_FMT_FLAG_DYN_RESOLUTION,
-+	}, {
- 		/*
- 		 * G12A/G12B HEVC.  The only firmware Amlogic ships for this
- 		 * SoC is the _mmu build; codec_hevc_use_mmu() turns the
-@@ -309,6 +346,18 @@ static const struct amvdec_format amvdec_formats_g12a[] = {
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M,
++				 V4L2_PIX_FMT_AM21C, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
+ 	}, {
+ 		/* Main 10 and AM21C capture use the MMU. */
+ 		.pixfmt = V4L2_PIX_FMT_HEVC_SLICE,
+@@ -200,7 +217,7 @@ static const struct amvdec_format amvdec_formats_g12a[] = {
+ 		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
+-	}
++	},
+ };
  
- static const struct amvdec_format amvdec_formats_sm1[] = {
- 	{
-+		.pixfmt = V4L2_PIX_FMT_VP9,
+ /* SM1: as G12A, with its own VP9 firmware image */
+@@ -220,6 +237,22 @@ static const struct amvdec_format amvdec_formats_sm1[] = {
+ 		.firmware_path = "meson/vdec/sm1_h264_multi.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	}, {
++		/* Stateless requests feed whole VP9 frames through the HEVC parser. */
++		.pixfmt = V4L2_PIX_FMT_VP9_FRAME,
++		.profiles = BIT(V4L2_MPEG_VIDEO_VP9_PROFILE_0) |
++			    BIT(V4L2_MPEG_VIDEO_VP9_PROFILE_2),
++		.max_bit_depth = 10,
 +		.min_buffers = 16,
 +		.max_buffers = 24,
 +		.max_width = 3840,
@@ -233,37 +249,45 @@ index 890b987874..2a267c81ea 100644
 +		.vdec_ops = &meson_amvdec_hevc_ops,
 +		.codec_ops = &meson_amvdec_codec_vp9_ops,
 +		.firmware_path = "meson/vdec/sm1_vp9_mmu.bin",
-+		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
-+		.flags = V4L2_FMT_FLAG_COMPRESSED |
-+			 V4L2_FMT_FLAG_DYN_RESOLUTION,
-+	}, {
- 		.pixfmt = V4L2_PIX_FMT_H264,
- 		.min_buffers = 2,
- 		.max_buffers = 24,
-@@ -382,10 +431,13 @@ const struct amvdec_platform meson_amvdec_platform_sm1 = {
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M,
++				 V4L2_PIX_FMT_AM21C, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
+ 	}, {
+ 		/* Main 10 and AM21C capture use the MMU. */
+ 		.pixfmt = V4L2_PIX_FMT_HEVC_SLICE,
+@@ -252,7 +285,7 @@ static const struct amvdec_format amvdec_formats_sm1[] = {
+ 		.firmware_path = "meson/vdec/gxl_mpeg12_multi.bin",
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
+ 		.flags = V4L2_FMT_FLAG_COMPRESSED,
+-	}
++	},
  };
  
- MODULE_FIRMWARE("meson/vdec/g12a_h264.bin");
-+MODULE_FIRMWARE("meson/vdec/g12a_vp9.bin");
- MODULE_FIRMWARE("meson/vdec/gxbb_h264.bin");
- MODULE_FIRMWARE("meson/vdec/gxl_h264.bin");
- MODULE_FIRMWARE("meson/vdec/gxl_mpeg12.bin");
-+MODULE_FIRMWARE("meson/vdec/gxl_vp9.bin");
- MODULE_FIRMWARE("meson/vdec/gxm_h264.bin");
-+MODULE_FIRMWARE("meson/vdec/sm1_vp9_mmu.bin");
+ const struct amvdec_platform meson_amvdec_platform_gxbb = {
+@@ -293,9 +326,11 @@ const struct amvdec_platform meson_amvdec_platform_sm1 = {
+ 
+ MODULE_FIRMWARE("meson/vdec/g12a_h264_multi.bin");
  MODULE_FIRMWARE("meson/vdec/g12a_hevc_mmu.bin");
++MODULE_FIRMWARE("meson/vdec/g12a_vp9.bin");
+ MODULE_FIRMWARE("meson/vdec/gxl_h264_multi.bin");
  MODULE_FIRMWARE("meson/vdec/gxl_hevc.bin");
- MODULE_FIRMWARE("meson/vdec/gxl_mpeg4_5.bin");
+ MODULE_FIRMWARE("meson/vdec/gxl_mpeg12_multi.bin");
+ MODULE_FIRMWARE("meson/vdec/gxm_h264_multi.bin");
+ MODULE_FIRMWARE("meson/vdec/sm1_h264_multi.bin");
+ MODULE_FIRMWARE("meson/vdec/sm1_hevc_mmu.bin");
++MODULE_FIRMWARE("meson/vdec/sm1_vp9_mmu.bin");
 diff --git a/drivers/media/platform/amlogic/amvdec/codec_vp9.c b/drivers/media/platform/amlogic/amvdec/codec_vp9.c
 new file mode 100644
-index 0000000000..77dcffd917
+index 0000000000..d4fcafc7b8
 --- /dev/null
 +++ b/drivers/media/platform/amlogic/amvdec/codec_vp9.c
-@@ -0,0 +1,2584 @@
+@@ -0,0 +1,2469 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <mjourdan@baylibre.com>
 + * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
++ *
++ * VP9 request decoding.
 + */
 +
 +#include <media/v4l2-mem2mem.h>
@@ -279,11 +303,11 @@ index 0000000000..77dcffd917
 +#define VP9_DEC_STATUS_REG	HEVC_ASSIST_SCRATCH_0
 +	#define VP9_10B_DECODE_SLICE	5
 +	#define VP9_DECPIC_DATA_DONE	0x0a
-+	#define VP9_NAL_DECODE_DONE	0x0e
 +	#define VP9_DECODE_BUFEMPTY	0x20
 +	#define VP9_SEARCH_BUFEMPTY	0x22
++	/* Written by the HOST to resume the firmware; never reported by it. */
++	#define VP9_ACTION_DONE		0xff
 +	#define VP9_HEAD_PARSER_DONE	0xf0
-+	#define VP9_EOS			0xf2
 +#define VP9_RPM_BUFFER		HEVC_ASSIST_SCRATCH_1
 +#define VP9_SHORT_TERM_RPS	HEVC_ASSIST_SCRATCH_2
 +#define VP9_ADAPT_PROB_REG	HEVC_ASSIST_SCRATCH_3
@@ -309,7 +333,6 @@ index 0000000000..77dcffd917
 +#define LCU_SIZE		64
 +#define MAX_REF_PIC_NUM		24
 +#define REFS_PER_FRAME		3
-+#define REF_FRAMES		8
 +#define MV_MEM_UNIT		0x240
 +#define ADAPT_PROB_SIZE		0xf80
 +
@@ -363,40 +386,22 @@ index 0000000000..77dcffd917
 +#define MMU_VBH_OFFSET   (COUNT_OFFSET + COUNT_SIZE)
 +#define MPRED_ABV_OFFSET (MMU_VBH_OFFSET + MMU_VBH_SIZE)
 +/*
-+ * The per-frame motion-vector buffers are deliberately NOT in the workspace,
-+ * for the same reason as in codec_hevc.c: they were 27 MiB of its 28.62 MiB,
-+ * which made the workspace the hardest contiguous allocation here and the one
-+ * that fails first, to -EBUSY - an isolation failure, so fragmentation rather
-+ * than exhaustion.  The hardware takes each frame's MV address individually
-+ * (HEVC_MPRED_MV_WR/RD_START_ADDR), so they need only be individually
-+ * contiguous.  Splitting them out leaves a 1.62 MiB workspace.
++ * Allocate per-frame MV storage separately from the workspace; hardware
++ * accepts an independent contiguous buffer for each capture index.
 + */
 +#define RPM_OFFSET       (MPRED_ABV_OFFSET + MPRED_ABV_SIZE)
 +#define LMEM_OFFSET      (RPM_OFFSET + RPM_BUF_SIZE)
 +
 +#define SIZE_WORKSPACE	ALIGN(LMEM_OFFSET + LMEM_SIZE, 64 * SZ_1K)
 +
-+#define NONE           -1
 +#define INTRA_FRAME     0
 +#define LAST_FRAME      1
-+#define GOLDEN_FRAME    2
-+#define ALTREF_FRAME    3
 +#define MAX_REF_FRAMES  4
 +
-+/*
-+ * Defines, declarations, sub-functions for vp9 de-block loop
-+	filter Thr/Lvl table update
-+ * - struct segmentation is for loop filter only (removed something)
-+ * - function "vp9_loop_filter_init" and "vp9_loop_filter_frame_init" will
-+	be instantiated in C_Entry
-+ * - vp9_loop_filter_init run once before decoding start
-+ * - vp9_loop_filter_frame_init run before every frame decoding start
-+ * - set video format to VP9 is in vp9_loop_filter_init
-+ */
++/* Loop-filter thresholds and per-frame levels. */
 +#define MAX_LOOP_FILTER		63
 +#define MAX_REF_LF_DELTAS	4
 +#define MAX_MODE_LF_DELTAS	2
-+#define SEGMENT_DELTADATA	0
 +#define SEGMENT_ABSDATA		1
 +#define MAX_SEGMENTS		8
 +
@@ -404,32 +409,14 @@ index 0000000000..77dcffd917
 +#define VP9_PARTITION_START      0
 +#define VP9_PARTITION_SIZE_STEP  (3 * 4)
 +#define VP9_PARTITION_ONE_SIZE   (4 * VP9_PARTITION_SIZE_STEP)
-+#define VP9_PARTITION_KEY_START  0
 +#define VP9_PARTITION_P_START    VP9_PARTITION_ONE_SIZE
 +#define VP9_PARTITION_SIZE       (2 * VP9_PARTITION_ONE_SIZE)
 +#define VP9_SKIP_START           (VP9_PARTITION_START + VP9_PARTITION_SIZE)
 +#define VP9_SKIP_SIZE            4 /* only use 3*/
 +#define VP9_TX_MODE_START        (VP9_SKIP_START + VP9_SKIP_SIZE)
-+#define VP9_TX_MODE_8_0_OFFSET   0
-+#define VP9_TX_MODE_8_1_OFFSET   1
-+#define VP9_TX_MODE_16_0_OFFSET  2
-+#define VP9_TX_MODE_16_1_OFFSET  4
-+#define VP9_TX_MODE_32_0_OFFSET  6
-+#define VP9_TX_MODE_32_1_OFFSET  9
 +#define VP9_TX_MODE_SIZE         12
 +#define VP9_COEF_START           (VP9_TX_MODE_START + VP9_TX_MODE_SIZE)
-+#define VP9_COEF_BAND_0_OFFSET   0
-+#define VP9_COEF_BAND_1_OFFSET   (VP9_COEF_BAND_0_OFFSET + 3 * 3 + 1)
-+#define VP9_COEF_BAND_2_OFFSET   (VP9_COEF_BAND_1_OFFSET + 6 * 3)
-+#define VP9_COEF_BAND_3_OFFSET   (VP9_COEF_BAND_2_OFFSET + 6 * 3)
-+#define VP9_COEF_BAND_4_OFFSET   (VP9_COEF_BAND_3_OFFSET + 6 * 3)
-+#define VP9_COEF_BAND_5_OFFSET   (VP9_COEF_BAND_4_OFFSET + 6 * 3)
 +#define VP9_COEF_SIZE_ONE_SET    100 /* ((3 + 5 * 6) * 3 + 1 padding)*/
-+#define VP9_COEF_4X4_START       (VP9_COEF_START + 0 * VP9_COEF_SIZE_ONE_SET)
-+#define VP9_COEF_8X8_START       (VP9_COEF_START + 4 * VP9_COEF_SIZE_ONE_SET)
-+#define VP9_COEF_16X16_START     (VP9_COEF_START + 8 * VP9_COEF_SIZE_ONE_SET)
-+#define VP9_COEF_32X32_START     (VP9_COEF_START + 12 * VP9_COEF_SIZE_ONE_SET)
-+#define VP9_COEF_SIZE_PLANE      (2 * VP9_COEF_SIZE_ONE_SET)
 +#define VP9_COEF_SIZE            (4 * 2 * 2 * VP9_COEF_SIZE_ONE_SET)
 +#define VP9_INTER_MODE_START     (VP9_COEF_START + VP9_COEF_SIZE)
 +#define VP9_INTER_MODE_SIZE      24 /* only use 21 (# * 7)*/
@@ -442,9 +429,7 @@ index 0000000000..77dcffd917
 +#define VP9_COMP_INTER_START     \
 +		(VP9_INTERP_INTRA_INTER_START + VP9_INTERP_INTRA_INTER_SIZE)
 +#define VP9_COMP_INTER_SIZE      5
-+#define VP9_COMP_REF_START       (VP9_COMP_INTER_START + VP9_COMP_INTER_SIZE)
 +#define VP9_COMP_REF_SIZE        5
-+#define VP9_SINGLE_REF_START     (VP9_COMP_REF_START + VP9_COMP_REF_SIZE)
 +#define VP9_SINGLE_REF_SIZE      10
 +#define VP9_REF_MODE_START       VP9_COMP_INTER_START
 +#define VP9_REF_MODE_SIZE        \
@@ -483,38 +468,10 @@ index 0000000000..77dcffd917
 +#define VP9_MV_CLASS0_FP_1_SIZE  9
 +#define VP9_MV_CLASS0_HP_0_START \
 +			(VP9_MV_CLASS0_FP_1_START + VP9_MV_CLASS0_FP_1_SIZE)
-+#define VP9_MV_CLASS0_HP_0_SIZE  2
-+#define VP9_MV_CLASS0_HP_1_START \
-+			(VP9_MV_CLASS0_HP_0_START + VP9_MV_CLASS0_HP_0_SIZE)
-+#define VP9_MV_CLASS0_HP_1_SIZE  2
-+#define VP9_MV_START             VP9_MV_JOINTS_START
-+#define VP9_MV_SIZE              72 /*only use 69*/
-+
-+#define VP9_TOTAL_SIZE           (VP9_MV_START + VP9_MV_SIZE)
 +
 +/* VP9 COUNT mem processing defines */
 +#define VP9_COEF_COUNT_START           0
-+#define VP9_COEF_COUNT_BAND_0_OFFSET   0
-+#define VP9_COEF_COUNT_BAND_1_OFFSET   \
-+			(VP9_COEF_COUNT_BAND_0_OFFSET + 3 * 5)
-+#define VP9_COEF_COUNT_BAND_2_OFFSET   \
-+			(VP9_COEF_COUNT_BAND_1_OFFSET + 6 * 5)
-+#define VP9_COEF_COUNT_BAND_3_OFFSET   \
-+			(VP9_COEF_COUNT_BAND_2_OFFSET + 6 * 5)
-+#define VP9_COEF_COUNT_BAND_4_OFFSET   \
-+			(VP9_COEF_COUNT_BAND_3_OFFSET + 6 * 5)
-+#define VP9_COEF_COUNT_BAND_5_OFFSET   \
-+			(VP9_COEF_COUNT_BAND_4_OFFSET + 6 * 5)
 +#define VP9_COEF_COUNT_SIZE_ONE_SET    165 /* ((3 + 5 * 6) * 5 */
-+#define VP9_COEF_COUNT_4X4_START       \
-+		(VP9_COEF_COUNT_START + 0 * VP9_COEF_COUNT_SIZE_ONE_SET)
-+#define VP9_COEF_COUNT_8X8_START       \
-+		(VP9_COEF_COUNT_START + 4 * VP9_COEF_COUNT_SIZE_ONE_SET)
-+#define VP9_COEF_COUNT_16X16_START     \
-+		(VP9_COEF_COUNT_START + 8 * VP9_COEF_COUNT_SIZE_ONE_SET)
-+#define VP9_COEF_COUNT_32X32_START     \
-+		(VP9_COEF_COUNT_START + 12 * VP9_COEF_COUNT_SIZE_ONE_SET)
-+#define VP9_COEF_COUNT_SIZE_PLANE      (2 * VP9_COEF_COUNT_SIZE_ONE_SET)
 +#define VP9_COEF_COUNT_SIZE            (4 * 2 * 2 * VP9_COEF_COUNT_SIZE_ONE_SET)
 +
 +#define VP9_INTRA_INTER_COUNT_START    \
@@ -590,7 +547,6 @@ index 0000000000..77dcffd917
 +#define VP9_MV_CLASS0_FP_0_COUNT_SIZE  (3 * 4)
 +#define VP9_MV_CLASS0_FP_1_COUNT_START \
 +		(VP9_MV_CLASS0_FP_0_COUNT_START + VP9_MV_CLASS0_FP_0_COUNT_SIZE)
-+#define VP9_MV_CLASS0_FP_1_COUNT_SIZE  (3 * 4)
 +
 +#define DC_PRED    0	/* Average of above and left pixels */
 +#define V_PRED     1	/* Vertical */
@@ -700,12 +656,14 @@ index 0000000000..77dcffd917
 +struct vp9_frame {
 +	struct list_head list;
 +	struct vb2_v4l2_buffer *vbuf;
++	struct v4l2_ctrl_vp9_frame vp9_frame;
 +	int index;
 +	int intra_only;
 +	int show;
 +	int type;
 +	int done;
 +	u32 offset;
++	u32 input_end;
 +	unsigned int width;
 +	unsigned int height;
 +};
@@ -722,19 +680,17 @@ index 0000000000..77dcffd917
 +	dma_addr_t workspace_paddr;
 +	struct amvdec_dma_guard workspace_guard;
 +
-+	/*
-+	 * Per-frame motion-vector buffers, indexed by capture-buffer index
-+	 * (vp9_frame.index is the vb2 index).  Split out of the workspace;
-+	 * see the RPM_OFFSET comment above.
-+	 */
++	/* Per-capture motion-vector buffers, indexed by vb2 buffer index. */
 +	void      *mv_vaddr[MAX_REF_PIC_NUM];
 +	dma_addr_t mv_paddr[MAX_REF_PIC_NUM];
 +	struct amvdec_dma_guard mv_guard[MAX_REF_PIC_NUM];
 +
-+	/* Contains many information parsed from the bitstream */
++	/* Firmware-parsed bitstream parameters. */
 +	union rpm_param rpm_param;
++	bool request_size, request_parked, request_failed;
++	bool restream_pending;
 +
-+	/* Whether we detected the bitstream as 10-bit */
++	/* Coded bit depth is 10. */
 +	int is_10bit;
 +
 +	/* Coded resolution reported by the hardware */
@@ -744,8 +700,6 @@ index 0000000000..77dcffd917
 +	struct list_head ref_frames_list;
 +	u32 frames_num;
 +
-+	int ref_frame_map[REF_FRAMES];
-+	int next_ref_frame_map[REF_FRAMES];
 +	struct vp9_frame *frame_refs[REFS_PER_FRAME];
 +
 +	u32 lcu_total;
@@ -758,8 +712,6 @@ index 0000000000..77dcffd917
 +
 +	struct vp9_frame *cur_frame;
 +	struct vp9_frame *prev_frame;
-+	u32 last_frame_offset;
-+	bool has_frame_offset;
 +};
 +
 +static void codec_vp9_guard_fail_session(struct amvdec_session *sess)
@@ -935,11 +887,6 @@ index 0000000000..77dcffd917
 +		}
 +
 +		if (!lf->mode_ref_delta_enabled) {
-+			/*
-+			 * We could get rid of this if we assume that deltas
-+			 * are set to zero when not in use.
-+			 * encoder always uses deltas
-+			 */
 +			memset(lfi->lvl[seg_id], lvl_seg,
 +			       sizeof(lfi->lvl[seg_id]));
 +		} else {
@@ -978,71 +925,6 @@ index 0000000000..77dcffd917
 +	}
 +}
 +
-+static void codec_vp9_complete_frame(struct amvdec_session *sess,
-+				     struct vp9_frame *frame)
-+{
-+	struct codec_vp9 *vp9 = sess->priv;
-+
-+	if (!frame || frame->done || !frame->show)
-+		return;
-+
-+	if (codec_vp9_verify_guards(sess, "vp9.retire"))
-+		v4l2_m2m_buf_done(frame->vbuf, VB2_BUF_STATE_ERROR);
-+	else
-+		meson_amvdec_dst_buf_done_offset(sess, frame->vbuf, frame->offset,
-+					   V4L2_FIELD_NONE, false);
-+	frame->done = 1;
-+	vp9->frames_num--;
-+}
-+
-+static void codec_vp9_flush_output_locked(struct amvdec_session *sess)
-+{
-+	struct codec_vp9 *vp9 = sess->priv;
-+	struct vp9_frame *tmp, *n;
-+
-+	list_for_each_entry_safe(tmp, n, &vp9->ref_frames_list, list) {
-+		if (tmp->show) {
-+			if (!tmp->done) {
-+				if (codec_vp9_verify_guards(sess, "vp9.flush"))
-+					v4l2_m2m_buf_done(tmp->vbuf, VB2_BUF_STATE_ERROR);
-+				else
-+					meson_amvdec_dst_buf_done_offset(sess, tmp->vbuf,
-+								   tmp->offset,
-+							       V4L2_FIELD_NONE, false);
-+				vp9->frames_num--;
-+			}
-+		} else {
-+			if (!tmp->done) {
-+				meson_amvdec_dst_buf_drop_offset(sess, tmp->offset);
-+				vp9->frames_num--;
-+			}
-+			v4l2_m2m_buf_queue(sess->m2m_ctx, tmp->vbuf);
-+		}
-+
-+		list_del(&tmp->list);
-+		kfree(tmp);
-+	}
-+}
-+
-+static void codec_vp9_flush_output(struct amvdec_session *sess)
-+{
-+	struct codec_vp9 *vp9 = sess->priv;
-+
-+	mutex_lock(&vp9->lock);
-+	codec_vp9_flush_output_locked(sess);
-+	mutex_unlock(&vp9->lock);
-+}
-+
-+static u32 codec_vp9_num_pending_bufs(struct amvdec_session *sess)
-+{
-+	struct codec_vp9 *vp9 = sess->priv;
-+
-+	if (!vp9)
-+		return 0;
-+
-+	return vp9->frames_num;
-+}
-+
 +static void codec_vp9_free_mv_buffers(struct amvdec_core *core,
 +				      struct codec_vp9 *vp9)
 +{
@@ -1076,10 +958,8 @@ index 0000000000..77dcffd917
 +	}
 +
 +	/*
-+	 * All of them up front and all-or-nothing:
-+	 * codec_vp9_get_frame_mv_paddr() is reached from the threaded ISR and
-+	 * hands an address straight to the hardware, so there is nowhere sane
-+	 * to fail later and a missing buffer would be a wild DMA target.
++	 * Allocate every MV slot before decoding so the threaded ISR always has
++	 * a valid DMA address.
 +	 */
 +	for (i = 0; i < MAX_REF_PIC_NUM; ++i) {
 +		vp9->mv_vaddr[i] = meson_amvdec_dma_alloc_guarded(core->dev,
@@ -1147,10 +1027,8 @@ index 0000000000..77dcffd917
 +}
 +
 +/*
-+ * Every register a fresh or just-reset HEVC core needs before the VP9
-+ * firmware may run, given an allocated workspace. Split out of
-+ * codec_vp9_start() so an in-session core restart can redo it without
-+ * touching software state that must survive (reference list, frame maps).
++ * Initialize VP9 hardware at startup and after stream-counter restart
++ * without replacing request or reference metadata.
 + */
 +static void codec_vp9_hw_init(struct amvdec_session *sess, struct codec_vp9 *vp9)
 +{
@@ -1208,7 +1086,45 @@ index 0000000000..77dcffd917
 +		 meson_amvdec_read_dos(core, HEVC_DECODE_COUNT),
 +		 meson_amvdec_read_dos(core, HEVC_DECODE_SIZE));
 +
++	meson_amvdec_write_dos(core, HEVC_DECODE_SIZE, 0);
 +	vp9_loop_filter_init(core, vp9);
++}
++
++/* See meson_amvdec_codec_hevc_arm_restream(): the same 2 GiB counter limit applies here. */
++void meson_amvdec_codec_vp9_arm_restream(struct amvdec_session *sess)
++{
++	struct codec_vp9 *vp9 = sess->priv;
++
++	if (!vp9)
++		return;
++	if (meson_amvdec_read_dos(sess->core, HEVC_SHIFT_BYTE_COUNT) <
++	    (HEVC_STREAM_RESTART_MIB << 20))
++		return;
++	vp9->restream_pending = true;
++}
++
++bool meson_amvdec_codec_vp9_restream_pending(struct amvdec_session *sess)
++{
++	struct codec_vp9 *vp9 = sess->priv;
++
++	return vp9 && vp9->restream_pending;
++}
++
++int meson_amvdec_codec_vp9_restream_reinit(struct amvdec_session *sess)
++{
++	struct codec_vp9 *vp9 = sess->priv;
++
++	codec_vp9_hw_init(sess, vp9);
++	/*
++	 * Restore the capture address table and decode head after resetting the
++	 * core. Firmware remains halted during this setup.
++	 */
++	if (meson_amvdec_codec_hevc_setup_buffers(sess, &vp9->common, vp9->is_10bit))
++		return -EIO;
++	meson_amvdec_codec_hevc_setup_decode_head(sess, vp9->is_10bit);
++	vp9->request_parked = false;
++	vp9->restream_pending = false;
++	return 0;
 +}
 +
 +static int codec_vp9_start(struct amvdec_session *sess)
@@ -1222,26 +1138,20 @@ index 0000000000..77dcffd917
 +	if (!vp9)
 +		return -ENOMEM;
 +
-+	/*
-+	 * The workspace is a single contiguous SIZE_WORKSPACE allocation and
-+	 * it is the first thing a session asks CMA for.  A previous session's
-+	 * FBC chunk pool can still be holding CMA in 1 MiB chunks here -
-+	 * always, on a seek, which stops one session and starts the next back
-+	 * to back - leaving no run long enough.  Hand that memory back first,
-+	 * exactly as codec_hevc_start() does.
-+	 */
++	/* Reclaim unused FBC pool pages before allocating the contiguous workspace. */
 +	meson_amvdec_codec_hevc_fbc_pool_reclaim();
 +
 +	ret = codec_vp9_alloc_workspace(core, vp9);
 +	if (ret)
 +		goto free_vp9;
 +
++	vp9->request_size = true;
 +	codec_vp9_hw_init(sess, vp9);
++	dev_dbg(core->dev, "request start size=0 mode=0 origin_shift=%u rpm_bytes=%u\n",
++		meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT), RPM_BUF_SIZE);
 +
 +	INIT_LIST_HEAD(&vp9->ref_frames_list);
 +	mutex_init(&vp9->lock);
-+	memset(&vp9->ref_frame_map, -1, sizeof(vp9->ref_frame_map));
-+	memset(&vp9->next_ref_frame_map, -1, sizeof(vp9->next_ref_frame_map));
 +	for (i = 0; i < REFS_PER_FRAME; ++i)
 +		vp9->frame_refs[i] = NULL;
 +	sess->priv = vp9;
@@ -1257,20 +1167,24 @@ index 0000000000..77dcffd917
 +{
 +	struct amvdec_core *core = sess->core;
 +	struct codec_vp9 *vp9 = sess->priv;
++	struct vp9_frame *frame, *next;
 +
 +	mutex_lock(&vp9->lock);
++	list_for_each_entry_safe(frame, next, &vp9->ref_frames_list, list) {
++		list_del(&frame->list);
++		kfree(frame);
++	}
++	vp9->cur_frame = NULL;
++	vp9->prev_frame = NULL;
 +	if (vp9->workspace_vaddr) {
-+		if (codec_vp9_verify_guards(sess, "vp9.stop"))
-+			sess->resyncing = 1;
++		codec_vp9_verify_guards(sess, "vp9.stop");
 +		meson_amvdec_dma_free_guarded(core->dev, vp9->workspace_paddr,
 +					&vp9->workspace_guard);
 +		vp9->workspace_vaddr = NULL;
 +		vp9->workspace_paddr = 0;
 +		/*
-+		 * Inside the same locked region, and only once
-+		 * workspace_vaddr is NULL: the threaded ISR tests that under
-+		 * this lock before touching either, so the MV buffers are
-+		 * covered by the same guard.
++		 * Free MV buffers under the workspace lock; the IRQ handler checks the
++		 * workspace pointer under the same lock.
 +		 */
 +		codec_vp9_free_mv_buffers(core, vp9);
 +	}
@@ -1279,18 +1193,8 @@ index 0000000000..77dcffd917
 +	mutex_unlock(&vp9->lock);
 +
 +	/*
-+	 * meson_amvdec_codec_hevc_free_fbc_buffers() only returns this session's chunks to
-+	 * the shared pool's free list - it does not give the pages back to
-+	 * CMA.  Without this the pool keeps every chunk a VP9 session ever
-+	 * used until an HEVC session happens to run or the driver is removed:
-+	 * measured on G12B, one 4K Main-profile-2 session left 327 MiB of
-+	 * CMA held with no decoder open at all, and the next session - any
-+	 * codec - started that much short.  codec_hevc_stop() already does
-+	 * this; VP9 was simply missed.
-+	 *
-+	 * reclaim() frees the free list and park[1] only.  park[0] is the
-+	 * generation that may still be on screen and is deliberately left
-+	 * alone (see the pooled-FBC parking rules).
++	 * Release unused pool pages while retaining the newest parked generation
++	 * for possible display scanout.
 +	 */
 +	meson_amvdec_codec_hevc_fbc_pool_reclaim();
 +
@@ -1416,7 +1320,7 @@ index 0000000000..77dcffd917
 +		val &= ~0x3;
 +		if (!codec_hevc_use_fbc(sess->pixfmt_cap, vp9->is_10bit))
 +			val |= BIT(0); /* disable cm compression */
-+		/* TOFIX: Handle Amlogic Framebuffer compression */
++
 +	}
 +
 +	meson_amvdec_write_dos(core, HEVC_SAO_CTRL1, val);
@@ -1445,17 +1349,8 @@ index 0000000000..77dcffd917
 +}
 +
 +/*
-+ * Every frame gets the motion vector buffers of its own picture, key and
-+ * intra-only frames included.  An intra-only frame takes no vectors from
-+ * anywhere but the hardware still writes one "intra" record per block, to
-+ * wherever HEVC_MPRED_MV_WR_START_ADDR points.  Left alone, that is the
-+ * previous frame's buffer - or, before the first inter frame of a session,
-+ * the register's reset value: physical address zero.
-+ */
-+/*
-+ * VP9 8.4: may this frame read the motion vectors of the frame decoded
-+ * before it?  Not if it is intra, and not if it is error resilient - such a
-+ * frame is decodable by a receiver that never saw the previous one.
++ * VP9 8.4 permits previous-frame MV reads only for inter pictures without
++ * error resilience.
 + */
 +static bool codec_vp9_may_use_prev_mvs(struct codec_vp9 *vp9)
 +{
@@ -1532,77 +1427,6 @@ index 0000000000..77dcffd917
 +	return 0;
 +}
 +
-+static void codec_vp9_update_next_ref(struct codec_vp9 *vp9)
-+{
-+	union rpm_param *param = &vp9->rpm_param;
-+	u32 buf_idx = vp9->cur_frame->index;
-+	int ref_index = 0;
-+	int refresh_frame_flags;
-+	int mask;
-+
-+	refresh_frame_flags = vp9->cur_frame->type == KEY_FRAME ?
-+				0xff : param->p.refresh_frame_flags;
-+
-+	for (mask = refresh_frame_flags; mask; mask >>= 1) {
-+		pr_debug("mask=%08X; ref_index=%d\n", mask, ref_index);
-+		if (mask & 1)
-+			vp9->next_ref_frame_map[ref_index] = buf_idx;
-+		else
-+			vp9->next_ref_frame_map[ref_index] =
-+				vp9->ref_frame_map[ref_index];
-+
-+		++ref_index;
-+	}
-+
-+	for (; ref_index < REF_FRAMES; ++ref_index)
-+		vp9->next_ref_frame_map[ref_index] =
-+			vp9->ref_frame_map[ref_index];
-+}
-+
-+static void codec_vp9_save_refs(struct codec_vp9 *vp9)
-+{
-+	union rpm_param *param = &vp9->rpm_param;
-+	int i;
-+
-+	for (i = 0; i < REFS_PER_FRAME; ++i) {
-+		const int ref = (param->p.ref_info >>
-+				 (((REFS_PER_FRAME - i - 1) * 4) + 1)) & 0x7;
-+
-+		if (vp9->ref_frame_map[ref] < 0)
-+			continue;
-+
-+		pr_warn("%s: FIXME, would need to save ref %d\n",
-+			__func__, vp9->ref_frame_map[ref]);
-+	}
-+}
-+
-+static void codec_vp9_update_ref(struct codec_vp9 *vp9)
-+{
-+	union rpm_param *param = &vp9->rpm_param;
-+	int ref_index = 0;
-+	int mask;
-+	int refresh_frame_flags;
-+
-+	if (!vp9->cur_frame)
-+		return;
-+
-+	refresh_frame_flags = vp9->cur_frame->type == KEY_FRAME ?
-+				0xff : param->p.refresh_frame_flags;
-+
-+	for (mask = refresh_frame_flags; mask; mask >>= 1) {
-+		vp9->ref_frame_map[ref_index] =
-+			vp9->next_ref_frame_map[ref_index];
-+		++ref_index;
-+	}
-+
-+	if (param->p.show_existing_frame)
-+		return;
-+
-+	for (; ref_index < REF_FRAMES; ++ref_index)
-+		vp9->ref_frame_map[ref_index] =
-+			vp9->next_ref_frame_map[ref_index];
-+}
-+
 +static struct vp9_frame *codec_vp9_get_frame_by_idx(struct codec_vp9 *vp9,
 +						    int idx)
 +{
@@ -1624,21 +1448,59 @@ index 0000000000..77dcffd917
 +	kfree(frame);
 +}
 +
-+static void codec_vp9_sync_ref(struct codec_vp9 *vp9)
++static int codec_vp9_sync_ref_ctrl(struct amvdec_session *sess,
++				   struct codec_vp9 *vp9)
 +{
-+	union rpm_param *param = &vp9->rpm_param;
++	static const char * const names[REFS_PER_FRAME] = {
++		"LAST", "GOLDEN", "ALT",
++	};
++	const struct v4l2_ctrl_vp9_frame *ctrl = &vp9->cur_frame->vp9_frame;
++	const u64 timestamps[REFS_PER_FRAME] = {
++		ctrl->last_frame_ts,
++		ctrl->golden_frame_ts,
++		ctrl->alt_frame_ts,
++	};
 +	int i;
 +
 +	for (i = 0; i < REFS_PER_FRAME; ++i) {
-+		const int ref = (param->p.ref_info >>
-+				 (((REFS_PER_FRAME - i - 1) * 4) + 1)) & 0x7;
-+		const int idx = vp9->ref_frame_map[ref];
++		struct vb2_buffer *vb;
 +
-+		vp9->frame_refs[i] = codec_vp9_get_frame_by_idx(vp9, idx);
-+		if (!vp9->frame_refs[i])
-+			pr_warn("%s: couldn't find VP9 ref %d\n", __func__,
-+				idx);
++		vb = sess->request_job.refs[i];
++		if (sess->request_job.ref_ts[i] != timestamps[i])
++			return -EINVAL;
++		if (!vb) {
++			dev_err_ratelimited(sess->core->dev_dec,
++					    "VP9 %s reference timestamp %llu not found\n",
++				names[i], timestamps[i]);
++			return -ENOENT;
++		}
++
++		if (vb == &vp9->cur_frame->vbuf->vb2_buf) {
++			dev_err_ratelimited(sess->core->dev_dec,
++					    "VP9 %s reference timestamp %llu names current frame\n",
++				names[i], timestamps[i]);
++			return -EINVAL;
++		}
++
++		vp9->frame_refs[i] = codec_vp9_get_frame_by_idx(vp9,
++								vb->index);
++		if (!vp9->frame_refs[i]) {
++			dev_err_ratelimited(sess->core->dev_dec,
++					    "VP9 %s reference buffer %u has no frame metadata\n",
++				names[i], vb->index);
++			return -ENOENT;
++		}
++		if (vp9->frame_refs[i]->width != vp9->width ||
++		    vp9->frame_refs[i]->height != vp9->height) {
++			dev_err_ratelimited(sess->core->dev_dec,
++					    "VP9 %s reference geometry %ux%u differs from current %ux%u\n",
++				names[i], vp9->frame_refs[i]->width,
++				vp9->frame_refs[i]->height, vp9->width, vp9->height);
++			return -EOPNOTSUPP;
++		}
 +	}
++
++	return 0;
 +}
 +
 +static void codec_vp9_set_refs(struct amvdec_session *sess,
@@ -1721,35 +1583,49 @@ index 0000000000..77dcffd917
 +	union rpm_param *param = &vp9->rpm_param;
 +	struct vb2_v4l2_buffer *vbuf;
 +	struct vp9_frame *new_frame;
-+	int ret;
 +
 +	new_frame = kzalloc_obj(*new_frame);
 +	if (!new_frame)
 +		return NULL;
 +
-+	vbuf = v4l2_m2m_dst_buf_remove(sess->m2m_ctx);
++	vbuf = sess->request_job.dst;
 +	if (!vbuf) {
 +		dev_err_ratelimited(sess->core->dev, "No dst buffer available\n");
 +		kfree(new_frame);
 +		return NULL;
 +	}
 +
-+	while (codec_vp9_get_frame_by_idx(vp9, vbuf->vb2_buf.index)) {
-+		struct vb2_v4l2_buffer *old_vbuf = vbuf;
++	if (codec_vp9_get_frame_by_idx(vp9, vbuf->vb2_buf.index)) {
++		struct vp9_frame *old_frame;
 +
-+		vbuf = v4l2_m2m_dst_buf_remove(sess->m2m_ctx);
-+		v4l2_m2m_buf_queue(sess->m2m_ctx, old_vbuf);
-+		if (!vbuf) {
-+			dev_err_ratelimited(sess->core->dev, "No dst buffer available\n");
-+			kfree(new_frame);
-+			return NULL;
++		old_frame = codec_vp9_get_frame_by_idx(vp9,
++						       vbuf->vb2_buf.index);
++		if (old_frame == vp9->prev_frame) {
++			/*
++			 * Retire previous-frame metadata on buffer reuse only when
++			 * the current picture cannot read those motion vectors.
++			 */
++			if (codec_vp9_may_use_prev_mvs(vp9)) {
++				kfree(new_frame);
++				meson_amvdec_abort(sess);
++				return NULL;
++			}
++			vp9->prev_frame = NULL;
 +		}
++		codec_vp9_drop_frame(vp9, old_frame);
++
 +	}
 +
 +	/* Same guard as HEVC: no frame into an unbacked CAPTURE buffer */
 +	if (meson_amvdec_codec_hevc_ensure_frame_buffer(sess, &vp9->common,
 +					   &vbuf->vb2_buf, vp9->is_10bit)) {
-+		v4l2_m2m_buf_queue(sess->m2m_ctx, vbuf);
++		kfree(new_frame);
++		return NULL;
++	}
++
++	if (meson_amvdec_dst_buf_prepare_stateless(sess, vbuf,
++						   &new_frame->vp9_frame, &new_frame->input_end)) {
++		meson_amvdec_dst_buf_error_stateless(sess, vbuf);
 +		kfree(new_frame);
 +		return NULL;
 +	}
@@ -1757,24 +1633,13 @@ index 0000000000..77dcffd917
 +	new_frame->vbuf = vbuf;
 +	new_frame->index = vbuf->vb2_buf.index;
 +	/*
-+	 * H.264-style raw bit: intra_only is only coded when the frame is not
-+	 * shown (VP9 6.2 uncompressed_header), so a shown frame is never
-+	 * intra-only whatever the RPM word happens to hold.
++	 * intra_only is coded only for hidden pictures (VP9 6.2). Ignore the RPM
++	 * bit for shown pictures.
 +	 */
 +	new_frame->intra_only = param->p.show_frame ? 0 : param->p.intra_only;
 +	new_frame->show = param->p.show_frame;
 +	new_frame->type = param->p.frame_type;
-+	ret = meson_amvdec_next_ts_offset(sess, vp9->last_frame_offset,
-+				    vp9->has_frame_offset,
-+				    &new_frame->offset);
-+	if (ret) {
-+		dev_err_ratelimited(sess->core->dev, "No timestamp for VP9 frame\n");
-+		v4l2_m2m_buf_queue(sess->m2m_ctx, vbuf);
-+		kfree(new_frame);
-+		return NULL;
-+	}
-+	vp9->last_frame_offset = new_frame->offset;
-+	vp9->has_frame_offset = true;
++
 +	new_frame->width = vp9->width;
 +	new_frame->height = vp9->height;
 +	list_add_tail(&new_frame->list, &vp9->ref_frames_list);
@@ -1793,27 +1658,6 @@ index 0000000000..77dcffd917
 +	pr_debug("showing frame %u\n", param->p.frame_to_show_idx);
 +}
 +
-+static void codec_vp9_rm_noshow_frame(struct amvdec_session *sess)
-+{
-+	struct codec_vp9 *vp9 = sess->priv;
-+	struct vp9_frame *tmp;
-+
-+	list_for_each_entry(tmp, &vp9->ref_frames_list, list) {
-+		if (tmp->show)
-+			continue;
-+
-+		pr_debug("rm noshow: %u\n", tmp->index);
-+		if (!tmp->done) {
-+			meson_amvdec_dst_buf_drop_offset(sess, tmp->offset);
-+			vp9->frames_num--;
-+		}
-+		v4l2_m2m_buf_queue(sess->m2m_ctx, tmp->vbuf);
-+		list_del(&tmp->list);
-+		kfree(tmp);
-+		return;
-+	}
-+}
-+
 +static void codec_vp9_process_frame(struct amvdec_session *sess)
 +{
 +	struct amvdec_core *core = sess->core;
@@ -1822,12 +1666,11 @@ index 0000000000..77dcffd917
 +	int intra_only;
 +	bool inter;
 +
-+	if (!param->p.show_frame)
-+		codec_vp9_rm_noshow_frame(sess);
-+
 +	vp9->cur_frame = codec_vp9_get_new_frame(sess);
-+	if (!vp9->cur_frame)
++	if (!vp9->cur_frame) {
++		meson_amvdec_abort(sess);
 +		return;
++	}
 +
 +	pr_debug("frame %d: type: %08X; show_exist: %u; show: %u, intra_only: %u\n",
 +		 vp9->cur_frame->index,
@@ -1836,9 +1679,21 @@ index 0000000000..77dcffd917
 +
 +	intra_only = param->p.show_frame ? 0 : param->p.intra_only;
 +
-+	if (param->p.frame_type != KEY_FRAME && !intra_only)
-+		codec_vp9_sync_ref(vp9);
-+	codec_vp9_update_next_ref(vp9);
++	if (param->p.frame_type != KEY_FRAME && !intra_only) {
++		int ret;
++
++		ret = codec_vp9_sync_ref_ctrl(sess, vp9);
++
++		if (ret) {
++			meson_amvdec_dst_buf_error_stateless(sess,
++						       vp9->cur_frame->vbuf);
++			codec_vp9_drop_frame(vp9, vp9->cur_frame);
++			vp9->cur_frame = NULL;
++			meson_amvdec_abort(sess);
++			return;
++		}
++	}
++
 +	codec_vp9_show_existing_frame(vp9);
 +
 +	if (codec_hevc_use_mmu(core->platform->revision, sess->pixfmt_cap,
@@ -1846,7 +1701,7 @@ index 0000000000..77dcffd917
 +	    meson_amvdec_codec_hevc_fill_mmu_map(sess, &vp9->common,
 +				    &vp9->cur_frame->vbuf->vb2_buf,
 +				    vp9->is_10bit)) {
-+		v4l2_m2m_buf_done(vp9->cur_frame->vbuf, VB2_BUF_STATE_ERROR);
++		meson_amvdec_dst_buf_error_stateless(sess, vp9->cur_frame->vbuf);
 +		codec_vp9_drop_frame(vp9, vp9->cur_frame);
 +		vp9->cur_frame = NULL;
 +		meson_amvdec_abort(sess);
@@ -1857,7 +1712,7 @@ index 0000000000..77dcffd917
 +	if (inter)
 +		codec_vp9_set_mc(sess, vp9);
 +	if (codec_vp9_set_mpred_mv(core, vp9, inter)) {
-+		v4l2_m2m_buf_done(vp9->cur_frame->vbuf, VB2_BUF_STATE_ERROR);
++		meson_amvdec_dst_buf_error_stateless(sess, vp9->cur_frame->vbuf);
 +		codec_vp9_drop_frame(vp9, vp9->cur_frame);
 +		vp9->cur_frame = NULL;
 +		meson_amvdec_abort(sess);
@@ -1868,7 +1723,7 @@ index 0000000000..77dcffd917
 +			 (vp9->height << 16) | vp9->width);
 +	codec_vp9_set_mcrcc(sess);
 +	if (codec_vp9_set_sao(sess, &vp9->cur_frame->vbuf->vb2_buf)) {
-+		v4l2_m2m_buf_done(vp9->cur_frame->vbuf, VB2_BUF_STATE_ERROR);
++		meson_amvdec_dst_buf_error_stateless(sess, vp9->cur_frame->vbuf);
 +		codec_vp9_drop_frame(vp9, vp9->cur_frame);
 +		vp9->cur_frame = NULL;
 +		meson_amvdec_abort(sess);
@@ -1879,6 +1734,27 @@ index 0000000000..77dcffd917
 +				   &vp9->lfi, &vp9->lf,
 +				   vp9->default_filt_lvl);
 +
++	u32 end = vp9->cur_frame->input_end;
++
++	if (!end || vp9->request_parked || vp9->request_failed) {
++		vp9->request_failed = true;
++		meson_amvdec_abort(sess);
++		return;
++	}
++	/*
++	 * Firmware completes a picture when consumed + 4 reaches DECODE_SIZE.
++	 * After header parsing, publish a size no greater than the current shift
++	 * position plus one so boolean-decoder read-ahead cannot prevent completion.
++	 * Restore the real endpoint before releasing the next frame search.
++	 */
++	u32 shift = meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT);
++	u32 size = vp9->request_size ? min(end, shift + 1) : 0;
++
++	meson_amvdec_write_dos(core, HEVC_DECODE_SIZE, size);
++	meson_amvdec_trace(sess, AMVDEC_TR_KICK, size, end, shift);
++	dev_dbg(core->dev, "kick ts=%llu idx=%u size=%u end=%u shift=%u show=%u\n",
++		vp9->cur_frame->vbuf->vb2_buf.timestamp,
++		 vp9->cur_frame->index, size, end, shift, vp9->cur_frame->show);
 +	/* ask uCode to start decoding */
 +	meson_amvdec_write_dos_action(core, VP9_DEC_STATUS_REG,
 +				VP9_10B_DECODE_SLICE);
@@ -1913,7 +1789,7 @@ index 0000000000..77dcffd917
 +				: (param->p.seg_lf_info[i] & 0x3f);
 +}
 +
-+static void codec_vp9_resume(struct amvdec_session *sess)
++static void codec_vp9_configure(struct amvdec_session *sess)
 +{
 +	struct codec_vp9 *vp9 = sess->priv;
 +
@@ -1932,10 +1808,7 @@ index 0000000000..77dcffd917
 +	mutex_unlock(&vp9->lock);
 +}
 +
-+/*
-+ * The RPM section within the workspace contains
-+ * many information regarding the parsed bitstream
-+ */
++/* Read firmware parameters from the workspace RPM block. */
 +static void codec_vp9_fetch_rpm(struct amvdec_session *sess)
 +{
 +	struct codec_vp9 *vp9 = sess->priv;
@@ -1958,9 +1831,24 @@ index 0000000000..77dcffd917
 +	int pic_width_lcu;
 +	int pic_height_lcu;
 +
-+	if (param->p.width < 256 || param->p.height < 144) {
++	if (param->p.width < amvdec_min_coded_width(sess->fmt_out->pixfmt) ||
++	    param->p.height < amvdec_min_coded_height(sess->fmt_out->pixfmt)) {
 +		dev_err_ratelimited(sess->core->dev,
 +				    "VP9 coded size %ux%u below hardware floor\n",
++				    param->p.width, param->p.height);
++		return -EINVAL;
++	}
++	if (param->p.width > sess->fmt_out->max_width ||
++	    param->p.height > sess->fmt_out->max_height) {
++		dev_err_ratelimited(sess->core->dev,
++				    "VP9 coded size %ux%u above format maximum\n",
++				    param->p.width, param->p.height);
++		return -EINVAL;
++	}
++	if (param->p.width != sess->width || param->p.height != sess->height) {
++		dev_err_ratelimited(sess->core->dev,
++				    "VP9 coded size changed from negotiated %ux%u to %ux%u\n",
++				    sess->width, sess->height,
 +				    param->p.width, param->p.height);
 +		return -EINVAL;
 +	}
@@ -1992,30 +1880,6 @@ index 0000000000..77dcffd917
 +	return src_changed;
 +}
 +
-+static void codec_vp9_complete_hidden_frame(struct amvdec_session *sess,
-+					    struct vp9_frame *frame)
-+{
-+	struct codec_vp9 *vp9 = sess->priv;
-+
-+	if (!frame || frame->done || frame->show)
-+		return;
-+
-+	meson_amvdec_dst_buf_drop_offset(sess, frame->offset);
-+	frame->done = 1;
-+	vp9->frames_num--;
-+}
-+
-+static bool codec_vp9_is_ref(struct codec_vp9 *vp9, struct vp9_frame *frame)
-+{
-+	int i;
-+
-+	for (i = 0; i < REF_FRAMES; ++i)
-+		if (vp9->ref_frame_map[i] == frame->index)
-+			return true;
-+
-+	return false;
-+}
-+
 +static void codec_vp9_show_frame(struct amvdec_session *sess)
 +{
 +	struct codec_vp9 *vp9 = sess->priv;
@@ -2028,21 +1892,14 @@ index 0000000000..77dcffd917
 +		if (!tmp->done) {
 +			pr_debug("Doning %u\n", tmp->index);
 +			if (codec_vp9_verify_guards(sess, "vp9.show"))
-+				v4l2_m2m_buf_done(tmp->vbuf, VB2_BUF_STATE_ERROR);
++				meson_amvdec_dst_buf_error_stateless(sess, tmp->vbuf);
 +			else
-+				meson_amvdec_dst_buf_done_offset(sess, tmp->vbuf,
-+							   tmp->offset,
-+							   V4L2_FIELD_NONE, false);
++				meson_amvdec_dst_buf_done_stateless(sess, tmp->vbuf,
++								    V4L2_FIELD_NONE);
 +			tmp->done = 1;
 +			vp9->frames_num--;
 +		}
 +
-+		if (codec_vp9_is_ref(vp9, tmp) || tmp == vp9->prev_frame)
-+			continue;
-+
-+		pr_debug("deleting %d\n", tmp->index);
-+		list_del(&tmp->list);
-+		kfree(tmp);
 +	}
 +}
 +
@@ -2708,10 +2565,8 @@ index 0000000000..77dcffd917
 +						KEY_FRAME;
 +
 +		/*
-+		 * VP9 8.4: an intra-only frame is an intra frame.  It produces
-+		 * no inter-mode or motion-vector counts, so adapting those
-+		 * probabilities from its counts walks over the context that
-+		 * the following inter frames decode with.
++		 * Intra-only pictures produce no inter-mode or MV counts; preserve those
++		 * probabilities during adaptation (VP9 8.4).
 +		 */
 +		adapt_coef_probs(last_frame_type == KEY_FRAME,
 +				 vp9->cur_frame->type == KEY_FRAME ||
@@ -2728,6 +2583,47 @@ index 0000000000..77dcffd917
 +	return 0;
 +}
 +
++void meson_amvdec_codec_vp9_request_input_ready(struct amvdec_session *sess, u32 end)
++{
++	struct codec_vp9 *vp9 = sess->priv;
++	struct amvdec_core *core = sess->core;
++
++	if (!vp9)
++		return;
++	meson_amvdec_trace(sess, AMVDEC_TR_READY, end, vp9->request_parked,
++		     meson_amvdec_read_dos(core, VP9_DEC_STATUS_REG));
++	mutex_lock(&vp9->lock);
++	/*
++	 * A small picture can be decoded, and the firmware parked at 0x0a,
++	 * before the feed worker that submitted it gets here.  The input being
++	 * reported is then the picture that has just completed, not the next
++	 * one: there is nothing to release and nothing wrong.
++	 */
++	if (vp9->request_parked && vp9->cur_frame &&
++	    end == vp9->cur_frame->input_end) {
++		mutex_unlock(&vp9->lock);
++		return;
++	}
++	if (vp9->request_parked && !vp9->request_failed) {
++		if (!vp9->cur_frame || end <= vp9->cur_frame->input_end ||
++		    meson_amvdec_read_dos(core, VP9_DEC_STATUS_REG) != 0x0a) {
++			dev_err(core->dev,
++				"invalid next request: end=%u prev_end=%d status=%x\n",
++				end, vp9->cur_frame ? (int)vp9->cur_frame->input_end : -1,
++				meson_amvdec_read_dos(core, VP9_DEC_STATUS_REG));
++			vp9->request_failed = true;
++			meson_amvdec_abort(sess);
++		} else {
++			meson_amvdec_write_dos(core, HEVC_DECODE_SIZE, end);
++			vp9->request_parked = false;
++			dev_dbg(core->dev, "resume endpoint=%u queued=%d\n",
++				end, atomic_read(&sess->esparser_queued_bufs));
++			meson_amvdec_write_dos_action(core, VP9_DEC_STATUS_REG, 0xff);
++		}
++	}
++	mutex_unlock(&vp9->lock);
++}
++
 +static irqreturn_t codec_vp9_threaded_isr(struct amvdec_session *sess)
 +{
 +	struct amvdec_core *core = sess->core;
@@ -2742,40 +2638,68 @@ index 0000000000..77dcffd917
 +
 +	mutex_lock(&vp9->lock);
 +	if (!vp9->workspace_vaddr) {
-+		/*
-+		 * codec_vp9_stop() ran while this interrupt was in flight and
-+		 * took the lock first.  Everything below reads the workspace,
-+		 * and the per-frame MV buffers are freed under this same lock
-+		 * once this pointer is NULL, so they are covered too.
-+		 */
++		/* Skip the IRQ when codec stop clears the workspace under this lock. */
 +		goto unlock;
 +	}
 +
 +	dev_dbg(core->dev_dec, "VP9 dec_status: %08X prob_status: %08X\n",
 +		dec_status, prob_status);
 +
-+	switch (dec_status) {
-+	case VP9_NAL_DECODE_DONE:
-+	case VP9_DECODE_BUFEMPTY:
-+	case VP9_SEARCH_BUFEMPTY:
++	meson_amvdec_trace(sess, AMVDEC_TR_IRQ, dec_status,
++			   meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++			   meson_amvdec_read_dos(core, HEVC_DECODE_SIZE));
++	dev_dbg(core->dev, "request irq status=%x shift=%u size=%u prob=%x lcu=%x\n",
++		dec_status, meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++		 meson_amvdec_read_dos(core, HEVC_DECODE_SIZE), prob_status,
++		 meson_amvdec_read_dos(core, HEVC_PARSER_LCU_START));
++	if (vp9->request_failed)
 +		goto unlock;
-+	case VP9_DECPIC_DATA_DONE:
-+		codec_vp9_complete_frame(sess, vp9->cur_frame);
++	if (dec_status == VP9_DECPIC_DATA_DONE) {
++		struct vp9_frame *f = vp9->cur_frame;
++
++		if (!vp9->request_size || !f || f->done || vp9->request_parked ||
++		    codec_vp9_adapt_pending(sess, prob_status))
++			goto request_fail;
++		f->done = 1;
++		vp9->frames_num--;
++		vp9->request_parked = true;
++		meson_amvdec_codec_vp9_arm_restream(sess);
++		meson_amvdec_trace(sess, AMVDEC_TR_DONE,
++				   meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT),
++				   f->index, f->show);
++		dev_dbg(core->dev, "done ts=%llu idx=%u show=%u; parked\n",
++			f->vbuf->vb2_buf.timestamp, f->index, f->show);
++		meson_amvdec_request_signal(sess, f->vbuf);
 +		goto unlock;
-+	case VP9_EOS:
-+		codec_vp9_flush_output_locked(sess);
++	}
++	/*
++	 * Buffer-empty statuses wait for input. ACTION_DONE is the host resume
++	 * token, not a firmware verdict.
++	 */
++	if (dec_status == VP9_SEARCH_BUFEMPTY ||
++	    dec_status == VP9_DECODE_BUFEMPTY ||
++	    dec_status == VP9_ACTION_DONE) {
++		dev_dbg(core->dev,
++			"not a verdict status=%x; ignoring\n",
++			dec_status);
 +		goto unlock;
-+	case VP9_HEAD_PARSER_DONE:
-+		break;
-+	default:
-+		dev_err_ratelimited(core->dev_dec, "Unrecognized dec_status: %08X\n",
-+				    dec_status);
++	}
++	if (dec_status != VP9_HEAD_PARSER_DONE) {
++request_fail:
++		dev_err(core->dev,
++			"request failed: event=%x parked=%d queued=%d frames=%u cur=%d show=%d size=%u shift=%u prob=%x\n",
++			dec_status, vp9->request_parked,
++			atomic_read(&sess->esparser_queued_bufs), vp9->frames_num,
++			vp9->cur_frame ? (int)vp9->cur_frame->index : -1,
++			vp9->cur_frame ? (int)vp9->cur_frame->show : -1,
++			meson_amvdec_read_dos(core, HEVC_DECODE_SIZE),
++			meson_amvdec_read_dos(core, HEVC_SHIFT_BYTE_COUNT), prob_status);
++		vp9->request_failed = true;
 +		meson_amvdec_abort(sess);
 +		goto unlock;
 +	}
 +
 +	pr_debug("ISR: %08X;%08X\n", dec_status, prob_status);
-+	sess->keyframe_found = 1;
 +
 +	if (codec_vp9_adapt_pending(sess, prob_status)) {
 +		meson_amvdec_abort(sess);
@@ -2787,8 +2711,6 @@ index 0000000000..77dcffd917
 +		vp9->frame_refs[i] = NULL;
 +
 +	vp9->prev_frame = vp9->cur_frame;
-+	codec_vp9_update_ref(vp9);
-+	codec_vp9_complete_hidden_frame(sess, vp9->prev_frame);
 +
 +	codec_vp9_fetch_rpm(sess);
 +	rpm_ret = codec_vp9_process_rpm(sess, vp9);
@@ -2803,21 +2725,9 @@ index 0000000000..77dcffd917
 +		/* Show the remaining frame */
 +		codec_vp9_show_frame(sess);
 +
-+		/* FIXME: Save refs for resized frame */
-+		if (vp9->frames_num)
-+			codec_vp9_save_refs(vp9);
-+
-+		/*
-+		 * meson_amvdec_src_change() calls ->resume() directly when the
-+		 * capture queue already suits the new format, and
-+		 * codec_vp9_resume() takes vp9->lock - which this thread is
-+		 * holding.  Drop it first: the pending frame has been shown
-+		 * and the refs saved, so there is nothing left here that the
-+		 * lock protects.
-+		 */
++		/* Drop the IRQ lock before configuration, which acquires the same lock. */
 +		mutex_unlock(&vp9->lock);
-+		meson_amvdec_src_change(sess, vp9->width, vp9->height, 16,
-+				  vp9->is_10bit ? 10 : 8);
++		codec_vp9_configure(sess);
 +		return IRQ_HANDLED;
 +	}
 +
@@ -2840,19 +2750,18 @@ index 0000000000..77dcffd917
 +	.stop = codec_vp9_stop,
 +	.isr = codec_vp9_isr,
 +	.threaded_isr = codec_vp9_threaded_isr,
-+	.num_pending_bufs = codec_vp9_num_pending_bufs,
-+	.drain = codec_vp9_flush_output,
-+	.resume = codec_vp9_resume,
 +};
 diff --git a/drivers/media/platform/amlogic/amvdec/codec_vp9.h b/drivers/media/platform/amlogic/amvdec/codec_vp9.h
 new file mode 100644
-index 0000000000..33ed90ec19
+index 0000000000..6f919fd435
 --- /dev/null
 +++ b/drivers/media/platform/amlogic/amvdec/codec_vp9.h
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,20 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <maxi.jourdan@wanadoo.fr>
++ *
++ * VP9 request decoding.
 + */
 +
 +#ifndef __MESON_AMVDEC_CODEC_VP9_H_
@@ -2860,29 +2769,31 @@ index 0000000000..33ed90ec19
 +
 +#include "amvdec.h"
 +
++void meson_amvdec_codec_vp9_request_input_ready(struct amvdec_session *sess, u32 end);
 +extern struct amvdec_codec_ops meson_amvdec_codec_vp9_ops;
++
++void meson_amvdec_codec_vp9_arm_restream(struct amvdec_session *sess);
++bool meson_amvdec_codec_vp9_restream_pending(struct amvdec_session *sess);
++int meson_amvdec_codec_vp9_restream_reinit(struct amvdec_session *sess);
 +
 +#endif
 diff --git a/drivers/media/platform/amlogic/amvdec/esparser.c b/drivers/media/platform/amlogic/amvdec/esparser.c
-index 3f96b2b9e6..d83b1fbdd8 100644
+index e54f14310f..af91ccd841 100644
 --- a/drivers/media/platform/amlogic/amvdec/esparser.c
 +++ b/drivers/media/platform/amlogic/amvdec/esparser.c
-@@ -54,6 +54,7 @@
- #define PARSER_VIDEO_WP		0x88
- #define PARSER_VIDEO_HOLE	0x90
+@@ -28,6 +28,7 @@
+ #include "codec_mpeg12_synth.h"
+ #include "codec_h264.h"
+ #include "codec_hevc.h"
++#include "codec_vp9.h"
  
-+#define VP9_HEADER_SIZE		16
- 
- static DECLARE_WAIT_QUEUE_HEAD(wq);
- static int search_done;
-@@ -76,6 +77,116 @@ static irqreturn_t esparser_isr(int irq, void *dev)
+ /* Zero lookahead appended after each HEVC/VP9 request payload; not part of
+  * the coded endpoint.
+@@ -87,6 +88,112 @@ static irqreturn_t esparser_isr(int irq, void *dev)
  	return IRQ_HANDLED;
  }
  
-+/*
-+ * VP9 frame headers need to be appended by a 16-byte long
-+ * Amlogic custom header
-+ */
++/* Prepend the 16-byte Amlogic header to each VP9 frame. */
 +static int vp9_update_header(struct amvdec_core *core, struct vb2_buffer *buf)
 +{
 +	u8 *dp;
@@ -2974,7 +2885,6 @@ index 3f96b2b9e6..d83b1fbdd8 100644
 +		fdata[15] = 'V';
 +
 +		if (!old_header) {
-+			/* nothing */
 +		} else if (old_header > fdata + 16 + framesize) {
 +			dev_dbg(core->dev, "%s: data has gaps, setting to 0\n",
 +				__func__);
@@ -2989,48 +2899,70 @@ index 3f96b2b9e6..d83b1fbdd8 100644
 +	return new_frame_size;
 +}
 +
- /* Pad the packet to at least 4KiB bytes otherwise the VDEC unit won't trigger
-  * ISRs.
-  * Also append a start code 000001ff at the end to trigger
-@@ -218,18 +329,28 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
- 		sess, vb->index, payload_size);
+ static int
+ esparser_write_data(struct amvdec_core *core, dma_addr_t addr, u32 size)
+ {
+@@ -267,7 +374,54 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 		return ret;
+ 	}
  
- 	/*
--	 * HEVC holds its reference frames in the CAPTURE queue and cannot
--	 * decode when it is full, so the feed is throttled against the
--	 * number of CAPTURE buffers the decoder can still take.
-+	 * When max ref frame is held by VP9, this should be -= 3 to prevent a
-+	 * shortage of CAPTURE buffers on the decoder side.
-+	 * For the future, a good enhancement of the way this is handled could
-+	 * be to notify new capture buffers to the decoding modules, so that
-+	 * they could pause when there is no capture buffer available and
-+	 * resume on this notification.
- 	 */
--	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC && sess->streamon_cap) {
-+	if ((sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9 ||
-+	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC) &&
-+	    sess->streamon_cap) {
- 		/*
- 		 * This throttle only makes sense once the CAPTURE queue
- 		 * exists: before that (during header parsing for the
- 		 * initial source-change event) the counts are 0 and the
--		 * u32 subtraction below would wrap, accidentally letting
-+		 * u32 subtraction below used to wrap, accidentally letting
- 		 * the header through - gate on streamon_cap and clamp so
- 		 * both phases behave as intended.
-+		 *
-+		 * HEVC joins VP9 here: both hold reference frames in the
-+		 * CAPTURE queue and cannot decode when it is full, which is
-+		 * exactly the backpressure H.264 lacks (and why 4K60 H.264
-+		 * wedges the pipeline instead of degrading).
- 		 */
- 		if (codec_ops->num_pending_bufs)
- 			num_dst_bufs = codec_ops->num_pending_bufs(sess);
-@@ -295,6 +416,18 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+-	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) {
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9_FRAME) {
++		ctrl = v4l2_ctrl_find(&sess->ctrl_handler,
++				      V4L2_CID_STATELESS_VP9_FRAME);
++		if (!ctrl || !ctrl->p_cur.p_vp9_frame) {
++			dev_err_ratelimited(core->dev, "VP9_FRAME request control missing\n");
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
++		}
++		f->vp9_frame = *ctrl->p_cur.p_vp9_frame;
++		if (f->vp9_frame.frame_width_minus_1 + 1 != sess->width ||
++		    f->vp9_frame.frame_height_minus_1 + 1 != sess->height) {
++			dev_err_ratelimited(core->dev,
++					    "VP9 coded size changed from negotiated %ux%u to %ux%u\n",
++				    sess->width, sess->height,
++				    f->vp9_frame.frame_width_minus_1 + 1,
++				    f->vp9_frame.frame_height_minus_1 + 1);
++			esparser_src_error(sess, vbuf);
++			return -EINVAL;
++		}
++		/* Publish bit depth before allocating capture backing at the first header. */
++		if (offset && sess->bitdepth != f->vp9_frame.bit_depth) {
++			dev_err_ratelimited(core->dev,
++					    "VP9 bit depth changed midstream from %u to %u\n",
++				    sess->bitdepth, f->vp9_frame.bit_depth);
++			esparser_src_error(sess, vbuf);
++			return -EOPNOTSUPP;
++		}
++		if (!offset)
++			sess->bitdepth = f->vp9_frame.bit_depth;
++		/*
++		 * Restart the stream counter only before a key frame, which supplies its
++		 * geometry and resets probability state. Recompute the input offset after
++		 * restart while the FIFO is empty.
++		 */
++		if (meson_amvdec_codec_vp9_restream_pending(sess) &&
++		    (f->vp9_frame.flags & V4L2_VP9_FRAME_FLAG_KEY_FRAME) &&
++		    !sess->should_stop &&
++		    !atomic_read(&sess->esparser_queued_bufs)) {
++			ret = meson_amvdec_hevc_restream(sess);
++			if (ret) {
++				dev_err(core->dev, "VP9 restream failed (%d)\n", ret);
++				esparser_src_error(sess, vbuf);
++				return ret;
++			}
++			offset = esparser_get_offset(sess);
++		}
++		vp9_frame_ptr = &f->vp9_frame;
++	} else if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE) {
+ 		u8 *vaddr = vb2_plane_vaddr(vb, 0);
+ 		u32 plane_size = vb2_plane_size(vb, 0);
+ 		bool irap;
+@@ -624,6 +778,18 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
  	vbuf->field = V4L2_FIELD_NONE;
  	vbuf->sequence = sess->sequence_out++;
  
-+	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9) {
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9_FRAME) {
 +		payload_size = vp9_update_header(core, vb);
 +
 +		/* If unable to alter buffer to add headers */
@@ -3042,9 +2974,28 @@ index 3f96b2b9e6..d83b1fbdd8 100644
 +		}
 +	}
 +
- 	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VC1_ANNEX_G) {
- 		payload_size = meson_amvdec_codec_vc1_prepare_input(sess, vb);
- 		if (!payload_size) {
+ 	/*
+ 	 * The multi blob takes the OUTPUT buffer as its stream FIFO directly:
+ 	 * no ESPARSER copy, no start-code padding, and the buffer stays owned
+@@ -729,7 +895,8 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	/* Record the framed/synthesized coded endpoint before padding or DMA.
+ 	 * Reading PARSER_VIDEO_WP for offset includes previous transport bytes.
+ 	 */
+-	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE &&
++	if ((sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE ||
++	     sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9_FRAME) &&
+ 	    meson_amvdec_set_input_end(sess, vb->timestamp, offset + payload_size)) {
+ 		esparser_src_error(sess, vbuf);
+ 		return -EINVAL;
+@@ -818,6 +985,8 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+ 	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_HEVC_SLICE)
+ 		meson_amvdec_codec_hevc_request_input_ready(sess, vb->timestamp,
+ 							  offset + payload_size);
++	if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9_FRAME)
++		meson_amvdec_codec_vp9_request_input_ready(sess, offset + payload_size);
+ 
+ 	return 0;
+ }
 -- 
 2.53.0
 
