@@ -22,7 +22,7 @@ DISTFILES     = \
 
 PATCHFILES   += 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
 PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
-PATCHFILES   += 0050-pull28832-update-ffmpeg-to-9.0.patch
+#PATCHFILES   += 0050-pull28832-update-ffmpeg-to-9.0.patch
 PATCHFILES   += 0051-update-libdvdread-sha.patch
 PATCHFILES   += 0052-update-libdvdnav-sha.patch
 PATCHFILES   += 0053-stop-uncoditionally-building-udfread.patch
