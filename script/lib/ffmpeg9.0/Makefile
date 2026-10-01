@@ -27,6 +27,7 @@ PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-contro
 PATCHFILES += 0170-ffmpeg8-avcodec-add-V4L2-Request-API-VC-1-WMV3-hwaccel.patch
 PATCHFILES += 0172-ffmpeg-hwcontext-v4l2request-add-NV12M.patch
 PATCHFILES += 0173-ffmpeg-v4l2request-report-capture-errors.patch
+PATCHFILES += 0174-v4l2request-amlogic-fbc-am21c.patch
 endif
 
 LICENSE      = GPL2/LGPL2_1
