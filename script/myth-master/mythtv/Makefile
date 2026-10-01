@@ -104,9 +104,10 @@ PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-contro
 # support for vc1 v4l2_request decoding
 PATCHFILES += 0170-ffmpeg8-avcodec-add-V4L2-Request-API-VC-1-WMV3-hwaccel.patch
 PATCHFILES += 0171-libmythtv-decoders-mythv4l2m2mcontext-add-vc1_request-support.patch
-# amlogic nv12m support
+# amlogic nv12m and am21c support
 PATCHFILES += 0172-ffmpeg-hwcontext-v4l2request-add-NV12M.patch
 PATCHFILES += 0173-ffmpeg-v4l2request-report-capture-errors.patch
+PATCHFILES += 0174-ffmpeg-v4l2request-add-amlogic-afbc-am21c-support.patch
 endif
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
