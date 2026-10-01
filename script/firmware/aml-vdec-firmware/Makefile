@@ -10,7 +10,7 @@ DESCRIPTION  =
 define BLURB
 endef
 
-WORKSRC=$(WORKDIR)
+WORKSRC=$(WORKDIR)/openucode-$(GARVERSION)
 
 DEPENDS = 
 
