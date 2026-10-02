@@ -11,12 +11,20 @@ FIP_BOARD                 = tanix-tx3-mini
 endif
 
 ifeq (0,1)
-# s912 generic device
+# s912 based gt1
 SOC_TYPE                  = s912
 mm_U-BOOT_BOARD_TYPE      = board-s912.beelink_gt1
 mm_U-BOOT_BOARD_DEFCONFIG = beelink-gt1_defconfig
 # it looks my gt1 needs p212 fip. with beelink_gt1 it fails at dram init...
 FIP_BOARD                 = p212
+endif
+
+ifeq (0,1)
+# s912 based gt1 ultimate
+SOC_TYPE                  = s912
+mm_U-BOOT_BOARD_TYPE      = board-s912.beelink_gt1
+mm_U-BOOT_BOARD_DEFCONFIG = beelink-gt1_defconfig
+FIP_BOARD                 = beelink-gt1
 endif
 
 ifeq (0,1)
