@@ -249,6 +249,7 @@ mm-all:
 	@echo "    mm_KERNEL_VERSION"
 	@if [ ! "$(mm_KERNEL_VERSION)" = "7.2"            ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "7.3"            ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "6.18"            ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.12"       ] ; then \
 		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
@@ -489,6 +490,7 @@ mm-all:
 		   [ ! "$${board}" = "board-s905x4.x96_max_ultra" ] && \
 		   [ ! "$${board}" = "board-s905y4.vim1s"         ] && \
 		   [ ! "$${board}" = "board-s912.beelink_gt1"     ] && \
+		   [ ! "$${board}" = "board-s912.beelink_gt1_ultimate" ] && \
 		   [ ! "$${board}" = "board-sm1.x96_air2g"        ] && \
 		   [ ! "$${board}" = "board-sm1.tanix_tx5_plus"   ] && \
 		   [ ! "$${board}" = "board-s905d3.vim3l"         ] && \
