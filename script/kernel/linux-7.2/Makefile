@@ -119,6 +119,7 @@ PATCHFILES += 1301-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards
 PATCHFILES += 1302-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 1303-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
+ifeq (0,1)
 # stateless amvdec https://github.com/gusbourg/linux/commits/amlogic-vdec/rfc/ 26.09.2026 g8bb71d57f
 PATCHFILES += 1410-media-uapi-add-the-Amlogic-AM21C-compressed-format.patch
 PATCHFILES += 1411-media-amlogic-add-the-video-decoder-core.patch
@@ -126,6 +127,12 @@ PATCHFILES += 1412-media-amlogic-amvdec-add-MPEG-2-decoding.patch
 PATCHFILES += 1413-media-amlogic-amvdec-add-H.264-decoding.patch
 PATCHFILES += 1414-media-amlogic-amvdec-add-HEVC-decoding.patch
 PATCHFILES += 1415-media-amlogic-amvdec-add-VP9-decoding.patch
+endif
+ifeq (1,1)
+# stateless amvdec 02.10.2026 g41daab11
+PATCHFILES += 1411-media-amlogic-inclide-amvdec-into-drivers-media.patch
+PATCHFILES += 1412-media-amlogic-add-amvdec-g41daab11.patch
+endif
 # g12/sm1 dtsi additions
 PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 # g12/sm1 board dts additions
