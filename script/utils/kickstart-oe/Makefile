@@ -96,6 +96,7 @@ S905_BOARDS_LIST= \
 # Amlogic S912 boards
 S912_BOARDS_LIST= \
 	board-s912.beelink_gt1 \
+	board-s912.beelink_gt1_ultimate \
 
 # Amlogic G12A boards
 G12A_BOARDS_LIST= \
