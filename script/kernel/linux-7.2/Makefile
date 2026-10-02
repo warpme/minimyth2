@@ -112,12 +112,13 @@ ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
 # gxl/gxm drivers additions
 PATCHFILES += 1000-drm-meson-swap-primary-overlay-zpos.patch
+PATCHFILES += 1001-drm-panfrost-reset-the-Amlogic-GXM-GPU-on-runtime-resume.patch
 # board dts additions
-PATCHFILES += 1001-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 1300-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 1301-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards.patch
 PATCHFILES += 1302-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 1303-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
+PATCHFILES += 1304-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
 ifeq (0,1)
 # stateless amvdec https://github.com/gusbourg/linux/commits/amlogic-vdec/rfc/ 26.09.2026 g8bb71d57f
