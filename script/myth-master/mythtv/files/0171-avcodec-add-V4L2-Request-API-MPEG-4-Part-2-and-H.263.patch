@@ -1,0 +1,1221 @@
+From 5dee606cb166d6baeaf227304d7479d31cce01fb Mon Sep 17 00:00:00 2001
+From: gus bourg <gus@bourg.net>
+Date: Fri, 2 Oct 2026 00:20:21 -0700
+Subject: [PATCH 2/3] avcodec: add V4L2 Request API MPEG-4 Part 2 and H.263
+ hwaccel
+
+Add a stateless V4L2 Request API hwaccel for MPEG-4 Part 2 (Simple and
+Advanced Simple profiles) and for H.263, for the
+V4L2_PIX_FMT_MPEG4_SLICE and V4L2_PIX_FMT_H263_SLICE pixel formats and
+the MPEG-4 stateless controls:
+
+  V4L2_CID_STATELESS_MPEG4_VOL
+  V4L2_CID_STATELESS_MPEG4_VOP
+  V4L2_CID_STATELESS_MPEG4_QUANTISATION
+
+One request is queued per coded VOP. The output buffer holds exactly
+one VOP, from its start code to the next start code: the other headers
+of the packet are left out and the VOPs of a packed bitstream are
+queued one by one, as the decoder gets to them.
+
+The VOL and VOP controls of the first picture are given to the driver
+when the hwaccel is initialised, so that a driver which lacks a tool
+the stream needs (global motion compensation, quarter sample, data
+partitioning, an optional mode of H.263) makes the decoder fall back to
+software. The modes of the H.263 picture header are passed as flags;
+the driver decides.
+
+The size of the H.263 picture header does not count what the decoder
+reads of the first slice in the Slice Structured mode. A picture with a
+custom picture format has source format 6, also when the decoder was
+given the size by the container.
+
+The decoders keep a few more header fields for this: the MPEG-4 decoder
+video_object_layer_verid, obmc_disable, fixed_vop_rate and
+reduced_resolution_vop_enable, the H.263 decoder whether the picture
+header has PLUSPTYPE and a custom picture format.
+
+The controls are not part of the kernel headers yet: a private copy of
+their definitions is in v4l2-stateless-mpeg4.h.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ configure                         |   4 +
+ libavcodec/Makefile               |   3 +
+ libavcodec/h263dec.c              |   6 +
+ libavcodec/h263dec.h              |   2 +
+ libavcodec/hwaccels.h             |   2 +
+ libavcodec/ituh263dec.c           |   4 +
+ libavcodec/mpeg4videodec.c        |  21 +-
+ libavcodec/mpeg4videodec.h        |   7 +
+ libavcodec/v4l2-stateless-mpeg4.h | 280 +++++++++++++
+ libavcodec/v4l2_request_mpeg4.c   | 641 ++++++++++++++++++++++++++++++
+ 10 files changed, 967 insertions(+), 3 deletions(-)
+ create mode 100644 libavcodec/v4l2-stateless-mpeg4.h
+ create mode 100644 libavcodec/v4l2_request_mpeg4.c
+
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/configure mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/configure
+index e6ac81f..95640a6 100755
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/configure
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/configure
+@@ -3438,6 +3438,8 @@ dpx_vulkan_hwaccel_deps="vulkan spirv_compiler"
+ dpx_vulkan_hwaccel_select="dpx_decoder"
+ ffv1_vulkan_hwaccel_deps="vulkan spirv_compiler"
+ ffv1_vulkan_hwaccel_select="ffv1_decoder"
++h263_v4l2request_hwaccel_deps="v4l2_request"
++h263_v4l2request_hwaccel_select="h263_decoder"
+ h263_vaapi_hwaccel_deps="vaapi"
+ h263_vaapi_hwaccel_select="h263_decoder"
+ h263_videotoolbox_hwaccel_deps="videotoolbox"
+@@ -3512,6 +3514,8 @@ mpeg2_videotoolbox_hwaccel_deps="videotoolbox"
+ mpeg2_videotoolbox_hwaccel_select="mpeg2video_decoder"
+ mpeg4_nvdec_hwaccel_deps="nvdec"
+ mpeg4_nvdec_hwaccel_select="mpeg4_decoder"
++mpeg4_v4l2request_hwaccel_deps="v4l2_request"
++mpeg4_v4l2request_hwaccel_select="mpeg4_decoder"
+ mpeg4_vaapi_hwaccel_deps="vaapi"
+ mpeg4_vaapi_hwaccel_select="mpeg4_decoder"
+ mpeg4_vdpau_hwaccel_deps="vdpau"
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/Makefile
+index 4deba34..b174d77 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/Makefile
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/Makefile
+@@ -1056,6 +1056,7 @@ OBJS-$(CONFIG_AV1_VIDEOTOOLBOX_HWACCEL)   += videotoolbox_av1.o
+ OBJS-$(CONFIG_AV1_VULKAN_HWACCEL)         += vulkan_decode.o vulkan_av1.o
+ OBJS-$(CONFIG_DPX_VULKAN_HWACCEL)         += vulkan_decode.o vulkan_dpx.o
+ OBJS-$(CONFIG_FFV1_VULKAN_HWACCEL)        += vulkan_decode.o ffv1_vulkan.o vulkan_ffv1.o
++OBJS-$(CONFIG_H263_V4L2REQUEST_HWACCEL)   += v4l2_request_mpeg4.o
+ OBJS-$(CONFIG_H263_VAAPI_HWACCEL)         += vaapi_mpeg4.o
+ OBJS-$(CONFIG_H263_VIDEOTOOLBOX_HWACCEL)  += videotoolbox.o
+ OBJS-$(CONFIG_H264_D3D11VA_HWACCEL)       += dxva2_h264.o
+@@ -1092,6 +1093,7 @@ OBJS-$(CONFIG_MPEG2_VAAPI_HWACCEL)        += vaapi_mpeg2.o
+ OBJS-$(CONFIG_MPEG2_VDPAU_HWACCEL)        += vdpau_mpeg12.o
+ OBJS-$(CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL) += videotoolbox.o
+ OBJS-$(CONFIG_MPEG4_NVDEC_HWACCEL)        += nvdec_mpeg4.o
++OBJS-$(CONFIG_MPEG4_V4L2REQUEST_HWACCEL)  += v4l2_request_mpeg4.o
+ OBJS-$(CONFIG_MPEG4_VAAPI_HWACCEL)        += vaapi_mpeg4.o
+ OBJS-$(CONFIG_MPEG4_VDPAU_HWACCEL)        += vdpau_mpeg4.o
+ OBJS-$(CONFIG_MPEG4_VIDEOTOOLBOX_HWACCEL) += videotoolbox.o
+@@ -1366,6 +1368,7 @@ SKIPHEADERS-$(CONFIG_VULKAN)           += ffv1_vulkan.h prores_vulkan.h vulkan_v
+                                           vulkan_encode.h vulkan_decode.h
+ SKIPHEADERS-$(CONFIG_V4L2_M2M)         += v4l2_buffers.h v4l2_context.h v4l2_m2m.h
+ SKIPHEADERS-$(CONFIG_V4L2_REQUEST)     += v4l2_request.h v4l2_request_dump.h \
++                                          v4l2-stateless-mpeg4.h \
+                                           v4l2-stateless-vc1.h
+ SKIPHEADERS-$(CONFIG_ZLIB)             += zlib_wrapper.h
+ 
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/h263dec.c mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/h263dec.c
+index 23fd16b..3fd10df 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/h263dec.c
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/h263dec.c
+@@ -56,6 +56,9 @@ static const enum AVPixelFormat h263_hwaccel_pixfmt_list_420[] = {
+ #if CONFIG_MPEG4_NVDEC_HWACCEL
+     AV_PIX_FMT_CUDA,
+ #endif
++#if CONFIG_H263_V4L2REQUEST_HWACCEL || CONFIG_MPEG4_V4L2REQUEST_HWACCEL
++    AV_PIX_FMT_DRM_PRIME,
++#endif
+ #if CONFIG_MPEG4_VDPAU_HWACCEL
+     AV_PIX_FMT_VDPAU,
+ #endif
+@@ -662,6 +665,9 @@ frame_end:
+ }
+ 
+ static const AVCodecHWConfigInternal *const h263_hw_config_list[] = {
++#if CONFIG_H263_V4L2REQUEST_HWACCEL
++    HWACCEL_V4L2REQUEST(h263),
++#endif
+ #if CONFIG_H263_VAAPI_HWACCEL
+     HWACCEL_VAAPI(h263),
+ #endif
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/h263dec.h mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/h263dec.h
+index ab647f5..db9d14c 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/h263dec.h
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/h263dec.h
+@@ -62,6 +62,8 @@ typedef struct H263DecContext {
+     int gob_index;
+ 
+     /* H.263+ specific */
++    int plus_ptype;             ///< the picture header has PLUSPTYPE
++    int custom_picture_format;  ///< custom picture format (CPFMT)
+     int custom_pcf;
+     int umvplus;                ///< == H.263+ && unrestricted_mv
+     int h263_slice_structured;
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/hwaccels.h
+index 78c9ab2..1673cf6 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/hwaccels.h
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/hwaccels.h
+@@ -32,6 +32,7 @@ extern const struct FFHWAccel ff_av1_videotoolbox_hwaccel;
+ extern const struct FFHWAccel ff_av1_vulkan_hwaccel;
+ extern const struct FFHWAccel ff_dpx_vulkan_hwaccel;
+ extern const struct FFHWAccel ff_ffv1_vulkan_hwaccel;
++extern const struct FFHWAccel ff_h263_v4l2request_hwaccel;
+ extern const struct FFHWAccel ff_h263_vaapi_hwaccel;
+ extern const struct FFHWAccel ff_h263_videotoolbox_hwaccel;
+ extern const struct FFHWAccel ff_h264_d3d11va_hwaccel;
+@@ -69,6 +70,7 @@ extern const struct FFHWAccel ff_mpeg2_vaapi_hwaccel;
+ extern const struct FFHWAccel ff_mpeg2_vdpau_hwaccel;
+ extern const struct FFHWAccel ff_mpeg2_videotoolbox_hwaccel;
+ extern const struct FFHWAccel ff_mpeg4_nvdec_hwaccel;
++extern const struct FFHWAccel ff_mpeg4_v4l2request_hwaccel;
+ extern const struct FFHWAccel ff_mpeg4_vaapi_hwaccel;
+ extern const struct FFHWAccel ff_mpeg4_vdpau_hwaccel;
+ extern const struct FFHWAccel ff_mpeg4_videotoolbox_hwaccel;
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/ituh263dec.c mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/ituh263dec.c
+index 53ead30..c3feb6a 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/ituh263dec.c
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/ituh263dec.c
+@@ -1142,6 +1142,7 @@ int ff_h263_decode_picture_header(H263DecContext *const h)
+ 
+     if (format != 7 && format != 6) {
+         h263_plus = 0;
++        h->custom_picture_format = 0;
+         /* H.263v1 */
+         width = ff_h263_format[format][0];
+         height = ff_h263_format[format][1];
+@@ -1226,6 +1227,7 @@ int ff_h263_decode_picture_header(H263DecContext *const h)
+ 
+         /* Get the picture dimensions */
+         if (ufep) {
++            h->custom_picture_format = format == 6;
+             if (format == 6) {
+                 /* Custom Picture Format (CPFMT) */
+                 int aspect_ratio_info = get_bits(&h->gb, 4);
+@@ -1369,6 +1371,8 @@ int ff_h263_decode_picture_header(H263DecContext *const h)
+         h->c.c_dc_scale_table = ff_mpeg1_dc_scale_table;
+     }
+ 
++    h->plus_ptype = h263_plus;
++
+     ff_h263_show_pict_info(h, h263_plus);
+ 
+     if (h->c.pict_type == AV_PICTURE_TYPE_I && h->c.codec_tag == AV_RL32("ZYGO") && get_bits_left(&h->gb) >= 85 + 13*3*16 + 50){
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/mpeg4videodec.c mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/mpeg4videodec.c
+index 9cfb3cd..f5978c2 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/mpeg4videodec.c
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/mpeg4videodec.c
+@@ -2669,6 +2669,7 @@ static int decode_vol_header(Mpeg4DecContext *ctx, GetBitContext *gb)
+     } else {
+         vo_ver_id = 1;
+     }
++    ctx->vol_verid = vo_ver_id;
+     aspect_ratio_info = get_bits(gb, 4);
+     if (aspect_ratio_info == FF_ASPECT_EXTENDED) {
+         h->c.avctx->sample_aspect_ratio.num = get_bits(gb, 8);  // par_width
+@@ -2733,10 +2734,13 @@ static int decode_vol_header(Mpeg4DecContext *ctx, GetBitContext *gb)
+ 
+     check_marker(h->c.avctx, gb, "before fixed_vop_rate");
+ 
+-    if (get_bits1(gb) != 0)     /* fixed_vop_rate  */
++    ctx->fixed_vop_rate = get_bits1(gb);
++    if (ctx->fixed_vop_rate)
+         h->c.avctx->framerate.den = get_bits(gb, ctx->time_increment_bits);
+     else
+         h->c.avctx->framerate.den = 1;
++    ctx->fixed_vop_time_increment = ctx->fixed_vop_rate ?
++                                    h->c.avctx->framerate.den : 0;
+ 
+     ctx->t_frame = 0;
+ 
+@@ -2760,7 +2764,8 @@ static int decode_vol_header(Mpeg4DecContext *ctx, GetBitContext *gb)
+         h->c.progressive_sequence  =
+         h->c.progressive_frame     = get_bits1(gb) ^ 1;
+         h->c.interlaced_dct        = 0;
+-        if (!get_bits1(gb) && (h->c.avctx->debug & FF_DEBUG_PICT_INFO))
++        ctx->obmc_disable = get_bits1(gb);
++        if (!ctx->obmc_disable && (h->c.avctx->debug & FF_DEBUG_PICT_INFO))
+             av_log(h->c.avctx, AV_LOG_INFO,           /* OBMC Disable */
+                    "MPEG-4 OBMC not supported (very likely buggy encoder)\n");
+         if (vo_ver_id == 1)
+@@ -2949,11 +2954,13 @@ no_cplx_est:
+                 skip_bits(gb, 2); /* requested upstream message type */
+                 skip_bits1(gb);   /* newpred segment type */
+             }
+-            if (get_bits1(gb)) // reduced_res_vop
++            ctx->reduced_res_vop_enable = get_bits1(gb);
++            if (ctx->reduced_res_vop_enable)
+                 av_log(h->c.avctx, AV_LOG_ERROR,
+                        "reduced resolution VOP not supported\n");
+         } else {
+             ctx->new_pred = 0;
++            ctx->reduced_res_vop_enable = 0;
+         }
+ 
+         ctx->scalability = get_bits1(gb);
+@@ -3923,6 +3930,11 @@ static int mpeg4_update_thread_context(AVCodecContext *dst,
+     s->cplx_estimation_trash_p   = s1->cplx_estimation_trash_p;
+     s->cplx_estimation_trash_b   = s1->cplx_estimation_trash_b;
+     s->rgb                       = s1->rgb;
++    s->vol_verid                 = s1->vol_verid;
++    s->obmc_disable              = s1->obmc_disable;
++    s->fixed_vop_rate            = s1->fixed_vop_rate;
++    s->fixed_vop_time_increment  = s1->fixed_vop_time_increment;
++    s->reduced_res_vop_enable    = s1->reduced_res_vop_enable;
+     s->h.c.studio_profile        = s1->h.c.studio_profile;
+ 
+     s->h.skipped_last_frame      = s1->h.skipped_last_frame;
+@@ -4102,6 +4114,9 @@ const FFCodec ff_mpeg4_decoder = {
+ #if CONFIG_MPEG4_NVDEC_HWACCEL
+                                HWACCEL_NVDEC(mpeg4),
+ #endif
++#if CONFIG_MPEG4_V4L2REQUEST_HWACCEL
++                               HWACCEL_V4L2REQUEST(mpeg4),
++#endif
+ #if CONFIG_MPEG4_VAAPI_HWACCEL
+                                HWACCEL_VAAPI(mpeg4),
+ #endif
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/mpeg4videodec.h mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/mpeg4videodec.h
+index 2eafa1e..3c82d65 100644
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/mpeg4videodec.h
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/mpeg4videodec.h
+@@ -67,6 +67,13 @@ typedef struct Mpeg4DecContext {
+ 
+     int quant_precision;
+ 
++    /* VOL header fields which only hwaccels need, to pass the header on */
++    int vol_verid;                  ///< video_object_layer_verid
++    int obmc_disable;
++    int fixed_vop_rate;
++    int fixed_vop_time_increment;
++    int reduced_res_vop_enable;
++
+     /// QP above which the ac VLC should be used for intra dc
+     int intra_dc_threshold;
+ 
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2-stateless-mpeg4.h mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2-stateless-mpeg4.h
+new file mode 100644
+index 0000000..ee98764
+--- /dev/null
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2-stateless-mpeg4.h
+@@ -0,0 +1,280 @@
++/* SPDX-License-Identifier: ((GPL-2.0+ WITH Linux-syscall-note) OR BSD-3-Clause) */
++/*
++ * Stateless MPEG-4 Part 2 and H.263 decoder controls (ISO/IEC 14496-2 Simple and
++ * Advanced Simple profiles, ITU-T H.263 baseline).
++ *
++ * Private copy of the definitions proposed for include/uapi/linux/videodev2.h
++ * and include/uapi/linux/v4l2-controls.h, for use until they are part of the
++ * kernel headers. It must be kept in sync with the kernel patches. Everything
++ * here is skipped when the kernel headers already provide the definitions.
++ */
++
++#ifndef AVCODEC_V4L2_STATELESS_MPEG4_H
++#define AVCODEC_V4L2_STATELESS_MPEG4_H
++
++#include <linux/videodev2.h>
++
++#ifndef V4L2_PIX_FMT_MPEG4_SLICE
++#define V4L2_PIX_FMT_MPEG4_SLICE v4l2_fourcc('M', 'G', '4', 'S') /* MPEG-4 parsed slice data */
++#endif
++#ifndef V4L2_PIX_FMT_H263_SLICE
++#define V4L2_PIX_FMT_H263_SLICE v4l2_fourcc('S', '2', '6', '3') /* H.263 parsed slice data */
++#endif
++
++#ifndef V4L2_CID_STATELESS_MPEG4_VOL
++
++#define V4L2_CTRL_TYPE_MPEG4_VOL		0x02a0
++#define V4L2_CTRL_TYPE_MPEG4_VOP		0x02a1
++#define V4L2_CTRL_TYPE_MPEG4_QUANTISATION	0x02a2
++
++/* Stateless MPEG-4 Part 2 and H.263 controls */
++
++#define V4L2_MPEG4_SPRITE_NONE					0
++#define V4L2_MPEG4_SPRITE_STATIC				1
++#define V4L2_MPEG4_SPRITE_GMC					2
++
++#define V4L2_MPEG4_NUM_SPRITE_WARPING_POINTS			4
++
++#define V4L2_MPEG4_VOL_FLAG_SHORT_VIDEO_HEADER			0x0001
++#define V4L2_MPEG4_VOL_FLAG_INTERLACED				0x0002
++#define V4L2_MPEG4_VOL_FLAG_OBMC_DISABLE			0x0004
++#define V4L2_MPEG4_VOL_FLAG_SPRITE_BRIGHTNESS_CHANGE		0x0008
++#define V4L2_MPEG4_VOL_FLAG_QUANT_TYPE				0x0010
++#define V4L2_MPEG4_VOL_FLAG_QUARTER_SAMPLE			0x0020
++#define V4L2_MPEG4_VOL_FLAG_COMPLEXITY_ESTIMATION_DISABLE	0x0040
++#define V4L2_MPEG4_VOL_FLAG_RESYNC_MARKER_DISABLE		0x0080
++#define V4L2_MPEG4_VOL_FLAG_DATA_PARTITIONED			0x0100
++#define V4L2_MPEG4_VOL_FLAG_REVERSIBLE_VLC			0x0200
++#define V4L2_MPEG4_VOL_FLAG_NEWPRED_ENABLE			0x0400
++#define V4L2_MPEG4_VOL_FLAG_REDUCED_RESOLUTION_VOP_ENABLE	0x0800
++#define V4L2_MPEG4_VOL_FLAG_SCALABILITY				0x1000
++#define V4L2_MPEG4_VOL_FLAG_LOW_DELAY				0x2000
++#define V4L2_MPEG4_VOL_FLAG_FIXED_VOP_RATE			0x4000
++
++#define V4L2_CID_STATELESS_MPEG4_VOL	(V4L2_CID_CODEC_STATELESS_BASE + 700)
++/**
++ * struct v4l2_ctrl_mpeg4_vol - MPEG-4 Part 2 Video Object Layer parameters
++ *
++ * The members match the syntax elements of the Visual Object Sequence and of
++ * the Video Object Layer headers, as specified by sections 6.2.2 and 6.2.3 of
++ * ISO/IEC 14496-2. Only rectangular video objects with 4:2:0 chroma format are
++ * supported.
++ *
++ * In short video header mode (ITU-T H.263 baseline) there is no Video Object
++ * Layer header. V4L2_MPEG4_VOL_FLAG_SHORT_VIDEO_HEADER shall be set,
++ * @video_object_layer_width and @video_object_layer_height shall be set to the
++ * dimensions given by the source format of the picture header and the
++ * remaining members and flags shall be set to the values which ISO/IEC 14496-2
++ * specifies for short_video_header equal to 1.
++ *
++ * @flags: see V4L2_MPEG4_VOL_FLAG_{}.
++ * @video_object_layer_width: width of the displayable part of the luminance
++ * component, in samples.
++ * @video_object_layer_height: height of the displayable part of the luminance
++ * component, in samples.
++ * @vop_time_increment_resolution: number of ticks within one modulo time
++ * (one second).
++ * @fixed_vop_time_increment: number of ticks between two successive VOPs in
++ * display order. Valid if V4L2_MPEG4_VOL_FLAG_FIXED_VOP_RATE is set.
++ * @profile_and_level_indication: see ISO/IEC 14496-2. Zero if the stream does
++ * not carry a Visual Object Sequence header.
++ * @video_object_type_indication: see ISO/IEC 14496-2.
++ * @video_object_layer_verid: see ISO/IEC 14496-2. Set to 1 if
++ * is_object_layer_identifier is 0.
++ * @chroma_format: the chrominance sub-sampling format. Shall be 1 (4:2:0).
++ * @video_object_layer_shape: the shape type of the video object layer. Shall
++ * be 0 (rectangular).
++ * @sprite_enable: see V4L2_MPEG4_SPRITE_{}.
++ * @no_of_sprite_warping_points: number of points used in sprite warping.
++ * @sprite_warping_accuracy: quantisation accuracy of the motion vectors used
++ * in the warping process, see ISO/IEC 14496-2.
++ * @quant_precision: number of bits used to represent the quantiser parameters.
++ * Set to 5 if not_8_bit is 0.
++ * @bits_per_pixel: video data precision in bits per sample. Set to 8 if
++ * not_8_bit is 0.
++ * @reserved: padding field. Should be zeroed by applications.
++ */
++struct v4l2_ctrl_mpeg4_vol {
++	__u32	flags;
++	__u16	video_object_layer_width;
++	__u16	video_object_layer_height;
++	__u16	vop_time_increment_resolution;
++	__u16	fixed_vop_time_increment;
++	__u8	profile_and_level_indication;
++	__u8	video_object_type_indication;
++	__u8	video_object_layer_verid;
++	__u8	chroma_format;
++	__u8	video_object_layer_shape;
++	__u8	sprite_enable;
++	__u8	no_of_sprite_warping_points;
++	__u8	sprite_warping_accuracy;
++	__u8	quant_precision;
++	__u8	bits_per_pixel;
++	__u8	reserved[2];
++};
++
++#define V4L2_MPEG4_VOP_CODING_TYPE_I				0
++#define V4L2_MPEG4_VOP_CODING_TYPE_P				1
++#define V4L2_MPEG4_VOP_CODING_TYPE_B				2
++#define V4L2_MPEG4_VOP_CODING_TYPE_S				3
++
++#define V4L2_MPEG4_VOP_FLAG_ROUNDING_TYPE			0x01
++#define V4L2_MPEG4_VOP_FLAG_TOP_FIELD_FIRST			0x02
++#define V4L2_MPEG4_VOP_FLAG_ALTERNATE_VERTICAL_SCAN		0x04
++
++/* Picture header modes of ITU-T H.263, see &v4l2_ctrl_mpeg4_vop.h263_flags */
++#define V4L2_H263_FLAG_PLUSPTYPE				0x00000001
++#define V4L2_H263_FLAG_CUSTOM_PICTURE_FORMAT			0x00000002
++#define V4L2_H263_FLAG_CUSTOM_PCF				0x00000004
++#define V4L2_H263_FLAG_UMV					0x00000008
++#define V4L2_H263_FLAG_SAC					0x00000010
++#define V4L2_H263_FLAG_AP					0x00000020
++#define V4L2_H263_FLAG_PB_FRAMES				0x00000040
++#define V4L2_H263_FLAG_IMPROVED_PB_FRAMES			0x00000080
++#define V4L2_H263_FLAG_AIC					0x00000100
++#define V4L2_H263_FLAG_DF					0x00000200
++#define V4L2_H263_FLAG_SS					0x00000400
++#define V4L2_H263_FLAG_RPS					0x00000800
++#define V4L2_H263_FLAG_ISD					0x00001000
++#define V4L2_H263_FLAG_AIV					0x00002000
++#define V4L2_H263_FLAG_MQ					0x00004000
++#define V4L2_H263_FLAG_RPR					0x00008000
++#define V4L2_H263_FLAG_RRU					0x00010000
++#define V4L2_H263_FLAG_CPM					0x00020000
++#define V4L2_H263_FLAG_SCALABILITY				0x00040000
++
++#define V4L2_CID_STATELESS_MPEG4_VOP	(V4L2_CID_CODEC_STATELESS_BASE + 701)
++/**
++ * struct v4l2_ctrl_mpeg4_vop - MPEG-4 Part 2 Video Object Plane parameters
++ *
++ * The members match the syntax elements of the Video Object Plane header of
++ * the coded VOP held by the OUTPUT buffer, as specified by section 6.2.5 of
++ * ISO/IEC 14496-2, or of the picture header as specified by section 6.2.5.2
++ * "Video Plane with Short Header" of ISO/IEC 14496-2 and section 5.1 of
++ * ITU-T H.263. Syntax elements which are not present in the header shall be
++ * set to zero, unless stated otherwise. VOPs which are not coded (vop_coded
++ * equal to 0) shall not be submitted for decoding.
++ *
++ * In short video header mode @h263_flags gives the modes of the picture
++ * header of ITU-T H.263. A baseline picture has none of them. Drivers reject
++ * the control if it has a flag set for a mode which they do not support.
++ *
++ * @backward_ref_ts: timestamp of the V4L2 capture buffer to use as backward
++ * reference, used with B-coded VOPs.
++ * @forward_ref_ts: timestamp of the V4L2 capture buffer to use as forward
++ * reference, used with P-coded, S(GMC)-coded and B-coded VOPs. These
++ * timestamps refer to the timestamp field in struct v4l2_buffer. Use
++ * v4l2_timeval_to_ns() to convert the struct timeval to a __u64.
++ * @data_bit_offset: offset in bits from the beginning of the OUTPUT buffer,
++ * which is the first bit of the VOP start code or of the short video start
++ * marker, to the first bit following the VOP header or the picture header,
++ * which is the first bit of the first macroblock. In the Slice Structured
++ * mode of H.263 the picture header ends with PEI and PSUPP: this is the first
++ * bit of what the first slice keeps of the slice header.
++ * @flags: see V4L2_MPEG4_VOP_FLAG_{}.
++ * @trb: temporal distance between the B-coded VOP and its forward reference,
++ * in ticks of &v4l2_ctrl_mpeg4_vol.vop_time_increment_resolution. This is TRB
++ * of the direct mode of progressive VOPs. B-coded VOPs only.
++ * @trd: temporal distance between the backward reference and the forward
++ * reference of the B-coded VOP, in ticks of
++ * &v4l2_ctrl_mpeg4_vol.vop_time_increment_resolution. This is TRD of the
++ * direct mode of progressive VOPs. B-coded VOPs only.
++ * @trb_field: temporal distance between the B-coded VOP and its forward
++ * reference, in field periods. This is TRB,i of the direct mode of interlaced
++ * VOPs without its field parity correction term. B-coded VOPs only.
++ * @trd_field: temporal distance between the backward reference and the
++ * forward reference of the B-coded VOP, in field periods. This is TRD,i of the
++ * direct mode of interlaced VOPs without its field parity correction term.
++ * B-coded VOPs only.
++ * @h263_flags: see V4L2_H263_FLAG_{}. Short video header mode only.
++ * @sprite_trajectory_du: horizontal components of the sprite trajectory
++ * differential vectors, as decoded from sprite_trajectory(). The first
++ * &v4l2_ctrl_mpeg4_vol.no_of_sprite_warping_points elements are valid.
++ * S-coded VOPs only.
++ * @sprite_trajectory_dv: vertical components of the sprite trajectory
++ * differential vectors, as decoded from sprite_trajectory(). The first
++ * &v4l2_ctrl_mpeg4_vol.no_of_sprite_warping_points elements are valid.
++ * S-coded VOPs only.
++ * @vop_time_increment: see ISO/IEC 14496-2.
++ * @vop_quant: quantiser parameter of the first macroblock of the VOP. In short
++ * video header mode this is PQUANT.
++ * @num_macroblocks_in_gob: number of macroblocks in a group of blocks. Short
++ * video header mode only.
++ * @vop_coding_type: see V4L2_MPEG4_VOP_CODING_TYPE_{}.
++ * @intra_dc_vlc_thr: see ISO/IEC 14496-2.
++ * @vop_fcode_forward: motion vector range code of the forward prediction.
++ * Set to 1 for I-coded VOPs and in short video header mode.
++ * @vop_fcode_backward: motion vector range code of the backward prediction.
++ * Set to 1 unless the VOP is B-coded.
++ * @modulo_time_base: number of consecutive bits set to 1 which make up the
++ * modulo_time_base syntax element.
++ * @complexity_estimation_bits: size in bits of the complexity estimation
++ * header of the VOP header. Zero if
++ * V4L2_MPEG4_VOL_FLAG_COMPLEXITY_ESTIMATION_DISABLE is set.
++ * @temporal_reference: temporal reference of the picture. Short video header
++ * mode only.
++ * @source_format: source format of the picture: 1 to 5 for the standard
++ * picture formats (sub-QCIF, QCIF, CIF, 4CIF, 16CIF), 6 for a custom picture
++ * format. For a picture with the extended picture type this is the source
++ * format of the extended picture type. Short video header mode only.
++ * @num_gobs_in_vop: number of groups of blocks in the picture. Short video
++ * header mode only.
++ * @forward_ref_vop_coding_type: coding type of the forward reference, see
++ * V4L2_MPEG4_VOP_CODING_TYPE_{}. P-coded, S-coded and B-coded VOPs only.
++ * @backward_ref_vop_coding_type: coding type of the backward reference, see
++ * V4L2_MPEG4_VOP_CODING_TYPE_{}. B-coded VOPs only.
++ * @reserved: padding field. Should be zeroed by applications.
++ */
++struct v4l2_ctrl_mpeg4_vop {
++	__u64	backward_ref_ts;
++	__u64	forward_ref_ts;
++	__u32	data_bit_offset;
++	__u32	flags;
++	__u32	trb;
++	__u32	trd;
++	__u32	trb_field;
++	__u32	trd_field;
++	__u32	h263_flags;
++	__s16	sprite_trajectory_du[V4L2_MPEG4_NUM_SPRITE_WARPING_POINTS];
++	__s16	sprite_trajectory_dv[V4L2_MPEG4_NUM_SPRITE_WARPING_POINTS];
++	__u16	vop_time_increment;
++	__u16	vop_quant;
++	__u16	num_macroblocks_in_gob;
++	__u8	vop_coding_type;
++	__u8	intra_dc_vlc_thr;
++	__u8	vop_fcode_forward;
++	__u8	vop_fcode_backward;
++	__u8	modulo_time_base;
++	__u8	complexity_estimation_bits;
++	__u8	temporal_reference;
++	__u8	source_format;
++	__u8	num_gobs_in_vop;
++	__u8	forward_ref_vop_coding_type;
++	__u8	backward_ref_vop_coding_type;
++	__u8	reserved[3];
++};
++
++#define V4L2_CID_STATELESS_MPEG4_QUANTISATION (V4L2_CID_CODEC_STATELESS_BASE + 702)
++/**
++ * struct v4l2_ctrl_mpeg4_quantisation - MPEG-4 Part 2 quantisation matrices
++ *
++ * Quantisation matrices used by the first inverse quantisation method, as
++ * specified by section 7.4.4.1 of ISO/IEC 14496-2. They are only used if
++ * V4L2_MPEG4_VOL_FLAG_QUANT_TYPE is set. Both matrices are always complete:
++ * the default matrix is used for a matrix which the bitstream does not load
++ * and a matrix which the bitstream terminates early is completed by repeating
++ * its last non-zero coefficient.
++ *
++ * @intra_quant_mat: the quantisation matrix coefficients for intra-coded
++ * macroblocks, in zigzag scanning order.
++ * @nonintra_quant_mat: the quantisation matrix coefficients for
++ * non-intra-coded macroblocks, in zigzag scanning order.
++ */
++struct v4l2_ctrl_mpeg4_quantisation {
++	__u8	intra_quant_mat[64];
++	__u8	nonintra_quant_mat[64];
++};
++
++#endif /* V4L2_CID_STATELESS_MPEG4_VOL */
++
++#endif /* AVCODEC_V4L2_STATELESS_MPEG4_H */
+diff --git mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg4.c mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg4.c
+new file mode 100644
+index 0000000..760f92a
+--- /dev/null
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg4.c
+@@ -0,0 +1,641 @@
++/*
++ * V4L2 Request API MPEG-4 Part 2 / H.263 hwaccel
++ *
++ * This file is part of FFmpeg.
++ *
++ * FFmpeg is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ *
++ * FFmpeg is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with FFmpeg; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
++ */
++
++#include "config.h"
++#include "config_components.h"
++
++#include "libavutil/intreadwrite.h"
++
++#include "h263.h"
++#include "h263data.h"
++#include "h263dec.h"
++#include "hwaccel_internal.h"
++#include "hwconfig.h"
++#include "internal.h"
++#include "mathops.h"
++#include "mpeg4videodec.h"
++#include "mpeg4videodefs.h"
++#include "mpegvideo.h"
++#include "v4l2_request.h"
++#include "v4l2_request_dump.h"
++#include "v4l2-stateless-mpeg4.h"
++
++typedef struct V4L2RequestControlsMPEG4 {
++    V4L2RequestPictureContext pic;
++    struct v4l2_ctrl_mpeg4_vol vol;
++    struct v4l2_ctrl_mpeg4_vop vop;
++    struct v4l2_ctrl_mpeg4_quantisation quantisation;
++} V4L2RequestControlsMPEG4;
++
++/*
++ * Only the MPEG-4 decoder has a Mpeg4DecContext: the private context of the
++ * H.263 decoder is a bare H263DecContext.
++ */
++static inline const Mpeg4DecContext *mpeg4_ctx(const AVCodecContext *avctx)
++{
++    return avctx->codec_id == AV_CODEC_ID_MPEG4 ? avctx->priv_data : NULL;
++}
++
++/* Reconstruct bitstream intra_dc_vlc_thr */
++static int mpeg4_get_intra_dc_vlc_thr(const Mpeg4DecContext *ctx)
++{
++    switch (ctx->intra_dc_threshold) {
++    case 99: return 0;
++    case 13: return 1;
++    case 15: return 2;
++    case 17: return 3;
++    case 19: return 4;
++    case 21: return 5;
++    case 23: return 6;
++    case 0:  return 7;
++    }
++    return 0;
++}
++
++/*
++ * H.263 source format: 1 to 5 for the standard picture formats, 6 for a custom
++ * picture format (signalled by PLUSPTYPE, whatever the size).
++ */
++static int h263_get_source_format(const H263DecContext *h)
++{
++    static const uint16_t sizes[][2] = {
++        { 128, 96 }, { 176, 144 }, { 352, 288 }, { 704, 576 }, { 1408, 1152 },
++    };
++
++    if (h->plus_ptype && h->custom_picture_format)
++        return 6;
++
++    for (int i = 0; i < FF_ARRAY_ELEMS(sizes); i++)
++        if (h->c.width == sizes[i][0] && h->c.height == sizes[i][1])
++            return i + 1;
++
++    return 6;
++}
++
++/*
++ * Modes of the H.263 picture header. The driver refuses the VOP control for
++ * the modes it does not decode. SAC, RPS, ISD, RPR and RRU are refused by the
++ * decoder itself and CPM is not kept by it, so they are never set here.
++ */
++static uint32_t h263_get_flags(const H263DecContext *h)
++{
++    const MPVContext *s = &h->c;
++    uint32_t flags = 0;
++
++    if (h->plus_ptype)
++        flags |= V4L2_H263_FLAG_PLUSPTYPE;
++    if (h->plus_ptype && h->custom_picture_format)
++        flags |= V4L2_H263_FLAG_CUSTOM_PICTURE_FORMAT;
++    if (h->plus_ptype && h->custom_pcf)
++        flags |= V4L2_H263_FLAG_CUSTOM_PCF;
++    if (h->umvplus || h->h263_long_vectors)
++        flags |= V4L2_H263_FLAG_UMV;
++    if (s->obmc)
++        flags |= V4L2_H263_FLAG_AP;
++    if (h->pb_frame == 3)
++        flags |= V4L2_H263_FLAG_IMPROVED_PB_FRAMES;
++    else if (h->pb_frame)
++        flags |= V4L2_H263_FLAG_PB_FRAMES;
++    if (s->h263_aic)
++        flags |= V4L2_H263_FLAG_AIC;
++    if (h->loop_filter)
++        flags |= V4L2_H263_FLAG_DF;
++    if (h->h263_slice_structured)
++        flags |= V4L2_H263_FLAG_SS;
++    if (h->alt_inter_vlc)
++        flags |= V4L2_H263_FLAG_AIV;
++    if (h->modified_quant)
++        flags |= V4L2_H263_FLAG_MQ;
++    /* B pictures only exist with the scalability mode (Annex O) */
++    if (s->pict_type == AV_PICTURE_TYPE_B)
++        flags |= V4L2_H263_FLAG_SCALABILITY;
++
++    return flags;
++}
++
++/*
++ * What the controls cannot describe at all. Everything else is refused by the
++ * driver from the controls: MPEG-4 tools through the VOL control, H.263 modes
++ * through the VOP control (see v4l2_request_mpeg4_init()).
++ */
++static int v4l2_request_mpeg4_supported(const AVCodecContext *avctx)
++{
++    const H263DecContext *h = avctx->priv_data;
++    const MPVContext *s = &h->c;
++    const Mpeg4DecContext *ctx = mpeg4_ctx(avctx);
++
++    return !ctx || (ctx->shape == RECT_SHAPE && !s->studio_profile);
++}
++
++/* Coding type of a reference VOP, for the reference description */
++static int mpeg4_ref_coding_type(const MPVWorkPicture *pic)
++{
++    if (!pic->ptr || !pic->ptr->f)
++        return V4L2_MPEG4_VOP_CODING_TYPE_I;
++
++    return av_clip(pic->ptr->f->pict_type - AV_PICTURE_TYPE_I,
++                   V4L2_MPEG4_VOP_CODING_TYPE_I, V4L2_MPEG4_VOP_CODING_TYPE_S);
++}
++
++static void v4l2_request_mpeg4_fill_vol(const AVCodecContext *avctx,
++                                        struct v4l2_ctrl_mpeg4_vol *vol)
++{
++    const H263DecContext *h = avctx->priv_data;
++    const MPVContext *s = &h->c;
++    const Mpeg4DecContext *ctx = mpeg4_ctx(avctx);
++
++    *vol = (struct v4l2_ctrl_mpeg4_vol) {
++        .video_object_layer_width  = s->width,
++        .video_object_layer_height = s->height,
++        .video_object_layer_verid  = 1,
++        .chroma_format             = CHROMA_420,
++        .quant_precision           = 5,
++        .bits_per_pixel            = 8,
++    };
++
++    if (!ctx) {
++        /* Values which ISO/IEC 14496-2 gives to short_video_header = 1 */
++        vol->flags = V4L2_MPEG4_VOL_FLAG_SHORT_VIDEO_HEADER |
++                     V4L2_MPEG4_VOL_FLAG_OBMC_DISABLE |
++                     V4L2_MPEG4_VOL_FLAG_RESYNC_MARKER_DISABLE |
++                     V4L2_MPEG4_VOL_FLAG_COMPLEXITY_ESTIMATION_DISABLE;
++        return;
++    }
++
++    vol->vop_time_increment_resolution = avctx->framerate.num;
++    vol->video_object_type_indication  = ctx->vo_type;
++    vol->video_object_layer_verid      = ctx->vol_verid;
++    vol->video_object_layer_shape      = ctx->shape;
++    vol->sprite_enable                 = ctx->vol_sprite_usage;
++    vol->quant_precision               = ctx->quant_precision;
++    vol->bits_per_pixel                = avctx->bits_per_raw_sample ?
++                                         avctx->bits_per_raw_sample : 8;
++
++    if (avctx->profile != AV_PROFILE_UNKNOWN &&
++        avctx->level != AV_LEVEL_UNKNOWN)
++        vol->profile_and_level_indication = avctx->profile << 4 |
++                                            (avctx->level & 0xf);
++
++    if (ctx->vol_sprite_usage != V4L2_MPEG4_SPRITE_NONE) {
++        vol->no_of_sprite_warping_points = ctx->num_sprite_warping_points;
++        vol->sprite_warping_accuracy     = ctx->sprite_warping_accuracy;
++        if (ctx->sprite_brightness_change)
++            vol->flags |= V4L2_MPEG4_VOL_FLAG_SPRITE_BRIGHTNESS_CHANGE;
++    }
++
++    if (ctx->fixed_vop_rate) {
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_FIXED_VOP_RATE;
++        vol->fixed_vop_time_increment = ctx->fixed_vop_time_increment;
++    }
++    if (!s->progressive_sequence)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_INTERLACED;
++    if (ctx->obmc_disable)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_OBMC_DISABLE;
++    if (ctx->mpeg_quant)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_QUANT_TYPE;
++    if (s->quarter_sample)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_QUARTER_SAMPLE;
++    if (!ctx->cplx_estimation_trash_i && !ctx->cplx_estimation_trash_p &&
++        !ctx->cplx_estimation_trash_b)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_COMPLEXITY_ESTIMATION_DISABLE;
++    if (!ctx->resync_marker)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_RESYNC_MARKER_DISABLE;
++    if (h->data_partitioning)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_DATA_PARTITIONED;
++    if (h->data_partitioning && ctx->rvlc)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_REVERSIBLE_VLC;
++    if (ctx->new_pred)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_NEWPRED_ENABLE;
++    if (ctx->reduced_res_vop_enable)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_REDUCED_RESOLUTION_VOP_ENABLE;
++    if (ctx->scalability)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_SCALABILITY;
++    /* low_delay of the bitstream, not the value the decoder may have guessed */
++    if (ctx->vol_control_parameters && s->low_delay)
++        vol->flags |= V4L2_MPEG4_VOL_FLAG_LOW_DELAY;
++}
++
++static void v4l2_request_mpeg4_fill_vop(const AVCodecContext *avctx,
++                                        struct v4l2_ctrl_mpeg4_vop *vop)
++{
++    const H263DecContext *h = avctx->priv_data;
++    const MPVContext *s = &h->c;
++    const Mpeg4DecContext *ctx = mpeg4_ctx(avctx);
++
++    *vop = (struct v4l2_ctrl_mpeg4_vop) {
++        /* AV_PICTURE_TYPE_I/P/B/S are consecutive, like vop_coding_type */
++        .vop_coding_type    = s->pict_type - AV_PICTURE_TYPE_I,
++        .vop_quant          = s->qscale,
++        .vop_fcode_forward  = 1,
++        .vop_fcode_backward = 1,
++    };
++
++    /*
++     * References, with the coding types which the decoder of the B-VOP
++     * macroblocks needs to know (stateless: the driver does not remember).
++     */
++    switch (s->pict_type) {
++    case AV_PICTURE_TYPE_B:
++        if (s->next_pic.ptr)
++            vop->backward_ref_ts =
++                ff_v4l2_request_get_capture_timestamp(s->next_pic.ptr->f);
++        vop->backward_ref_vop_coding_type = mpeg4_ref_coding_type(&s->next_pic);
++        av_fallthrough;
++    case AV_PICTURE_TYPE_P:
++    case AV_PICTURE_TYPE_S:
++        if (s->last_pic.ptr)
++            vop->forward_ref_ts =
++                ff_v4l2_request_get_capture_timestamp(s->last_pic.ptr->f);
++        vop->forward_ref_vop_coding_type = mpeg4_ref_coding_type(&s->last_pic);
++    }
++
++    if (s->no_rounding)
++        vop->flags |= V4L2_MPEG4_VOP_FLAG_ROUNDING_TYPE;
++
++    if (!ctx) {
++        int gob_height = H263_GOB_HEIGHT(s->height);
++
++        vop->h263_flags             = h263_get_flags(h);
++        vop->temporal_reference     = h->picture_number & 0xff;
++        vop->source_format          = h263_get_source_format(h);
++        vop->num_macroblocks_in_gob = s->mb_width * gob_height;
++        vop->num_gobs_in_vop        = s->mb_height / gob_height;
++        return;
++    }
++
++    vop->intra_dc_vlc_thr = mpeg4_get_intra_dc_vlc_thr(ctx);
++    if (s->pict_type != AV_PICTURE_TYPE_I)
++        vop->vop_fcode_forward = ctx->f_code;
++    if (s->pict_type == AV_PICTURE_TYPE_B)
++        vop->vop_fcode_backward = ctx->b_code;
++
++    if (!s->progressive_sequence) {
++        if (s->top_field_first)
++            vop->flags |= V4L2_MPEG4_VOP_FLAG_TOP_FIELD_FIRST;
++        if (s->alternate_scan)
++            vop->flags |= V4L2_MPEG4_VOP_FLAG_ALTERNATE_VERTICAL_SCAN;
++    }
++
++    /*
++     * Time base. The decoder keeps the time of the VOP in ticks; the syntax
++     * elements are recovered from it. For a B-VOP modulo_time_base counts
++     * from the second of the forward reference, otherwise from the second of
++     * the previous reference VOP (the decoder has already moved last_time_base
++     * to it).
++     */
++    if (avctx->framerate.num > 0) {
++        int64_t seconds = s->time / avctx->framerate.num;
++
++        vop->vop_time_increment = s->time % avctx->framerate.num;
++        vop->modulo_time_base   = av_clip_uint8(seconds - s->last_time_base);
++    }
++
++    vop->complexity_estimation_bits = ctx->cplx_estimation_trash_i;
++    if (s->pict_type != AV_PICTURE_TYPE_I)
++        vop->complexity_estimation_bits += ctx->cplx_estimation_trash_p;
++    if (s->pict_type == AV_PICTURE_TYPE_B)
++        vop->complexity_estimation_bits += ctx->cplx_estimation_trash_b;
++
++    if (s->pict_type == AV_PICTURE_TYPE_B) {
++        vop->trb       = s->pb_time;
++        vop->trd       = s->pp_time;
++        vop->trb_field = s->pb_field_time;
++        vop->trd_field = s->pp_field_time;
++    }
++
++    if (s->pict_type == AV_PICTURE_TYPE_S) {
++        int points = FFMIN(ctx->num_sprite_warping_points,
++                           V4L2_MPEG4_NUM_SPRITE_WARPING_POINTS);
++
++        for (int i = 0; i < points; i++) {
++            vop->sprite_trajectory_du[i] = (int16_t)ctx->sprite_traj[i][0];
++            vop->sprite_trajectory_dv[i] = (int16_t)ctx->sprite_traj[i][1];
++        }
++    }
++}
++
++static void
++v4l2_request_mpeg4_fill_quantisation(const AVCodecContext *avctx,
++                                     struct v4l2_ctrl_mpeg4_quantisation *q)
++{
++    const H263DecContext *h = avctx->priv_data;
++    const MPVContext *s = &h->c;
++
++    /*
++     * The decoder holds complete matrices: the default ones unless the VOL
++     * loads its own, which it completes when the bitstream cuts them short.
++     */
++    for (int i = 0; i < 64; i++) {
++        int n = s->idsp.idct_permutation[ff_zigzag_direct[i]];
++
++        q->intra_quant_mat[i]    = s->intra_matrix[n];
++        q->nonintra_quant_mat[i] = s->inter_matrix[n];
++    }
++}
++
++/*
++ * In the Slice Structured mode of H.263 (Annex K) the picture header is
++ * followed by what remains of the header of the first slice (SEPB1, MBA and
++ * SEPB2), which the decoder reads with the picture header. This belongs to
++ * the slice layer: the picture header ends in front of it.
++ */
++static int v4l2_request_h263_slice_header_bits(const AVCodecContext *avctx)
++{
++    const H263DecContext *h = avctx->priv_data;
++    int i;
++
++    if (avctx->codec_id == AV_CODEC_ID_MPEG4 || !h->h263_slice_structured)
++        return 0;
++
++    for (i = 0; i < 6; i++)
++        if (h->c.mb_num - 1 <= ff_mba_max[i])
++            break;
++
++    return 2 + ff_mba_length[i];
++}
++
++/*
++ * The decoder has parsed the picture header: h->gb is on the first macroblock.
++ * Find the coded picture which surrounds that position in the packet (which
++ * may start with other headers and, for packed bitstreams, hold more VOPs).
++ */
++static int v4l2_request_mpeg4_find_picture(const AVCodecContext *avctx,
++                                           const uint8_t *buf, int size,
++                                           int *start, int *end)
++{
++    const H263DecContext *h = avctx->priv_data;
++    int mb_byte = get_bits_count(&h->gb) >> 3;
++    int i;
++
++    if (mb_byte > size)
++        return AVERROR_INVALIDDATA;
++
++    if (avctx->codec_id == AV_CODEC_ID_MPEG4) {
++        /* Last VOP start code in front of the first macroblock */
++        for (i = FFMIN(mb_byte, size) - 4; i >= 0; i--)
++            if (AV_RB32(buf + i) == VOP_STARTCODE)
++                break;
++        if (i < 0)
++            return AVERROR_INVALIDDATA;
++        *start = i;
++
++        /* Up to the next start code; resync markers are not start codes */
++        for (i = mb_byte; i + 3 <= size; i++)
++            if (AV_RB24(buf + i) == 1)
++                break;
++        *end = i + 3 <= size ? i : size;
++    } else {
++        /* Byte-aligned 22-bit picture start code */
++        for (i = 0; i + 3 <= FFMIN(mb_byte, size); i++)
++            if (!buf[i] && !buf[i + 1] && (buf[i + 2] & 0xfc) == 0x80)
++                break;
++        if (i + 3 > FFMIN(mb_byte, size))
++            return AVERROR_INVALIDDATA;
++        *start = i;
++        *end   = size;
++    }
++
++    return 0;
++}
++
++static int v4l2_request_mpeg4_start_frame(AVCodecContext *avctx,
++                                          av_unused const AVBufferRef *buf_ref,
++                                          const uint8_t *buffer, uint32_t size)
++{
++    const H263DecContext *h = avctx->priv_data;
++    const MPVContext *s = &h->c;
++    V4L2RequestControlsMPEG4 *controls = s->cur_pic.ptr->hwaccel_picture_private;
++    int start, end, ret;
++
++    if (!v4l2_request_mpeg4_supported(avctx))
++        return AVERROR(ENOSYS);
++
++    ret = v4l2_request_mpeg4_find_picture(avctx, buffer, size, &start, &end);
++    if (ret)
++        return ret;
++
++    ret = ff_v4l2_request_start_frame(avctx, &controls->pic, s->cur_pic.ptr->f);
++    if (ret)
++        return ret;
++
++    v4l2_request_mpeg4_fill_vol(avctx, &controls->vol);
++    v4l2_request_mpeg4_fill_vop(avctx, &controls->vop);
++    v4l2_request_mpeg4_fill_quantisation(avctx, &controls->quantisation);
++
++    /* Size of the VOP header, counted from the start code which begins it */
++    controls->vop.data_bit_offset = get_bits_count(&h->gb) - 8 * start -
++                                    v4l2_request_h263_slice_header_bits(avctx);
++
++    /* The whole VOP goes in one output buffer, video packets included. */
++    return ff_v4l2_request_append_output(avctx, &controls->pic,
++                                         buffer + start, end - start);
++}
++
++static int v4l2_request_mpeg4_decode_slice(av_unused AVCodecContext *avctx,
++                                           av_unused const uint8_t *buffer,
++                                           av_unused uint32_t size)
++{
++    /* h263dec.c calls this once, with the data which start_frame queued. */
++    return 0;
++}
++
++/* Debug: one record per request, see v4l2_request_dump.h */
++static void v4l2_request_mpeg4_dump(const AVCodecContext *avctx,
++                                    const V4L2RequestControlsMPEG4 *controls)
++{
++    const H263DecContext *h = avctx->priv_data;
++    const struct v4l2_ctrl_mpeg4_vol *vol = &controls->vol;
++    const struct v4l2_ctrl_mpeg4_vop *vop = &controls->vop;
++    FILE *f = v4l2_request_dump_file();
++
++    if (!f)
++        return;
++
++    fprintf(f, "begin %s\n", vol->flags & V4L2_MPEG4_VOL_FLAG_SHORT_VIDEO_HEADER ?
++            "h263" : "mpeg4");
++    fprintf(f, "capture_ts=%llu\n", (unsigned long long)
++            ff_v4l2_request_get_capture_timestamp(h->c.cur_pic.ptr->f));
++    fprintf(f, "buf.size=%u\nbuf.crc=%08x\n", controls->pic.output->bytesused,
++            v4l2_request_dump_crc(controls->pic.output->addr,
++                                  controls->pic.output->bytesused));
++
++    V4L2_REQUEST_DUMP(f, "vol", vol, flags);
++    V4L2_REQUEST_DUMP(f, "vol", vol, video_object_layer_width);
++    V4L2_REQUEST_DUMP(f, "vol", vol, video_object_layer_height);
++    V4L2_REQUEST_DUMP(f, "vol", vol, vop_time_increment_resolution);
++    V4L2_REQUEST_DUMP(f, "vol", vol, fixed_vop_time_increment);
++    V4L2_REQUEST_DUMP(f, "vol", vol, profile_and_level_indication);
++    V4L2_REQUEST_DUMP(f, "vol", vol, video_object_type_indication);
++    V4L2_REQUEST_DUMP(f, "vol", vol, video_object_layer_verid);
++    V4L2_REQUEST_DUMP(f, "vol", vol, chroma_format);
++    V4L2_REQUEST_DUMP(f, "vol", vol, video_object_layer_shape);
++    V4L2_REQUEST_DUMP(f, "vol", vol, sprite_enable);
++    V4L2_REQUEST_DUMP(f, "vol", vol, no_of_sprite_warping_points);
++    V4L2_REQUEST_DUMP(f, "vol", vol, sprite_warping_accuracy);
++    V4L2_REQUEST_DUMP(f, "vol", vol, quant_precision);
++    V4L2_REQUEST_DUMP(f, "vol", vol, bits_per_pixel);
++
++    V4L2_REQUEST_DUMP(f, "vop", vop, backward_ref_ts);
++    V4L2_REQUEST_DUMP(f, "vop", vop, forward_ref_ts);
++    V4L2_REQUEST_DUMP(f, "vop", vop, data_bit_offset);
++    V4L2_REQUEST_DUMP(f, "vop", vop, flags);
++    V4L2_REQUEST_DUMP(f, "vop", vop, trb);
++    V4L2_REQUEST_DUMP(f, "vop", vop, trd);
++    V4L2_REQUEST_DUMP(f, "vop", vop, trb_field);
++    V4L2_REQUEST_DUMP(f, "vop", vop, trd_field);
++    V4L2_REQUEST_DUMP(f, "vop", vop, h263_flags);
++    for (int i = 0; i < V4L2_MPEG4_NUM_SPRITE_WARPING_POINTS; i++)
++        fprintf(f, "vop.sprite_trajectory%d=%d,%d\n", i,
++                vop->sprite_trajectory_du[i], vop->sprite_trajectory_dv[i]);
++    V4L2_REQUEST_DUMP(f, "vop", vop, vop_time_increment);
++    V4L2_REQUEST_DUMP(f, "vop", vop, vop_quant);
++    V4L2_REQUEST_DUMP(f, "vop", vop, num_macroblocks_in_gob);
++    V4L2_REQUEST_DUMP(f, "vop", vop, vop_coding_type);
++    V4L2_REQUEST_DUMP(f, "vop", vop, intra_dc_vlc_thr);
++    V4L2_REQUEST_DUMP(f, "vop", vop, vop_fcode_forward);
++    V4L2_REQUEST_DUMP(f, "vop", vop, vop_fcode_backward);
++    V4L2_REQUEST_DUMP(f, "vop", vop, modulo_time_base);
++    V4L2_REQUEST_DUMP(f, "vop", vop, complexity_estimation_bits);
++    V4L2_REQUEST_DUMP(f, "vop", vop, temporal_reference);
++    V4L2_REQUEST_DUMP(f, "vop", vop, source_format);
++    V4L2_REQUEST_DUMP(f, "vop", vop, num_gobs_in_vop);
++    V4L2_REQUEST_DUMP(f, "vop", vop, forward_ref_vop_coding_type);
++    V4L2_REQUEST_DUMP(f, "vop", vop, backward_ref_vop_coding_type);
++
++    /* The quantisation control is only set with the first quantisation method */
++    if (vol->flags & V4L2_MPEG4_VOL_FLAG_QUANT_TYPE) {
++        v4l2_request_dump_hex(f, "q.intra", controls->quantisation.intra_quant_mat, 64);
++        v4l2_request_dump_hex(f, "q.nonintra", controls->quantisation.nonintra_quant_mat, 64);
++    }
++    fprintf(f, "end\n");
++    fflush(f);
++}
++
++static int v4l2_request_mpeg4_end_frame(AVCodecContext *avctx)
++{
++    const H263DecContext *h = avctx->priv_data;
++    const MPVContext *s = &h->c;
++    V4L2RequestControlsMPEG4 *controls = s->cur_pic.ptr->hwaccel_picture_private;
++    struct v4l2_ext_control control[3] = {
++        {
++            .id = V4L2_CID_STATELESS_MPEG4_VOL,
++            .ptr = &controls->vol,
++            .size = sizeof(controls->vol),
++        },
++        {
++            .id = V4L2_CID_STATELESS_MPEG4_VOP,
++            .ptr = &controls->vop,
++            .size = sizeof(controls->vop),
++        },
++    };
++    int count = 2;
++
++    /* Only the first inverse quantisation method uses the matrices. */
++    if (controls->vol.flags & V4L2_MPEG4_VOL_FLAG_QUANT_TYPE) {
++        control[count++] = (struct v4l2_ext_control) {
++            .id = V4L2_CID_STATELESS_MPEG4_QUANTISATION,
++            .ptr = &controls->quantisation,
++            .size = sizeof(controls->quantisation),
++        };
++    }
++
++    v4l2_request_mpeg4_dump(avctx, controls);
++
++    return ff_v4l2_request_decode_frame(avctx, &controls->pic, control, count);
++}
++
++static int v4l2_request_mpeg4_init(AVCodecContext *avctx)
++{
++    struct v4l2_ctrl_mpeg4_vol vol;
++    struct v4l2_ctrl_mpeg4_vop vop;
++    struct v4l2_ext_control control[] = {
++        {
++            .id = V4L2_CID_STATELESS_MPEG4_VOL,
++            .ptr = &vol,
++            .size = sizeof(vol),
++        },
++        {
++            .id = V4L2_CID_STATELESS_MPEG4_VOP,
++            .ptr = &vop,
++            .size = sizeof(vop),
++        },
++    };
++
++    if (!v4l2_request_mpeg4_supported(avctx))
++        return AVERROR(ENOSYS);
++
++    /*
++     * The first picture header has been parsed. The driver refuses a VOL which
++     * needs a tool it lacks (GMC, quarter sample, data partitioning, ...) and
++     * a VOP with H.263 modes it does not decode: the decoder then falls back
++     * to software.
++     */
++    v4l2_request_mpeg4_fill_vol(avctx, &vol);
++    v4l2_request_mpeg4_fill_vop(avctx, &vop);
++
++    return ff_v4l2_request_init(avctx, control, FF_ARRAY_ELEMS(control), NULL);
++}
++
++static int v4l2_request_mpeg4_frame_params(AVCodecContext *avctx,
++                                           AVBufferRef *hw_frames_ctx)
++{
++    return ff_v4l2_request_frame_params(avctx, hw_frames_ctx,
++                                        avctx->codec_id == AV_CODEC_ID_H263 ?
++                                        V4L2_PIX_FMT_H263_SLICE :
++                                        V4L2_PIX_FMT_MPEG4_SLICE, 8);
++}
++
++#if CONFIG_MPEG4_V4L2REQUEST_HWACCEL
++const FFHWAccel ff_mpeg4_v4l2request_hwaccel = {
++    .p.name             = "mpeg4_v4l2request",
++    .p.type             = AVMEDIA_TYPE_VIDEO,
++    .p.id               = AV_CODEC_ID_MPEG4,
++    .p.pix_fmt          = AV_PIX_FMT_DRM_PRIME,
++    .start_frame        = v4l2_request_mpeg4_start_frame,
++    .decode_slice       = v4l2_request_mpeg4_decode_slice,
++    .end_frame          = v4l2_request_mpeg4_end_frame,
++    .flush              = ff_v4l2_request_flush,
++    .frame_priv_data_size = sizeof(V4L2RequestControlsMPEG4),
++    .init               = v4l2_request_mpeg4_init,
++    .uninit             = ff_v4l2_request_uninit,
++    .priv_data_size     = sizeof(V4L2RequestContext),
++    .frame_params       = v4l2_request_mpeg4_frame_params,
++    .caps_internal      = HWACCEL_CAP_ASYNC_SAFE,
++};
++#endif
++
++#if CONFIG_H263_V4L2REQUEST_HWACCEL
++const FFHWAccel ff_h263_v4l2request_hwaccel = {
++    .p.name             = "h263_v4l2request",
++    .p.type             = AVMEDIA_TYPE_VIDEO,
++    .p.id               = AV_CODEC_ID_H263,
++    .p.pix_fmt          = AV_PIX_FMT_DRM_PRIME,
++    .start_frame        = v4l2_request_mpeg4_start_frame,
++    .decode_slice       = v4l2_request_mpeg4_decode_slice,
++    .end_frame          = v4l2_request_mpeg4_end_frame,
++    .flush              = ff_v4l2_request_flush,
++    .frame_priv_data_size = sizeof(V4L2RequestControlsMPEG4),
++    .init               = v4l2_request_mpeg4_init,
++    .uninit             = ff_v4l2_request_uninit,
++    .priv_data_size     = sizeof(V4L2RequestContext),
++    .frame_params       = v4l2_request_mpeg4_frame_params,
++    .caps_internal      = HWACCEL_CAP_ASYNC_SAFE,
++};
++#endif
+-- 
+2.53.0
+
