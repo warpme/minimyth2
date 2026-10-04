@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 21 Jun 2026 20:14:44 +0200
+Subject: [PATCH 12/16] media: cedrus: vc1: BITS_LEN from slice bit_size,
+ raw_coding revert
+
+Use the actual frame bit_size for BITS_LEN instead of the inflated
+page-rounded buffer size, preventing VLD from reading uninitialized
+memory past the frame end.  Revert raw_coding to ~bitplane_flags
+since ffmpeg's slice->raw_coding_flags is always zero for this
+stream.
+
+Also remove the CEDRUS_VC1_DEBUG instrumentation.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+[Ported to the VC-1 stateless uAPI revision 3 (gus bourg): bit_size is
+gone from the uAPI (it was always the payload), so BITS_LEN is the plane
+payload. The raw-coding revert and the debug removal have nothing to
+revert in the port (see "increase MV buffer size to 112KB").]
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 28 ++++++++++---------
+ 1 file changed, 15 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 23267ab54..7fffd0410 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -21,13 +21,15 @@
+ /* Vendor allocates BPLANE+DCAC+MV as one contiguous block:
+  *   BPLANE @ +0x0000  16KB
+  *   DCAC   @ +0x4000  16KB
+- *   MV     @ +0x8000 112KB
++ *   MV     @ +0x8000 112KB (7 slots x 16KB, rotated per decode)
+  * Total = 144KB, 16KB-aligned
+  */
+ #define VC1_AUX_ALLOC_SIZE		(144 * SZ_1K)
+ #define VC1_AUX_BPLANE_OFF		0x0000
+ #define VC1_AUX_DCAC_OFF		0x4000
+ #define VC1_AUX_MV_OFF			0x8000
++#define MV_SLOT_SIZE			(16 * SZ_1K)
++#define MV_SLOT_COUNT			7
+ 
+ /* Size in bits of the start code which begins an Advanced profile buffer */
+ #define VC1_START_CODE_BITS		32
+@@ -300,19 +302,19 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 		reg |= VE_DEC_VC1_EPHS_EPTB_DET_BYPASS;
+ 	cedrus_write(dev, VE_DEC_VC1_EPHS, reg);
+ 
+-	/* Set bitstream source */
+-
+-	buf_size = vb2_plane_size(src_buf, 0);
+-	/*
+-	 * The vendor decoder keeps the whole multi-frame VBV buffer mapped and
+-	 * sets BITS_LEN to the total buffered data, so the bit reader always has
+-	 * data ahead of the current frame and the per-frame decode is bounded by
+-	 * the macroblock count. The stateless interface hands us a single frame
+-	 * per buffer; advertise the whole (page-rounded) source allocation so the
+-	 * bitstream DMA does not stall fetching past the frame when the VLD over-
+-	 * reads on the last macroblock (STATUS bs_dma_busy -> watchdog timeout).
++	/* Set bitstream source.
++	 *
++	 * The vendor keeps a multi-frame VBV buffer permanently mapped;
++	 * any over-read beyond the current frame lands on valid data of
++	 * the next frame.  The stateless API provides one frame per
++	 * buffer - limit BITS_LEN to the actual frame size so the
++	 * VLD never fetches uninitialized memory past the frame end.
++	 * Keep BITS_END_ADDR at the page-rounded allocation boundary as
++	 * a safety net against runaway DMA (watchdog timeout).
+ 	 */
+-	cedrus_write(dev, VE_DEC_VC1_BITS_LEN, buf_size * 8);
++	buf_size = vb2_plane_size(src_buf, 0);
++	cedrus_write(dev, VE_DEC_VC1_BITS_LEN,
++		     vb2_get_plane_payload(src_buf, 0) * 8);
+ 	cedrus_write(dev, VE_DEC_VC1_BITS_OFFSET, 0);
+ 
+ 	src_buf_addr = vb2_dma_contig_plane_dma_addr(src_buf, 0);
+-- 
+2.53.0
+

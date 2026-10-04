@@ -120,6 +120,9 @@ PATCHFILES += 1302-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 1303-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 1304-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
+PATCHFILES += 1406-media-v4l2-ctrls-add-VC-1-profile-and-level-controls.patch
+PATCHFILES += 1407-media-uapi-add-VC-1-stateless-decoder-pixel-format-a.patch
+PATCHFILES += 1408-media-uapi-add-MPEG-4-Part-2-and-H.263-stateless-dec.patch
 ifeq (0,1)
 # stateless amvdec https://github.com/gusbourg/linux/commits/amlogic-vdec/rfc/ 26.09.2026 g8bb71d57f
 PATCHFILES += 1410-media-uapi-add-the-Amlogic-AM21C-compressed-format.patch
@@ -130,9 +133,9 @@ PATCHFILES += 1414-media-amlogic-amvdec-add-HEVC-decoding.patch
 PATCHFILES += 1415-media-amlogic-amvdec-add-VP9-decoding.patch
 endif
 ifeq (1,1)
-# stateless amvdec 02.10.2026 g41daab11
+# stateless amvdec
 PATCHFILES += 1411-media-amlogic-inclide-amvdec-into-drivers-media.patch
-PATCHFILES += 1412-media-amlogic-add-amvdec-g41daab11.patch
+PATCHFILES += 1412-media-amlogic-add-amvdec-g18039cfa18.patch
 endif
 # g12/sm1 dtsi additions
 PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
@@ -213,23 +216,25 @@ PATCHFILES += 2031-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 2032-bluetooth-btrtl-add-hci-ver-rtl8822cs.patch
 PATCHFILES += 2033-h6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 2034-Revert-drm-sun4i-dw-hdmi-Fix-ddc-en-GPIO-consumer-co.patch
-# cedrus vc-1 support
 PATCHFILES += 2049-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
 PATCHFILES += 2050-media-cedrus-Don-t-CPU-map-source-buffers.patch
-PATCHFILES += 2051-media-Add-VC-1-parsed-slice.patch
+# cedrus vc-1 support
+ifeq (1,1)
 PATCHFILES += 2052-media-cedrus-Add-VC-1-decoding-support.patch
 PATCHFILES += 2053-media-cedrus-vc1-program-EPHS-before-consuming-the-b.patch
 PATCHFILES += 2054-media-cedrus-vc1-fix-the-MVMODE-hardware-code-mappin.patch
-PATCHFILES += 2055-media-cedrus-vc1-Handle-skipped-pictures-without-the.patch
-PATCHFILES += 2056-media-cedrus-vc1-Advertise-whole-source-buffer-to-th.patch
-PATCHFILES += 2057-media-cedrus-vc1-Skip-the-picture-header-24-bits-at-.patch
-PATCHFILES += 2058-media-cedrus-vc1-Fix-interlaced-field-IC-backup-luma.patch
-PATCHFILES += 2059-media-cedrus-vc1-increase-MV-buffer-size-to-112KB.patch
-PATCHFILES += 2060-media-cedrus-vc1-single-contiguous-aux-buffer-alloca.patch
-PATCHFILES += 2061-media-cedrus-vc1-BITS_LEN-from-slice-bit_size-raw_co.patch
-PATCHFILES += 2062-media-cedrus-vc1-INTENCOMP-I-frame-self-ref-ts-0-fix.patch
-PATCHFILES += 2063-media-cedrus-vc1-reject-Main-profile-intensity-compe.patch
-PATCHFILES += 2064-media-cedrus-vc1-fix-field-intensity-compensation-sl.patch
+PATCHFILES += 2055-media-cedrus-vc1-Advertise-whole-source-buffer-to-th.patch
+PATCHFILES += 2056-media-cedrus-vc1-Skip-the-picture-header-24-bits-at-.patch
+PATCHFILES += 2057-media-cedrus-vc1-Fix-interlaced-field-IC-backup-luma.patch
+PATCHFILES += 2058-media-cedrus-vc1-increase-MV-buffer-size-to-112KB.patch
+PATCHFILES += 2059-media-cedrus-vc1-single-contiguous-aux-buffer-alloca.patch
+PATCHFILES += 2060-media-cedrus-vc1-BITS_LEN-from-slice-bit_size-raw_co.patch
+PATCHFILES += 2061-media-cedrus-vc1-INTENCOMP-I-frame-self-ref-ts-0-fix.patch
+PATCHFILES += 2062-media-cedrus-vc1-reject-Main-profile-intensity-compe.patch
+PATCHFILES += 2063-media-cedrus-vc1-fix-field-intensity-compensation-sl.patch
+PATCHFILES += 2064-media-cedrus-vc1-take-the-reference-state-from-the-p.patch
+PATCHFILES += 2065-media-cedrus-vc1-start-the-bit-reader-after-the-Adva.patch
+endif
 # h6 dtsi additions
 PATCHFILES += 2300-arm64-dtsi-allwinner-h6-Protect-SCP-clock.patch
 PATCHFILES += 2301-arm64-dtsi-allwinner-h6-Add-SCPI-protocol.patch
@@ -264,9 +269,10 @@ PATCHFILES += 2415-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
 PATCHFILES += 2416-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 PATCHFILES += 2418-drv-rtc-sun6i-add-support-rtc-without-external-losc.patch
 PATCHFILES += 2419-mmc-pwrseq_simple-fix-add-support-for-one-reset-control.patch
-# h616 cedrus improvements (vp9 ,etc)
 PATCHFILES += 2429-drivers-staging-media-sunxi-cedrus-add-H616-variant.patch
 PATCHFILES += 2431-iommu-sun50i-support-DRAM-above-the-32-bit-boundary.patch
+# h616 cedrus improvements (vp9 ,etc)
+ifeq (1,1)
 PATCHFILES += 2433-media-cedrus-Add-VP9-decoding-support.patch
 PATCHFILES += 2434-media-cedrus-Add-P010-capture-format-and-shared-10-b.patch
 PATCHFILES += 2435-media-cedrus-Add-VP9-P010-output-support.patch
@@ -276,6 +282,7 @@ PATCHFILES += 2438-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
 PATCHFILES += 2439-media-cedrus-add-format-filtering-based-on-depth-and.patch
 PATCHFILES += 2440-media-cedrus-Filter-P010-by-depth-like-AFBC-formats.patch
 PATCHFILES += 2441-media-cedrus-Implement-AFBC-YUV420-output-for-VP9.patch
+endif
 # h616 dtsi additions
 PATCHFILES += 2500-arm64-dtsi-allwinner-h616-Add-display-pipeline.patch
 PATCHFILES += 2501-arm64-dtsi-allwinner-h616-Add-hdmi-audio.patch
@@ -308,7 +315,6 @@ PATCHFILES += 2702-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
 PATCHFILES += 2703-add-initial-cpufreq-support.patch
 PATCHFILES += 2704-net-drivers-stmmac-add-25M-phy-clock-support.patch
 PATCHFILES += 2705-clk-sunxi-ng-ccu-sun55i-make-mmc-high-speed-working.patch
-PATCHFILES += 2706-pinctrl-sunxi-A523-fix-voltage-withstand-encoding.patch
 # hdmi
 ifeq (0,1)
 PATCHFILES += 2720-drm-sun4i-planes-Add-A523-plane-driver-compatible.patch

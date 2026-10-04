@@ -1,45 +1,48 @@
-Patch from MiniMyth2 project
-
-Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-
-
-
-From 6e582f0b77ef6d920b83511b9a38730b63ad5eb9 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Sun, 28 Jun 2026 11:44:43 +0200
-Subject: [PATCH 20/20] media: cedrus: vc1: fix field intensity compensation
+Subject: [PATCH 15/16] media: cedrus: vc1: fix field intensity compensation
  slots
 
 The stateless controls follow the VA-API convention and place the selected field's intensity compensation values in lumscale and lumshift. Cedrus instead has two fixed register slots, so a second-field-only update was programmed into slot one and later restored from an incomplete backup. This corrupted a seven-frame interval in the 1080i test stream.
 
 Reconstruct both fixed slots, including the default scale for the inactive field, and copy the complete value into the backup registers. Match the vendor's conditional B/I backup register write order as these registers form a stateful transaction.
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+[Ported to the VC-1 stateless uAPI revision 3 (gus bourg): unchanged
+(constant names only; the removal of the unused "ret" moved to "single
+contiguous aux buffer allocation"). This is the uAPI rule as well: for a
+field picture with one compensated field, lumscale/lumshift carry
+LUMSCALE1/LUMSHIFT1 of the bitstream, whichever field it applies to.]
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---
- .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 53 +++++++++++--------
- 1 file changed, 31 insertions(+), 22 deletions(-)
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 52 +++++++++++--------
+ 1 file changed, 31 insertions(+), 21 deletions(-)
 
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
-index 915b35880..d9ae36d1a 100644
+index e89b5d135..7497752df 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
-@@ -32,6 +32,7 @@
+@@ -30,6 +30,7 @@
  #define VC1_AUX_MV_OFF			0x8000
  #define MV_SLOT_SIZE			(16 * SZ_1K)
  #define MV_SLOT_COUNT			7
 +#define VC1_IC_LUMSCALE_DEFAULT		32
  
- #define VC1_PROFILE_SIMPLE		0
- #define VC1_PROFILE_MAIN		1
-@@ -547,20 +548,24 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
- 	if (picture->fcm == VC1_FCM_INTERLACED_FIELD) {
- 		if (picture->ptype == VC1_PICTURE_TYPE_I) {
+ /* Size in bits of the start code which begins an Advanced profile buffer */
+ #define VC1_START_CODE_BITS		32
+@@ -496,20 +497,24 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	if (picture->fcm == V4L2_VC1_FCM_FIELD_INTERLACE) {
+ 		if (picture->ptype == V4L2_VC1_PICTURE_TYPE_I) {
  			cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, 0);
 -			cedrus_write(dev, VE_DEC_VC1_PICICBAK0, 0);
  			cedrus_write(dev, VE_DEC_VC1_PICICBAK1, 0);
 +			cedrus_write(dev, VE_DEC_VC1_PICICBAK0, 0);
  			ctx->codec.vc1.ic_icb1_regbak = 0;
  			ctx->codec.vc1.ic_icb0_reg68 = 0;
- 		} else if (picture->ptype == VC1_PICTURE_TYPE_B) {
+ 		} else if (picture->ptype == V4L2_VC1_PICTURE_TYPE_B) {
  			cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, ctx->codec.vc1.ic_icb1_regbak & 0x3f3f3f3f);
 -			cedrus_write(dev, VE_DEC_VC1_PICICBAK0, ctx->codec.vc1.ic_icb0_reg68);
 -			if (second_field)
@@ -56,13 +59,13 @@ index 915b35880..d9ae36d1a 100644
 -			cedrus_write(dev, VE_DEC_VC1_PICICBAK1, reg);
 +				cedrus_write(dev, VE_DEC_VC1_PICICBAK1, reg);
 +			}
- 		} else if (picture->ptype == VC1_PICTURE_TYPE_P) {
+ 		} else if (picture->ptype == V4L2_VC1_PICTURE_TYPE_P) {
 -			unsigned int field;
 +			unsigned int field, scale2;
  			u32 bakreg;
  
- 			if (picture->mvmode == VC1_MVMODE_INTENSITY_COMP)
-@@ -568,24 +573,29 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 			if (picture->mvmode == V4L2_VC1_MVMODE_INTENSITY_COMP)
+@@ -517,24 +522,29 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
  			else
  				field = 0;
  
@@ -106,18 +109,6 @@ index 915b35880..d9ae36d1a 100644
  
  			if (!second_field) {
  				ctx->codec.vc1.ic_icf0_reg6c = ctx->codec.vc1.ic_icb1_regbak & 0xff3f3f3f;
-@@ -733,7 +743,6 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
- static int cedrus_vc1_start(struct cedrus_ctx *ctx)
- {
- 	struct cedrus_dev *dev = ctx->dev;
--	int ret;
- 
- 	ctx->codec.vc1.ic_oldval = 0;
- 	ctx->codec.vc1.ic_intenen = false;
 -- 
 2.53.0
-
---
-
-MiniMyth2
 

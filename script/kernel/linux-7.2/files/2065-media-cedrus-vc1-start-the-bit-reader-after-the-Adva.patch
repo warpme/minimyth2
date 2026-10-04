@@ -1,0 +1,86 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 7ac57883d684aceb99dfa0923ec3a8b4144a2072 Mon Sep 17 00:00:00 2001
+From: gus bourg <gus@bourg.net>
+Date: Sun, 4 Oct 2026 06:31:00 -0700
+Subject: [PATCH] media: cedrus: vc1: start the bit reader after the Advanced
+ profile start code
+
+Advanced profile OUTPUT buffers begin with the frame or field start code,
+which data_bit_offset does not count.  Consuming it with GET_BITS while
+start-code detection is enabled desyncs the VLD: on H616 every Advanced
+picture ended in a decode error.  Program BITS_OFFSET to 32 (and BITS_LEN
+32 bits shorter) instead, and skip only the picture header with GET_BITS.
+Simple/Main profile is unchanged.
+
+Tested on H616 by warpme (1080p24 Advanced profile stream decodes).
+
+Reported-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Tested-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 23 ++++++++++---------
+ 1 file changed, 12 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 92441a081..2ec5954e5 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -429,7 +429,7 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	struct cedrus_dev *dev = ctx->dev;
+ 	struct vb2_buffer *backward_vb2;
+ 	struct vb2_buffer *forward_vb2;
+-	unsigned int raw_coding, skip, bits;
++	unsigned int raw_coding, skip, bits, sc_offset;
+ 	dma_addr_t src_buf_addr;
+ 	u32 reg, condover, pq;
+ 	struct vb2_queue *vq;
+@@ -566,9 +566,17 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	 * a safety net against runaway DMA (watchdog timeout).
+ 	 */
+ 	buf_size = vb2_plane_size(src_buf, 0);
++	/*
++	 * An Advanced profile buffer begins with the frame or field start code
++	 * (00 00 01 0D/0C), which data_bit_offset does not count. Start the
++	 * bit reader after it: with start-code detection enabled, reading over
++	 * a start code with GET_BITS desyncs the VLD (every picture failed on
++	 * H616).
++	 */
++	sc_offset = advanced ? VC1_START_CODE_BITS : 0;
+ 	cedrus_write(dev, VE_DEC_VC1_BITS_LEN,
+-		     vb2_get_plane_payload(src_buf, 0) * 8);
+-	cedrus_write(dev, VE_DEC_VC1_BITS_OFFSET, 0);
++		     vb2_get_plane_payload(src_buf, 0) * 8 - sc_offset);
++	cedrus_write(dev, VE_DEC_VC1_BITS_OFFSET, sc_offset);
+ 
+ 	src_buf_addr = vb2_dma_contig_plane_dma_addr(src_buf, 0);
+ 	cedrus_write(dev, VE_DEC_VC1_BITS_END_ADDR,
+@@ -594,15 +602,8 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	cedrus_write(dev, VE_DEC_VC1_TRIGGER_TYPE,
+ 		     VE_DEC_VC1_TRIGGER_TYPE_INIT_SWDEC);
+ 
+-	/*
+-	 * Skip to the first macroblock. An Advanced profile buffer begins
+-	 * with the frame or field start code, which data_bit_offset does not
+-	 * count: it is consumed with the picture header, as the vendor
+-	 * library reads start codes with GET_BITS.
+-	 */
++	/* Skip the picture header to the first macroblock. */
+ 	skip = picture->data_bit_offset;
+-	if (advanced)
+-		skip += VC1_START_CODE_BITS;
+ 
+ 	/*
+ 	 * Flush up to 24 bits per GET_BITS trigger: the engine's bit reader
+-- 
+2.53.0
+
+--
+
+MiniMyth2
+

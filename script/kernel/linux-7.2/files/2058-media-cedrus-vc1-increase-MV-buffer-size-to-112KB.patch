@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 21 Jun 2026 19:05:40 +0200
+Subject: [PATCH 10/16] media: cedrus: vc1: increase MV buffer size to 112KB
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The vendor allocates 112KB (7×16KB slots) for the motion-vector
+workspace. 64KB is marginal for 1920×1080 interlaced-field content
+and may overflow, corrupting the adjacent ACDC coefficient buffer.
+
+Match the vendor size.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+[Ported to the VC-1 stateless uAPI revision 3 (gus bourg):
+ - MV buffer size and "timestamp 0 = no reference": unchanged.
+ - The second-field override used the picture type which the first field
+   had saved in the capture buffer; it now uses FPTYPE (I/I or I/P).
+   It is also limited to second fields with NUMREF == 0 and
+   REFFIELD == 0, i.e. those which can only refer to the first field:
+   in this uAPI forward_ref_ts of a second field names the previous
+   reference frame on purpose, which a P field with NUMREF == 1 or
+   REFFIELD == 1 does use.
+ - Not carried over: enabling CEDRUS_VC1_DEBUG and the debug print
+   (removed again by "BITS_LEN from slice bit_size"), and taking the raw
+   bits from raw_coding_flags (reverted by the same patch: the hardware
+   wants the raw bit of every plane which is not passed decoded).]
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 26 ++++++++++++++++---
+ 1 file changed, 23 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 816816ff3..bedb5cbcc 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -14,7 +14,7 @@
+ #include "cedrus_hw.h"
+ #include "cedrus_regs.h"
+ 
+-#define MV_BUF_SIZE			(64 * SZ_1K)
++#define MV_BUF_SIZE			(112 * SZ_1K)
+ #define ACDC_BUF_SIZE			(16 * SZ_1K)
+ #define BITPLANES_BUF_SIZE		(16 * SZ_1K)
+ 
+@@ -228,8 +228,28 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 
+ 	vq = v4l2_m2m_get_vq(ctx->fh.m2m_ctx, V4L2_BUF_TYPE_VIDEO_CAPTURE);
+ 
+-	forward_vb2 = vb2_find_buffer(vq, picture->forward_ref_ts);
+-	backward_vb2 = vb2_find_buffer(vq, picture->backward_ref_ts);
++	/*
++	 * For interlaced-field frames whose first field is intra-coded, the
++	 * second field references the first field of the same frame. When
++	 * the bitstream cannot refer to anything else (one reference field,
++	 * the most recent one), point the hardware at the frame being decoded
++	 * rather than at the previous reference frame. A timestamp of 0 means
++	 * no reference.
++	 */
++	if (second_field &&
++	    (picture->fptype == V4L2_VC1_FPTYPE_I_I ||
++	     picture->fptype == V4L2_VC1_FPTYPE_I_P) &&
++	    !(picture->flags & (V4L2_VC1_PICTURE_LAYER_FLAG_NUMREF |
++				V4L2_VC1_PICTURE_LAYER_FLAG_REFFIELD))) {
++		forward_vb2 = NULL;
++		backward_vb2 = NULL;
++		fwd_interlaced = interlaced;
++	} else {
++		forward_vb2 = picture->forward_ref_ts ?
++			vb2_find_buffer(vq, picture->forward_ref_ts) : NULL;
++		backward_vb2 = picture->backward_ref_ts ?
++			vb2_find_buffer(vq, picture->backward_ref_ts) : NULL;
++	}
+ 
+ 	cedrus_engine_enable(ctx);
+ 
+-- 
+2.53.0
+

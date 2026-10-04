@@ -1,0 +1,527 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: gus bourg <gus@bourg.net>
+Date: Sat, 3 Oct 2026 06:33:52 -0700
+Subject: [PATCH 16/16] media: cedrus: vc1: take the reference state from the
+ picture layer control
+
+The intensity compensation registers of a picture (PICINTENCOMP,
+PICICBAK0, PICICBAK1, the INTENCOMPFLD field and, for frame pictures,
+INTENSITY_COMP_EN) depend on the compensation which earlier pictures
+applied to the reference fields. The driver kept that in five values
+saved in the context from one decode to the next, as the vendor library
+does. The stateless uAPI passes it with every request instead: the
+forward_ref and backward_ref descriptions of the picture layer control
+list, per reference field, the compensations that earlier pictures
+applied to it, in the order in which they apply.
+
+Rebuild the register values from the descriptions:
+
+  PICICBAK1    what the second field of the forward reference frame did
+               to its first field
+  PICICBAK0    what the first field (or the frame) of the next P picture
+               did to the forward reference: the first field of the
+               current frame for a P field, the backward reference for
+               a B field
+  PICINTENCOMP of a P picture: its own compensation; of a B field: what
+               the second field of the backward reference did to the
+               forward reference and to its own first field
+  B frames     the compensation of the backward reference (the vendor
+               keeps the register of the last P frame)
+
+The register layout is the one of "fix field intensity compensation
+slots": one slot per field parity, the default scale for a field which
+is not compensated, and the field mask in the backup registers.
+
+The descriptions do not say which picture signalled each listed
+compensation. That follows from which pictures could have compensated
+the field (field coding, picture types and field order of the
+references, FPTYPE of the current frame); when fewer are listed than
+could have been, the most recent pictures are taken to be the ones
+which did. Only the fields of the forward reference which the picture
+reads are programmed: a second field reads the first field of its own
+frame instead of the forward reference field of the other parity.
+
+Differences from the saved state, all in field-coded content with
+intensity compensation:
+ - an I field no longer forgets the compensation pending on the
+   previous reference (B fields after an I/P anchor keep it);
+ - the backup registers only hold the fields which the current picture
+   reads, not the whole register of the picture which signalled them;
+ - skipped pictures, which are not submitted, carry no compensation.
+
+This is not tested on hardware. Comparing the decoder output with and
+without this patch on field-coded streams with intensity compensation
+tells whether the hardware agrees with the model.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/staging/media/sunxi/cedrus/cedrus.h   |   5 -
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 385 ++++++++++++------
+ 2 files changed, 270 insertions(+), 120 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
+index c0136df54..c1eda0eab 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.h
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
+@@ -170,11 +170,6 @@ struct cedrus_ctx {
+ 			dma_addr_t	acdc_buf_addr;
+ 			u8		*bitplanes_buf;
+ 			dma_addr_t	bitplanes_buf_addr;
+-			u32		ic_oldval;
+-			int		ic_intenen;
+-			u32		ic_icb1_regbak;
+-			u32		ic_icb0_reg68;
+-			u32		ic_icf0_reg6c;
+ 		} vc1;
+ 	} codec;
+ };
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+index 7497752df..92441a081 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
+@@ -74,6 +74,255 @@ static unsigned int cedrus_vc1_get_fraction(unsigned int index)
+ 	return vc1_fractions[index];
+ }
+ 
++/*
++ * Pictures whose intensity compensation can apply to a field of a reference,
++ * in the order in which the compensations are applied (section 8.3.8 and
++ * 10.3.8 of SMPTE 421M), and the hardware register which takes each of them.
++ */
++enum cedrus_vc1_ic_source {
++	/* second field of the reference frame, on its first field: PICICBAK1 */
++	CEDRUS_VC1_IC_SELF,
++	/* first field (or frame) of the next P picture: PICICBAK0 */
++	CEDRUS_VC1_IC_FIRST,
++	/* second field of the next P picture: PICINTENCOMP of B fields */
++	CEDRUS_VC1_IC_SECOND,
++	CEDRUS_VC1_IC_SOURCES,
++};
++
++/* Intensity compensation of the two fields (0 top, 1 bottom) of a frame. */
++struct cedrus_vc1_ic {
++	unsigned int			mask;
++	struct v4l2_vc1_intcomp		param[2];
++};
++
++struct cedrus_vc1_ic_regs {
++	u32		intencomp;
++	u32		icbak0;
++	u32		icbak1;
++	unsigned int	intencompfld;
++	bool		enable;
++};
++
++static void cedrus_vc1_ic_add(struct cedrus_vc1_ic *ic, unsigned int field,
++			      u8 lumscale, u8 lumshift)
++{
++	ic->mask |= BIT(field);
++	ic->param[field].lumscale = lumscale;
++	ic->param[field].lumshift = lumshift;
++}
++
++/*
++ * Register layout shared by PICINTENCOMP and the PICICBAK registers: one
++ * LUMSCALE/LUMSHIFT slot per field, the default scale for a field which is
++ * not compensated, and the mask of the compensated fields.
++ */
++static u32 cedrus_vc1_ic_reg(const struct cedrus_vc1_ic *ic)
++{
++	u32 reg;
++
++	if (!ic->mask)
++		return 0;
++
++	if (ic->mask & BIT(0))
++		reg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE1(ic->param[0].lumscale) |
++		      VE_DEC_VC1_PICINTENCOMP_LUMASHIFT1(ic->param[0].lumshift);
++	else
++		reg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE1(VC1_IC_LUMSCALE_DEFAULT);
++
++	if (ic->mask & BIT(1))
++		reg |= VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(ic->param[1].lumscale) |
++		       VE_DEC_VC1_PICINTENCOMP_LUMASHIFT2(ic->param[1].lumshift);
++	else
++		reg |= VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(VC1_IC_LUMSCALE_DEFAULT);
++
++	return reg | VE_DEC_VC1_PICINTENCOMP_FIELD(ic->mask);
++}
++
++/*
++ * The reference description lists the compensations of a field in the order
++ * in which they apply, without saying which picture signalled each of them.
++ * That follows from which pictures could have compensated the field
++ * (@possible, a mask of sources). If fewer are listed than could have been,
++ * the most recent pictures are taken to be the ones which did.
++ */
++static void cedrus_vc1_ic_split(const struct v4l2_vc1_reference *ref,
++				unsigned int field, unsigned int possible,
++				struct cedrus_vc1_ic ic[CEDRUS_VC1_IC_SOURCES])
++{
++	unsigned int num = ref->num_intcomp[field];
++	unsigned int skip, src, i = 0;
++
++	if (num > hweight32(possible))
++		possible = GENMASK(CEDRUS_VC1_IC_SOURCES - 1, 0);
++
++	skip = hweight32(possible) - num;
++
++	for (src = 0; src < CEDRUS_VC1_IC_SOURCES && i < num; src++) {
++		if (!(possible & BIT(src)))
++			continue;
++
++		if (skip) {
++			skip--;
++			continue;
++		}
++
++		cedrus_vc1_ic_add(&ic[src], field, ref->intcomp[field][i].lumscale,
++				  ref->intcomp[field][i].lumshift);
++		i++;
++	}
++}
++
++/*
++ * Intensity compensation registers of the picture, from its own syntax
++ * elements and from the descriptions of its references. The hardware
++ * takes, per reference field, up to three compensations in separate
++ * registers (see enum cedrus_vc1_ic_source), which the vendor library
++ * fills from what it saved of the previous pictures.
++ */
++static void cedrus_vc1_ic_setup(const struct v4l2_ctrl_vc1_picture_layer *picture,
++				unsigned int parity, bool second_field,
++				struct cedrus_vc1_ic_regs *regs)
++{
++	const struct v4l2_vc1_reference *fwd = &picture->forward_ref;
++	const struct v4l2_vc1_reference *bwd = &picture->backward_ref;
++	bool field_pic = picture->fcm == V4L2_VC1_FCM_FIELD_INTERLACE;
++	unsigned int fwd_first = fwd->flags & V4L2_VC1_REFERENCE_FLAG_TFF ? 0 : 1;
++	unsigned int bwd_first = bwd->flags & V4L2_VC1_REFERENCE_FLAG_TFF ? 0 : 1;
++	struct cedrus_vc1_ic ic[CEDRUS_VC1_IC_SOURCES] = {};
++	struct cedrus_vc1_ic cur = {};
++	unsigned int field, fields, possible;
++	int src;
++
++	memset(regs, 0, sizeof(*regs));
++
++	if (picture->ptype == V4L2_VC1_PICTURE_TYPE_P) {
++		if (field_pic) {
++			if (picture->mvmode == V4L2_VC1_MVMODE_INTENSITY_COMP) {
++				/*
++				 * LUMSCALE1/LUMSHIFT1 are for the only field
++				 * compensated, or for the top one if both are.
++				 */
++				switch (picture->intcompfield) {
++				case V4L2_VC1_INTCOMPFIELD_TOP:
++					cedrus_vc1_ic_add(&cur, 0, picture->lumscale,
++							  picture->lumshift);
++					break;
++				case V4L2_VC1_INTCOMPFIELD_BOTTOM:
++					cedrus_vc1_ic_add(&cur, 1, picture->lumscale,
++							  picture->lumshift);
++					break;
++				default:
++					cedrus_vc1_ic_add(&cur, 0, picture->lumscale,
++							  picture->lumshift);
++					cedrus_vc1_ic_add(&cur, 1, picture->lumscale2,
++							  picture->lumshift2);
++					break;
++				}
++			}
++		} else if (picture->fcm == V4L2_VC1_FCM_FRAME_INTERLACE ?
++			   picture->flags & V4L2_VC1_PICTURE_LAYER_FLAG_INTCOMP :
++			   picture->mvmode == V4L2_VC1_MVMODE_INTENSITY_COMP) {
++			/* One LUMSCALE/LUMSHIFT pair, for both fields. */
++			cedrus_vc1_ic_add(&cur, 0, picture->lumscale, picture->lumshift);
++			cedrus_vc1_ic_add(&cur, 1, picture->lumscale, picture->lumshift);
++			regs->enable = true;
++		}
++
++		regs->intencomp = cedrus_vc1_ic_reg(&cur) & 0x3f3f3f3f;
++		regs->intencompfld = cur.mask;
++
++		/* A P frame cannot express the history of its reference. */
++		if (!field_pic)
++			return;
++	} else if (picture->ptype != V4L2_VC1_PICTURE_TYPE_B) {
++		return;
++	}
++
++	/*
++	 * Fields of the forward reference which the picture reads: a second
++	 * field reads the first field of its own frame instead of the forward
++	 * reference field of the other parity.
++	 */
++	fields = second_field ? BIT(parity) : GENMASK(1, 0);
++
++	for (field = 0; field < 2; field++) {
++		if (!(fields & BIT(field)))
++			continue;
++
++		possible = 0;
++
++		if (fwd->fcm == V4L2_VC1_FCM_FIELD_INTERLACE &&
++		    field == fwd_first &&
++		    fwd->ptype[!field] == V4L2_VC1_PICTURE_TYPE_P)
++			possible |= BIT(CEDRUS_VC1_IC_SELF);
++
++		if (picture->ptype == V4L2_VC1_PICTURE_TYPE_P) {
++			/* The next P picture is the frame being decoded. */
++			if (second_field &&
++			    (picture->fptype == V4L2_VC1_FPTYPE_P_P ||
++			     picture->fptype == V4L2_VC1_FPTYPE_P_I))
++				possible |= BIT(CEDRUS_VC1_IC_FIRST);
++		} else if (bwd->fcm == V4L2_VC1_FCM_FIELD_INTERLACE) {
++			/* The next P picture is the backward reference. */
++			if (bwd->ptype[bwd_first] == V4L2_VC1_PICTURE_TYPE_P)
++				possible |= BIT(CEDRUS_VC1_IC_FIRST);
++			if (field != bwd_first &&
++			    bwd->ptype[!bwd_first] == V4L2_VC1_PICTURE_TYPE_P)
++				possible |= BIT(CEDRUS_VC1_IC_SECOND);
++		} else if (bwd->ptype[0] == V4L2_VC1_PICTURE_TYPE_P) {
++			possible |= BIT(CEDRUS_VC1_IC_FIRST);
++		}
++
++		cedrus_vc1_ic_split(fwd, field, possible, ic);
++	}
++
++	if (picture->ptype == V4L2_VC1_PICTURE_TYPE_P) {
++		regs->icbak1 = cedrus_vc1_ic_reg(&ic[CEDRUS_VC1_IC_SELF]);
++		regs->icbak0 = cedrus_vc1_ic_reg(&ic[CEDRUS_VC1_IC_FIRST]);
++		return;
++	}
++
++	if (field_pic) {
++		/*
++		 * The second field of the backward reference also signalled
++		 * the compensation of the first field of that frame, which a
++		 * B field reads as a backward reference field. The vendor
++		 * library programs both in PICINTENCOMP.
++		 */
++		if (bwd->fcm == V4L2_VC1_FCM_FIELD_INTERLACE &&
++		    bwd->num_intcomp[bwd_first])
++			cedrus_vc1_ic_add(&ic[CEDRUS_VC1_IC_SECOND], bwd_first,
++					  bwd->intcomp[bwd_first][0].lumscale,
++					  bwd->intcomp[bwd_first][0].lumshift);
++
++		regs->icbak1 = cedrus_vc1_ic_reg(&ic[CEDRUS_VC1_IC_SELF]);
++		regs->icbak0 = cedrus_vc1_ic_reg(&ic[CEDRUS_VC1_IC_FIRST]);
++		regs->intencomp = cedrus_vc1_ic_reg(&ic[CEDRUS_VC1_IC_SECOND]) &
++				  0x3f3f3f3f;
++		regs->intencompfld = ic[CEDRUS_VC1_IC_SECOND].mask;
++		return;
++	}
++
++	/*
++	 * B frame: a single compensation per field, the one which the next P
++	 * picture signalled (the vendor library keeps the register of the
++	 * last P frame).
++	 */
++	for (field = 0; field < 2; field++) {
++		for (src = CEDRUS_VC1_IC_SECOND; src >= CEDRUS_VC1_IC_FIRST; src--) {
++			if (!(ic[src].mask & BIT(field)))
++				continue;
++
++			cedrus_vc1_ic_add(&cur, field, ic[src].param[field].lumscale,
++					  ic[src].param[field].lumshift);
++			break;
++		}
++	}
++
++	regs->intencomp = cedrus_vc1_ic_reg(&cur) & 0x3f3f3f3f;
++	regs->enable = !!cur.mask;
++}
++
+ static void cedrus_vc1_bitplanes_setup(struct cedrus_ctx *ctx,
+ 				       struct cedrus_run *run)
+ {
+@@ -176,6 +425,7 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	unsigned int bfraction, frfd, mvmode, parity;
+ 	dma_addr_t dst_luma_addr, dst_chroma_addr;
+ 	bool fwd_interlaced, bwd_interlaced;
++	struct cedrus_vc1_ic_regs ic;
+ 	struct cedrus_dev *dev = ctx->dev;
+ 	struct vb2_buffer *backward_vb2;
+ 	struct vb2_buffer *forward_vb2;
+@@ -224,6 +474,8 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	else
+ 		flag = false;
+ 
++	cedrus_vc1_ic_setup(picture, parity, second_field, &ic);
++
+ 	/*
+ 	 * The state of the references comes from their descriptions in the
+ 	 * picture layer control. Without a reference the hardware is pointed
+@@ -470,111 +722,27 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	else
+ 		mvmode = picture->mvmode;
+ 	reg |= VE_DEC_VC1_PICMV_MVMODE(vc1_mvmode_map[mvmode & 3]);
+-	if (picture->fcm != V4L2_VC1_FCM_FIELD_INTERLACE) {
+-		bool ic_active;
+-
+-		if (picture->fcm == V4L2_VC1_FCM_FRAME_INTERLACE)
+-			ic_active = picture->flags & V4L2_VC1_PICTURE_LAYER_FLAG_INTCOMP;
+-		else
+-			ic_active = picture->mvmode == V4L2_VC1_MVMODE_INTENSITY_COMP;
+-
+-		if (picture->ptype == V4L2_VC1_PICTURE_TYPE_B) {
+-			if (ctx->codec.vc1.ic_intenen)
+-				reg |= VE_DEC_VC1_PICMV_INTENSITY_COMP_EN;
+-		} else if (ic_active) {
+-			reg |= VE_DEC_VC1_PICMV_INTENSITY_COMP_EN;
+-		}
+-	}
+-	if (picture->ptype == V4L2_VC1_PICTURE_TYPE_P)
+-		ctx->codec.vc1.ic_intenen = !!(reg & VE_DEC_VC1_PICMV_INTENSITY_COMP_EN);
+-	else if (picture->ptype == V4L2_VC1_PICTURE_TYPE_I)
+-		ctx->codec.vc1.ic_intenen = 0;
++	if (ic.enable)
++		reg |= VE_DEC_VC1_PICMV_INTENSITY_COMP_EN;
+ 	reg |= VE_DEC_VC1_PICMV_MVTAB(picture->mvtab);
+ 	if (raw_coding & V4L2_VC1_RAW_CODING_FLAG_MVTYPEMB)
+ 		reg |= VE_DEC_VC1_PICMV_MVTYPEMB_RAW;
+ 	cedrus_write(dev, VE_DEC_VC1_PICMV, reg);
+ 
+-	if (picture->fcm == V4L2_VC1_FCM_FIELD_INTERLACE) {
+-		if (picture->ptype == V4L2_VC1_PICTURE_TYPE_I) {
+-			cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, 0);
+-			cedrus_write(dev, VE_DEC_VC1_PICICBAK1, 0);
+-			cedrus_write(dev, VE_DEC_VC1_PICICBAK0, 0);
+-			ctx->codec.vc1.ic_icb1_regbak = 0;
+-			ctx->codec.vc1.ic_icb0_reg68 = 0;
+-		} else if (picture->ptype == V4L2_VC1_PICTURE_TYPE_B) {
+-			cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, ctx->codec.vc1.ic_icb1_regbak & 0x3f3f3f3f);
+-			if (second_field) {
+-				cedrus_write(dev, VE_DEC_VC1_PICICBAK1, 0);
+-				reg = ctx->codec.vc1.ic_icb0_reg68;
+-				cedrus_write(dev, VE_DEC_VC1_PICICBAK0, reg);
+-			} else {
+-				reg = ctx->codec.vc1.ic_icb0_reg68;
+-				cedrus_write(dev, VE_DEC_VC1_PICICBAK0, reg);
+-				reg = ctx->codec.vc1.ic_icf0_reg6c;
+-				cedrus_write(dev, VE_DEC_VC1_PICICBAK1, reg);
+-			}
+-		} else if (picture->ptype == V4L2_VC1_PICTURE_TYPE_P) {
+-			unsigned int field, scale2;
+-			u32 bakreg;
+-
+-			if (picture->mvmode == V4L2_VC1_MVMODE_INTENSITY_COMP)
+-				field = picture->intcompfield ? picture->intcompfield : 3;
+-			else
+-				field = 0;
+-
+-			/*
+-			 * The controls follow VA-API and place the selected field's
+-			 * parameters in lumscale/lumshift. The hardware uses fixed
+-			 * field slots, including the default scale for the other field.
+-			 */
+-			if (field == 2) {
+-				reg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE1(VC1_IC_LUMSCALE_DEFAULT);
+-				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(picture->lumscale);
+-				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT2(picture->lumshift);
+-			} else {
+-				scale2 = field == 1 ? VC1_IC_LUMSCALE_DEFAULT : picture->lumscale2;
+-				reg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE1(picture->lumscale);
+-				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT1(picture->lumshift);
+-				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(scale2);
+-				reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT2(picture->lumshift2);
+-			}
+-			cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, reg);
+-
+-			/*
+-			 * The vendor copies both fixed field slots into the backup and
+-			 * adds the mask selecting which slot later fields consume.
+-			 */
+-			bakreg = reg | VE_DEC_VC1_PICINTENCOMP_FIELD(field);
+-
+-			if (!second_field) {
+-				ctx->codec.vc1.ic_icf0_reg6c = ctx->codec.vc1.ic_icb1_regbak & 0xff3f3f3f;
+-				cedrus_write(dev, VE_DEC_VC1_PICICBAK1, ctx->codec.vc1.ic_icf0_reg6c);
+-				cedrus_write(dev, VE_DEC_VC1_PICICBAK0, 0);
+-				ctx->codec.vc1.ic_icb0_reg68 = bakreg;
+-			} else {
+-				cedrus_write(dev, VE_DEC_VC1_PICICBAK1, 0);
+-				cedrus_write(dev, VE_DEC_VC1_PICICBAK0, ctx->codec.vc1.ic_icb0_reg68);
+-				ctx->codec.vc1.ic_icf0_reg6c = ctx->codec.vc1.ic_icb1_regbak & 0xff3f3f3f;
+-				ctx->codec.vc1.ic_icb1_regbak = bakreg;
+-			}
+-		}
+-	} else {
+-		if (picture->ptype == V4L2_VC1_PICTURE_TYPE_I) {
+-			reg = 0;
+-		} else if (picture->ptype == V4L2_VC1_PICTURE_TYPE_P) {
+-			/*
+-			 * A progressive or frame-interlaced picture codes one
+-			 * LUMSCALE/LUMSHIFT pair, which applies to both fields.
+-			 */
+-			reg = VE_DEC_VC1_PICINTENCOMP_LUMASCALE1(picture->lumscale);
+-			reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT1(picture->lumshift);
+-			reg |= VE_DEC_VC1_PICINTENCOMP_LUMASCALE2(picture->lumscale);
+-			reg |= VE_DEC_VC1_PICINTENCOMP_LUMASHIFT2(picture->lumshift);
+-			ctx->codec.vc1.ic_oldval = reg;
+-		} else {
+-			reg = ctx->codec.vc1.ic_oldval;
+-		}
+-		cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, reg);
++	/*
++	 * The order of the writes follows the vendor library: the backup
++	 * registers form a stateful transaction. BI fields leave them alone.
++	 */
++	if (picture->fcm != V4L2_VC1_FCM_FIELD_INTERLACE) {
++		cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, ic.intencomp);
++	} else if (picture->ptype == V4L2_VC1_PICTURE_TYPE_B && !second_field) {
++		cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, ic.intencomp);
++		cedrus_write(dev, VE_DEC_VC1_PICICBAK0, ic.icbak0);
++		cedrus_write(dev, VE_DEC_VC1_PICICBAK1, ic.icbak1);
++	} else if (picture->ptype != V4L2_VC1_PICTURE_TYPE_BI) {
++		cedrus_write(dev, VE_DEC_VC1_PICINTENCOMP, ic.intencomp);
++		cedrus_write(dev, VE_DEC_VC1_PICICBAK1, ic.icbak1);
++		cedrus_write(dev, VE_DEC_VC1_PICICBAK0, ic.icbak0);
+ 	}
+ 
+ 	/*
+@@ -617,15 +785,8 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	reg |= VE_DEC_VC1_PICINTERLACE_BRFD(brfd);
+ 	if (!(second_field ^ ref_field))
+ 		reg |= VE_DEC_VC1_PICINTERLACE_REFFIELD;
+-	if (picture->fcm == V4L2_VC1_FCM_FIELD_INTERLACE &&
+-	    picture->ptype == V4L2_VC1_PICTURE_TYPE_B)
+-		reg |= VE_DEC_VC1_PICINTERLACE_INTENCOMPFLD(
+-			(ctx->codec.vc1.ic_icb1_regbak >> 30) & 3);
+-	else if (picture->fcm == V4L2_VC1_FCM_FIELD_INTERLACE &&
+-		 picture->ptype == V4L2_VC1_PICTURE_TYPE_P &&
+-		 picture->mvmode == V4L2_VC1_MVMODE_INTENSITY_COMP)
+-		reg |= VE_DEC_VC1_PICINTERLACE_INTENCOMPFLD(
+-			picture->intcompfield ? picture->intcompfield : 3);
++	if (picture->fcm == V4L2_VC1_FCM_FIELD_INTERLACE)
++		reg |= VE_DEC_VC1_PICINTERLACE_INTENCOMPFLD(ic.intencompfld);
+ 	if (raw_coding & V4L2_VC1_RAW_CODING_FLAG_FORWARDMB)
+ 		reg |= VE_DEC_VC1_PICINTERLACE_FORWARD_RAW;
+ 	if (fwd_interlaced)
+@@ -697,12 +858,6 @@ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
+ {
+ 	struct cedrus_dev *dev = ctx->dev;
+ 
+-	ctx->codec.vc1.ic_oldval = 0;
+-	ctx->codec.vc1.ic_intenen = false;
+-	ctx->codec.vc1.ic_icb1_regbak = 0;
+-	ctx->codec.vc1.ic_icb0_reg68 = 0;
+-	ctx->codec.vc1.ic_icf0_reg6c = 0;
+-
+ 	ctx->codec.vc1.aux_buf =
+ 		dma_alloc_coherent(dev->dev, VC1_AUX_ALLOC_SIZE,
+ 				   &ctx->codec.vc1.aux_buf_addr,
+-- 
+2.53.0
+
+--
+
+MiniMyth2
+
