@@ -69,7 +69,7 @@ endif
 
 ifeq (0,1)
 # s905y4 based khadas vim1s
-SOC_TYPE                  = s905y4
+SOC_TYPE                  = s4
 mm_U-BOOT_BOARD_TYPE      = board-s905y4.vim1s
 mm_U-BOOT_BOARD_DEFCONFIG = khadas-vim1s_defconfig
 FIP_BOARD                 = khadas-vim1s
