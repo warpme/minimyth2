@@ -185,11 +185,11 @@ Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2
 Rockchip 3576    | Nanopi-M5                                    | rkvdec2(13)/v4l2_request              | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Amlogic s905     | TanixTX3-Mini                                | vdec/v4l2_request                     | MPEG2, H.264, HEVC                         | X11, Wayland (2)      | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, limited HEVC on s905w
-Amlogic s912     | Beelink GT1                                  | not tested as my hw died              |                                            | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Amlogic g12a     | Radxa-Zero                                   | vdec/v4l2_request                     | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Amlogic g12b     | Khadas VIM3                                  | vdec/v4l2_request                     | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Amlogic sm1      | Khadas VIM3L                                 | vdec/v4l2_request                     | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, artefacts on H.264
-Amlogic s4       | Khadas VIM1S                                 | vdec/v4l2_request (15)                | (16)                                       | EGLFS (14)            | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
+Amlogic s912     | Beelink GT1                                  | vdec/v4l2_request                     | MPEG2, H.264, HEVC                         | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
+Amlogic g12a     | Radxa-Zero                                   | vdec/v4l2_request                     | MPEG2, H.264, HEVC, VP9, VC1               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
+Amlogic g12b     | Khadas VIM3                                  | vdec/v4l2_request                     | MPEG2, H.264, HEVC, VP9, VC1               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
+Amlogic sm1      | Khadas VIM3L                                 | vdec/v4l2_request                     | MPEG2, H.264, HEVC, VP9, vC1               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, artefacts on H.264
+Amlogic s4       | Khadas VIM1S                                 | vdec/v4l2_request (15)                | (15)                                       | EGLFS (14)            | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
 Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Broadcom 2712    | Rpi5-b                                       | rpivid/v4l2_request                   | HEVC                                       | X11, EGLFS(12),Wayland| EGL_DMABUF, DRM_DMABUF    | Good playback
@@ -213,8 +213,7 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 - (12) - as of 6.8-rc6 kernel EGLFS in DMABuf mode not works correctly
 - (13) - rkvdec2 is currently in development for this soc
 - (14) - due bug in messon-drm, currently only EGLFS works ok
-- (15) - there is development of new driver offering v4l2_request support on this soc.
-- (16) - new amlogic stateless decoder initially will support H264 decoding. Other formates will be addedd later
+- (15) - there is planned development of v4l2_request support on this soc.
 ### Video Decoding Test results
 
 
