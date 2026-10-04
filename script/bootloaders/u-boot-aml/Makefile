@@ -72,7 +72,7 @@ ifeq (0,1)
 SOC_TYPE                  = s905y4
 mm_U-BOOT_BOARD_TYPE      = board-s905y4.vim1s
 mm_U-BOOT_BOARD_DEFCONFIG = khadas-vim1s_defconfig
-FIP_BOARD                 = vim1s
+FIP_BOARD                 = khadas-vim1s
 endif
 
 ifeq (0,1)
@@ -99,21 +99,43 @@ GARVERSION   = ece349ade2973e220f524ce59e59711cc919263f
 # mainline 2025.04 GA
 # GARVERSION   = 34820924edbc4ec7803eb89d9852f4b870fa760a
 
-# git@ 15.03.2026
-FIPVERSION   = 42d372123631066fb77fbcbb612dc3eb41a3f6f9
+# git@ 03.10.2026
+FIPVERSION   = 7c2070c20f69ecd832f2ec1e9d242dbbf39ab64a
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/ \
                https://github.com/LibreELEC/amlogic-boot-fip/archive/
 DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
-PATCHFILES   = 01-g12b-khadas-vim3-add-http-netboot-support.patch \
-               03-sm1-khadas-vim3l-add-http-netboot-support.patch \
-               04-sm1-add-tanix-tx5plus_defconfig.patch \
-               05-sm1-add-x96-air_defconfig.patch \
-               06-gxm-add-beelink-gt1_defconfig.patch \
-               07-gxl-add-tanix-tx3mini_defconfig.patch \
-               50-amlogic-boot-fip-add-enc-bins-support.patch \
-               51-amlogic-boot-fip-add-x96-air-support.patch \
-               52-amlogic-boot-fip-add-tanix-tx5plus-support.patch \
-               53-amlogic-boot-fip-add-tanix-tx3mini-support.patch \
+PATCHFILES   = 0001-g12b-khadas-vim3-add-http-netboot-support.patch
+PATCHFILES  += 0003-sm1-khadas-vim3l-add-http-netboot-support.patch
+PATCHFILES  += 0004-sm1-add-tanix-tx5plus_defconfig.patch
+PATCHFILES  += 0005-sm1-add-x96-air_defconfig.patch
+PATCHFILES  += 0006-gxm-add-beelink-gt1_defconfig.patch
+PATCHFILES  += 0007-gxl-add-tanix-tx3mini_defconfig.patch
+# s4 support https://github.com/brivolabs/u-boot/commits/meson_s4/ g4f79a80629 30.09.2026
+PATCHFILES  += 0016-pinctrl-meson-a1-Use-gpio-regs-for-ds.patch
+PATCHFILES  += 0017-net-mdio-mux-Don-t-crash-if-our-parent-never-shows-u.patch
+PATCHFILES  += 0018-mmc-meson-Parse-devicetree-properties.patch
+PATCHFILES  += 0019-watchdog-meson_gxbb-Add-support-for-s4-t7-SoCs.patch
+PATCHFILES  += 0020-reset-meson-Add-s4-support.patch
+PATCHFILES  += 0021-serial-meson-Add-s4-support.patch
+PATCHFILES  += 0022-pinctrl-meson-Add-s4-pin-controller.patch
+PATCHFILES  += 0023-arm64-meson-Add-s4-SoC-support.patch
+PATCHFILES  += 0024-clk-meson-a1-Eliminate-separate-id-parameter.patch
+PATCHFILES  += 0025-clk-meson-a1-Use-clk_set_rate-from-meson_mux_set_rat.patch
+PATCHFILES  += 0026-clk-meson-Use-soc-specific-naming-for-common-functio.patch
+PATCHFILES  += 0027-clk-meson-Export-a1-functions-to-common-file.patch
+PATCHFILES  += 0028-clk-meson-Support-fractional-fixed-factor-clocks.patch
+PATCHFILES  += 0029-clk-meson-Support-power-of-two-dividers.patch
+PATCHFILES  += 0030-clk-meson-Add-s4-clock-driver.patch
+PATCHFILES  += 0031-pwm-meson-Add-s4-support.patch
+PATCHFILES  += 0032-meson-Add-Khadas-VIM1S-support.patch
+PATCHFILES  += 0033-net-mdio-mux-Remove-ourselves-when-our-parent-is-rem.patch
+PATCHFILES  += 0034-net-designware-Use-if-instead-of-if-for-DM_MDIO.patch
+PATCHFILES  += 0035-net-designware-Fix-MDIO-bus-getting-bound-multiple-t.patch
+# fip additions
+PATCHFILES  += 0100-amlogic-boot-fip-add-enc-bins-support.patch
+PATCHFILES  += 0101-amlogic-boot-fip-add-x96-air-support.patch
+PATCHFILES  += 0102-amlogic-boot-fip-add-tanix-tx5plus-support.patch
+PATCHFILES  += 0103-amlogic-boot-fip-add-tanix-tx3mini-support.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKSRC)/amlogic-boot-fip
@@ -126,7 +148,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c lib/libgnutls
-BUILDDEPS = devel/swig utils/dtc bootloaders/gxlimg
+BUILDDEPS = devel/swig utils/dtc bootloaders/gxlimg utils/tinyxxd
 
 CONFIGURE_SCRIPTS   = custom
 BUILD_SCRIPTS       = custom
