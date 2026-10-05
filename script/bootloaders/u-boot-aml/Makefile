@@ -86,10 +86,10 @@ endif
 # Mainline U-boot
 GARNAME      = u-boot-aml
 
-# mainline 2026.10-rc3
-# GARVERSION   = 964ad5b5c91b7be56e443e899d7f873e6aa8c9fc
+# mainline 2026.10-rc5
+GARVERSION   = a06e89ab05eaa2b8344d521319399333cd760ae5
 # mainline 2026.07 GA
-GARVERSION   = ece349ade2973e220f524ce59e59711cc919263f
+# GARVERSION   = ece349ade2973e220f524ce59e59711cc919263f
 # mainline 2026.04 GA - fails with sd/emmc reading
 # GARVERSION   = 88dc2788777babfd6322fa655df549a019aa1e69
 # mainline 2026.01 GA
@@ -131,6 +131,19 @@ PATCHFILES  += 0032-meson-Add-Khadas-VIM1S-support.patch
 PATCHFILES  += 0033-net-mdio-mux-Remove-ourselves-when-our-parent-is-rem.patch
 PATCHFILES  += 0034-net-designware-Use-if-instead-of-if-for-DM_MDIO.patch
 PATCHFILES  += 0035-net-designware-Fix-MDIO-bus-getting-bound-multiple-t.patch
+# s4 additions from https://github.com/chewitt/u-boot/commits/amlogic-2026.10
+PATCHFILES  += 0050-WIP-configs-meson64-move-S4-load-addresses-out-of-th.patch
+PATCHFILES  += 0051-WIP-ARM-meson-s4-reserve-the-secure-firmware-memory-.patch
+PATCHFILES  += 0052-WIP-power-domain-meson-secure-pwrc-add-S4-power-doma.patch
+PATCHFILES  += 0053-WIP-phy-meson-g12a-usb2-add-support-for-Meson-S4.patch
+PATCHFILES  += 0054-WIP-board-amlogic-vim1s-pick-the-env-MMC-and-set-ser.patch
+PATCHFILES  += 0055-WIP-ARM-dts-meson-s4-s905y4-khadas-vim1s-add-USB-hos.patch
+PATCHFILES  += 0056-WIP-configs-khadas-vim1s-enable-USB-host-power-domai.patch
+PATCHFILES  += 0057-WIP-power-regulator-pwm-support-pwm-dutycycle-range.patch
+PATCHFILES  += 0058-WIP-ARM-dts-meson-s4-s905y4-khadas-vim1s-set-the-VDD.patch
+PATCHFILES  += 0059-WIP-power-regulator-pwm-use-the-channel-from-the-pwm.patch
+PATCHFILES  += 0060-WIP-ARM-dts-meson-s4-s905y4-khadas-vim1s-let-the-SD-.patch
+PATCHFILES  += 0061-WIP-mmc-meson-gx-reset-the-delay-and-resampling-regi.patch
 # fip additions
 PATCHFILES  += 0100-amlogic-boot-fip-add-enc-bins-support.patch
 PATCHFILES  += 0101-amlogic-boot-fip-add-x96-air-support.patch

@@ -1,0 +1,129 @@
+From 4f7ea4daca611c9b8f8ee391400e4293dcdc9bbd Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Sat, 3 Oct 2026 17:45:44 +0000
+Subject: [PATCH 22/32] WIP: ARM: meson: s4: reserve the secure firmware memory
+ zones
+
+The S4 board code left meson_init_reserved_memory() and
+meson_get_boot_device() empty, so U-Boot never told Linux where BL31 and
+BL32 live and could not report the boot device. The secure firmware
+reports both in the SYSCTRL secure status registers, at the same
+offsets the vendor U-Boot reads: REG15 holds the BL31/BL32 sizes (in
+KiB, or in 64KiB units when the top nibble of the BL31 field is set),
+REG16/REG17 the BL32/BL31 start, REG4 the DRAM size in 16MiB units and
+REG2 the boot device.
+
+Reserve the BL31/BL32 zones in the kernel DT, report the boot device,
+and provide get_effective_memsize() as G12A does.
+
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ arch/arm/include/asm/arch-meson/s4.h | 28 ++++++++++++++++
+ arch/arm/mach-meson/board-s4.c       | 48 +++++++++++++++++++++++++---
+ 2 files changed, 71 insertions(+), 5 deletions(-)
+ create mode 100644 arch/arm/include/asm/arch-meson/s4.h
+
+diff --git a/arch/arm/include/asm/arch-meson/s4.h b/arch/arm/include/asm/arch-meson/s4.h
+new file mode 100644
+index 000000000..8f143a0df
+--- /dev/null
++++ b/arch/arm/include/asm/arch-meson/s4.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++
++#ifndef __S4_H__
++#define __S4_H__
++
++#define S4_SYSCTRL_BASE			0xfe010000
++
++#define S4_SYSCTRL_ADDR(off)		(S4_SYSCTRL_BASE + ((off) << 2))
++
++#define S4_SEC_STATUS_REG2		S4_SYSCTRL_ADDR(0xc2)
++#define S4_SEC_STATUS_REG4		S4_SYSCTRL_ADDR(0xc4)
++#define S4_SEC_STATUS_REG15		S4_SYSCTRL_ADDR(0xcf)
++#define S4_SEC_STATUS_REG16		S4_SYSCTRL_ADDR(0xd0)
++#define S4_SEC_STATUS_REG17		S4_SYSCTRL_ADDR(0xd1)
++#define S4_SEC_STATUS_REG18		S4_SYSCTRL_ADDR(0xd2)
++
++#define S4_BOOT_DEVICE_MASK		0xF0
++#define S4_BOOT_DEVICE_SHIFT		4
++#define S4_MEM_SIZE_MASK		0xFFF00000
++#define S4_MEM_SIZE_SHIFT		20
++#define S4_MEM_SIZE_UNIT		SZ_16M
++#define S4_MEM_SIZE_MAX			0xe0000000
++#define S4_BL31_RSVMEM_SIZE_MASK	0xFFFF0000
++#define S4_BL31_RSVMEM_SIZE_SHIFT	16
++#define S4_BL32_RSVMEM_SIZE_MASK	0xFFFF
++#define S4_RSVMEM_SIZE_64K_UNITS	0x00F00000
++
++#endif /* __S4_H__ */
+diff --git a/arch/arm/mach-meson/board-s4.c b/arch/arm/mach-meson/board-s4.c
+index 7d0bea992..feab22b72 100644
+--- a/arch/arm/mach-meson/board-s4.c
++++ b/arch/arm/mach-meson/board-s4.c
+@@ -3,18 +3,56 @@
+  * (C) Copyright 2023 SberDevices, Inc.
+  */
+ 
++#include <asm/arch/boot.h>
++#include <asm/arch/mem.h>
++#include <asm/arch/s4.h>
+ #include <asm/armv8/mmu.h>
+ #include <asm/io.h>
+-#include <linux/compiler.h>
+-#include <linux/errno.h>
++#include <linux/sizes.h>
+ 
+-void meson_init_reserved_memory(__maybe_unused void *fdt)
++int meson_get_boot_device(void)
+ {
++	return (readl(S4_SEC_STATUS_REG2) & S4_BOOT_DEVICE_MASK)
++		>> S4_BOOT_DEVICE_SHIFT;
+ }
+ 
+-int meson_get_boot_device(void)
++/*
++ * Reserve the BL31 and BL32 memory zones that the secure firmware reports in
++ * SEC_STATUS_REG15 (sizes), REG16 (BL32 start) and REG17 (BL31 start). The
++ * sizes are in KiB, or in 64KiB units when the top nibble of the BL31 size
++ * field is set.
++ */
++void meson_init_reserved_memory(void *fdt)
+ {
+-	return -ENOSYS;
++	u64 bl31_size, bl31_start;
++	u64 bl32_size, bl32_start;
++	u64 unit = SZ_1K;
++	u32 reg;
++
++	reg = readl(S4_SEC_STATUS_REG15);
++	if (reg & S4_RSVMEM_SIZE_64K_UNITS)
++		unit = SZ_64K;
++
++	bl31_size = ((reg & S4_BL31_RSVMEM_SIZE_MASK)
++			>> S4_BL31_RSVMEM_SIZE_SHIFT) * unit;
++	bl32_size = (reg & S4_BL32_RSVMEM_SIZE_MASK) * unit;
++
++	bl31_start = readl(S4_SEC_STATUS_REG17);
++	bl32_start = readl(S4_SEC_STATUS_REG16);
++
++	if (bl31_start && bl31_size)
++		meson_board_add_reserved_memory(fdt, bl31_start, bl31_size);
++
++	if (bl32_start && bl32_size)
++		meson_board_add_reserved_memory(fdt, bl32_start, bl32_size);
++}
++
++phys_size_t get_effective_memsize(void)
++{
++	u64 size = ((readl(S4_SEC_STATUS_REG4) & S4_MEM_SIZE_MASK)
++			>> S4_MEM_SIZE_SHIFT) * S4_MEM_SIZE_UNIT;
++
++	return min_t(u64, size, S4_MEM_SIZE_MAX);
+ }
+ 
+ static struct mm_region s4_mem_map[] = {
+-- 
+2.53.0
+
