@@ -1,14 +1,7 @@
-Patch from MiniMyth2 project
-
-Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-
-
-
-From 36e982b34deab2a68b22f22d2dfcb6c92921f9ff Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Sat, 20 Jun 2026 18:46:30 +0200
-Subject: [PATCH 09/20] media: cedrus: vc1: program EPHS before consuming the
+Subject: [PATCH 05/16] media: cedrus: vc1: program EPHS before consuming the
  bitstream
 
 The VE_DEC_VC1_EPHS register, which enables start-code and
@@ -29,15 +22,23 @@ during the skip. Streams without emulation bytes are unaffected.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01Tj82JZ5jPRRbNkByAQPcy7
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+[Ported to the VC-1 stateless uAPI revision 3 (gus bourg): the metadata
+flags are sequence flags. With the start code now in Advanced profile
+buffers, EPTB stripping is also active while the start code is skipped.]
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---
  .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 63 +++++++++++--------
  1 file changed, 36 insertions(+), 27 deletions(-)
 
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
-index 0e2205330..8939f8742 100644
+index 9aab963c8..f20476924 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
-@@ -286,6 +286,42 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+@@ -232,6 +232,42 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
  
  	cedrus_engine_enable(ctx);
  
@@ -53,7 +54,7 @@ index 0e2205330..8939f8742 100644
 +	reg = VE_DEC_VC1_EPHS_PROFILE(sequence->profile);
 +	if (entrypoint->flags & V4L2_VC1_ENTRYPOINT_HEADER_FLAG_LOOPFILTER)
 +		reg |= VE_DEC_VC1_EPHS_LOOPFILTER;
-+	if (metadata->flags & V4L2_VC1_METADATA_FLAG_MULTIRES)
++	if (sequence->flags & V4L2_VC1_SEQUENCE_FLAG_MULTIRES)
 +		reg |= VE_DEC_VC1_EPHS_MULTIRES;
 +	if (entrypoint->flags & V4L2_VC1_ENTRYPOINT_HEADER_FLAG_FASTUVMC)
 +		reg |= VE_DEC_VC1_EPHS_FASTUVMC;
@@ -65,13 +66,13 @@ index 0e2205330..8939f8742 100644
 +	if (entrypoint->flags & V4L2_VC1_ENTRYPOINT_HEADER_FLAG_OVERLAP)
 +		reg |= VE_DEC_VC1_EPHS_OVERLAP;
 +	reg |= VE_DEC_VC1_EPHS_QUANTIZER(entrypoint->quantizer);
-+	if (metadata->flags & V4L2_VC1_METADATA_FLAG_RANGERED)
++	if (sequence->flags & V4L2_VC1_SEQUENCE_FLAG_RANGERED)
 +		reg |= VE_DEC_VC1_EPHS_RANGERED;
 +	if (sequence->flags & V4L2_VC1_SEQUENCE_FLAG_FINTERPFLAG)
 +		reg |= VE_DEC_VC1_EPHS_FINTERPFLAG;
-+	if (metadata->flags & V4L2_VC1_METADATA_FLAG_SYNCMARKER)
++	if (sequence->flags & V4L2_VC1_SEQUENCE_FLAG_SYNCMARKER)
 +		reg |= VE_DEC_VC1_EPHS_SYNCMARKER;
-+	if (sequence->profile == VC1_PROFILE_ADVANCED)
++	if (advanced)
 +		reg |= VE_DEC_VC1_EPHS_STARTCODE_DET_EN;
 +	else
 +		reg |= VE_DEC_VC1_EPHS_EPTB_DET_BYPASS;
@@ -80,14 +81,14 @@ index 0e2205330..8939f8742 100644
  	/* Set bitstream source */
  
  	slice_bytes = vb2_get_plane_payload(src_buf, 0);
-@@ -330,33 +366,6 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+@@ -286,33 +322,6 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
  	cedrus_write(dev, VE_DEC_VC1_PICHDRLEN,
  		     VE_DEC_VC1_PICHDRLEN_LENGTH(0));
  
 -	reg = VE_DEC_VC1_EPHS_PROFILE(sequence->profile);
 -	if (entrypoint->flags & V4L2_VC1_ENTRYPOINT_HEADER_FLAG_LOOPFILTER)
 -		reg |= VE_DEC_VC1_EPHS_LOOPFILTER;
--	if (metadata->flags & V4L2_VC1_METADATA_FLAG_MULTIRES)
+-	if (sequence->flags & V4L2_VC1_SEQUENCE_FLAG_MULTIRES)
 -		reg |= VE_DEC_VC1_EPHS_MULTIRES;
 -	if (entrypoint->flags & V4L2_VC1_ENTRYPOINT_HEADER_FLAG_FASTUVMC)
 -		reg |= VE_DEC_VC1_EPHS_FASTUVMC;
@@ -99,25 +100,21 @@ index 0e2205330..8939f8742 100644
 -	if (entrypoint->flags & V4L2_VC1_ENTRYPOINT_HEADER_FLAG_OVERLAP)
 -		reg |= VE_DEC_VC1_EPHS_OVERLAP;
 -	reg |= VE_DEC_VC1_EPHS_QUANTIZER(entrypoint->quantizer);
--	if (metadata->flags & V4L2_VC1_METADATA_FLAG_RANGERED)
+-	if (sequence->flags & V4L2_VC1_SEQUENCE_FLAG_RANGERED)
 -		reg |= VE_DEC_VC1_EPHS_RANGERED;
 -	if (sequence->flags & V4L2_VC1_SEQUENCE_FLAG_FINTERPFLAG)
 -		reg |= VE_DEC_VC1_EPHS_FINTERPFLAG;
--	if (metadata->flags & V4L2_VC1_METADATA_FLAG_SYNCMARKER)
+-	if (sequence->flags & V4L2_VC1_SEQUENCE_FLAG_SYNCMARKER)
 -		reg |= VE_DEC_VC1_EPHS_SYNCMARKER;
--	if (sequence->profile == VC1_PROFILE_ADVANCED)
+-	if (advanced)
 -		reg |= VE_DEC_VC1_EPHS_STARTCODE_DET_EN;
 -	else
 -		reg |= VE_DEC_VC1_EPHS_EPTB_DET_BYPASS;
 -	cedrus_write(dev, VE_DEC_VC1_EPHS, reg);
--	
- 	if (sequence->profile == VC1_PROFILE_ADVANCED &&
- 	    (picture->ptype == VC1_PICTURE_TYPE_I ||
- 	     picture->ptype == VC1_PICTURE_TYPE_BI))
+-
+ 	/*
+ 	 * CONDOVER is only coded in Advanced profile I and BI pictures; the
+ 	 * hardware also wants the value which applies to the other pictures.
 -- 
 2.53.0
-
---
-
-MiniMyth2
 

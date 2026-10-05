@@ -1,14 +1,7 @@
-Patch from MiniMyth2 project
-
-Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-
-
-
-From 43f6a72d33c7e0134a6174fcfb8e502a25eabce7 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Sun, 21 Jun 2026 19:08:46 +0200
-Subject: [PATCH 16/20] media: cedrus: vc1: single contiguous aux buffer
+Subject: [PATCH 11/16] media: cedrus: vc1: single contiguous aux buffer
  allocation
 
 Match vendor layout: BPLANE @+0x0000 (16KB), DCAC @+0x4000 (16KB),
@@ -16,17 +9,26 @@ MV @+0x8000 (112KB) in one 144KB allocation. Also write secondary
 FB line stride register (0xcc) to match vendor top-level VE config.
 
 Co-Authored-By: Claude <noreply@anthropic.com>
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+[Ported to the VC-1 stateless uAPI revision 3 (gus bourg): unchanged,
+except that the "ret" variable which this change leaves unused (removed
+by "fix field intensity compensation slots" in the original series) is
+removed here, so that every step builds without warnings.]
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---
  drivers/staging/media/sunxi/cedrus/cedrus.h   |  2 +
  .../staging/media/sunxi/cedrus/cedrus_hw.c    |  3 +
- .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 66 +++++++------------
- 3 files changed, 29 insertions(+), 42 deletions(-)
+ .../staging/media/sunxi/cedrus/cedrus_vc1.c   | 67 +++++++------------
+ 3 files changed, 29 insertions(+), 43 deletions(-)
 
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
-index 9862b7cd5..5f4a2c3be 100644
+index 85f1c7fb0..c0136df54 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus.h
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
-@@ -166,6 +166,8 @@ struct cedrus_ctx {
+@@ -162,6 +162,8 @@ struct cedrus_ctx {
  			dma_addr_t	entropy_probs_buf_dma;
  		} vp8;
  		struct {
@@ -50,10 +52,10 @@ index f73f8886d..e7d39db67 100644
  	case V4L2_PIX_FMT_NV12_32L32:
  	default:
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
-index 45f1d67cf..5ca9042fe 100644
+index bedb5cbcc..23267ab54 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_vc1.c
-@@ -20,6 +20,17 @@
+@@ -18,6 +18,17 @@
  #define ACDC_BUF_SIZE			(16 * SZ_1K)
  #define BITPLANES_BUF_SIZE		(16 * SZ_1K)
  
@@ -68,12 +70,20 @@ index 45f1d67cf..5ca9042fe 100644
 +#define VC1_AUX_DCAC_OFF		0x4000
 +#define VC1_AUX_MV_OFF			0x8000
 +
- #define VC1_PROFILE_SIMPLE		0
- #define VC1_PROFILE_MAIN		1
- #define VC1_PROFILE_COMPLEX		2
-@@ -753,44 +764,21 @@ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
- 	offset = 0;
- #endif
+ /* Size in bits of the start code which begins an Advanced profile buffer */
+ #define VC1_START_CODE_BITS		32
+ 
+@@ -673,7 +684,6 @@ static int cedrus_vc1_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
+ {
+ 	struct cedrus_dev *dev = ctx->dev;
+-	int ret;
+ 
+ 	ctx->codec.vc1.ic_oldval = 0;
+ 	ctx->codec.vc1.ic_intenen = false;
+@@ -681,59 +691,30 @@ static int cedrus_vc1_start(struct cedrus_ctx *ctx)
+ 	ctx->codec.vc1.ic_icb0_reg68 = 0;
+ 	ctx->codec.vc1.ic_icf0_reg6c = 0;
  
 -	ctx->codec.vc1.mv_buf =
 -		dma_alloc_coherent(dev->dev, MV_BUF_SIZE,
@@ -125,10 +135,9 @@ index 45f1d67cf..5ca9042fe 100644
 -	return ret;
  }
  
- #ifdef CEDRUS_VC1_DEBUG
-@@ -817,15 +805,9 @@ static void cedrus_vc1_stop(struct cedrus_ctx *ctx)
- 	filp_close(f, NULL);
- #endif
+ static void cedrus_vc1_stop(struct cedrus_ctx *ctx)
+ {
+ 	struct cedrus_dev *dev = ctx->dev;
  
 -	dma_free_coherent(dev->dev, MV_BUF_SIZE,
 -			  ctx->codec.vc1.mv_buf,
@@ -147,8 +156,4 @@ index 45f1d67cf..5ca9042fe 100644
  static void cedrus_vc1_trigger(struct cedrus_ctx *ctx)
 -- 
 2.53.0
-
---
-
-MiniMyth2
 

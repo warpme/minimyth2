@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 21 Jun 2026 22:43:04 +0200
+Subject: [PATCH 14/16] media: cedrus: vc1: reject Main profile intensity
+ compensation
+
+The H6 video engine has a hardware limitation: Main/WMV3 profile with
+intensity compensation (MVMODE=4) produces accumulating drift on every
+P-frame.  The vendor BSP (TvdVideo) blocks all Main/WMV3 content at
+the application level; the kernel allowed it but produced broken output
+(pinball 12.5 dB, factory 17.3 dB, snowboard 13.5 dB).
+
+Main profile without IC works correctly (Robotica_720, SMM0015, etc.
+are bit-exact).
+
+Reject only Main+IC frames at the V4L2 control-validation level so
+that ffmpeg falls back to software decode instead of producing
+drifting garbage.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+[Ported to the VC-1 stateless uAPI revision 3 (gus bourg): the profile
+and MVMODE are now in two controls. The check moves to the picture layer
+control and reads the profile from the current value of the sequence
+control, which FFmpeg sets when the decoder is opened (and with every
+request). As before, the picture is refused when it is queued; FFmpeg
+cannot switch to software in the middle of a stream, so such a stream
+fails rather than falling back. The misleading indentation of the
+original (-Wmisleading-indentation) is gone.]
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/staging/media/sunxi/cedrus/cedrus.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.c b/drivers/staging/media/sunxi/cedrus/cedrus.c
+index 1d30fbfd4..d483b0ee0 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.c
+@@ -95,6 +95,18 @@ static int cedrus_try_ctrl(struct v4l2_ctrl *ctrl)
+ 	} else if (ctrl->id == V4L2_CID_STATELESS_VC1_PICTURE_LAYER) {
+ 		const struct v4l2_ctrl_vc1_picture_layer *pic =
+ 			ctrl->p_new.p_vc1_picture_layer;
++		struct cedrus_ctx *ctx = container_of(ctrl->handler, struct cedrus_ctx, hdl);
++		const struct v4l2_ctrl_vc1_sequence *seq;
++
++		/*
++		 * Main profile intensity compensation drifts on the H6 video
++		 * engine. The profile is in the sequence control, which is set
++		 * before the pictures (at the latest with the first one).
++		 */
++		seq = cedrus_find_control_data(ctx, V4L2_CID_STATELESS_VC1_SEQUENCE);
++		if (seq && seq->profile == V4L2_VC1_PROFILE_MAIN &&
++		    pic->mvmode == V4L2_VC1_MVMODE_INTENSITY_COMP)
++			return -EINVAL;
+ 
+ 		if (pic->respic)
+ 			/* Reduced-resolution (multi-res) coding is not supported */
+-- 
+2.53.0
+
