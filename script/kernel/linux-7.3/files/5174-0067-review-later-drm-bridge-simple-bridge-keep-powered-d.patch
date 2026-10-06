@@ -1,8 +1,10 @@
-From 5446c7be655dc6d1991e47a665d4336d09485796 Mon Sep 17 00:00:00 2001
-From: Xilin Wu <sophon@radxa.com>
-Date: Tue, 21 Apr 2026 23:48:41 +0800
-Subject: [PATCH 067/309] (review later) drm/bridge: simple-bridge: keep
- powered during HPD and pre-enable
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
 
 Some transparent bridges need to stay powered even when no video stream is
 active. Otherwise they cannot forward late hotplug events to the upstream
@@ -12,24 +14,13 @@ Keep the bridge powered while HPD monitoring is enabled by proxying HPD
 operations to the previous bridge and holding the local power resources for
 as long as HPD remains armed.
 
-Also move the stream-related power reference from enable/disable to
-pre_enable/post_disable. This guarantees that the bridge is powered before
-the upstream source starts its enable sequence, avoiding resume-time races
-where link training runs before the bridge has come out of reset.
-
 This lets power-gated simple bridges handle hotplug after boot while still
 allowing their supplies to be turned off again during suspend and output
 disable.
 
-Signed-off-by: Xilin Wu <sophon@radxa.com>
----
- drivers/gpu/drm/bridge/simple-bridge.c | 160 +++++++++++++++++++++++--
- 1 file changed, 147 insertions(+), 13 deletions(-)
-
-diff --git a/drivers/gpu/drm/bridge/simple-bridge.c b/drivers/gpu/drm/bridge/simple-bridge.c
-index 9c13b7a5d..3f8fe8610 100644
---- a/drivers/gpu/drm/bridge/simple-bridge.c
-+++ b/drivers/gpu/drm/bridge/simple-bridge.c
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/drivers/gpu/drm/bridge/simple-bridge.c linux-7.3-rc6/drivers/gpu/drm/bridge/simple-bridge.c
+--- linux-7.3-rc6/drivers/gpu/drm/bridge/simple-bridge.c	2026-10-06 09:25:08.966047394 +0200
++++ linux-7.3-rc6/drivers/gpu/drm/bridge/simple-bridge.c	2026-10-06 09:53:52.195154382 +0200
 @@ -7,11 +7,13 @@
   */
  
@@ -44,7 +35,7 @@ index 9c13b7a5d..3f8fe8610 100644
  
  #include <drm/drm_atomic_helper.h>
  #include <drm/drm_bridge.h>
-@@ -31,8 +33,14 @@ struct simple_bridge {
+@@ -31,8 +33,14 @@
  
  	const struct simple_bridge_info *info;
  
@@ -59,7 +50,7 @@ index 9c13b7a5d..3f8fe8610 100644
  };
  
  static inline struct simple_bridge *
-@@ -106,6 +114,7 @@ static int simple_bridge_attach(struct drm_bridge *bridge,
+@@ -106,6 +114,7 @@
  				enum drm_bridge_attach_flags flags)
  {
  	struct simple_bridge *sbridge = drm_bridge_to_simple_bridge(bridge);
@@ -67,7 +58,7 @@ index 9c13b7a5d..3f8fe8610 100644
  	int ret;
  
  	ret = drm_bridge_attach(encoder, sbridge->bridge.next_bridge, bridge,
-@@ -113,6 +122,18 @@ static int simple_bridge_attach(struct drm_bridge *bridge,
+@@ -113,6 +122,18 @@
  	if (ret < 0)
  		return ret;
  
@@ -86,11 +77,10 @@ index 9c13b7a5d..3f8fe8610 100644
  	if (flags & DRM_BRIDGE_ATTACH_NO_CONNECTOR)
  		return 0;
  
-@@ -132,34 +153,145 @@ static int simple_bridge_attach(struct drm_bridge *bridge,
- 	return 0;
+@@ -158,11 +179,121 @@
+ 		regulator_disable(sbridge->vdd);
  }
  
--static void simple_bridge_enable(struct drm_bridge *bridge)
 +static int simple_bridge_update_power_locked(struct simple_bridge *sbridge)
 +{
 +	bool enable = sbridge->hpd_enabled || sbridge->stream_enabled;
@@ -143,42 +133,12 @@ index 9c13b7a5d..3f8fe8610 100644
 +	schedule_work(&sbridge->hpd_work);
 +}
 +
-+static void simple_bridge_pre_enable(struct drm_bridge *bridge)
- {
- 	struct simple_bridge *sbridge = drm_bridge_to_simple_bridge(bridge);
-+
-+	/*
-+	 * Transparent DP bridges need power before the upstream source starts
-+	 * its enable sequence, otherwise resume-time link training can race
-+	 * ahead of the bridge coming out of reset.
-+	 */
-+	mutex_lock(&sbridge->lock);
-+	sbridge->stream_enabled = true;
-+	simple_bridge_update_power_locked(sbridge);
-+	mutex_unlock(&sbridge->lock);
-+}
-+
-+static void simple_bridge_post_disable(struct drm_bridge *bridge)
-+{
-+	struct simple_bridge *sbridge = drm_bridge_to_simple_bridge(bridge);
-+
-+	mutex_lock(&sbridge->lock);
-+	sbridge->stream_enabled = false;
-+	simple_bridge_update_power_locked(sbridge);
-+	mutex_unlock(&sbridge->lock);
-+}
-+
 +static void simple_bridge_hpd_enable(struct drm_bridge *bridge)
 +{
 +	struct simple_bridge *sbridge = drm_bridge_to_simple_bridge(bridge);
 +	struct drm_bridge *prev __free(drm_bridge_put) = drm_bridge_get_prev_bridge(bridge);
- 	int ret;
- 
--	if (sbridge->vdd) {
--		ret = regulator_enable(sbridge->vdd);
--		if (ret)
--			DRM_ERROR("Failed to enable vdd regulator: %d\n", ret);
--	}
++	int ret;
++
 +	mutex_lock(&sbridge->lock);
 +	sbridge->hpd_enabled = true;
 +	ret = simple_bridge_update_power_locked(sbridge);
@@ -202,50 +162,44 @@ index 9c13b7a5d..3f8fe8610 100644
 +	was_enabled = sbridge->hpd_enabled;
 +	sbridge->hpd_enabled = false;
 +	mutex_unlock(&sbridge->lock);
- 
--	gpiod_set_value_cansleep(sbridge->enable, 1);
++
 +	if (was_enabled && prev && (prev->ops & DRM_BRIDGE_OP_HPD))
 +		drm_bridge_hpd_disable(prev);
 +
 +	mutex_lock(&sbridge->lock);
 +	simple_bridge_update_power_locked(sbridge);
 +	mutex_unlock(&sbridge->lock);
- }
- 
--static void simple_bridge_disable(struct drm_bridge *bridge)
++}
++
 +static void simple_bridge_detach(struct drm_bridge *bridge)
- {
- 	struct simple_bridge *sbridge = drm_bridge_to_simple_bridge(bridge);
++{
++	struct simple_bridge *sbridge = drm_bridge_to_simple_bridge(bridge);
 +	struct drm_bridge *prev __free(drm_bridge_put) = drm_bridge_get_prev_bridge(bridge);
 +
 +	if (sbridge->hpd_enabled && prev && (prev->ops & DRM_BRIDGE_OP_HPD))
 +		drm_bridge_hpd_disable(prev);
- 
--	gpiod_set_value_cansleep(sbridge->enable, 0);
++
 +	cancel_work_sync(&sbridge->hpd_work);
- 
--	if (sbridge->vdd)
--		regulator_disable(sbridge->vdd);
++
 +	mutex_lock(&sbridge->lock);
 +	sbridge->hpd_enabled = false;
 +	sbridge->stream_enabled = false;
 +	simple_bridge_update_power_locked(sbridge);
 +	mutex_unlock(&sbridge->lock);
- }
- 
++}
++
  static const struct drm_bridge_funcs simple_bridge_bridge_funcs = {
+ 	.atomic_create_state = drm_atomic_helper_bridge_create_state,
+ 	.atomic_destroy_state = drm_atomic_helper_bridge_destroy_state,
+ 	.atomic_duplicate_state = drm_atomic_helper_bridge_duplicate_state,
  	.attach		= simple_bridge_attach,
--	.enable		= simple_bridge_enable,
--	.disable	= simple_bridge_disable,
 +	.detach		= simple_bridge_detach,
-+	.pre_enable	= simple_bridge_pre_enable,
-+	.post_disable	= simple_bridge_post_disable,
 +	.hpd_enable	= simple_bridge_hpd_enable,
 +	.hpd_disable	= simple_bridge_hpd_disable,
+ 	.atomic_enable = simple_bridge_enable,
+ 	.atomic_disable = simple_bridge_disable,
  };
- 
- static int simple_bridge_probe(struct platform_device *pdev)
-@@ -173,6 +305,8 @@ static int simple_bridge_probe(struct platform_device *pdev)
+@@ -178,6 +309,8 @@
  		return PTR_ERR(sbridge);
  
  	sbridge->info = of_device_get_match_data(&pdev->dev);
@@ -254,6 +208,7 @@ index 9c13b7a5d..3f8fe8610 100644
  
  	/* Get the next bridge in the pipeline. */
  	remote = of_graph_get_remote_node(pdev->dev.of_node, 1, -1);
--- 
-2.53.0
+--
+
+MiniMyth2
 
