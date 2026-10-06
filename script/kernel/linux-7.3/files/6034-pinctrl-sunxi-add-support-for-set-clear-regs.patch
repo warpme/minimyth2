@@ -1,6 +1,4 @@
-From a18e2d2270e9fae1bd0df88b497fb18bf2d5d493 Mon Sep 17 00:00:00 2001
-From: Andre Przywara <andre.przywara@arm.com>
-Date: Thu, 21 Aug 2025 01:42:29 +0100
+
 Subject: [PATCH 016/211] pinctrl: sunxi: add support for set/clear regs
 
 The Allwinner pinctrl/GPIO IP so far features just a single GPIO data
@@ -19,29 +17,37 @@ registers are available, skip the lock and read/modify/write operation,
 and just write the mask directly to the respective register.
 
 Signed-off-by: Andre Przywara <andre.przywara@arm.com>
----
- drivers/pinctrl/sunxi/pinctrl-sunxi.c | 27 +++++++++++++++------------
- drivers/pinctrl/sunxi/pinctrl-sunxi.h |  3 +++
- 2 files changed, 18 insertions(+), 12 deletions(-)
 
-diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.c b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
-index be2394dc92..34ed34fb88 100644
---- a/drivers/pinctrl/sunxi/pinctrl-sunxi.c
-+++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
-@@ -1023,18 +1023,21 @@ static int sunxi_pinctrl_gpio_set(struct gpio_chip *chip, unsigned int offset,
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/drivers/pinctrl/sunxi/pinctrl-sunxi.c linux-7.3-rc6/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+--- linux-7.3-rc6/drivers/pinctrl/sunxi/pinctrl-sunxi.c	2026-10-06 10:36:15.663733330 +0200
++++ linux-7.3-rc6/drivers/pinctrl/sunxi/pinctrl-sunxi.c	2026-10-06 10:58:30.298251719 +0200
+@@ -1040,30 +1040,24 @@
+ {
+ 	struct sunxi_pinctrl *pctl = gpiochip_get_data(chip);
+ 	u32 *shadow = &pctl->dat_shadow[offset / PINS_PER_BANK];
+-	u32 reg, shift, mask;
++	u32 reg, shift, mask, val;
+ 	unsigned long flags;
  
- 	sunxi_data_reg(pctl, offset, &reg, &shift, &mask);
- 
+-	sunxi_data_reg(pctl, offset, &reg, &shift, &mask);
+-
 -	raw_spin_lock_irqsave(&pctl->lock, flags);
 -
--	val = readl(pctl->membase + reg);
--
+-	/*
+-	 * Reading the data register returns the pin level, not the output
+-	 * latch, for pins muxed as inputs.  A read-modify-write based on
+-	 * the register would therefore corrupt the latches of input-muxed
+-	 * pins in the same bank (e.g. an emulated open-drain I2C line
+-	 * released high), making them drive the wrong level once switched
+-	 * to output.  Base the read-modify-write on a shadow copy of the
+-	 * latches instead.
+-	 */
 -	if (value)
--		val |= mask;
+-		*shadow |= mask;
 -	else
--		val &= ~mask;
+-		*shadow &= ~mask;
 -
--	writel(val, pctl->membase + reg);
+-	writel(*shadow, pctl->membase + reg);
 -
 -	raw_spin_unlock_irqrestore(&pctl->lock, flags);
 +	if (pctl->flags & SUNXI_PINCTRL_HAS_SET_CLEAR_REGS) {
@@ -62,10 +68,9 @@ index be2394dc92..34ed34fb88 100644
  
  	return 0;
  }
-diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.h b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
-index d09467ed43..699ae8850c 100644
---- a/drivers/pinctrl/sunxi/pinctrl-sunxi.h
-+++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/drivers/pinctrl/sunxi/pinctrl-sunxi.h linux-7.3-rc6/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+--- linux-7.3-rc6/drivers/pinctrl/sunxi/pinctrl-sunxi.h	2026-10-06 10:36:15.663836420 +0200
++++ linux-7.3-rc6/drivers/pinctrl/sunxi/pinctrl-sunxi.h	2026-10-06 10:30:48.252533579 +0200
 @@ -43,6 +43,8 @@
  #define MUX_REGS_OFFSET		0x0
  #define MUX_FIELD_WIDTH		4
@@ -75,7 +80,7 @@ index d09467ed43..699ae8850c 100644
  #define DATA_FIELD_WIDTH	1
  #define DLEVEL_REGS_OFFSET	0x14
  #define DLEVEL_FIELD_WIDTH	2
-@@ -101,6 +103,7 @@
+@@ -102,6 +104,7 @@
  #define SUNXI_PINCTRL_PORTF_SWITCH	BIT(9)
  #define SUNXI_PINCTRL_ELEVEN_BANKS	BIT(10)
  #define SUNXI_PINCTRL_NCAT3_REG_LAYOUT	BIT(11)
@@ -83,6 +88,3 @@ index d09467ed43..699ae8850c 100644
  
  #define PIO_NCAT3_POW_MOD_SEL_REG	0x040
  #define PIO_POW_MOD_SEL_REG		0x340
--- 
-2.53.0
-

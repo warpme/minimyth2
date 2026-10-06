@@ -688,7 +688,7 @@ PATCHFILES += 5450-arm64-dts-qcom-sc8280xp-add-dragon-q8b.patch
 endif
 #------------------------------------------------------------
 
-ifeq (0,1)
+ifeq (1,1)
 #-- Allwinner A733 patches -----------------------------------
 # kernal, device drivers
 # clk
@@ -723,9 +723,9 @@ PATCHFILES += 6030-pinctrl-sunxi-rename-SUNXI_PINCTRL_NEW_REG_LAYOUT.patch
 PATCHFILES += 6031-pinctrl-sunxi-only-use-PortK-special-handling-on-A52.patch
 PATCHFILES += 6032-pinctrl-sunxi-refactor-IRQ-register-accessors.patch
 PATCHFILES += 6033-pinctrl-sunxi-support-A733-generation-MMIO-register-.patch
-# todo PATCHFILES += 6034-pinctrl-sunxi-add-support-for-set-clear-regs.patch
+PATCHFILES += 6034-pinctrl-sunxi-add-support-for-set-clear-regs.patch
 PATCHFILES += 6035-pinctrl-sunxi-a523-r-add-a733-r-compatible-string.patch
-# todo PATCHFILES += 6036-pinctrl-sunxi-Add-support-for-the-Allwinner-A733.patch
+PATCHFILES += 6036-pinctrl-sunxi-Add-support-for-the-Allwinner-A733.patch
 PATCHFILES += 6037-pinctrl-sunxi-keep-the-new-disabled-mux-value-for-bo.patch
 PATCHFILES += 6038-pinctrl-sunxi-fix-EINT-bank-indexing-for-SoCs-with-e.patch
 PATCHFILES += 6039-pinctrl-sunxi-a733-fix-the-GPIO-withstand-voltage-en.patch
