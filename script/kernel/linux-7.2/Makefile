@@ -135,7 +135,7 @@ endif
 ifeq (1,1)
 # stateless amvdec
 PATCHFILES += 1411-media-amlogic-inclide-amvdec-into-drivers-media.patch
-PATCHFILES += 1412-media-amlogic-add-amvdec-g5c104d5c6e.patch
+PATCHFILES += 1412-media-amlogic-add-amvdec-gd25d90688e.patch
 endif
 # g12/sm1 dtsi additions
 PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
