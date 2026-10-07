@@ -1,7 +1,7 @@
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c	2026-10-06 17:02:42.000000000 +0200
-@@ -0,0 +1,1458 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c	2026-10-07 05:49:55.000000000 +0200
+@@ -0,0 +1,1498 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * debugfs harness for running small test images on the VDEC_1 AMRISC or
@@ -25,6 +25,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 + *     hevc_stream_bytes >0: program HEVC_STREAM_* over buf (payload bytes,
 + *                     fifo_pad more are covered by the write pointer)
 + *     hevc_stream_ctl !0: final HEVC_STREAM_CONTROL value (default: driver bits)
++ *     prog            write: VDEC_1 host register programme, "idx value [mask]" per
++ *                     line (hex, idx < 0x1000), applied after the image load
 + *     hevc_wait       0 = run run_ms; 1 = stop at the first mailbox IRQ
 + *                     (MBOX0/1_IRQ_REG != 0); 2 = also at SCRATCH_0 0x80/0x81
 + *     hevc_irq_us     read: first mailbox IRQ after start, us (0 = none)
@@ -451,6 +453,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +static unsigned int ah_nregs;
 +#define AH_PROG_MAX		512
 +static u32 (*ah_prog)[3];		/* hevc_prog: local index, value, mask (0 = plain write) */
++static u32 (*at_prog)[3];		/* prog: VDEC_1 DOS index, value, mask; applied after the image load */
++static unsigned int at_nprog;
 +static unsigned int ah_nprog;
 +
 +static const struct { const char *name; u32 off; } ah_extra_regs[] = {
@@ -853,6 +857,15 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		at_host_fifo(core);
 +	if (at_mpeg12_init)
 +		at_host_mpeg12(core);
++	for (i = 0; i < at_nprog; i++) {
++		u32 off = at_prog[i][0] * 4, v = at_prog[i][1];
++
++		if (at_prog[i][2])
++			v = (meson_amvdec_read_dos(core, off) & ~at_prog[i][2]) | (v & at_prog[i][2]);
++		meson_amvdec_write_dos(core, off, v);
++	}
++	if (at_nprog)
++		at_printf("prog: %u writes\n", at_nprog);
 +	meson_amvdec_write_dos(core, AT_AV_SCRATCH_K, at_arg0);
 +	meson_amvdec_write_dos(core, AT_AV_SCRATCH_L, at_arg1);
 +	if (at_mpeg12_init == 3) {
@@ -922,6 +935,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		at_printf(" %04x", pc[i]);
 +	at_printf("\n");
 +	at_snapshot(core, "run");
++	at_regdump(core, "run");
 +	meson_amvdec_write_dos(core, AT_MPSR, 0);
 +	at_printf("elapsed-us: %lld\n", ktime_us_delta(ktime_get(), t0));
 +	at_snapshot(core, "halted");
@@ -1101,9 +1115,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	return at_reglist_parse(ubuf, count, ah_reglist, &ah_nregs, AH_LOCAL_MAX);
 +}
 +
-+/* hevc_prog: "idx value [mask]" lines, hex; '#' starts a comment line */
-+static ssize_t ah_prog_write(struct file *file, const char __user *ubuf,
-+			     size_t count, loff_t *ppos)
++/* hevc_prog / prog: "idx value [mask]" lines, hex; '#' starts a comment line */
++static ssize_t at_prog_parse(const char __user *ubuf, size_t count, u32 (*prog)[3],
++			     unsigned int *nprog, u32 idx_max)
 +{
 +	char *text, *p, *line;
 +	unsigned int n = 0;
@@ -1125,20 +1139,40 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		if (!*line || *line == '#')
 +			continue;
 +		k = sscanf(line, "%x %x %x", &idx, &val, &mask);
-+		if (k < 2 || idx >= AH_LOCAL_MAX || n >= AH_PROG_MAX) {
++		if (k < 2 || idx >= idx_max || n >= AH_PROG_MAX) {
 +			ret = -EINVAL;
 +			break;
 +		}
-+		ah_prog[n][0] = idx;
-+		ah_prog[n][1] = val;
-+		ah_prog[n][2] = k == 3 ? mask : 0;
++		prog[n][0] = idx;
++		prog[n][1] = val;
++		prog[n][2] = k == 3 ? mask : 0;
 +		n++;
 +	}
-+	ah_nprog = ret ? 0 : n;
++	*nprog = ret ? 0 : n;
 +	mutex_unlock(&at_lock);
 +	kfree(text);
 +	return ret ? ret : count;
 +}
++
++static ssize_t ah_prog_write(struct file *file, const char __user *ubuf,
++			     size_t count, loff_t *ppos)
++{
++	return at_prog_parse(ubuf, count, ah_prog, &ah_nprog, AH_LOCAL_MAX);
++}
++
++/* prog: VDEC_1 DOS register writes (index < 0x1000, i.e. the firmware's CBUS view) */
++static ssize_t at_prog_write(struct file *file, const char __user *ubuf,
++			     size_t count, loff_t *ppos)
++{
++	return at_prog_parse(ubuf, count, at_prog, &at_nprog, 0x1000);
++}
++
++static const struct file_operations at_prog_fops = {
++	.owner = THIS_MODULE,
++	.open = simple_open,
++	.write = at_prog_write,
++	.llseek = noop_llseek,
++};
 +
 +static const struct file_operations ah_prog_fops = {
 +	.owner = THIS_MODULE,
@@ -1309,9 +1343,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	at_reglist = kcalloc(AT_MAX_REGS, sizeof(u32), GFP_KERNEL);
 +	ah_reglist = kcalloc(AT_MAX_REGS, sizeof(u32), GFP_KERNEL);
 +	ah_prog = kcalloc(AH_PROG_MAX, sizeof(*ah_prog), GFP_KERNEL);
++	at_prog = kcalloc(AH_PROG_MAX, sizeof(*at_prog), GFP_KERNEL);
 +	at_alloc = dma_alloc_coherent(core->dev, AT_ALLOC_SIZE, &at_alloc_map,
 +				      GFP_KERNEL);
-+	if (!at_image || !at_result || !at_reglist || !ah_reglist || !ah_prog || !at_alloc)
++	if (!at_image || !at_result || !at_reglist || !ah_reglist || !ah_prog || !at_prog || !at_alloc)
 +		goto fail;
 +	memset(at_alloc, 0, AT_ALLOC_SIZE);
 +	/* firmware sees the data region, not the low canary */
@@ -1382,6 +1417,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	debugfs_create_u32("hevc_irq_us", 0400, at_dir, &ah_irq_us);
 +	debugfs_create_file("hevc_reglist", 0200, at_dir, NULL, &ah_reglist_fops);
 +	debugfs_create_file("hevc_prog", 0200, at_dir, NULL, &ah_prog_fops);
++	debugfs_create_file("prog", 0200, at_dir, NULL, &at_prog_fops);
 +	debugfs_create_file("hevc_regs", 0400, at_dir, NULL, &ah_regs_fops);
 +	debugfs_create_file("hevc_lmem", 0400, at_dir, NULL, &ah_lmem_fops);
 +	debugfs_create_file("hevc_lmem_paddr", 0400, at_dir, NULL, &ah_lmem_paddr_fops);
@@ -1401,6 +1437,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	ah_reglist = NULL;
 +	kfree(ah_prog);
 +	ah_prog = NULL;
++	kfree(at_prog);
++	at_prog = NULL;
 +	at_alloc = NULL;
 +	at_image = NULL;
 +	at_result = NULL;
@@ -1453,6 +1491,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	kfree(ah_reglist);
 +	kfree(ah_prog);
 +	ah_prog = NULL;
++	kfree(at_prog);
++	at_prog = NULL;
 +	at_alloc = NULL;
 +	at_image = NULL;
 +	at_result = NULL;
@@ -1462,7 +1502,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,28 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -1494,7 +1534,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,482 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -1980,7 +2020,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif /* AMVDEC_OUCODE_DEV */
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,19 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -2003,7 +2043,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,1852 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -3859,7 +3899,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +MODULE_LICENSE("GPL");
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,460 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -4323,7 +4363,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,976 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -5303,7 +5343,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,126 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -5433,8 +5473,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c	2026-10-06 17:02:42.000000000 +0200
-@@ -0,0 +1,790 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c	2026-10-07 05:49:55.000000000 +0200
+@@ -0,0 +1,791 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <maxi.jourdan@wanadoo.fr>
@@ -5731,7 +5771,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 + * firmware still needs its sub-engines reset between pictures (the harness
 + * power-cycles, a 0x81 abandons the pipeline mid-picture): the same targeted
 + * reset, after the AMRISC has been halted and its DMA and write responses
-+ * drained, then the write-response drain again.  Never run on silicon.
++ * drained, then the write-response drain again.  Runs on the Odroid-C2
++ * (GXBB) for every HEVC picture since ohevc-sl v0.2.2.
 + */
 +static int amvdec_hevc_gx_engine_reset(struct amvdec_core *core)
 +{
@@ -6227,7 +6268,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif /* AMVDEC_OUCODE_DEV */
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,27 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -6258,7 +6299,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,484 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -6746,7 +6787,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +MODULE_FIRMWARE(OUCODE_FW_VC1);
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,42 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -6792,7 +6833,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,496 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -7292,7 +7333,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,57 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -7353,7 +7394,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,339 @@
 +# meson-amvdec (openucode) — rebuilt on the public amlogic-vdec/rfc driver
 +
@@ -7696,7 +7737,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +  results in the measurements of the round.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,2565 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -10265,7 +10306,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,59 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -10328,7 +10369,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,184 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -10516,7 +10557,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,19 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -10539,7 +10580,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,622 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -11165,7 +11206,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,1255 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -12424,7 +12465,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,1307 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -13735,7 +13776,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,135 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -13874,7 +13915,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,37 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -13915,7 +13956,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,881 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -14800,7 +14841,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,478 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -15282,7 +15323,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,24 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -15310,7 +15351,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,238 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -15552,7 +15593,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,355 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -15911,7 +15952,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,32 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -15947,7 +15988,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,416 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -16367,7 +16408,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,333 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -16704,7 +16745,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,130 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -16838,7 +16879,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,476 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -17318,7 +17359,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,28 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -17350,7 +17391,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,881 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -18235,7 +18276,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,2267 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -20506,7 +20547,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,23 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -20533,7 +20574,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,623 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -21160,7 +21201,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,75 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -21239,7 +21280,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,912 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -22155,7 +22196,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,26 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -22185,7 +22226,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,88 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -22277,7 +22318,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,23 @@
 +# SPDX-License-Identifier: GPL-2.0
 +
@@ -22304,7 +22345,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	be called meson-amvdec.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,31 @@
 +# SPDX-License-Identifier: GPL-2.0
 +# Makefile for the Amlogic meson-amvdec video decoder driver (openucode)
@@ -22339,7 +22380,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,215 @@
 +# Stateless H.264 on the open firmware (`h264_open_fw`)
 +
@@ -22558,7 +22599,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +   (PAFF) streams, which exercise the field-pair and colocated paths.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,41 @@
 +# meson-amvdec — stateless V4L2 driver for the openucode firmware
 +
@@ -22603,7 +22644,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +design and record mapping.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,124 @@
 +; T10b - VIFIFO + VLD start-code search with the VLD interrupt routed to vector 2.
 +; arg0 = buf paddr (FIFO buf[0..0x8000)), arg1 = payload bytes.
@@ -22731,7 +22772,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10c - T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -22876,7 +22917,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10d - (FIFO CONTROL with FILL_EN|EMPTY_EN) T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -23021,7 +23062,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10d - (FIFO CONTROL with FILL_EN|EMPTY_EN) T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -23166,7 +23207,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10d - (FIFO CONTROL with FILL_EN|EMPTY_EN) T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -23311,7 +23352,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10d - (FIFO CONTROL with FILL_EN|EMPTY_EN) T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -23456,7 +23497,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,129 @@
 +; T10f - poll mode, FIFO fill enabled, record every distinct VLD_STATUS_CTRL value (S0..S7 first 8 changes), host-fed VIFIFO + hardware start-code search + getbits.
 +; arg0 (AV_SCRATCH_K) = buf paddr, FIFO = buf[0..0x8000); arg1 (AV_SCRATCH_L) = payload bytes.
@@ -23589,7 +23630,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,111 @@
 +; T10 - host-fed VIFIFO + hardware start-code search + getbits.
 +; arg0 (AV_SCRATCH_K) = buf paddr, FIFO = buf[0..0x8000); arg1 (AV_SCRATCH_L) = payload bytes.
@@ -23704,7 +23745,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,101 @@
 +; T10g - own code, host-programmed FIFO (harness fifo_bytes/mpeg12_init); poll mode, FIFO fill enabled, record every distinct VLD_STATUS_CTRL value (S0..S7 first 8 changes), host-fed VIFIFO + hardware start-code search + getbits.
 +; arg0 (AV_SCRATCH_K) = buf paddr, FIFO = buf[0..0x8000); arg1 (AV_SCRATCH_L) = payload bytes.
@@ -23809,7 +23850,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,67 @@
 +; T11 - side effects of suppressed control transfers in a taken branch's delay slot.
 +; S0 = MSP after `beq taken; call sub` (0x3f = push suppressed, 0x3e = pushed)
@@ -23880,7 +23921,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,42 @@
 +; T1 - load/start, mtspi, movi/movhi, mtsp, jmp offset convention, running counter.
 +; Expected: SCRATCH_0=0xa5 SCRATCH_1=0x12345678 SCRATCH_2 increasing across
@@ -23926,7 +23967,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,86 @@
 +; T2 - delay-slot semantics.
 +; SCRATCH_4 = 1   : slot instruction executes on the TAKEN path (jmp)
@@ -24016,7 +24057,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,334 @@
 +; T3b - does the return stack live in the register file? r16..r63 preloaded with
 +; 0x1000+n; after a 40-deep call chain: SCRATCH_0..7 = r63 r60 r56 r48 r40 r32 r24 r16
@@ -24354,7 +24395,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,303 @@
 +; T3 - hidden return-stack depth. Each SCRATCH should equal its chain depth
 +; (B=4 C=6 D=8 E=12 F=16 G=24 H=32 I=40); the first wrong value marks the
@@ -24661,7 +24702,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,87 @@
 +; T4 - ei/di, MCPU_INTR_MSK polarity, software interrupt via MCPU_INTR_REQ,
 +; latching, and whether an ISR must clear the request.
@@ -24752,7 +24793,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,79 @@
 +; T5b - mul 3*5: SCRATCH_0..7 = mfmul a=0,1,2,4,8,16,24,32 (m=0)
 +; SCRATCH_8..F = mfmul m=0..7 (a=0)   SCRATCH_G = r1 after mul (clobbered?)
@@ -24835,7 +24876,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,80 @@
 +; T5c - mul 0x12345*0x6789 = 0x75CDA2ED: SCRATCH_0..7 = mfmul a=0,1,2,4,8,16,24,32 (m=0)
 +; SCRATCH_8..F = mfmul m=0..7 (a=0)   SCRATCH_G = r1 after mul (clobbered?)
@@ -24919,7 +24960,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,88 @@
 +; T5d - does MAC_CTRL1/MAC_CTRL2 set the mfmul split point?  product 0x75CCA2ED
 +; pass 1 (reset ctrl=8):     S0 = low part, S1 = high part, S2 = rounded high
@@ -25011,7 +25052,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,62 @@
 +; T5e - mul result latency. First product 3*5=15, then 7*9=63.
 +; S0..S4 = mfmul low read at mul+1, +2, +3, +4, +5 after the SECOND mul (63 = ready, 15 = stale)
@@ -25077,7 +25118,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,68 @@
 +; T5 - mul rd, rb and mfmul rb, a, m.
 +; 0x12345 * 0x6789 = 0x75CD9F4CD (unsigned) -> SCRATCH_0 low32, _1 = >>16, _2 = >>32
@@ -25149,7 +25190,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,123 @@
 +; T6 - shifts, ext/ins operand order, subs flags and jCC (signed vs unsigned).
 +; r1=0x80000010:
@@ -25276,7 +25317,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,170 @@
 +; T6b - subs flags and jCC. bitmask of TAKEN jCC:
 +; bit0 jne bit1 jeq bit2 jgt bit3 jle bit4 jge bit5 jlt
@@ -25450,7 +25491,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,86 @@
 +; T9 - LMEM DMA both directions into the host buffer (arg0 = buf paddr in AV_SCRATCH_K).
 +; 1. LMEM[0x100..0x13f] := 0x1000+i, then LMEM->DDR at buf+0, COUNT=64, CTRL=0x8100
@@ -25540,7 +25581,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,32 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -25576,7 +25617,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,308 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -25888,7 +25929,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,506 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -26398,7 +26439,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,174 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -26576,7 +26617,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,205 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -26785,7 +26826,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,487 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -27276,7 +27317,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,256 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -27536,7 +27577,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,165 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -27705,7 +27746,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,256 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -27965,7 +28006,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,192 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -28161,7 +28202,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,706 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -28871,7 +28912,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,453 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -29328,7 +29369,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +MODULE_AUTHOR("Boris Brezillon <boris.brezillon@collabora.com>");
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,280 @@
 +/* SPDX-License-Identifier: ((GPL-2.0+ WITH Linux-syscall-note) OR BSD-3-Clause) */
 +/*
@@ -29612,7 +29653,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif /* AVCODEC_V4L2_STATELESS_MPEG4_H */
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h	2026-10-06 17:02:42.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h	2026-10-07 05:49:55.000000000 +0200
 @@ -0,0 +1,547 @@
 +/* SPDX-License-Identifier: ((GPL-2.0+ WITH Linux-syscall-note) OR BSD-3-Clause) */
 +/*
