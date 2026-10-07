@@ -1,6 +1,6 @@
 
 GARNAME      = amlogic-openucode-firmware
-GARVERSION   = d25d90688eaea947a31000b604032b74a6187d2c
+GARVERSION   = 65d1be2f2291918721784243a1fa8a7b00d37b26
 CATEGORIES   = firmware
 MASTER_SITES = https://github.com/gusbourg/openucode/archive/
 DISTFILES    = $(GARVERSION).zip
