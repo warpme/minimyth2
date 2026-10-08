@@ -552,9 +552,11 @@ PATCHFILES += 4007-drm-increase-plane_mask-to-64bit.patch
 PATCHFILES += 4008-char-add-vc_mem-driver-for-querying-firmware.patch
 PATCHFILES += 4009-clk-bcm-changes-to-get-rpi4-v4l2m2m-working.patch
 # bcm2711 dtsi additions
-PATCHFILES += 4200-arm64-dts-brcm-rpi4-set-led-to-disk-activity-mmc0-alias.patch
-PATCHFILES += 4201-arm64-dts-brcm-rpi4-incr-cma-to-384M.patch
-PATCHFILES += 4202-arm64-dts-brcm-rpi4-add-rpivid.patch
+PATCHFILES += 4200-arm-2711dtsi-fix-dma-ranges-for-periphs.patch
+# rpi4 dts additions
+PATCHFILES += 4300-arm64-dts-brcm-rpi4-set-led-to-disk-activity-mmc0-alias.patch
+PATCHFILES += 4301-arm64-dts-brcm-rpi4-incr-cma-to-384M.patch
+PATCHFILES += 4302-arm64-dts-brcm-rpi4-add-rpivid.patch
 # bcm2712 drivers additions
 PATCHFILES += 4401-drivers-clk-add-rp1-support.patch
 PATCHFILES += 4402-drivers-dma-add-rp1-support.patch
@@ -565,7 +567,6 @@ PATCHFILES += 4407-drivers-pwm-add-rp1-support.patch
 PATCHFILES += 4408-drivers-hwmon-add-rp1-support.patch
 PATCHFILES += 4409-drivers-thermal-add-rp1-support.patch
 PATCHFILES += 4410-gpu-drm-vc4-add-rpi5-support.patch
-PATCHFILES += 4411-drm-vc4-hdmi-hack-for-rpi4-rpi5-audio.patch
 PATCHFILES += 4412-mailbox-Add-RP1-mailbox-support.patch
 PATCHFILES += 4413-firmware-Add-an-RP1-firmware-interface-over-mbox.patch
 PATCHFILES += 4414-misc-Add-RP1-PIO-driver.patch
