@@ -1,0 +1,111 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+
+Wire the msm DisplayPort driver up to the DRM DP CEC helper so that
+DP-to-HDMI adapters exposing CEC tunneling over AUX can provide a CEC
+adapter.
+
+Register the CEC connector when the DP connector is created, attach the
+CEC adapter after EDID parsing so that the source physical address is
+available, and unregister the adapter during unbind.
+
+CEC tunneling reports TX/RX completion through IRQ_HPD. IRQ_HPD is
+delivered via drm_bridge_hpd_notify(), and msm_dp_bridge_hpd_notify()
+decides between the IRQ_HPD and the (re)plug paths based on the current
+HPD state read back from the controller, so the IRQ_HPD handler is not
+guaranteed to run for every pulse. Service CEC directly from the IRQ
+thread instead, so that pending CEC events are never missed. Without
+this, CEC transmissions time out and logical address polling fails.
+
+Also invalidate the CEC state when the sink goes away, when downstream
+information cannot be read, or when EDID probing fails. This avoids
+keeping a stale CEC physical address after DP-to-HDMI hotplug changes.
+
+
+---
+ drivers/gpu/drm/msm/dp/dp_display.c | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index c251628..eb42bf2 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -234,6 +234,7 @@ static void msm_dp_display_unbind(struct device *dev, struct device *master,
+ 
+ 	of_dp_aux_depopulate_bus(dp->aux);
+ 
++	drm_dp_cec_unregister_connector(dp->aux);
+ 	msm_dp_aux_unregister(dp->aux);
+ 	dp->drm_dev = NULL;
+ 	dp->aux->drm_dev = NULL;
+@@ -283,8 +284,11 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
+ 	drm_edid = drm_edid_read_ddc(connector, &dp->aux->ddc);
+ 	drm_edid_connector_update(connector, drm_edid);
+ 
+-	if (!drm_edid) {
++	if (drm_edid) {
++		drm_dp_cec_attach(dp->aux, info->source_physical_address);
++	} else {
+ 		DRM_ERROR("panel edid read failed\n");
++		drm_dp_cec_unset_edid(dp->aux);
+ 		/* check edid read fail is due to unplug */
+ 		if (!msm_dp_aux_is_link_connected(dp->aux))
+ 			return -ETIMEDOUT;
+@@ -312,6 +316,9 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
+ 	msm_dp_link_reset_phy_params_vx_px(dp->link);
+ 
+ end:
++	/* Don't keep a stale CEC physical address if the sink went away */
++	if (rc)
++		drm_dp_cec_unset_edid(dp->aux);
+ 	drm_edid_free(drm_edid);
+ 	return rc;
+ }
+@@ -452,6 +459,7 @@ static int msm_dp_hpd_unplug_handle(struct msm_dp_display_private *dp)
+ 
+ 	dp->panel->video_test = false;
+ 
++	drm_dp_cec_unset_edid(dp->aux);
+ 	msm_dp_aux_enable_xfers(dp->aux, false);
+ 
+ 	drm_dbg_dp(dp->drm_dev, "Before, type=%d sink_count=%d\n",
+@@ -1010,10 +1018,18 @@ static irqreturn_t msm_dp_display_irq_thread(int irq, void *dev_id)
+ 				      connector_status_connected);
+ 
+ 	/* Send HPD as connected and distinguish it in the notifier */
+-	if (hpd_isr_status & DP_DP_IRQ_HPD_INT_MASK)
++	if (hpd_isr_status & DP_DP_IRQ_HPD_INT_MASK) {
+ 		drm_bridge_hpd_notify(dp->msm_dp_display.bridge,
+ 				      connector_status_connected);
+ 
++		/*
++		 * CEC tunneling signals TX/RX completion through IRQ_HPD. The
++		 * notifier above may take the (re)plug path instead of
++		 * msm_dp_irq_hpd_handle(), so service CEC here unconditionally.
++		 */
++		drm_dp_cec_irq(dp->aux);
++	}
++
+ 	ret = IRQ_HANDLED;
+ 
+ 	return ret;
+@@ -1404,6 +1420,7 @@ int msm_dp_modeset_init(struct msm_dp *msm_dp_display, struct drm_device *dev,
+ 	}
+ 
+ 	msm_dp_priv->panel->connector = msm_dp_display->connector;
++	drm_dp_cec_register_connector(msm_dp_priv->aux, msm_dp_display->connector);
+ 
+ 	return 0;
+ }
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+

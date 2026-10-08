@@ -135,7 +135,6 @@ endif
 ifeq (1,1)
 # stateless amvdec
 PATCHFILES += 1411-media-amlogic-inclide-amvdec-into-drivers-media.patch
-# PATCHFILES += 1412-media-amlogic-add-amvdec-g65d1be2f22.patch
 PATCHFILES += 1412-media-amlogic-add-amvdec-gc58504cf81.patch
 endif
 # g12/sm1 dtsi additions
@@ -628,22 +627,7 @@ PATCHFILES += 5115-0012-phy-qcom-qmp-ufs-Fix-HS-G4-PHY-init-table-for-sc7280.pat
 # drm patches
 PATCHFILES += 5121-0032-drm-msm-dp-Delay-applying-clock-defaults-until-PHY-i.patch
 PATCHFILES += 5124-0066-drm-bridge-simple-add-the-Chrontel-CH7218A-DP-to-HDM.patch
-
-ifeq (0,1)
-# todo for 7.3 kernel
-PATCHFILES += 5131-0087-drm-msm-dp-add-DisplayPort-CEC-Tunneling-over-AUX-su.patch
-PATCHFILES += 5132-0140-drm-msm-dp-Do-not-fail-audio-prepare-when-DP-is-inac.patch
-PATCHFILES += 5133-0141-fixup-drm-msm-dp-Add-DisplayPort-CEC-tunneling-over-.patch
-PATCHFILES += 5134-0142-drm-msm-dp-Keep-branch-sink-count-in-sync.patch
-PATCHFILES += 5135-0143-drm-msm-dpu-Reassert-core-clock-rate-on-runtime-resu.patch
-PATCHFILES += 5136-0144-drm-msm-dpu-Clear-stale-DSC-resources-during-modeset.patch
-PATCHFILES += 5137-0145-drm-msm-dp-Fix-parity-calculation-for-multi-byte-pay.patch
-PATCHFILES += 5138-0179-drm-msm-dp-add-missing-drm_edid_connector_update-bef.patch
-PATCHFILES += 5139-0232-drm-msm-dsi-enable-continuous-clock-for-SC7280-DSI-P.patch
-PATCHFILES += 5141-0275-drm-msm-dpu-cap-DSPP-reservations-by-hardware-count.patch
-PATCHFILES += 5142-drm-msm-dp-revert-g5043357e75b-to-fix-non-working-cec.patch
-endif
-
+PATCHFILES += 5125-drm-msm-dp-Add-DisplayPort-CEC-tunneling-over-AUX-su.patch
 # network misc patches
 PATCHFILES += 5150-0069-net-phy-qca808x-add-DT-configurable-LED-preset-modes.patch
 PATCHFILES += 5151-0108-net-phy-qcom-qca808x-add-Wake-on-LAN-support.patch
