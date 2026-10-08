@@ -1,6 +1,6 @@
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,1498 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -1502,7 +1502,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amrisc_test.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,28 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -1534,8 +1534,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,482 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.c	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,518 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 BayLibre, SAS
@@ -1555,6 +1555,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 +#include "amvdec_helpers.h"
 +#include "dos_regs.h"
++
++#ifdef AMVDEC_OUCODE_DEV
++static uint vdec1_mcrcc_stall;
++module_param(vdec1_mcrcc_stall, uint, 0644);
++MODULE_PARM_DESC(vdec1_mcrcc_stall, "DOS_VDEC_MCRCC_STALL_CTRL value written at VDEC_1 power-up (experiments; default 0)");
++#else
++static const uint vdec1_mcrcc_stall;
++#endif
 +
 +static uint vdec1_clk_hz = 666666666;
 +module_param(vdec1_clk_hz, uint, 0644);
@@ -1625,14 +1633,81 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	udelay(10);
 +	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0);
 +
-+	if (amvdec_is_g12(core))
++	if (amvdec_has_dmc(core))
 +		meson_amvdec_dmc_pipeline_reset(core);
++}
++
++static int amvdec_1_power_on(struct amvdec_core *core)
++{
++	if (core->pd_list)
++		return meson_amvdec_power_domain_on(core, AMVDEC_PD_VDEC_1);
++
++	if (core->platform->revision == AMVDEC_REVISION_SM1)
++		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
++				   GEN_PWR_VDEC_1_SM1, 0);
++	else
++		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
++				   GEN_PWR_VDEC_1, 0);
++	return 0;
++}
++
++static void amvdec_1_power_off(struct amvdec_core *core)
++{
++	if (core->pd_list) {
++		meson_amvdec_power_domain_off(core, AMVDEC_PD_VDEC_1);
++		return;
++	}
++
++	if (core->platform->revision == AMVDEC_REVISION_SM1)
++		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
++				   GEN_PWR_VDEC_1_SM1, GEN_PWR_VDEC_1_SM1);
++	else
++		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
++				   GEN_PWR_VDEC_1, GEN_PWR_VDEC_1);
++}
++
++/* The secure monitor handles isolation along with the power domain. */
++static void amvdec_1_isolate(struct amvdec_core *core, bool isolate)
++{
++	u32 mask;
++
++	if (core->pd_list)
++		return;
++
++	mask = core->platform->revision == AMVDEC_REVISION_SM1 ?
++	       GEN_PWR_VDEC_1_SM1 : GEN_PWR_VDEC_1_ISO;
++	regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0, mask,
++			   isolate ? mask : 0);
++}
++
++/*
++ * Reset and clock the freshly powered core.  With power domains (S4) the
++ * vendor powers the memories before the reset, holds the reset, and only
++ * enables the low ten gate bits; the older SoCs reset first.
++ */
++static void amvdec_1_reset_and_clock(struct amvdec_core *core)
++{
++	if (core->pd_list) {
++		meson_amvdec_write_dos(core, DOS_MEM_PD_VDEC, 0);
++		meson_amvdec_write_dos(core, DOS_SW_RESET0, 0xfffffffc);
++		usleep_range(20, 100);
++		meson_amvdec_write_dos(core, DOS_SW_RESET0, 0x00000000);
++		usleep_range(20, 100);
++		meson_amvdec_write_dos(core, DOS_MEM_PD_VDEC, 0);
++		meson_amvdec_write_dos_bits(core, DOS_GCLK_EN0, 0x3ff);
++		return;
++	}
++
++	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0xfffffffc);
++	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0x00000000);
++	meson_amvdec_write_dos(core, DOS_GCLK_EN0, 0x3ff);
++	meson_amvdec_write_dos(core, DOS_MEM_PD_VDEC, 0);
 +}
 +
 +/* Quiesce the powered VDEC_1 core. */
 +static void amvdec_1_quiesce_reset(struct amvdec_core *core)
 +{
-+	if (!amvdec_is_g12(core)) {
++	if (!amvdec_has_dmc(core)) {
 +		amvdec_1_core_scrub(core);
 +		return;
 +	}
@@ -1790,21 +1865,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	amvdec_1_quiesce_reset(core);
 +
 +	/* enable vdec1 isolation */
-+	if (core->platform->revision == AMVDEC_REVISION_SM1)
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0,
-+				   GEN_PWR_VDEC_1_SM1, GEN_PWR_VDEC_1_SM1);
-+	else
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0,
-+				   GEN_PWR_VDEC_1_ISO, GEN_PWR_VDEC_1_ISO);
++	amvdec_1_isolate(core, true);
 +	/* power off vdec1 memories */
 +	meson_amvdec_write_dos(core, DOS_MEM_PD_VDEC, 0xffffffff);
 +	/* power off vdec1 */
-+	if (core->platform->revision == AMVDEC_REVISION_SM1)
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
-+				   GEN_PWR_VDEC_1_SM1, GEN_PWR_VDEC_1_SM1);
-+	else
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
-+				   GEN_PWR_VDEC_1, GEN_PWR_VDEC_1);
++	amvdec_1_power_off(core);
 +
 +	if (sess->priv)
 +		codec_ops->stop(sess);
@@ -1834,44 +1899,31 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		return ret;
 +
 +	/* Enable power for VDEC_1 */
-+	if (core->platform->revision == AMVDEC_REVISION_SM1)
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
-+				   GEN_PWR_VDEC_1_SM1, 0);
-+	else
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
-+				   GEN_PWR_VDEC_1, 0);
++	ret = amvdec_1_power_on(core);
++	if (ret) {
++		clk_disable_unprepare(core->amvdec_1_clk);
++		return ret;
++	}
 +	usleep_range(10, 20);
 +
 +	/*
 +	 * Park the DMC port before powering up. Access DOS registers only after
 +	 * the memories are powered and isolation is removed, then reset the core.
 +	 */
-+	if (amvdec_is_g12(core))
++	if (amvdec_has_dmc(core))
 +		meson_amvdec_dmc_park(core, DMC_REQ_VDEC_1);
 +
-+	/* Reset VDEC1 */
-+	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0xfffffffc);
-+	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0x00000000);
-+
-+	meson_amvdec_write_dos(core, DOS_GCLK_EN0, 0x3ff);
-+
-+	/* enable VDEC Memories */
-+	meson_amvdec_write_dos(core, DOS_MEM_PD_VDEC, 0);
++	amvdec_1_reset_and_clock(core);
 +	/* Remove VDEC1 Isolation */
-+	if (core->platform->revision == AMVDEC_REVISION_SM1)
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0,
-+				   GEN_PWR_VDEC_1_SM1, 0);
-+	else
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0,
-+				   GEN_PWR_VDEC_1_ISO, 0);
++	amvdec_1_isolate(core, false);
 +
 +	/* Domain fully up: scrub the sub-engines, then reconnect DDR */
 +	amvdec_1_core_scrub(core);
-+	if (amvdec_is_g12(core))
++	if (amvdec_has_dmc(core))
 +		meson_amvdec_dmc_unpark(core, DMC_REQ_VDEC_1);
 +
 +	/* Reset DOS top registers */
-+	meson_amvdec_write_dos(core, DOS_VDEC_MCRCC_STALL_CTRL, 0);
++	meson_amvdec_write_dos(core, DOS_VDEC_MCRCC_STALL_CTRL, vdec1_mcrcc_stall);
 +
 +	meson_amvdec_write_dos(core, GCLK_EN, 0x3ff);
 +	meson_amvdec_clear_dos_bits(core, MDEC_PIC_DC_CTRL, BIT(31));
@@ -1935,9 +1987,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	int ret;
 +
 +	/* DOS top clocks: a session enables these in amvdec.c before start */
-+	ret = clk_prepare_enable(core->dos_parser_clk);
-+	if (ret)
-+		return ret;
++	if (core->dos_parser_clk) {
++		ret = clk_prepare_enable(core->dos_parser_clk);
++		if (ret)
++			return ret;
++	}
 +	ret = clk_prepare_enable(core->dos_clk);
 +	if (ret)
 +		goto err_parser;
@@ -1947,43 +2001,34 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	if (ret)
 +		goto err_dos;
 +
-+	if (core->platform->revision == AMVDEC_REVISION_SM1)
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
-+				   GEN_PWR_VDEC_1_SM1, 0);
-+	else
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
-+				   GEN_PWR_VDEC_1, 0);
++	ret = amvdec_1_power_on(core);
++	if (ret)
++		goto err_vdec;
 +	usleep_range(10, 20);
 +
-+	if (amvdec_is_g12(core))
++	if (amvdec_has_dmc(core))
 +		meson_amvdec_dmc_park(core, DMC_REQ_VDEC_1);
 +
-+	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0xfffffffc);
-+	meson_amvdec_write_dos(core, DOS_SW_RESET0, 0x00000000);
-+	meson_amvdec_write_dos(core, DOS_GCLK_EN0, 0x3ff);
-+	meson_amvdec_write_dos(core, DOS_MEM_PD_VDEC, 0);
-+
-+	if (core->platform->revision == AMVDEC_REVISION_SM1)
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0,
-+				   GEN_PWR_VDEC_1_SM1, 0);
-+	else
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0,
-+				   GEN_PWR_VDEC_1_ISO, 0);
++	amvdec_1_reset_and_clock(core);
++	amvdec_1_isolate(core, false);
 +
 +	amvdec_1_core_scrub(core);
-+	if (amvdec_is_g12(core))
++	if (amvdec_has_dmc(core))
 +		meson_amvdec_dmc_unpark(core, DMC_REQ_VDEC_1);
 +
-+	meson_amvdec_write_dos(core, DOS_VDEC_MCRCC_STALL_CTRL, 0);
++	meson_amvdec_write_dos(core, DOS_VDEC_MCRCC_STALL_CTRL, vdec1_mcrcc_stall);
 +	meson_amvdec_write_dos(core, GCLK_EN, 0x3ff);
 +	meson_amvdec_clear_dos_bits(core, MDEC_PIC_DC_CTRL, BIT(31));
 +
 +	return 0;
 +
++err_vdec:
++	clk_disable_unprepare(core->amvdec_1_clk);
 +err_dos:
 +	clk_disable_unprepare(core->dos_clk);
 +err_parser:
-+	clk_disable_unprepare(core->dos_parser_clk);
++	if (core->dos_parser_clk)
++		clk_disable_unprepare(core->dos_parser_clk);
 +	return ret;
 +}
 +
@@ -1999,28 +2044,19 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +
 +	amvdec_1_quiesce_reset(core);
 +
-+	if (core->platform->revision == AMVDEC_REVISION_SM1)
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0,
-+				   GEN_PWR_VDEC_1_SM1, GEN_PWR_VDEC_1_SM1);
-+	else
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_ISO0,
-+				   GEN_PWR_VDEC_1_ISO, GEN_PWR_VDEC_1_ISO);
++	amvdec_1_isolate(core, true);
 +	meson_amvdec_write_dos(core, DOS_MEM_PD_VDEC, 0xffffffff);
-+	if (core->platform->revision == AMVDEC_REVISION_SM1)
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
-+				   GEN_PWR_VDEC_1_SM1, GEN_PWR_VDEC_1_SM1);
-+	else
-+		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
-+				   GEN_PWR_VDEC_1, GEN_PWR_VDEC_1);
++	amvdec_1_power_off(core);
 +
 +	clk_disable_unprepare(core->amvdec_1_clk);
 +	clk_disable_unprepare(core->dos_clk);
-+	clk_disable_unprepare(core->dos_parser_clk);
++	if (core->dos_parser_clk)
++		clk_disable_unprepare(core->dos_parser_clk);
 +}
 +#endif /* AMVDEC_OUCODE_DEV */
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_1.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,19 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -2043,8 +2079,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,1852 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.c	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,1889 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 BayLibre, SAS
@@ -2059,6 +2095,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#include <linux/io.h>
 +#include <linux/module.h>
 +#include <linux/platform_device.h>
++#include <linux/pm_domain.h>
 +#include <linux/mfd/syscon.h>
 +#include <linux/slab.h>
 +#include <linux/interrupt.h>
@@ -2126,9 +2163,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	int ret;
 +	struct amvdec_ops *vdec_ops = sess->fmt_out->vdec_ops;
 +
-+	ret = clk_prepare_enable(sess->core->dos_parser_clk);
-+	if (ret)
-+		return ret;
++	if (sess->core->dos_parser_clk) {
++		ret = clk_prepare_enable(sess->core->dos_parser_clk);
++		if (ret)
++			return ret;
++	}
 +
 +	ret = clk_prepare_enable(sess->core->dos_clk);
 +	if (ret)
@@ -2138,7 +2177,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	if (ret)
 +		goto disable_dos;
 +
-+	if (vdec_needs_parser_vififo(sess))
++	if (vdec_needs_parser_vififo(sess) && amvdec_has_esparser(sess->core))
 +		meson_amvdec_esparser_power_up(sess);
 +
 +	return 0;
@@ -2146,7 +2185,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +disable_dos:
 +	clk_disable_unprepare(sess->core->dos_clk);
 +disable_dos_parser:
-+	clk_disable_unprepare(sess->core->dos_parser_clk);
++	if (sess->core->dos_parser_clk)
++		clk_disable_unprepare(sess->core->dos_parser_clk);
 +
 +	return ret;
 +}
@@ -2175,7 +2215,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	sess->should_stop = 1;
 +	vdec_wait_inactive(sess);
 +
-+	meson_amvdec_esparser_quiesce(sess->core);
++	if (amvdec_has_esparser(sess->core))
++		meson_amvdec_esparser_quiesce(sess->core);
 +
 +	/*
 +	 * Detach the session and synchronize its IRQ before freeing codec memory.
@@ -2189,7 +2230,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	ret = vdec_ops->stop(sess);
 +	if (!ret) {
 +		clk_disable_unprepare(sess->core->dos_clk);
-+		clk_disable_unprepare(sess->core->dos_parser_clk);
++		if (sess->core->dos_parser_clk)
++			clk_disable_unprepare(sess->core->dos_parser_clk);
 +	}
 +	mutex_unlock(&sess->core->claim_lock);
 +
@@ -3671,7 +3713,20 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	  .data = &meson_amvdec_platform_g12a },
 +	{ .compatible = "amlogic,sm1-vdec",
 +	  .data = &meson_amvdec_platform_sm1 },
++	{ .compatible = "amlogic,s4-vdec",
++	  .data = &meson_amvdec_platform_s4 },
 +	{}
++};
++
++static const char * const vdec_pd_names[] = {
++	[AMVDEC_PD_VDEC_1] = "vdec",
++	[AMVDEC_PD_HEVC] = "hevc",
++};
++
++static const struct dev_pm_domain_attach_data vdec_pd_data = {
++	.pd_names = vdec_pd_names,
++	.num_pd_names = ARRAY_SIZE(vdec_pd_names),
++	.pd_flags = PD_FLAG_NO_DEV_LINK,
 +};
 +MODULE_DEVICE_TABLE(of, vdec_dt_match);
 +
@@ -3730,28 +3785,42 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	if (!core->fw_vaddr)
 +		return -ENOMEM;
 +
++	of_id = of_match_node(vdec_dt_match, dev->of_node);
++	core->platform = of_id->data;
++
 +	core->dos_base = devm_platform_ioremap_resource_byname(pdev, "dos");
 +	if (IS_ERR(core->dos_base))
 +		return PTR_ERR(core->dos_base);
 +
-+	core->esparser_base = devm_platform_ioremap_resource_byname(pdev, "esparser");
-+	if (IS_ERR(core->esparser_base))
-+		return PTR_ERR(core->esparser_base);
++	if (amvdec_has_esparser(core)) {
++		core->esparser_base =
++			devm_platform_ioremap_resource_byname(pdev, "esparser");
++		if (IS_ERR(core->esparser_base))
++			return PTR_ERR(core->esparser_base);
 +
-+	core->regmap_ao =
-+		syscon_regmap_lookup_by_phandle(dev->of_node,
-+						"amlogic,ao-sysctrl");
-+	if (IS_ERR(core->regmap_ao)) {
-+		dev_err(dev, "Couldn't regmap AO sysctrl\n");
-+		return PTR_ERR(core->regmap_ao);
++		core->regmap_ao =
++			syscon_regmap_lookup_by_phandle(dev->of_node,
++							"amlogic,ao-sysctrl");
++		if (IS_ERR(core->regmap_ao)) {
++			dev_err(dev, "Couldn't regmap AO sysctrl\n");
++			return PTR_ERR(core->regmap_ao);
++		}
++	} else {
++		/* S4: the secure monitor switches the decoder domains */
++		ret = devm_pm_domain_attach_list(dev, &vdec_pd_data,
++						 &core->pd_list);
++		if (ret < 0)
++			return dev_err_probe(dev, ret,
++					     "Couldn't attach power domains\n");
 +	}
++
++	ret = meson_amvdec_dmc_init(pdev, core);
++	if (ret)
++		return dev_err_probe(dev, ret, "Couldn't map the DMC\n");
 +
 +	core->canvas = meson_canvas_get(dev);
 +	if (IS_ERR(core->canvas))
 +		return PTR_ERR(core->canvas);
-+
-+	of_id = of_match_node(vdec_dt_match, dev->of_node);
-+	core->platform = of_id->data;
 +
 +	if (core->platform->revision == AMVDEC_REVISION_G12A ||
 +	    core->platform->revision == AMVDEC_REVISION_SM1) {
@@ -3760,9 +3829,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +			return -EPROBE_DEFER;
 +	}
 +
-+	core->dos_parser_clk = devm_clk_get(dev, "dos_parser");
-+	if (IS_ERR(core->dos_parser_clk))
-+		return -EPROBE_DEFER;
++	if (amvdec_has_esparser(core)) {
++		core->dos_parser_clk = devm_clk_get(dev, "dos_parser");
++		if (IS_ERR(core->dos_parser_clk))
++			return -EPROBE_DEFER;
++	}
 +
 +	core->dos_clk = devm_clk_get(dev, "dos");
 +	if (IS_ERR(core->dos_clk))
@@ -3787,9 +3858,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	if (ret)
 +		return ret;
 +
-+	ret = meson_amvdec_esparser_init(pdev, core);
-+	if (ret)
-+		return ret;
++	if (amvdec_has_esparser(core)) {
++		ret = meson_amvdec_esparser_init(pdev, core);
++		if (ret)
++			return ret;
++	}
 +
 +	ret = v4l2_device_register(dev, &core->v4l2_dev);
 +	if (ret) {
@@ -3899,8 +3972,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +MODULE_LICENSE("GPL");
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,460 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec.h	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,466 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
 + * Copyright (C) 2018 BayLibre, SAS
@@ -4000,7 +4073,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 + *
 + * @dos_base: DOS memory base address
 + * @esparser_base: PARSER memory base address
-+ * @regmap_ao: regmap for the AO bus
++ * @regmap_ao: regmap for the AO bus (SoCs with AO power bits; NULL on S4)
++ * @dmc_base: DMC request control window (G12A/G12B/SM1/S4), NULL otherwise
++ * @dmc_chan_sts: offset of the DMC channel status register in that window
++ * @pd_list: VDEC_1 and VDEC_HEVC power domains (S4), NULL otherwise
 + * @dev: core device
 + * @dev_dec: decoder device
 + * @platform: platform-specific data
@@ -4023,6 +4099,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	struct workqueue_struct *wq;
 +	void __iomem *esparser_base;
 +	struct regmap *regmap_ao;
++	void __iomem *dmc_base;
++	u32 dmc_chan_sts;
++	struct dev_pm_domain_list *pd_list;
 +
 +	struct device *dev;
 +	struct device *dev_dec;
@@ -4363,8 +4442,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,976 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,1010 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 BayLibre, SAS
@@ -4377,6 +4456,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#include <linux/gcd.h>
 +#include <linux/delay.h>
 +#include <linux/io.h>
++#include <linux/platform_device.h>
++#include <linux/pm_domain.h>
++#include <linux/pm_runtime.h>
 +#include <linux/moduleparam.h>
 +#include <linux/slab.h>
 +#include <media/v4l2-mem2mem.h>
@@ -4537,7 +4619,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#define G12A_DMC_BASE		0xff638000
 +#define G12A_DMC_SIZE		0x100
 +	#define DMC_REQ_CTRL	0x00
-+	#define DMC_CHAN_STS	0xd8
++	#define G12A_DMC_CHAN_STS	0xd8
++	#define S4_DMC_CHAN_STS	0x338
 +
 +/* RESET7 pulse register; bits 15:11 are the DMC decode pipelines */
 +#define G12A_RESET7_ADDR	0xffd01020
@@ -4550,46 +4633,76 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	return *cache;
 +}
 +
++/*
++ * The DMC window is shared with other blocks (the canvas on S4), so it is
++ * mapped without claiming the region.  G12A/G12B/SM1 have it at a fixed
++ * address; S4 describes it in DT ("dmc") and moved the channel status
++ * register to 0x338.
++ */
++int meson_amvdec_dmc_init(struct platform_device *pdev, struct amvdec_core *core)
++{
++	struct device *dev = &pdev->dev;
++	struct resource *res;
++
++	if (core->platform->revision == AMVDEC_REVISION_S4) {
++		res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dmc");
++		if (!res)
++			return -EINVAL;
++
++		core->dmc_base = devm_ioremap(dev, res->start, resource_size(res));
++		core->dmc_chan_sts = S4_DMC_CHAN_STS;
++	} else if (amvdec_is_g12(core)) {
++		core->dmc_base = devm_ioremap(dev, G12A_DMC_BASE, G12A_DMC_SIZE);
++		core->dmc_chan_sts = G12A_DMC_CHAN_STS;
++	} else {
++		return 0;
++	}
++
++	return core->dmc_base ? 0 : -ENOMEM;
++}
++
 +int meson_amvdec_dmc_park(struct amvdec_core *core, u32 mask)
 +{
-+	static void __iomem *dmc_base;
 +	u32 val;
 +	int i;
 +
-+	/* G12 physical addresses: not the reset/DMC blocks of older SoCs */
-+	if (!amvdec_is_g12(core))
++	if (!amvdec_has_dmc(core))
 +		return -EOPNOTSUPP;
 +
-+	if (!amvdec_map(G12A_DMC_BASE, G12A_DMC_SIZE, &dmc_base))
-+		return -ENOMEM;
-+
-+	val = readl(dmc_base + DMC_REQ_CTRL);
-+	writel(val & ~mask, dmc_base + DMC_REQ_CTRL);
++	val = readl(core->dmc_base + DMC_REQ_CTRL);
++	writel(val & ~mask, core->dmc_base + DMC_REQ_CTRL);
 +
 +	for (i = 0; i < 100; i++) {
-+		if ((readl(dmc_base + DMC_CHAN_STS) & mask) == mask)
++		if ((readl(core->dmc_base + core->dmc_chan_sts) & mask) == mask)
 +			return 0;
 +		udelay(10);
 +	}
 +
-+	dev_warn(core->dev, "DMC ports %08x did not idle before reset\n", mask);
++	dev_warn(core->dev, "DMC port %#x did not go idle\n", mask);
 +	return -ETIMEDOUT;
 +}
 +
 +void meson_amvdec_dmc_unpark(struct amvdec_core *core, u32 mask)
 +{
-+	static void __iomem *dmc_base;
 +	u32 val;
 +
-+	/* G12 physical addresses: not the reset/DMC blocks of older SoCs */
-+	if (!amvdec_is_g12(core))
++	if (!amvdec_has_dmc(core))
 +		return;
 +
-+	if (!amvdec_map(G12A_DMC_BASE, G12A_DMC_SIZE, &dmc_base))
-+		return;
++	val = readl(core->dmc_base + DMC_REQ_CTRL);
++	writel(val | mask, core->dmc_base + DMC_REQ_CTRL);
++}
 +
-+	val = readl(dmc_base + DMC_REQ_CTRL);
-+	writel(val | mask, dmc_base + DMC_REQ_CTRL);
++int meson_amvdec_power_domain_on(struct amvdec_core *core,
++				 enum amvdec_power_domain pd)
++{
++	return pm_runtime_resume_and_get(core->pd_list->pd_devs[pd]);
++}
++
++void meson_amvdec_power_domain_off(struct amvdec_core *core,
++				   enum amvdec_power_domain pd)
++{
++	pm_runtime_put_sync(core->pd_list->pd_devs[pd]);
 +}
 +
 +void meson_amvdec_dmc_pipeline_reset(struct amvdec_core *core)
@@ -5343,8 +5456,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,126 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,155 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
 + * Copyright (C) 2018 BayLibre, SAS
@@ -5359,6 +5472,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +
 +#include "amvdec.h"
 +
++struct platform_device;
++
 +/*
 + * G12A, G12B and SM1 route decoder DDR requests through the DMC and provide
 + * RESET7 pipeline resets; GXBB/GXL/GXM do not.
@@ -5368,6 +5483,33 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	return core->platform->revision == AMVDEC_REVISION_G12A ||
 +	       core->platform->revision == AMVDEC_REVISION_SM1;
 +}
++
++/*
++ * S4 and later have no ESPARSER (the open codecs never use it; the probe and
++ * the session power path must not touch it) and switch decoder power through
++ * the secure monitor's power domains instead of the AO sleep/isolation bits.
++ */
++static inline bool amvdec_has_esparser(struct amvdec_core *core)
++{
++	return core->platform->revision < AMVDEC_REVISION_S4;
++}
++
++/* The DMC request port exists on G12A/G12B/SM1 (fixed window) and S4 (DT). */
++static inline bool amvdec_has_dmc(struct amvdec_core *core)
++{
++	return core->dmc_base;
++}
++
++enum amvdec_power_domain {
++	AMVDEC_PD_VDEC_1,
++	AMVDEC_PD_HEVC,
++};
++
++int meson_amvdec_dmc_init(struct platform_device *pdev, struct amvdec_core *core);
++int meson_amvdec_power_domain_on(struct amvdec_core *core,
++				 enum amvdec_power_domain pd);
++void meson_amvdec_power_domain_off(struct amvdec_core *core,
++				   enum amvdec_power_domain pd);
 +
 +void *meson_amvdec_dma_alloc_guarded(struct device *dev, size_t size,
 +			       dma_addr_t *dma_handle, gfp_t gfp,
@@ -5473,7 +5615,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,791 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -6268,7 +6410,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif /* AMVDEC_OUCODE_DEV */
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_hevc.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,27 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -6299,8 +6441,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,484 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,525 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 BayLibre, SAS
@@ -6434,6 +6576,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		.flags = V4L2_FMT_FLAG_COMPRESSED,
 +	},
 +	AMVDEC_FMT_MPEG4_H263,
++	AMVDEC_FMT_VC1,
 +};
 +
 +static const struct amvdec_format amvdec_formats_gxl[] = {
@@ -6483,6 +6626,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		.flags = V4L2_FMT_FLAG_COMPRESSED,
 +	},
 +	AMVDEC_FMT_MPEG4_H263,
++	AMVDEC_FMT_VC1,
 +};
 +
 +static const struct amvdec_format amvdec_formats_gxlx[] = {
@@ -6532,6 +6676,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		.flags = V4L2_FMT_FLAG_COMPRESSED,
 +	},
 +	AMVDEC_FMT_MPEG4_H263,
++	AMVDEC_FMT_VC1,
 +};
 +
 +static const struct amvdec_format amvdec_formats_gxm[] = {
@@ -6581,6 +6726,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		.flags = V4L2_FMT_FLAG_COMPRESSED,
 +	},
 +	AMVDEC_FMT_MPEG4_H263,
++	AMVDEC_FMT_VC1,
 +};
 +
 +static const struct amvdec_format amvdec_formats_g12a[] = {
@@ -6721,6 +6867,37 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	AMVDEC_FMT_VC1,
 +};
 +
++/*
++ * S4 (S905Y4, S805X2): the VDEC_1 register set of SM1 (firmware SoC profile
++ * 4), power through the secure monitor's domains, no ESPARSER.  The HEVC
++ * core is the TM2/SC2 generation, for which the open HEVC and VP9 images have
++ * no profile yet; MPEG-2 waits for the host-fed VIFIFO path to be verified
++ * there.  Nothing here has run on an S4 yet.
++ */
++static const struct amvdec_format amvdec_formats_s4[] = {
++	{
++		.pixfmt = V4L2_PIX_FMT_H264_SLICE,
++		.profile_ctrl = V4L2_CID_MPEG_VIDEO_H264_PROFILE,
++		.default_profile = V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
++		.level_ctrl = V4L2_CID_MPEG_VIDEO_H264_LEVEL,
++		.default_level = V4L2_MPEG_VIDEO_H264_LEVEL_4_1,
++		.profiles = AMVDEC_H264_PROFILES,
++		.max_level = V4L2_MPEG_VIDEO_H264_LEVEL_5_1,
++		.max_bit_depth = 8,
++		.min_buffers = 16,
++		.max_buffers = 32,
++		.max_width = 3840,
++		.max_height = 2160,
++		.vdec_ops = &meson_amvdec_1_ops,
++		.codec_ops = &meson_amvdec_codec_h264_multi_ops,
++		.firmware_path = OUCODE_FW_H264,
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED,
++	},
++	AMVDEC_FMT_MPEG4_H263,
++	AMVDEC_FMT_VC1,
++};
++
 +const struct amvdec_platform meson_amvdec_platform_gxbb = {
 +	.formats = amvdec_formats_gxbb,
 +	.num_formats = ARRAY_SIZE(amvdec_formats_gxbb),
@@ -6757,6 +6934,12 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	.revision = AMVDEC_REVISION_SM1,
 +};
 +
++const struct amvdec_platform meson_amvdec_platform_s4 = {
++	.formats = amvdec_formats_s4,
++	.num_formats = ARRAY_SIZE(amvdec_formats_s4),
++	.revision = AMVDEC_REVISION_S4,
++};
++
 +/*
 + * The openucode images are the only microcode this driver ever asks for; both loaders refuse any other name (meson_amvdec_fw_name_ok()).
 + */
@@ -6787,8 +6970,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +MODULE_FIRMWARE(OUCODE_FW_VC1);
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,42 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,44 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
 + * Copyright (C) 2018 BayLibre, SAS
@@ -6812,6 +6995,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	AMVDEC_REVISION_GXM,
 +	AMVDEC_REVISION_G12A,
 +	AMVDEC_REVISION_SM1,
++	AMVDEC_REVISION_S4,
 +};
 +
 +struct amvdec_platform {
@@ -6826,6 +7010,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +extern const struct amvdec_platform meson_amvdec_platform_gxlx;
 +extern const struct amvdec_platform meson_amvdec_platform_g12a;
 +extern const struct amvdec_platform meson_amvdec_platform_sm1;
++extern const struct amvdec_platform meson_amvdec_platform_s4;
 +
 +/* True only for the openucode images named in amvdec_platform.c */
 +bool meson_amvdec_fw_name_ok(const char *name);
@@ -6833,7 +7018,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,496 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -7333,7 +7518,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/amvdec_uapi.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,57 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -7394,7 +7579,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/CHANGES.md	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,339 @@
 +# meson-amvdec (openucode) — rebuilt on the public amlogic-vdec/rfc driver
 +
@@ -7737,8 +7922,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +  results in the measurements of the round.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,2565 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.c	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,2584 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2019 BayLibre, SAS
@@ -7961,6 +8146,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +static uint h264_prof;
 +module_param(h264_prof, uint, 0644);
 +MODULE_PARM_DESC(h264_prof, "open fw PC sampling period in ns (0 = off)");
++
++/* MC experiments (abi-h264.md words 186-191, debug bit 15): absolute overrides, 0 = firmware value */
++static uint h264_mc_ctrl0;
++module_param(h264_mc_ctrl0, uint, 0644);
++MODULE_PARM_DESC(h264_mc_ctrl0, "open fw: MC_CTRL0 value written instead of 0x0d1d0404 (0 = off)");
++static uint h264_mcrcc_ctl1;
++module_param(h264_mcrcc_ctl1, uint, 0644);
++MODULE_PARM_DESC(h264_mcrcc_ctl1, "open fw: MCRCC_CTL1 value written instead of the per-picture one (0 = off)");
 +#define H264_PROF_MPC_E		0x0c20	/* CBUS 0x308 */
 +static u32 h264_prof_hist[4096];
 +static u32 h264_prof_total;
@@ -8026,6 +8219,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#else
 +/* Development build only (OUCODE_DEV=1): diagnostics, constant off here. */
 +static const uint h264_bench;
++static const uint h264_mc_ctrl0, h264_mcrcc_ctl1;
 +static inline void h264_prof_start(struct amvdec_core *core) { }
 +static inline void h264_prof_stop(void) { }
 +static inline void h264_prof_print(struct amvdec_core *core) { }
@@ -8056,6 +8250,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +				 h264->bench_max_gap, h264->bench_n_gap,
 +				 h264->bench_drain_to, h264->bench_drain_to1);
 +		h264_prof_print(core);
++		dev_info(core->dev_dec, "h264 bench: MC_CTRL0 %08x MCRCC_CTL1 %08x CTL2 %08x CTL3 %08x\n",
++			 meson_amvdec_read_dos(core, 0x241c), meson_amvdec_read_dos(core, 0x2600),
++			 meson_amvdec_read_dos(core, 0x2604), meson_amvdec_read_dos(core, 0x2608));
 +	}
 +}
 +
@@ -8805,6 +9002,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	case AMVDEC_REVISION_G12A:
 +		return 3;
 +	case AMVDEC_REVISION_SM1:
++	case AMVDEC_REVISION_S4:
 +	default:
 +		return 4;
 +	}
@@ -9218,6 +9416,12 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +		nd++;
 +	}
 +	codec_h264_open_put32(&w[184], h264->open_ws_paddr);
++	if (h264_mc_ctrl0 || h264_mcrcc_ctl1) {		/* experiments: debug bit 15 + words 186-191 */
++		w[23] |= 0x8000;
++		codec_h264_open_put32(&w[186], h264_mc_ctrl0);
++		codec_h264_open_put32(&w[188], h264_mcrcc_ctl1);
++		w[191] = (h264_mc_ctrl0 ? 1 : 0) | (h264_mcrcc_ctl1 ? 2 : 0);
++	}
 +
 +	/*
 +	 * Scaling lists: 6 x 16 then Y intra/inter 8 x 64 in transmitted
@@ -10306,7 +10510,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,59 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -10369,7 +10573,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_refs.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,184 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -10557,7 +10761,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_scratch.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,19 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -10580,7 +10784,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_h264_synth.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,622 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -11206,7 +11410,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,1255 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -12465,7 +12669,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,1307 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -13776,7 +13980,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_common.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,135 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -13915,7 +14119,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,37 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -13956,7 +14160,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_hevc_open_rec.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,881 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -14841,7 +15045,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,478 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -15323,7 +15527,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,24 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -15351,7 +15555,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg12_synth.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,238 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -15593,7 +15797,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,355 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -15952,7 +16156,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,32 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -15988,7 +16192,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_mpeg4_rec.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,416 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -16408,7 +16612,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,333 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -16745,7 +16949,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_sl.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,130 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -16879,8 +17083,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c	2026-10-07 05:49:55.000000000 +0200
-@@ -0,0 +1,476 @@
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.c	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,477 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * VC-1 request decoding with the open firmware (ovc1-sl): Simple, Main and
@@ -16984,6 +17188,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	case AMVDEC_REVISION_G12A:
 +		return OVC1_SOC_G12A;
 +	case AMVDEC_REVISION_SM1:
++	case AMVDEC_REVISION_S4:
 +		return OVC1_SOC_SM1;
 +	default:
 +		return -EINVAL;
@@ -17359,7 +17564,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,28 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -17391,7 +17596,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vc1_rec.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,881 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -18276,7 +18481,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,2267 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -20547,7 +20752,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,23 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -20574,7 +20779,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/codec_vp9_open_rec.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,623 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -21201,7 +21406,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/dos_regs.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,75 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -21280,7 +21485,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,912 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -22196,7 +22401,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/esparser.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,26 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -22226,7 +22431,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/hevc_regs.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,88 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -22318,7 +22523,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/Kconfig	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,23 @@
 +# SPDX-License-Identifier: GPL-2.0
 +
@@ -22345,7 +22550,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +	be called meson-amvdec.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/Makefile	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,31 @@
 +# SPDX-License-Identifier: GPL-2.0
 +# Makefile for the Amlogic meson-amvdec video decoder driver (openucode)
@@ -22380,7 +22585,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/OPEN_H264.md	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,215 @@
 +# Stateless H.264 on the open firmware (`h264_open_fw`)
 +
@@ -22599,7 +22804,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +   (PAFF) streams, which exercise the field-pair and colocated paths.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/README.md	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,41 @@
 +# meson-amvdec — stateless V4L2 driver for the openucode firmware
 +
@@ -22644,7 +22849,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +design and record mapping.
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10b_vldirq.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,124 @@
 +; T10b - VIFIFO + VLD start-code search with the VLD interrupt routed to vector 2.
 +; arg0 = buf paddr (FIFO buf[0..0x8000)), arg1 = payload bytes.
@@ -22772,7 +22977,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10c_vendorinit.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10c - T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -22917,7 +23122,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10d_fill.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10d - (FIFO CONTROL with FILL_EN|EMPTY_EN) T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -23062,7 +23267,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_0.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10d - (FIFO CONTROL with FILL_EN|EMPTY_EN) T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -23207,7 +23412,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_3.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10d - (FIFO CONTROL with FILL_EN|EMPTY_EN) T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -23352,7 +23557,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10e_4.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,141 @@
 +; T10d - (FIFO CONTROL with FILL_EN|EMPTY_EN) T10b plus the vendor init sequence: host-side MPEG1_2_REG/PSCALE_CTRL/PIC_HEAD_INFO,
 +; firmware-side MPEG1_2_REG=0x1000, MDEC_PIC_DC_CTRL bit31, AMR1_INT routing (vector2 <- source 8).
@@ -23497,7 +23702,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10f_poll.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,129 @@
 +; T10f - poll mode, FIFO fill enabled, record every distinct VLD_STATUS_CTRL value (S0..S7 first 8 changes), host-fed VIFIFO + hardware start-code search + getbits.
 +; arg0 (AV_SCRATCH_K) = buf paddr, FIFO = buf[0..0x8000); arg1 (AV_SCRATCH_L) = payload bytes.
@@ -23630,7 +23835,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10_getbits.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,111 @@
 +; T10 - host-fed VIFIFO + hardware start-code search + getbits.
 +; arg0 (AV_SCRATCH_K) = buf paddr, FIFO = buf[0..0x8000); arg1 (AV_SCRATCH_L) = payload bytes.
@@ -23745,7 +23950,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t10g_own.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,101 @@
 +; T10g - own code, host-programmed FIFO (harness fifo_bytes/mpeg12_init); poll mode, FIFO fill enabled, record every distinct VLD_STATUS_CTRL value (S0..S7 first 8 changes), host-fed VIFIFO + hardware start-code search + getbits.
 +; arg0 (AV_SCRATCH_K) = buf paddr, FIFO = buf[0..0x8000); arg1 (AV_SCRATCH_L) = payload bytes.
@@ -23850,7 +24055,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t11_slotcall.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,67 @@
 +; T11 - side effects of suppressed control transfers in a taken branch's delay slot.
 +; S0 = MSP after `beq taken; call sub` (0x3f = push suppressed, 0x3e = pushed)
@@ -23919,9 +24124,1094 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    movi r20, #1
 +    ret
 +    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t12_ccpu.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t12_ccpu.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t12_ccpu.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t12_ccpu.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,59 @@
++; T12 - VDEC_1 CCPU startup, no interrupts or data DMA.
++; MCPU starts the CCPU at word 0xc00 using the vendor sequence.
++; SCRATCH_0=0x80 success, 0xe1 timeout; SCRATCH_1=0xcc12 from CCPU.
++; SCRATCH_2=CPSR before stop, SCRATCH_3=CPC_P, SCRATCH_4=CPSR after stop.
++; The scratch signature is cleared each run. MCPU stops CCPU on both paths.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r0, #0xffff
++    mtsp MCPU_INTR_MSK, r0
++    mtsp CCPU_INTR_MSK, r0
++    mtspi CPSR, #0
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    movi r0, #0xc00
++    mtsp CPC_P, r0
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0x4000
++    movi r21, #0xcc12
++    movhi r21, #0
++    mtspi CPSR, #1
++wait_ccpu:
++    mfsp r22, AV_SCRATCH_1
++    beq r22, r21, done
++    nop
++    dbnz r20, wait_ccpu
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++done:
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mfsp r22, CPSR
++    mtsp AV_SCRATCH_2, r22
++    mfsp r22, CPC_P
++    mtsp AV_SCRATCH_3, r22
++    mtspi CPSR, #0
++    nop
++    nop
++    mfsp r22, CPSR
++    mtsp AV_SCRATCH_4, r22
++park:
++    jmp park
++    nop
++.org 0xc00
++ccpu:
++    movi r0, #0xcc12
++    movhi r0, #0
++    mtsp AV_SCRATCH_1, r0
++ccpu_park:
++    jmp ccpu_park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t13_ccpu_state.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t13_ccpu_state.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t13_ccpu_state.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t13_ccpu_state.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,137 @@
++; T13 - two-way MCPU/CCPU state-sharing probe (VDEC_1).
++; No interrupts, data DMA, or decoder commands. Scratch C is the MCPU->CCPU
++; handshake; scratch 1 is the CCPU->MCPU handshake. All waits are bounded.
++; MCPU uses r20-r22 for polling, CCPU r16-r18; r0 deliberately overlaps.
++; SCRATCH_0=0x80 complete, 0xe1/e2 MCPU timeout, 1=0xe3 CCPU timeout.
++; 2..5: MCPU r0, MPSR, product, LMEM[0x300] after CCPU writes.
++; 6..9: CCPU r0, MPSR, CPSR, product after MCPU writes again.
++; A/B: CCPU LMEM[0x300] before/after second MCPU write.
++; D/E: MCPU final MPSR/CPSR before stopping CCPU.
++; Separate GPR/flags/MAC and shared LMEM predict:
++; 2=1111, 3&78=28, 4=15, 5=2468, 6=2222, 8&78=40,
++; 9=37, A=1357, B=369c. Scratch 7 determines MPSR's CCPU view.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    mtspi AV_SCRATCH_D, #0
++    mtspi AV_SCRATCH_E, #0
++    movi r0, #0x1111
++    movi r1, #3
++    movi r2, #7
++    mul r1, r2
++    movi r3, #0x1357
++    st r3, [0x300]
++    movi r12, #0
++    subs r12, r12, r12
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_first:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, first_done
++    nop
++    dbnz r20, wait_first
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++first_done:
++    mtsp AV_SCRATCH_2, r0
++    mfsp r22, MPSR
++    mtsp AV_SCRATCH_3, r22
++    mfmul r22, 0, 0
++    mtsp AV_SCRATCH_4, r22
++    ld r22, [0x300]
++    mtsp AV_SCRATCH_5, r22
++    ; Overwrite each resource again while CCPU waits for scratch C.
++    movi r0, #0x3333
++    movi r1, #11
++    movi r2, #13
++    mul r1, r2
++    movi r3, #0x369c
++    st r3, [0x300]
++    movi r12, #0
++    subs r12, r12, r12
++    movi r20, #0x4000
++    mtspi AV_SCRATCH_C, #1
++wait_second:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, second_done
++    nop
++    dbnz r20, wait_second
++    nop
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++second_done:
++    mfsp r22, MPSR
++    mtsp AV_SCRATCH_D, r22
++    mfsp r22, CPSR
++    mtsp AV_SCRATCH_E, r22
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++park:
++    jmp park
++    nop
++.org 0xc00
++ccpu:
++    di
++    ld r18, [0x300]
++    mtsp AV_SCRATCH_A, r18
++    movi r0, #0x2222
++    movi r1, #5
++    movi r2, #11
++    mul r1, r2
++    movi r3, #0x2468
++    st r3, [0x300]
++    movi r12, #0
++    movi r13, #1
++    subs r12, r12, r13
++    movi r16, #0x4000
++    mtspi AV_SCRATCH_1, #1
++ccpu_wait:
++    mfsp r17, AV_SCRATCH_C
++    beq r17, #1, ccpu_done
++    nop
++    dbnz r16, ccpu_wait
++    nop
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp ccpu_park
++    nop
++ccpu_done:
++    mtsp AV_SCRATCH_6, r0
++    mfsp r18, MPSR
++    mtsp AV_SCRATCH_7, r18
++    mfsp r18, CPSR
++    mtsp AV_SCRATCH_8, r18
++    mfmul r18, 0, 0
++    mtsp AV_SCRATCH_9, r18
++    ld r18, [0x300]
++    mtsp AV_SCRATCH_B, r18
++    mtspi AV_SCRATCH_1, #2
++ccpu_park:
++    jmp ccpu_park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t14_ccpu_irq.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t14_ccpu_irq.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t14_ccpu_irq.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t14_ccpu_irq.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,157 @@
++; T14 - CCPU direct software interrupt, vector scaling and return state.
++; MCPU raises CCPU_INTR_REQ bit 5 after CCPU enables interrupts. Only
++; vector 5 at (0x61 << 5) + 10 = 0xc2a branches to the recording handler.
++; SCRATCH_0=80 complete, e1/e2 MCPU timeout; 1=e3 CCPU timeout.
++; 2=ISR count, 3=CSP in ISR, 4=MSP in ISR, 5=CPSR in ISR,
++; 6=CCPU_INTR_REQ in ISR, 7=CSP after return, 8=CPSR after return+di,
++; 9=CCPU r63 return word, A=MCPU MSP, B=MCPU r63 sentinel (4567),
++; C=MCPU MPSR. Flags set to Z/C before interrupt and destroyed in ISR.
++; No decoder commands, data DMA or external interrupt sources enabled.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi CSP, #0x3f
++    mtspi MSP, #0x3f
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    movi r63, #0x4567
++    movi r12, #0
++    subs r12, r12, r12
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0xffdf
++    mtsp CCPU_INTR_MSK, r20
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_ready:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, ready
++    nop
++    dbnz r20, wait_ready
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++ready:
++    mtspi CCPU_INTR_REQ, #0x20
++    movi r20, #0x4000
++wait_irq:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, done
++    nop
++    dbnz r20, wait_irq
++    nop
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++done:
++    mfsp r22, MSP
++    mtsp AV_SCRATCH_A, r22
++    mtsp AV_SCRATCH_B, r63
++    mfsp r22, MPSR
++    mtsp AV_SCRATCH_C, r22
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++park:
++    jmp park
++    nop
++.org 0xc00
++    jmp ccpu_start
++    nop
++.org 0xc20
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    jmp ccpu_isr
++    nop
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++.org 0xc40
++ccpu_start:
++    di
++    movi r10, #0
++    movi r12, #0
++    subs r12, r12, r12
++    movi r16, #0x4000
++    ei
++    mtspi AV_SCRATCH_1, #1
++ccpu_wait:
++    beq r10, #1, ccpu_done
++    nop
++    dbnz r16, ccpu_wait
++    nop
++    di
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp ccpu_park
++    nop
++ccpu_done:
++    di
++    mfsp r18, CSP
++    mtsp AV_SCRATCH_7, r18
++    mfsp r18, CPSR
++    mtsp AV_SCRATCH_8, r18
++    mtsp AV_SCRATCH_9, r63
++    mtspi AV_SCRATCH_1, #2
++ccpu_park:
++    jmp ccpu_park
++    nop
++ccpu_isr:
++    addi r10, r10, #1
++    mtsp AV_SCRATCH_2, r10
++    mfsp r18, CSP
++    mtsp AV_SCRATCH_3, r18
++    mfsp r18, MSP
++    mtsp AV_SCRATCH_4, r18
++    mfsp r18, CPSR
++    mtsp AV_SCRATCH_5, r18
++    mfsp r18, CCPU_INTR_REQ
++    mtsp AV_SCRATCH_6, r18
++    movi r18, #0
++    subis r18, r18, #1
++    ret
++    ei
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t15_ccpu_mailbox.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t15_ccpu_mailbox.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t15_ccpu_mailbox.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t15_ccpu_mailbox.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,176 @@
++; T15 - mailbox variant of T14: AMR1_INT5=9, MSFTINT0=3 (command 1).
++; IRQ/return evidence in scratch 2..C is the same as T14 except 6=200:
++; source 9 also latches the masked identity-mapped vector 9.
++; D=command seen by CCPU (3), E=payload (1234), F=reply (1235),
++; G=acknowledged MSFTINT0 (0). No direct CCPU_INTR_REQ write.
++; Only CCPU vector 5 is unmasked; MCPU interrupts remain disabled/masked.
++; All polls bounded; MCPU stops CCPU on success and timeout.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi CSP, #0x3f
++    mtspi MSP, #0x3f
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    mtspi AV_SCRATCH_D, #0
++    mtspi AV_SCRATCH_E, #0
++    mtspi AV_SCRATCH_F, #0
++    mtspi AV_SCRATCH_G, #0
++    mtspi MSFTINT0, #0
++    mtspi MSFTINT1, #0
++    mtspi CSFTINT1, #0
++    mtspi VDEC_ASSIST_AMR1_INT5, #9
++    movi r63, #0x4567
++    movi r12, #0
++    subs r12, r12, r12
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0xffdf
++    mtsp CCPU_INTR_MSK, r20
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_ready:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, ready
++    nop
++    dbnz r20, wait_ready
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++ready:
++    movi r22, #0x1234
++    mtsp MSFTINT1, r22
++    mtspi MSFTINT0, #3
++    movi r20, #0x4000
++wait_irq:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, done
++    nop
++    dbnz r20, wait_irq
++    nop
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++done:
++    mfsp r22, MSP
++    mtsp AV_SCRATCH_A, r22
++    mtsp AV_SCRATCH_B, r63
++    mfsp r22, MPSR
++    mtsp AV_SCRATCH_C, r22
++    mfsp r22, CSFTINT1
++    mtsp AV_SCRATCH_F, r22
++    mfsp r22, MSFTINT0
++    mtsp AV_SCRATCH_G, r22
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++park:
++    jmp park
++    nop
++.org 0xc00
++    jmp ccpu_start
++    nop
++.org 0xc20
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    jmp ccpu_isr
++    nop
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++.org 0xc40
++ccpu_start:
++    di
++    movi r10, #0
++    movi r12, #0
++    subs r12, r12, r12
++    movi r16, #0x4000
++    ei
++    mtspi AV_SCRATCH_1, #1
++ccpu_wait:
++    beq r10, #1, ccpu_done
++    nop
++    dbnz r16, ccpu_wait
++    nop
++    di
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp ccpu_park
++    nop
++ccpu_done:
++    di
++    mfsp r18, CSP
++    mtsp AV_SCRATCH_7, r18
++    mfsp r18, CPSR
++    mtsp AV_SCRATCH_8, r18
++    mtsp AV_SCRATCH_9, r63
++    mtspi AV_SCRATCH_1, #2
++ccpu_park:
++    jmp ccpu_park
++    nop
++ccpu_isr:
++    addi r10, r10, #1
++    mtsp AV_SCRATCH_2, r10
++    mfsp r18, CSP
++    mtsp AV_SCRATCH_3, r18
++    mfsp r18, MSP
++    mtsp AV_SCRATCH_4, r18
++    mfsp r18, CPSR
++    mtsp AV_SCRATCH_5, r18
++    mfsp r18, CCPU_INTR_REQ
++    mtsp AV_SCRATCH_6, r18
++    mfsp r18, MSFTINT0
++    mtsp AV_SCRATCH_D, r18
++    mfsp r18, MSFTINT1
++    mtsp AV_SCRATCH_E, r18
++    addi r18, r18, #1
++    mtsp CSFTINT1, r18
++    mtspi MSFTINT0, #0
++    movi r18, #0
++    subis r18, r18, #1
++    ret
++    ei
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t16_ccpu_banks.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t16_ccpu_banks.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t16_ccpu_banks.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t16_ccpu_banks.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,158 @@
++; T16 - index/clip banks and cross-core CBUS addressing, VDEC_1.
++; Indexed instruction encoding says MINDEX0 on either CPU. Does CCPU use
++; CINDEX0 instead? Clip opcode 0x21: r6 = clamp(r5, native min, native max).
++; Both CPUs explicitly initialize the banks through CBUS; all waits bounded.
++; Scratch 0=80 success/e1/e2 timeout; 1=2 done/e3 CCPU timeout; C=MCPU ack.
++; 2/3 MCPU initial indexed load/clip; 4/5 CCPU initial indexed load/clip.
++; 6/7 M/C index read by CCPU after its load; 8 MCPU clip after CCPU writes
++; MMAX; 9 M index then; A/B CCPU clip/load after MCPU writes CMAX/CINDEX0;
++; D C index after second load; E CMAX seen by MCPU after CCPU writes it.
++; F/G/H/I final M index/C index/MMAX/CMAX read by MCPU.
++; J/K CCPU/MCPU clip of zero (lower-bound selection).
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    mtspi AV_SCRATCH_D, #0
++    mtspi AV_SCRATCH_E, #0
++    mtspi AV_SCRATCH_F, #0
++    mtspi AV_SCRATCH_G, #0
++    mtspi AV_SCRATCH_H, #0
++    mtspi AV_SCRATCH_I, #0
++    mtspi AV_SCRATCH_J, #0
++    mtspi AV_SCRATCH_K, #0
++    movi r0, #0x1111
++    st r0, [0x300]
++    movi r0, #0x2222
++    st r0, [0x310]
++    movi r0, #0x3333
++    st r0, [0x320]
++    movi r0, #0x300
++    movhi r0, #1
++    mtsp MINDEX0_REG, r0
++    movi r0, #0x310
++    movhi r0, #2
++    mtsp CINDEX0_REG, r0
++    mtspi MMIN_REG, #10
++    mtspi MMAX_REG, #20
++    mtspi CMIN_REG, #30
++    mtspi CMAX_REG, #40
++    ld.i r4, [MINDEX0]
++    mtsp AV_SCRATCH_2, r4
++    movi r5, #100
++    .word 0x08406005 ; clip r6, r5
++    mtsp AV_SCRATCH_3, r6
++    movi r5, #0
++    .word 0x08406005 ; clip r6, r5
++    mtsp AV_SCRATCH_K, r6
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_first:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, first_done
++    nop
++    dbnz r20, wait_first
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++first_done:
++    movi r5, #100
++    .word 0x08406005 ; clip r6, r5
++    mtsp AV_SCRATCH_8, r6
++    mfsp r22, MINDEX0_REG
++    mtsp AV_SCRATCH_9, r22
++    mfsp r22, CMAX_REG
++    mtsp AV_SCRATCH_E, r22
++    mtspi CMAX_REG, #50
++    movi r22, #0x320
++    movhi r22, #1
++    mtsp CINDEX0_REG, r22
++    movi r20, #0x4000
++    mtspi AV_SCRATCH_C, #1
++wait_second:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, done
++    nop
++    dbnz r20, wait_second
++    nop
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++done:
++    mfsp r22, MINDEX0_REG
++    mtsp AV_SCRATCH_F, r22
++    mfsp r22, CINDEX0_REG
++    mtsp AV_SCRATCH_G, r22
++    mfsp r22, MMAX_REG
++    mtsp AV_SCRATCH_H, r22
++    mfsp r22, CMAX_REG
++    mtsp AV_SCRATCH_I, r22
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++park:
++    jmp park
++    nop
++.org 0xc00
++ccpu:
++    di
++    ld.i r4, [MINDEX0]
++    mtsp AV_SCRATCH_4, r4
++    movi r5, #100
++    .word 0x08406005 ; clip r6, r5
++    mtsp AV_SCRATCH_5, r6
++    movi r5, #0
++    .word 0x08406005 ; clip r6, r5
++    mtsp AV_SCRATCH_J, r6
++    mfsp r18, MINDEX0_REG
++    mtsp AV_SCRATCH_6, r18
++    mfsp r18, CINDEX0_REG
++    mtsp AV_SCRATCH_7, r18
++    mtspi MMAX_REG, #25
++    mtspi CMAX_REG, #45
++    movi r16, #0x4000
++    mtspi AV_SCRATCH_1, #1
++ccpu_wait:
++    mfsp r17, AV_SCRATCH_C
++    beq r17, #1, ccpu_done
++    nop
++    dbnz r16, ccpu_wait
++    nop
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp ccpu_park
++    nop
++ccpu_done:
++    movi r5, #100
++    .word 0x08406005 ; clip r6, r5
++    mtsp AV_SCRATCH_A, r6
++    ld.i r4, [MINDEX0]
++    mtsp AV_SCRATCH_B, r4
++    mfsp r18, CINDEX0_REG
++    mtsp AV_SCRATCH_D, r18
++    mtspi AV_SCRATCH_1, #2
++ccpu_park:
++    jmp ccpu_park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t17_ccpu_stress.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t17_ccpu_stress.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t17_ccpu_stress.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t17_ccpu_stress.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,207 @@
++; T17 - simultaneous LMEM and multiplier stress, VDEC_1 MCPU/CCPU.
++; Each CPU runs 8192 iterations, using identical GPR numbers independently.
++; MCPU owns LMEM 300, CCPU 301; both write/read common location 302 with
++; distinct whole-halfword patterns 1357/2468. Per-iteration delay loops use
++; counter&7 on MCPU and (counter^5)&7 on CCPU to vary relative timing.
++; Common reads must be one of
++; those two values. No RMW or ordering guarantee is assumed.
++; Every iteration checks its own LMEM read and its ordinary multiply result
++; (MCPU counter*3, CCPU counter*5), expected via additions/shifts.
++; All waits are bounded. 0=80 complete/e1/e2 timeout; 1=2 done/e3 timeout.
++; 2/3 M/C own-LMEM errors; 4/5 M/C progress (2000 at completion);
++; 6/7 M/C multiply errors; 8/9 M/C common-LMEM unexpected-value errors;
++; A/B peer progress sampled at iteration 400 (must be >0 and <2000);
++; C=start; D/E final M/C multiply reads; F/G final M/C own-LMEM reads.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    mtspi AV_SCRATCH_D, #0
++    mtspi AV_SCRATCH_E, #0
++    mtspi AV_SCRATCH_F, #0
++    mtspi AV_SCRATCH_G, #0
++    mtspi AV_SCRATCH_H, #0
++    mtspi AV_SCRATCH_I, #0
++    mtspi AV_SCRATCH_J, #0
++
++    movi r20, #0x1357
++    st r20, [0x302]
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_ready:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, ready
++    nop
++    dbnz r20, wait_ready
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++ready:
++    mtspi AV_SCRATCH_C, #1
++    movi r0, #0x2000
++    movi r1, #0
++    movi r2, #0
++    movi r3, #0
++    movi r4, #0
++    movi r5, #3
++    movi r6, #0x1357
++    movi r7, #0x2468
++    movi r13, #0x400
++m_loop:
++    addi r1, r1, #1
++    andi r14, r1, #7
++    beq r14, #0, m_delay_done
++    nop
++m_delay:
++    dbnz r14, m_delay
++    nop
++m_delay_done:
++    st r1, [0x300]
++    mul r1, r5
++    st r6, [0x302]
++    ld r8, [0x300]
++    ld r9, [0x302]
++    mfmul r11, 0, 0
++    add r10, r1, r1
++    add r10, r10, r1
++    beq r8, r1, m_mem_ok
++    nop
++    addi r2, r2, #1
++m_mem_ok:
++    beq r11, r10, m_mul_ok
++    nop
++    addi r3, r3, #1
++m_mul_ok:
++    beq r9, r6, m_common_ok
++    nop
++    beq r9, r7, m_common_ok
++    nop
++    addi r4, r4, #1
++m_common_ok:
++    mtsp AV_SCRATCH_4, r1
++    bne r1, r13, m_continue
++    nop
++    mfsp r12, AV_SCRATCH_5
++    mtsp AV_SCRATCH_A, r12
++m_continue:
++    dbnz r0, m_loop
++    nop
++    mtsp AV_SCRATCH_2, r2
++    mtsp AV_SCRATCH_6, r3
++    mtsp AV_SCRATCH_8, r4
++    mtsp AV_SCRATCH_D, r11
++    mtsp AV_SCRATCH_F, r8
++    movi r20, #0x4000
++wait_done:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, done
++    nop
++    dbnz r20, wait_done
++    nop
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++done:
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++m_park:
++    jmp m_park
++    nop
++
++.org 0xc00
++ccpu:
++    di
++    movi r20, #0x4000
++    mtspi AV_SCRATCH_1, #1
++c_wait_start:
++    mfsp r21, AV_SCRATCH_C
++    beq r21, #1, c_start
++    nop
++    dbnz r20, c_wait_start
++    nop
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp c_park
++    nop
++c_start:
++    movi r0, #0x2000
++    movi r1, #0
++    movi r2, #0
++    movi r3, #0
++    movi r4, #0
++    movi r5, #5
++    movi r6, #0x2468
++    movi r7, #0x1357
++    movi r13, #0x400
++c_loop:
++    addi r1, r1, #1
++    xori r14, r1, #5
++    andi r14, r14, #7
++    beq r14, #0, c_delay_done
++    nop
++c_delay:
++    dbnz r14, c_delay
++    nop
++c_delay_done:
++    st r1, [0x301]
++    mul r1, r5
++    st r6, [0x302]
++    ld r8, [0x301]
++    ld r9, [0x302]
++    mfmul r11, 0, 0
++    shli r10, r1, #2
++    add r10, r10, r1
++    beq r8, r1, c_mem_ok
++    nop
++    addi r2, r2, #1
++c_mem_ok:
++    beq r11, r10, c_mul_ok
++    nop
++    addi r3, r3, #1
++c_mul_ok:
++    beq r9, r6, c_common_ok
++    nop
++    beq r9, r7, c_common_ok
++    nop
++    addi r4, r4, #1
++c_common_ok:
++    mtsp AV_SCRATCH_5, r1
++    bne r1, r13, c_continue
++    nop
++    mfsp r12, AV_SCRATCH_4
++    mtsp AV_SCRATCH_B, r12
++c_continue:
++    dbnz r0, c_loop
++    nop
++    mtsp AV_SCRATCH_3, r2
++    mtsp AV_SCRATCH_7, r3
++    mtsp AV_SCRATCH_9, r4
++    mtsp AV_SCRATCH_E, r11
++    mtsp AV_SCRATCH_G, r8
++    mtspi AV_SCRATCH_1, #2
++c_park:
++    jmp c_park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t18_ccpu_message.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t18_ccpu_message.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t18_ccpu_message.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t18_ccpu_message.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,163 @@
++; T18 - LMEM-only publication/acknowledgement, VDEC_1 MCPU/CCPU.
++; 4096 round trips. Shared halfwords: 300 request sequence, 301 payload,
++; 302 reply sequence, 303 reply payload. One outstanding request at a time.
++; Each producer stores data then sequence in adjacent instructions; consumer
++; polls sequence then reads data. No CBUS handshakes inside the round trip,
++; data DMA, fences or decoder commands. Every wait is bounded.
++; 0=80 complete/e1 initial timeout/e2 round timeout/e4 completion timeout;
++; 1=2 CCPU complete/e3 round timeout; 2/3 M/C completed count (1000);
++; 4/5 M/C data mismatches (0); 6/7 last reply/request data (7969/4a5a);
++; 8/9 M/C sequence at a timeout (0 if none); C initial start handshake.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    mtspi AV_SCRATCH_D, #0
++    mtspi AV_SCRATCH_E, #0
++    mtspi AV_SCRATCH_F, #0
++    mtspi AV_SCRATCH_G, #0
++    mtspi AV_SCRATCH_H, #0
++    mtspi AV_SCRATCH_I, #0
++    mtspi AV_SCRATCH_J, #0
++    movi r20, #0
++    st r20, [0x300]
++    st r20, [0x301]
++    st r20, [0x302]
++    st r20, [0x303]
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_ready:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, ready
++    nop
++    dbnz r20, wait_ready
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++ready:
++    mtspi AV_SCRATCH_C, #1
++    movi r0, #0x1000
++    movi r1, #0
++    movi r2, #0
++    movi r4, #0x5a5a
++    movi r7, #0x3333
++m_loop:
++    addi r1, r1, #1
++    xor r5, r1, r4
++    st r5, [0x301]
++    st r1, [0x300]
++    xor r5, r5, r7
++    movi r16, #0x4000
++m_wait_reply:
++    ld r6, [0x302]
++    beq r6, r1, m_reply
++    nop
++    dbnz r16, m_wait_reply
++    nop
++    mtsp AV_SCRATCH_8, r1
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++m_reply:
++    ld r6, [0x303]
++    beq r6, r5, m_data_ok
++    nop
++    addi r2, r2, #1
++m_data_ok:
++    dbnz r0, m_loop
++    nop
++    mtsp AV_SCRATCH_2, r1
++    mtsp AV_SCRATCH_4, r2
++    mtsp AV_SCRATCH_6, r6
++    movi r20, #0x4000
++wait_done:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, done
++    nop
++    dbnz r20, wait_done
++    nop
++    mtspi AV_SCRATCH_0, #0xe4
++    jmp stop_ccpu
++    nop
++done:
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++m_park:
++    jmp m_park
++    nop
++.org 0xc00
++ccpu:
++    di
++    movi r20, #0x4000
++    mtspi AV_SCRATCH_1, #1
++c_wait_start:
++    mfsp r21, AV_SCRATCH_C
++    beq r21, #1, c_start
++    nop
++    dbnz r20, c_wait_start
++    nop
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp c_park
++    nop
++c_start:
++    movi r0, #0x1000
++    movi r1, #0
++    movi r2, #0
++    movi r4, #0x5a5a
++    movi r7, #0x3333
++c_loop:
++    addi r1, r1, #1
++    xor r5, r1, r4
++    movi r16, #0x4000
++c_wait_request:
++    ld r6, [0x300]
++    beq r6, r1, c_request
++    nop
++    dbnz r16, c_wait_request
++    nop
++    mtsp AV_SCRATCH_9, r1
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp c_park
++    nop
++c_request:
++    ld r6, [0x301]
++    beq r6, r5, c_data_ok
++    nop
++    addi r2, r2, #1
++c_data_ok:
++    xor r8, r6, r7
++    st r8, [0x303]
++    st r1, [0x302]
++    dbnz r0, c_loop
++    nop
++    mtsp AV_SCRATCH_3, r1
++    mtsp AV_SCRATCH_5, r2
++    mtsp AV_SCRATCH_7, r6
++    mtspi AV_SCRATCH_1, #2
++c_park:
++    jmp c_park
++    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t1_hello.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,42 @@
 +; T1 - load/start, mtspi, movi/movhi, mtsp, jmp offset convention, running counter.
 +; Expected: SCRATCH_0=0xa5 SCRATCH_1=0x12345678 SCRATCH_2 increasing across
@@ -23965,9 +25255,1280 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    mtsp AV_SCRATCH_2, r2
 +    jmp loop
 +    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t20_ccpu_token.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t20_ccpu_token.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t20_ccpu_token.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t20_ccpu_token.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,230 @@
++; T20 - CBUS token serializes LMEM ownership, otherwise T17's varied timing.
++; Scratch L=0 permits only MCPU LMEM access; L=1 permits only CCPU access.
++; Waiting CPU polls CBUS, never LMEM. Producer releases the token after its
++; stores, loads and checks. Strict alternation, 8192 iterations per CPU.
++; 0=80 complete/e1/e2 startup or completion timeout/e5 token timeout;
++; 1=2 CCPU complete/e3 startup timeout/e5 token timeout.
++; 2/3 own-LMEM errors, 4/5 progress, 6/7 multiply errors, 8/9 common errors;
++; A/B peer progress sampled at iteration 400; C=start; D/E final products;
++; F/G final own-LMEM reads; H/I sequence at M/C token timeout (0 normally).
++; Expected zero errors, progress 2000, products 6000/a000, own reads 2000.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    mtspi AV_SCRATCH_D, #0
++    mtspi AV_SCRATCH_E, #0
++    mtspi AV_SCRATCH_F, #0
++    mtspi AV_SCRATCH_G, #0
++    mtspi AV_SCRATCH_H, #0
++    mtspi AV_SCRATCH_I, #0
++    mtspi AV_SCRATCH_J, #0
++    mtspi AV_SCRATCH_L, #0
++
++    movi r20, #0x1357
++    st r20, [0x302]
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_ready:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, ready
++    nop
++    dbnz r20, wait_ready
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++ready:
++    mtspi AV_SCRATCH_C, #1
++    movi r0, #0x2000
++    movi r1, #0
++    movi r2, #0
++    movi r3, #0
++    movi r4, #0
++    movi r5, #3
++    movi r6, #0x1357
++    movi r7, #0x2468
++    movi r13, #0x400
++m_loop:
++    addi r1, r1, #1
++    andi r14, r1, #7
++    beq r14, #0, m_delay_done
++    nop
++m_delay:
++    dbnz r14, m_delay
++    nop
++m_delay_done:
++    movi r20, #0x4000
++m_wait_token:
++    mfsp r21, AV_SCRATCH_L
++    beq r21, #0, m_own_lmem
++    nop
++    dbnz r20, m_wait_token
++    nop
++    mtsp AV_SCRATCH_H, r1
++    mtspi AV_SCRATCH_0, #0xe5
++    jmp stop_ccpu
++    nop
++m_own_lmem:
++    st r1, [0x300]
++    mul r1, r5
++    st r6, [0x302]
++    ld r8, [0x300]
++    ld r9, [0x302]
++    mfmul r11, 0, 0
++    add r10, r1, r1
++    add r10, r10, r1
++    beq r8, r1, m_mem_ok
++    nop
++    addi r2, r2, #1
++m_mem_ok:
++    beq r11, r10, m_mul_ok
++    nop
++    addi r3, r3, #1
++m_mul_ok:
++    beq r9, r6, m_common_ok
++    nop
++    beq r9, r7, m_common_ok
++    nop
++    addi r4, r4, #1
++m_common_ok:
++    mtsp AV_SCRATCH_4, r1
++    bne r1, r13, m_continue
++    nop
++    mfsp r12, AV_SCRATCH_5
++    mtsp AV_SCRATCH_A, r12
++m_continue:
++    mtspi AV_SCRATCH_L, #1
++    dbnz r0, m_loop
++    nop
++    mtsp AV_SCRATCH_2, r2
++    mtsp AV_SCRATCH_6, r3
++    mtsp AV_SCRATCH_8, r4
++    mtsp AV_SCRATCH_D, r11
++    mtsp AV_SCRATCH_F, r8
++    movi r20, #0x4000
++wait_done:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, done
++    nop
++    dbnz r20, wait_done
++    nop
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++done:
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++m_park:
++    jmp m_park
++    nop
++
++.org 0xc00
++ccpu:
++    di
++    movi r20, #0x4000
++    mtspi AV_SCRATCH_1, #1
++c_wait_start:
++    mfsp r21, AV_SCRATCH_C
++    beq r21, #1, c_start
++    nop
++    dbnz r20, c_wait_start
++    nop
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp c_park
++    nop
++c_start:
++    movi r0, #0x2000
++    movi r1, #0
++    movi r2, #0
++    movi r3, #0
++    movi r4, #0
++    movi r5, #5
++    movi r6, #0x2468
++    movi r7, #0x1357
++    movi r13, #0x400
++c_loop:
++    addi r1, r1, #1
++    xori r14, r1, #5
++    andi r14, r14, #7
++    beq r14, #0, c_delay_done
++    nop
++c_delay:
++    dbnz r14, c_delay
++    nop
++c_delay_done:
++    movi r20, #0x4000
++c_wait_token:
++    mfsp r21, AV_SCRATCH_L
++    beq r21, #1, c_own_lmem
++    nop
++    dbnz r20, c_wait_token
++    nop
++    mtsp AV_SCRATCH_I, r1
++    mtspi AV_SCRATCH_1, #0xe5
++    jmp c_park
++    nop
++c_own_lmem:
++    st r1, [0x301]
++    mul r1, r5
++    st r6, [0x302]
++    ld r8, [0x301]
++    ld r9, [0x302]
++    mfmul r11, 0, 0
++    shli r10, r1, #2
++    add r10, r10, r1
++    beq r8, r1, c_mem_ok
++    nop
++    addi r2, r2, #1
++c_mem_ok:
++    beq r11, r10, c_mul_ok
++    nop
++    addi r3, r3, #1
++c_mul_ok:
++    beq r9, r6, c_common_ok
++    nop
++    beq r9, r7, c_common_ok
++    nop
++    addi r4, r4, #1
++c_common_ok:
++    mtsp AV_SCRATCH_5, r1
++    bne r1, r13, c_continue
++    nop
++    mfsp r12, AV_SCRATCH_4
++    mtsp AV_SCRATCH_B, r12
++c_continue:
++    mtspi AV_SCRATCH_L, #0
++    dbnz r0, c_loop
++    nop
++    mtsp AV_SCRATCH_3, r2
++    mtsp AV_SCRATCH_7, r3
++    mtsp AV_SCRATCH_9, r4
++    mtsp AV_SCRATCH_E, r11
++    mtsp AV_SCRATCH_G, r8
++    mtspi AV_SCRATCH_1, #2
++c_park:
++    jmp c_park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t21_ccpu_quiesce.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t21_ccpu_quiesce.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t21_ccpu_quiesce.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t21_ccpu_quiesce.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,287 @@
++; T21 - stop LMEM traffic at the first CCPU readback mismatch.
++; Starts from T17's concurrent stress; on failure CCPU stops further stores,
++; requests MCPU quiescence through CBUS, then both CPUs read the failed
++; location separately (immediately and after a 32-count delay loop).
++; Finally CCPU reissues the original store while MCPU waits on CBUS.
++; 0=80 complete, 1=4 fault captured/retried (2 means no fault reproduced).
++; H=expected, I=initial read, K=reread before quiescence request;
++; D/E=CCPU post-quiescence reads, F/G=MCPU reads after CCPU parks;
++; L=CCPU read after retry, J=2 acknowledgements, C=2 quiesce request.
++; All waits bounded; no data DMA or decoder commands.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    mtspi AV_SCRATCH_D, #0
++    mtspi AV_SCRATCH_E, #0
++    mtspi AV_SCRATCH_F, #0
++    mtspi AV_SCRATCH_G, #0
++    mtspi AV_SCRATCH_H, #0
++    mtspi AV_SCRATCH_I, #0
++    mtspi AV_SCRATCH_J, #0
++
++    movi r20, #0x1357
++    st r20, [0x302]
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_ready:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, ready
++    nop
++    dbnz r20, wait_ready
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++ready:
++    mtspi AV_SCRATCH_C, #1
++    movi r0, #0x2000
++    movi r1, #0
++    movi r2, #0
++    movi r3, #0
++    movi r4, #0
++    movi r5, #3
++    movi r6, #0x1357
++    movi r7, #0x2468
++    movi r13, #0x400
++m_loop:
++    addi r1, r1, #1
++    andi r14, r1, #7
++    beq r14, #0, m_delay_done
++    nop
++m_delay:
++    dbnz r14, m_delay
++    nop
++m_delay_done:
++    mfsp r21, AV_SCRATCH_C
++    beq r21, #2, m_quiesce
++    nop
++    st r1, [0x300]
++    mul r1, r5
++    st r6, [0x302]
++    ld r8, [0x300]
++    ld r9, [0x302]
++    mfmul r11, 0, 0
++    add r10, r1, r1
++    add r10, r10, r1
++    beq r8, r1, m_mem_ok
++    nop
++    addi r2, r2, #1
++m_mem_ok:
++    beq r11, r10, m_mul_ok
++    nop
++    addi r3, r3, #1
++m_mul_ok:
++    beq r9, r6, m_common_ok
++    nop
++    beq r9, r7, m_common_ok
++    nop
++    addi r4, r4, #1
++m_common_ok:
++    mtsp AV_SCRATCH_4, r1
++    bne r1, r13, m_continue
++    nop
++    mfsp r12, AV_SCRATCH_5
++    mtsp AV_SCRATCH_A, r12
++m_continue:
++    dbnz r0, m_loop
++    nop
++    mtsp AV_SCRATCH_2, r2
++    mtsp AV_SCRATCH_6, r3
++    mtsp AV_SCRATCH_8, r4
++    mtsp AV_SCRATCH_D, r11
++    mtsp AV_SCRATCH_F, r8
++    movi r20, #0x4000
++wait_done:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, done
++    nop
++    dbnz r20, wait_done
++    nop
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++done:
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++m_park:
++    jmp m_park
++    nop
++
++; MCPU has stopped issuing LMEM accesses before acknowledging quiescence.
++m_quiesce:
++    mtspi AV_SCRATCH_J, #1
++    movi r20, #0x4000
++m_wait_observed:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #3, m_observe
++    nop
++    dbnz r20, m_wait_observed
++    nop
++    mtspi AV_SCRATCH_0, #0xe4
++    jmp stop_ccpu
++    nop
++m_observe:
++    ld r22, [0x301]
++    mtsp AV_SCRATCH_F, r22
++    movi r20, #32
++m_settle:
++    dbnz r20, m_settle
++    nop
++    ld r22, [0x301]
++    mtsp AV_SCRATCH_G, r22
++    mtspi AV_SCRATCH_J, #2
++    movi r20, #0x4000
++m_wait_retry:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #4, done
++    nop
++    dbnz r20, m_wait_retry
++    nop
++    mtspi AV_SCRATCH_0, #0xe5
++    jmp stop_ccpu
++    nop
++.org 0xc00
++ccpu:
++    di
++    movi r20, #0x4000
++    mtspi AV_SCRATCH_1, #1
++c_wait_start:
++    mfsp r21, AV_SCRATCH_C
++    beq r21, #1, c_start
++    nop
++    dbnz r20, c_wait_start
++    nop
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp c_park
++    nop
++c_start:
++    movi r0, #0x2000
++    movi r1, #0
++    movi r2, #0
++    movi r3, #0
++    movi r4, #0
++    movi r5, #5
++    movi r6, #0x2468
++    movi r7, #0x1357
++    movi r13, #0x400
++c_loop:
++    addi r1, r1, #1
++    xori r14, r1, #5
++    andi r14, r14, #7
++    beq r14, #0, c_delay_done
++    nop
++c_delay:
++    dbnz r14, c_delay
++    nop
++c_delay_done:
++    st r1, [0x301]
++    mul r1, r5
++    st r6, [0x302]
++    ld r8, [0x301]
++    ld r9, [0x302]
++    mfmul r11, 0, 0
++    shli r10, r1, #2
++    add r10, r10, r1
++    beq r8, r1, c_mem_ok
++    nop
++    jmp c_capture
++    nop
++c_mem_ok:
++    beq r11, r10, c_mul_ok
++    nop
++    addi r3, r3, #1
++c_mul_ok:
++    beq r9, r6, c_common_ok
++    nop
++    beq r9, r7, c_common_ok
++    nop
++    addi r4, r4, #1
++c_common_ok:
++    mtsp AV_SCRATCH_5, r1
++    bne r1, r13, c_continue
++    nop
++    mfsp r12, AV_SCRATCH_4
++    mtsp AV_SCRATCH_B, r12
++c_continue:
++    dbnz r0, c_loop
++    nop
++    mtsp AV_SCRATCH_3, r2
++    mtsp AV_SCRATCH_7, r3
++    mtsp AV_SCRATCH_9, r4
++    mtsp AV_SCRATCH_E, r11
++    mtsp AV_SCRATCH_G, r8
++    mtspi AV_SCRATCH_1, #2
++c_park:
++    jmp c_park
++    nop
++
++c_capture:
++    mtspi AV_SCRATCH_3, #1
++    mtsp AV_SCRATCH_H, r1
++    mtsp AV_SCRATCH_I, r8
++    ld r15, [0x301]
++    mtsp AV_SCRATCH_K, r15
++    mtspi AV_SCRATCH_C, #2
++    movi r20, #0x4000
++c_wait_quiet:
++    mfsp r21, AV_SCRATCH_J
++    beq r21, #1, c_observe
++    nop
++    dbnz r20, c_wait_quiet
++    nop
++    mtspi AV_SCRATCH_1, #0xe6
++    jmp c_park
++    nop
++c_observe:
++    ld r15, [0x301]
++    mtsp AV_SCRATCH_D, r15
++    movi r20, #32
++c_settle:
++    dbnz r20, c_settle
++    nop
++    ld r15, [0x301]
++    mtsp AV_SCRATCH_E, r15
++    mtspi AV_SCRATCH_1, #3
++    movi r20, #0x4000
++c_wait_observed:
++    mfsp r21, AV_SCRATCH_J
++    beq r21, #2, c_retry
++    nop
++    dbnz r20, c_wait_observed
++    nop
++    mtspi AV_SCRATCH_1, #0xe7
++    jmp c_park
++    nop
++c_retry:
++    st r1, [0x301]
++    nop
++    nop
++    ld r15, [0x301]
++    mtsp AV_SCRATCH_L, r15
++    mtspi AV_SCRATCH_1, #4
++    jmp c_park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t22_ccpu_loads.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t22_ccpu_loads.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t22_ccpu_loads.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t22_ccpu_loads.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,228 @@
++; MCPU mode: m_mixed
++; T22 - CCPU loads from immutable LMEM under MCPU traffic.
++; 301=1234, 303=5678, 305=6bcd, initialized before both loops run.
++; CCPU poisons destination registers before three consecutive loads.
++; MCPU accesses only 300/302, keeping their initial values 1357/2468.
++; 0=80 complete, 1=2 CCPU complete; 2=MCPU check errors;
++; 3/6/7=CCPU errors at 301/303/305; 4/5=M/C progress (2000);
++; 8/9/G/H=first bad address/read/sequence/later reread;
++; A/B=peer progress at iteration 400; C=start;
++; D/E/F=last CCPU reads; I/J/K=immutable values read by MCPU after CCPU parks.
++; Completion signature does not imply zero errors. All waits bounded.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    movi r20, #0xffff
++    mtsp MCPU_INTR_MSK, r20
++    mtsp CCPU_INTR_MSK, r20
++    mtspi CPSR, #0
++    mtspi AV_SCRATCH_0, #0
++    mtspi AV_SCRATCH_1, #0
++    mtspi AV_SCRATCH_2, #0
++    mtspi AV_SCRATCH_3, #0
++    mtspi AV_SCRATCH_4, #0
++    mtspi AV_SCRATCH_5, #0
++    mtspi AV_SCRATCH_6, #0
++    mtspi AV_SCRATCH_7, #0
++    mtspi AV_SCRATCH_8, #0
++    mtspi AV_SCRATCH_9, #0
++    mtspi AV_SCRATCH_A, #0
++    mtspi AV_SCRATCH_B, #0
++    mtspi AV_SCRATCH_C, #0
++    mtspi AV_SCRATCH_D, #0
++    mtspi AV_SCRATCH_E, #0
++    mtspi AV_SCRATCH_F, #0
++    mtspi AV_SCRATCH_G, #0
++    mtspi AV_SCRATCH_H, #0
++    mtspi AV_SCRATCH_I, #0
++    mtspi AV_SCRATCH_J, #0
++    mtspi AV_SCRATCH_K, #0
++    mtspi AV_SCRATCH_L, #0
++    movi r20, #0x1357
++    st r20, [0x300]
++    movi r20, #0x2468
++    st r20, [0x302]
++    movi r20, #0x1234
++    st r20, [0x301]
++    movi r20, #0x5678
++    st r20, [0x303]
++    movi r20, #0x6bcd
++    st r20, [0x305]
++    movi r20, #0xc00
++    mtsp CPC_P, r20
++    mtspi CINT_VEC_BASE, #0x61
++    movi r20, #0x4000
++    mtspi CPSR, #1
++wait_ready:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #1, ready
++    nop
++    dbnz r20, wait_ready
++    nop
++    mtspi AV_SCRATCH_0, #0xe1
++    jmp stop_ccpu
++    nop
++ready:
++    mtspi AV_SCRATCH_C, #1
++    movi r0, #0x2000
++    movi r1, #0
++    movi r2, #0
++    movi r6, #0x1357
++    movi r7, #0x2468
++    movi r13, #0x400
++m_loop:
++    addi r1, r1, #1
++    andi r14, r1, #7
++    beq r14, #0, m_delay_done
++    nop
++m_delay:
++    dbnz r14, m_delay
++    nop
++m_delay_done:
++    st r6, [0x300]
++    ld r8, [0x300]
++    st r7, [0x302]
++    ld r9, [0x302]
++    beq r8, r6, m_first_ok
++    nop
++    addi r2, r2, #1
++m_first_ok:
++    beq r9, r7, m_second_ok
++    nop
++    addi r2, r2, #1
++m_second_ok:
++    mtsp AV_SCRATCH_4, r1
++    bne r1, r13, m_continue
++    nop
++    mfsp r12, AV_SCRATCH_5
++    mtsp AV_SCRATCH_A, r12
++m_continue:
++    dbnz r0, m_loop
++    nop
++    mtsp AV_SCRATCH_2, r2
++    movi r20, #0
++    movhi r20, #1
++wait_done:
++    mfsp r21, AV_SCRATCH_1
++    beq r21, #2, done
++    nop
++    dbnz r20, wait_done
++    nop
++    mtspi AV_SCRATCH_0, #0xe2
++    jmp stop_ccpu
++    nop
++done:
++    ld r22, [0x301]
++    mtsp AV_SCRATCH_I, r22
++    ld r22, [0x303]
++    mtsp AV_SCRATCH_J, r22
++    ld r22, [0x305]
++    mtsp AV_SCRATCH_K, r22
++    mtspi AV_SCRATCH_0, #0x80
++stop_ccpu:
++    mtspi CPSR, #0
++m_park:
++    jmp m_park
++    nop
++.org 0xc00
++ccpu:
++    di
++    movi r20, #0x4000
++    mtspi AV_SCRATCH_1, #1
++c_wait_start:
++    mfsp r21, AV_SCRATCH_C
++    beq r21, #1, c_start
++    nop
++    dbnz r20, c_wait_start
++    nop
++    mtspi AV_SCRATCH_1, #0xe3
++    jmp c_park
++    nop
++c_start:
++    movi r0, #0x2000
++    movi r1, #0
++    movi r2, #0
++    movi r3, #0
++    movi r4, #0
++    movi r5, #0x1234
++    movi r6, #0x5678
++    movi r7, #0x6bcd
++    movi r13, #0x400
++    movi r15, #0
++c_loop:
++    addi r1, r1, #1
++    xori r14, r1, #5
++    andi r14, r14, #7
++    beq r14, #0, c_delay_done
++    nop
++c_delay:
++    dbnz r14, c_delay
++    nop
++c_delay_done:
++    movi r8, #0x7777
++    movi r9, #0x8888
++    movhi r9, #0
++    movi r10, #0x9999
++    movhi r10, #0
++    ld r8, [0x301]
++    ld r9, [0x303]
++    ld r10, [0x305]
++    nop
++    nop
++    beq r8, r5, c_check0_ok
++    nop
++    addi r2, r2, #1
++    bne r15, #0, c_check0_ok
++    nop
++    movi r15, #0x301
++    mtsp AV_SCRATCH_8, r15
++    mtsp AV_SCRATCH_9, r8
++    mtsp AV_SCRATCH_G, r1
++    ld r16, [0x301]
++    mtsp AV_SCRATCH_H, r16
++c_check0_ok:
++    beq r9, r6, c_check1_ok
++    nop
++    addi r3, r3, #1
++    bne r15, #0, c_check1_ok
++    nop
++    movi r15, #0x303
++    mtsp AV_SCRATCH_8, r15
++    mtsp AV_SCRATCH_9, r9
++    mtsp AV_SCRATCH_G, r1
++    ld r16, [0x303]
++    mtsp AV_SCRATCH_H, r16
++c_check1_ok:
++    beq r10, r7, c_check2_ok
++    nop
++    addi r4, r4, #1
++    bne r15, #0, c_check2_ok
++    nop
++    movi r15, #0x305
++    mtsp AV_SCRATCH_8, r15
++    mtsp AV_SCRATCH_9, r10
++    mtsp AV_SCRATCH_G, r1
++    ld r16, [0x305]
++    mtsp AV_SCRATCH_H, r16
++c_check2_ok:
++    mtsp AV_SCRATCH_5, r1
++    bne r1, r13, c_continue
++    nop
++    mfsp r12, AV_SCRATCH_4
++    mtsp AV_SCRATCH_B, r12
++c_continue:
++    dbnz r0, c_loop
++    nop
++    mtsp AV_SCRATCH_3, r2
++    mtsp AV_SCRATCH_6, r3
++    mtsp AV_SCRATCH_7, r4
++    mtsp AV_SCRATCH_D, r8
++    mtsp AV_SCRATCH_E, r9
++    mtsp AV_SCRATCH_F, r10
++    mtspi AV_SCRATCH_1, #2
++c_park:
++    jmp c_park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t27_hevc_dma.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t27_hevc_dma.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t27_hevc_dma.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t27_hevc_dma.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,180 @@
++; SPDX-License-Identifier: GPL-2.0-only
++; T27: Address-tagged DDR -> LMEM DMA. CPU compares only after DMA idle.
++; scratch1=source, K=control|destination, L=iterations<<16|count.
++; scratch0=post-completion delay loops, bit16=prime from source+512 first.
++; 2=failed transfers,3=bad halfwords,4=completed,5=first failed iteration,
++; 6=first bad index,7=got,8=expected,9=final CTRL,A=WRRSP.
++; B..E=eight post-destination guard halfwords (packed pairs), F=saved first bad
++; reread, G=final COUNT, H=final ADR. Numeric 0xc0..0xd5 are HEVC scratch CBUS.
++; First failing transfer copied to LMEM 0x200; final transfer stays at destination.
++; Source tags are (physical halfword address & 0xffff), swapped in 8-byte groups.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    mtspi CPSR, #0
++    movi r0, #0xffff
++    mtsp MCPU_INTR_MSK, r0
++    mtsp CCPU_INTR_MSK, r0
++    mfsp r20, 0xc1
++    mfsp r21, 0xd4
++    mfsp r22, 0xd5
++    ext r23, r22, 0, 16
++    ext r24, r22, 16, 16
++    mfsp r25, 0xc0
++    mtspi 0xc0, #1
++    ext r26, r21, 0, 10
++    movi r27, #0
++    movi r28, #0
++    movi r29, #0
++    movi r30, #0
++    movi r1, #0
++    movi r2, #0xeeee
++    movi r3, #0x300
++clear:
++    st r2, [r1]
++    addi r1, r1, #1
++    dbnz r3, clear
++    nop
++iteration:
++    ext r1, r25, 16, 1
++    beq r1, #0, measured
++    nop
++    movi r1, #512
++    add r1, r20, r1
++    call dma
++    nop
++measured:
++    or r1, r20, r20
++    call dma
++    nop
++    or r1, r26, r26
++    shri r2, r20, #1
++    ext r2, r2, 0, 16
++    movi r3, #0
++    movi r4, #0
++verify:
++    ld r5, [r1]
++    beq r5, r2, good
++    nop
++    addi r4, r4, #1
++    bne r30, #0, good
++    nop
++    movi r30, #1
++    mtsp 0xc5, r27
++    mtsp 0xc6, r3
++    mtsp 0xc7, r5
++    mtsp 0xc8, r2
++good:
++    addi r1, r1, #1
++    addi r2, r2, #1
++    ext r2, r2, 0, 16
++    addi r3, r3, #1
++    bne r3, r23, verify
++    nop
++    add r29, r29, r4
++    beq r4, #0, next
++    nop
++    addi r28, r28, #1
++    bne r28, #1, next
++    nop
++    or r1, r26, r26
++    movi r2, #0x200
++    or r3, r23, r23
++save:
++    ld r4, [r1]
++    st r4, [r2]
++    addi r1, r1, #1
++    addi r2, r2, #1
++    dbnz r3, save
++    nop
++next:
++    addi r27, r27, #1
++    bne r27, r24, iteration
++    nop
++    mtsp 0xc2, r28
++    mtsp 0xc3, r29
++    mtsp 0xc4, r27
++    mfsp r1, LMEM_DMA_CTRL
++    mtsp 0xc9, r1
++    mfsp r1, WRRSP_LMEM
++    mtsp 0xca, r1
++    add r1, r26, r23
++    ld r2, [r1]
++    addi r1, r1, #1
++    ld r3, [r1]
++    addi r1, r1, #1
++    ins r2, r3, 16, 16
++    mtsp 0xcb, r2
++    ld r2, [r1]
++    addi r1, r1, #1
++    ld r3, [r1]
++    addi r1, r1, #1
++    ins r2, r3, 16, 16
++    mtsp 0xcc, r2
++    ld r2, [r1]
++    addi r1, r1, #1
++    ld r3, [r1]
++    addi r1, r1, #1
++    ins r2, r3, 16, 16
++    mtsp 0xcd, r2
++    ld r2, [r1]
++    addi r1, r1, #1
++    ld r3, [r1]
++    addi r1, r1, #1
++    ins r2, r3, 16, 16
++    mtsp 0xce, r2
++    mfsp r1, 0xc6
++    movi r2, #0x200
++    add r1, r1, r2
++    ld r3, [r1]
++    mtsp 0xcf, r3
++    mfsp r1, LMEM_DMA_COUNT
++    mtsp 0xd0, r1
++    mfsp r1, LMEM_DMA_ADR
++    mtsp 0xd1, r1
++    mtspi 0xc0, #0x80
++park:
++    jmp park
++    nop
++dma:
++    mtsp LMEM_DMA_ADR, r1
++    mtsp LMEM_DMA_COUNT, r23
++    mtsp LMEM_DMA_CTRL, r21
++    movi r10, #0xffff
++wait:
++    mfsp r11, LMEM_DMA_CTRL
++    ext r11, r11, 15, 1
++    beq r11, #0, wrwait_init
++    nop
++    dbnz r10, wait
++    nop
++    jmp timeout
++    nop
++wrwait_init:
++    movi r10, #0xffff
++wrwait:
++    mfsp r11, WRRSP_LMEM
++    ext r11, r11, 0, 12
++    beq r11, #0, delay_init
++    nop
++    dbnz r10, wrwait
++    nop
++    jmp timeout
++    nop
++delay_init:
++    ext r10, r25, 0, 16
++    beq r10, #0, done
++    nop
++delay:
++    dbnz r10, delay
++    nop
++done:
++    ret
++    nop
++timeout:
++    mtspi 0xc0, #0x81
++    jmp park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t28_hevc_dma_vendor.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t28_hevc_dma_vendor.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t28_hevc_dma_vendor.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t28_hevc_dma_vendor.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,193 @@
++; SPDX-License-Identifier: GPL-2.0-only
++; T28: T27 (address-tagged DDR -> LMEM DMA) extended for the vendor's MMU-map DMA shape:
++;   - the LMEM destination field of K is 11 bits (0x400 reachable: the vendor fetches 0x80
++;     halfwords into LMEM 0x400 with LMEM_DMA_CTRL = 0xf400),
++;   - the expected tag can be permuted for CTRL bits 11..13 (swap modes): scratch0 bits 17..18
++;     XOR the halfword index inside its 8-byte group, bit 19 swaps the bytes of the tag,
++;   - LMEM 0..0x4ff is filled with 0xeeee before the run (alias check for the 0x400 region).
++; scratch1=source, K=control|destination, L=iterations<<16|count.
++; scratch0 bits 0..15 = post-completion delay loops, bit 16 = prime from source+512 first.
++; Results (HEVC scratch CBUS 0xc0..): 2=failed transfers, 3=bad halfwords, 4=completed,
++; 5=first failed iteration, 6=first bad index, 7=got, 8=expected, 9=final CTRL, A=WRRSP,
++; B..E=eight post-destination guard halfwords (packed pairs), F=saved first bad reread,
++; G=final COUNT, H=final ADR.  First failing transfer copied to LMEM 0x200.
++.org 0
++    jmp start
++    nop
++.org 0x40
++start:
++    di
++    mtspi CPSR, #0
++    movi r0, #0xffff
++    mtsp MCPU_INTR_MSK, r0
++    mtsp CCPU_INTR_MSK, r0
++    mfsp r20, 0xc1
++    mfsp r21, 0xd4
++    mfsp r22, 0xd5
++    ext r23, r22, 0, 16
++    ext r24, r22, 16, 16
++    mfsp r25, 0xc0
++    mtspi 0xc0, #1
++    ext r26, r21, 0, 11
++    ext r12, r25, 17, 2
++    ext r13, r25, 19, 1
++    movi r27, #0
++    movi r28, #0
++    movi r29, #0
++    movi r30, #0
++    movi r1, #0
++    movi r2, #0xeeee
++    movi r3, #0x500
++clear:
++    st r2, [r1]
++    addi r1, r1, #1
++    dbnz r3, clear
++    nop
++iteration:
++    ext r1, r25, 16, 1
++    beq r1, #0, measured
++    nop
++    movi r1, #512
++    add r1, r20, r1
++    call dma
++    nop
++measured:
++    or r1, r20, r20
++    call dma
++    nop
++    or r1, r26, r26
++    shri r2, r20, #1
++    ext r2, r2, 0, 16
++    movi r3, #0
++    movi r4, #0
++verify:
++    ld r5, [r1]
++    xor r6, r3, r12
++    add r6, r6, r2
++    ext r6, r6, 0, 16
++    beq r13, #0, cmpv
++    nop
++    shri r7, r6, #8
++    shli r6, r6, #8
++    ext r6, r6, 0, 16
++    or r6, r6, r7
++cmpv:
++    beq r5, r6, good
++    nop
++    addi r4, r4, #1
++    bne r30, #0, good
++    nop
++    movi r30, #1
++    mtsp 0xc5, r27
++    mtsp 0xc6, r3
++    mtsp 0xc7, r5
++    mtsp 0xc8, r6
++good:
++    addi r1, r1, #1
++    addi r3, r3, #1
++    bne r3, r23, verify
++    nop
++    add r29, r29, r4
++    beq r4, #0, next
++    nop
++    addi r28, r28, #1
++    bne r28, #1, next
++    nop
++    or r1, r26, r26
++    movi r2, #0x200
++    or r3, r23, r23
++save:
++    ld r4, [r1]
++    st r4, [r2]
++    addi r1, r1, #1
++    addi r2, r2, #1
++    dbnz r3, save
++    nop
++next:
++    addi r27, r27, #1
++    bne r27, r24, iteration
++    nop
++    mtsp 0xc2, r28
++    mtsp 0xc3, r29
++    mtsp 0xc4, r27
++    mfsp r1, LMEM_DMA_CTRL
++    mtsp 0xc9, r1
++    mfsp r1, WRRSP_LMEM
++    mtsp 0xca, r1
++    add r1, r26, r23
++    ld r2, [r1]
++    addi r1, r1, #1
++    ld r3, [r1]
++    addi r1, r1, #1
++    ins r2, r3, 16, 16
++    mtsp 0xcb, r2
++    ld r2, [r1]
++    addi r1, r1, #1
++    ld r3, [r1]
++    addi r1, r1, #1
++    ins r2, r3, 16, 16
++    mtsp 0xcc, r2
++    ld r2, [r1]
++    addi r1, r1, #1
++    ld r3, [r1]
++    addi r1, r1, #1
++    ins r2, r3, 16, 16
++    mtsp 0xcd, r2
++    ld r2, [r1]
++    addi r1, r1, #1
++    ld r3, [r1]
++    addi r1, r1, #1
++    ins r2, r3, 16, 16
++    mtsp 0xce, r2
++    mfsp r1, 0xc6
++    movi r2, #0x200
++    add r1, r1, r2
++    ld r3, [r1]
++    mtsp 0xcf, r3
++    mfsp r1, LMEM_DMA_COUNT
++    mtsp 0xd0, r1
++    mfsp r1, LMEM_DMA_ADR
++    mtsp 0xd1, r1
++    mtspi 0xc0, #0x80
++park:
++    jmp park
++    nop
++dma:
++    mtsp LMEM_DMA_ADR, r1
++    mtsp LMEM_DMA_COUNT, r23
++    mtsp LMEM_DMA_CTRL, r21
++    movi r10, #0xffff
++wait:
++    mfsp r11, LMEM_DMA_CTRL
++    ext r11, r11, 15, 1
++    beq r11, #0, wrwait_init
++    nop
++    dbnz r10, wait
++    nop
++    jmp timeout
++    nop
++wrwait_init:
++    movi r10, #0xffff
++wrwait:
++    mfsp r11, WRRSP_LMEM
++    ext r11, r11, 0, 12
++    beq r11, #0, delay_init
++    nop
++    dbnz r10, wrwait
++    nop
++    jmp timeout
++    nop
++delay_init:
++    ext r10, r25, 0, 16
++    beq r10, #0, done
++    nop
++delay:
++    dbnz r10, delay
++    nop
++done:
++    ret
++    nop
++timeout:
++    mtspi 0xc0, #0x81
++    jmp park
++    nop
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t29_lmemsize.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t29_lmemsize.s
+--- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t29_lmemsize.s	1970-01-01 01:00:00.000000000 +0100
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t29_lmemsize.s	2026-10-08 01:16:24.000000000 +0200
+@@ -0,0 +1,129 @@
++; T29: LMEM size and aliasing scan, 0x000-0xfff by register-indirect ld/st.
++; Pass 0 zeroes 0..0xfff, pass 1 writes LMEM[a] = a ^ 0xa5a5, pass 2 counts per 0x100 block the
++; addresses that read back their own pattern -> AV_SCRATCH_2..H (blocks 0x000..0xf00).
++; AV_SCRATCH_I..L = ld [0x000], [0x400], [0x800], [0xc00] after pass 1 (alias check).
++; A block of real, un-aliased memory counts 0x100; no memory counts 0 (reads 0); a block that
++; aliases a higher block fails while the higher one passes. AV_SCRATCH_0 = 0x80 when done.
++.org 0x0
++    jmp start
++    nop
++.org 0x20
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++    ret
++    ei
++.org 0x40
++start:
++    movi r0, #0xffff
++    movhi r0, #0
++    mtsp MCPU_INTR_MSK, r0
++    mtspi AV_SCRATCH_0, #0
++    movi r3, #0xa5a5
++    movhi r3, #0
++    movi r1, #0
++    movi r4, #0x1000
++    movi r2, #0
++zero:
++    st r2, [r1]
++    addi r1, r1, #1
++    dbnz r4, zero
++    nop
++    movi r1, #0
++    movi r4, #0x1000
++wr:
++    xor r2, r1, r3
++    st r2, [r1]
++    addi r1, r1, #1
++    dbnz r4, wr
++    nop
++    movi r1, #0
++    call block
++    nop
++    mtsp AV_SCRATCH_2, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_3, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_4, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_5, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_6, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_7, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_8, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_9, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_A, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_B, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_C, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_D, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_E, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_F, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_G, r6
++    call block
++    nop
++    mtsp AV_SCRATCH_H, r6
++    ld r2, [0x0]
++    mtsp AV_SCRATCH_I, r2
++    ld r2, [0x400]
++    mtsp AV_SCRATCH_J, r2
++    ld r2, [0x800]
++    mtsp AV_SCRATCH_K, r2
++    ld r2, [0xc00]
++    mtsp AV_SCRATCH_L, r2
++    mtspi AV_SCRATCH_0, #0x80
++idle:
++    jmp idle
++    nop
++; count the addresses r1..r1+0xff whose contents equal (address ^ 0xa5a5); r1 advances
++block:
++    movi r6, #0
++    movi r4, #0x100
++rd:
++    ld r2, [r1]
++    xor r7, r1, r3
++    bne r2, r7, miss
++    nop
++    addi r6, r6, #1
++miss:
++    addi r1, r1, #1
++    dbnz r4, rd
++    nop
++    ret
++    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t2_delay.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,86 @@
 +; T2 - delay-slot semantics.
 +; SCRATCH_4 = 1   : slot instruction executes on the TAKEN path (jmp)
@@ -24057,7 +26618,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3b_stackregs.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,334 @@
 +; T3b - does the return stack live in the register file? r16..r63 preloaded with
 +; 0x1000+n; after a 40-deep call chain: SCRATCH_0..7 = r63 r60 r56 r48 r40 r32 r24 r16
@@ -24395,7 +26956,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t3_stack.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,303 @@
 +; T3 - hidden return-stack depth. Each SCRATCH should equal its chain depth
 +; (B=4 C=6 D=8 E=12 F=16 G=24 H=32 I=40); the first wrong value marks the
@@ -24702,7 +27263,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t4_irq.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,87 @@
 +; T4 - ei/di, MCPU_INTR_MSK polarity, software interrupt via MCPU_INTR_REQ,
 +; latching, and whether an ISR must clear the request.
@@ -24793,7 +27354,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    ei
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5b_mul.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,79 @@
 +; T5b - mul 3*5: SCRATCH_0..7 = mfmul a=0,1,2,4,8,16,24,32 (m=0)
 +; SCRATCH_8..F = mfmul m=0..7 (a=0)   SCRATCH_G = r1 after mul (clobbered?)
@@ -24876,7 +27437,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5c_mul.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,80 @@
 +; T5c - mul 0x12345*0x6789 = 0x75CDA2ED: SCRATCH_0..7 = mfmul a=0,1,2,4,8,16,24,32 (m=0)
 +; SCRATCH_8..F = mfmul m=0..7 (a=0)   SCRATCH_G = r1 after mul (clobbered?)
@@ -24960,7 +27521,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5d_macctrl.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,88 @@
 +; T5d - does MAC_CTRL1/MAC_CTRL2 set the mfmul split point?  product 0x75CCA2ED
 +; pass 1 (reset ctrl=8):     S0 = low part, S1 = high part, S2 = rounded high
@@ -25052,7 +27613,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5e_latency.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,62 @@
 +; T5e - mul result latency. First product 3*5=15, then 7*9=63.
 +; S0..S4 = mfmul low read at mul+1, +2, +3, +4, +5 after the SECOND mul (63 = ready, 15 = stale)
@@ -25118,7 +27679,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t5_mul.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,68 @@
 +; T5 - mul rd, rb and mfmul rb, a, m.
 +; 0x12345 * 0x6789 = 0x75CD9F4CD (unsigned) -> SCRATCH_0 low32, _1 = >>16, _2 = >>32
@@ -25190,7 +27751,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6_alu.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,123 @@
 +; T6 - shifts, ext/ins operand order, subs flags and jCC (signed vs unsigned).
 +; r1=0x80000010:
@@ -25317,7 +27878,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t6b_flags.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,170 @@
 +; T6b - subs flags and jCC. bitmask of TAKEN jCC:
 +; bit0 jne bit1 jeq bit2 jgt bit3 jle bit4 jge bit5 jlt
@@ -25491,7 +28052,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tests/t9_lmemdma.s	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,86 @@
 +; T9 - LMEM DMA both directions into the host buffer (arg0 = buf paddr in AV_SCRATCH_K).
 +; 1. LMEM[0x100..0x13f] := 0x1000+i, then LMEM->DDR at buf+0, COUNT=64, CTRL=0x8100
@@ -25581,7 +28142,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    nop
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ffcompare.py	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,32 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -25617,7 +28178,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_gen.py	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,308 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -25929,7 +28490,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ohevc_rec_test.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,506 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -26439,7 +29000,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_gen.py	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,174 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -26617,7 +29178,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ompeg4_rec_test.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,205 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -26826,7 +29387,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_gen.py	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,487 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -27317,7 +29878,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovc1_rec_test.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,256 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -27577,7 +30138,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_gen.py	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,165 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -27746,7 +30307,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/ovp9_rec_test.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,256 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -28006,7 +30567,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slcompare.py	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,192 @@
 +#!/usr/bin/env python3
 +# SPDX-License-Identifier: GPL-2.0-only
@@ -28202,7 +30763,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +    main()
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/tools/slreplay.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,706 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -28912,7 +31473,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +}
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-h264.c	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,453 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -29369,7 +31930,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +MODULE_AUTHOR("Boris Brezillon <boris.brezillon@collabora.com>");
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-mpeg4.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,280 @@
 +/* SPDX-License-Identifier: ((GPL-2.0+ WITH Linux-syscall-note) OR BSD-3-Clause) */
 +/*
@@ -29653,7 +32214,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/me
 +#endif /* AVCODEC_V4L2_STATELESS_MPEG4_H */
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h
 --- linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h	2026-10-07 05:49:55.000000000 +0200
++++ linux-7.2.8/drivers/media/platform/amlogic/amvdec/v4l2-stateless-vc1.h	2026-10-08 01:16:24.000000000 +0200
 @@ -0,0 +1,547 @@
 +/* SPDX-License-Identifier: ((GPL-2.0+ WITH Linux-syscall-note) OR BSD-3-Clause) */
 +/*
