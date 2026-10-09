@@ -26,7 +26,7 @@ DEPENDS = \
 	firmware/aw859a-firmware        \
 	firmware/aic8800_sdio-firmware  \
 	firmware/aic8800_usb-firmware   \
-	$(if $(filter meson, $(mm_GRAPHICS)),firmware/amlogic-openucode-firmware) \
+	$(if $(filter amlogic-openucode, $(mm_SOFTWARE)),firmware/amlogic-openucode-firmware) \
 	$(if $(filter nouveau, $(mm_GRAPHICS)),firmware/nouveau-firmware) \
 	firmware/edid-firmware \
 	firmware/s9083s-firmware \
