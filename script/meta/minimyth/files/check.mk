@@ -239,6 +239,7 @@ mm-all:
 		   [ ! "$${software}" = "wifi_rtl8821cu" ] && \
 		   [ ! "$${software}" = "wifi_rtl8189es" ] && \
 		   [ ! "$${software}" = "wifi_sci9083h"  ] && \
+		   [ ! "$${software}" = "amlogic-openucode" ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
