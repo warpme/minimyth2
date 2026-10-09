@@ -1,0 +1,86 @@
+From bfbd6410efe5dda15fa86a74833eb4f3816456a0 Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Mon, 5 Oct 2026 09:03:37 +0000
+Subject: [PATCH 233/269] drm/meson: rdma: use the S4 auto trigger source
+ register
+
+The S4 RDMA moves the auto channel trigger source out of the
+RDMA_ACCESS_AUTO trigger fields into a RDMA_AUTO_SRCn_SEL register per
+channel, as the vendor kernel does for its RDMA_VER_2 parts. The
+trigger written to RDMA_ACCESS_AUTO has no effect, so the register
+writes queued for the AFBC decoder are never replayed on vsync. The
+decoder then only runs when a new frame is committed, and the OSD
+flickers or stays black while the GUI is idle.
+
+Program the channel 1 trigger in RDMA_AUTO_SRC1_SEL on S4.
+
+Fixes: 00952e79eca4 ("drm/meson: add DRM support for S4 series SoCs")
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ drivers/gpu/drm/meson/meson_rdma.c      | 22 ++++++++++++++--------
+ drivers/gpu/drm/meson/meson_registers.h |  1 +
+ 2 files changed, 15 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_rdma.c b/drivers/gpu/drm/meson/meson_rdma.c
+index 130382178..301966d67 100644
+--- a/drivers/gpu/drm/meson/meson_rdma.c
++++ b/drivers/gpu/drm/meson/meson_rdma.c
+@@ -68,6 +68,18 @@ void meson_rdma_setup(struct meson_drm *priv)
+ 			    priv->io_base + _REG(RDMA_ACCESS_AUTO));
+ }
+ 
++static void meson_rdma_trigger(struct meson_drm *priv, u32 trigger)
++{
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		writel_relaxed(trigger, priv->io_base + _REG(RDMA_AUTO_SRC1_SEL));
++		return;
++	}
++
++	writel_bits_relaxed(RDMA_ACCESS_TRIGGER_CHAN1,
++			    FIELD_PREP(RDMA_ACCESS_TRIGGER_CHAN1, trigger),
++			    priv->io_base + _REG(RDMA_ACCESS_AUTO));
++}
++
+ void meson_rdma_stop(struct meson_drm *priv)
+ {
+ 	writel_bits_relaxed(RDMA_IRQ_CLEAR_CHAN1,
+@@ -75,10 +87,7 @@ void meson_rdma_stop(struct meson_drm *priv)
+ 			    priv->io_base + _REG(RDMA_CTRL));
+ 
+ 	/* Stop Channel 1 */
+-	writel_bits_relaxed(RDMA_ACCESS_TRIGGER_CHAN1,
+-			    FIELD_PREP(RDMA_ACCESS_ADDR_INC_CHAN1,
+-				       RDMA_ACCESS_TRIGGER_STOP),
+-			    priv->io_base + _REG(RDMA_ACCESS_AUTO));
++	meson_rdma_trigger(priv, RDMA_ACCESS_TRIGGER_STOP);
+ }
+ 
+ void meson_rdma_reset(struct meson_drm *priv)
+@@ -126,10 +135,7 @@ void meson_rdma_flush(struct meson_drm *priv)
+ 	       priv->io_base + _REG(RDMA_AHB_END_ADDR_1));
+ 
+ 	/* Trigger Channel 1 on VSYNC event */
+-	writel_bits_relaxed(RDMA_ACCESS_TRIGGER_CHAN1,
+-			    FIELD_PREP(RDMA_ACCESS_TRIGGER_CHAN1,
+-				       RDMA_ACCESS_TRIGGER_VSYNC),
+-			    priv->io_base + _REG(RDMA_ACCESS_AUTO));
++	meson_rdma_trigger(priv, RDMA_ACCESS_TRIGGER_VSYNC);
+ 
+ 	priv->rdma.offset = 0;
+ }
+diff --git a/drivers/gpu/drm/meson/meson_registers.h b/drivers/gpu/drm/meson/meson_registers.h
+index 9fd89644f..a65472cbb 100644
+--- a/drivers/gpu/drm/meson/meson_registers.h
++++ b/drivers/gpu/drm/meson/meson_registers.h
+@@ -1331,6 +1331,7 @@
+ #define		RDMA_IRQ_STAT_CHAN_MAN	BIT(24)
+ #define RDMA_STATUS2 0x1116
+ #define RDMA_STATUS3 0x1117
++#define RDMA_AUTO_SRC1_SEL 0x1123
+ #define L_GAMMA_CNTL_PORT 0x1400
+ #define		L_GAMMA_CNTL_PORT_VCOM_POL	BIT(7)	/* RW */
+ #define		L_GAMMA_CNTL_PORT_RVS_OUT	BIT(6)	/* RW */
+-- 
+2.53.0
+

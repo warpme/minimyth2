@@ -162,6 +162,15 @@ PATCHFILES += 1711-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
 PATCHFILES += 1712-net-wireless-broadcom-add-sdio-ID-43342.patch
 PATCHFILES += 1713-gpu-panfrost-add-meson-s4-support.patch
 PATCHFILES += 1714-thermal-amlogic-add-meson-s4-variant.patch
+PATCHFILES += 1715-clk-meson-s4-peripherals-keep-the-video-clocks-runni.patch
+PATCHFILES += 1716-drm-meson-venc-enable-the-S4-VPU-interrupt-clock.patch
+PATCHFILES += 1717-clk-meson-s4-pll-make-the-HDMI-PLL-read-only.patch
+PATCHFILES += 1718-drm-meson-rdma-use-the-S4-auto-trigger-source-regist.patch
+PATCHFILES += 1720-firmware-meson_sm-add-the-secure-PLL-and-CPU-clock-s.patch
+PATCHFILES += 1721-dt-bindings-clock-amlogic-s4-pll-clkc-add-the-CPU-cl.patch
+PATCHFILES += 1722-clk-meson-s4-pll-add-the-CPU-clocks.patch
+PATCHFILES += 1723-firmware-meson_sm-add-the-DVFS-table-index-service.patch
+PATCHFILES += 1724-cpufreq-add-a-driver-for-binned-Amlogic-CPUs.patch
 # s4/sc2 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -172,7 +181,7 @@ PATCHFILES += 1805-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_temp_sensor-support.patch
 PATCHFILES += 1807-arm64-dts-amlogic-Add-video-decoder-driver-support-for-S4-SOCs-v7.patch
 PATCHFILES += 1809-arm64-dtsi-amlogic-s4-hack-stop-thermal-shutdowns.patch
-PATCHFILES += 1810-arm64-dtsi-amlogic-s4-add-cpu-dvfs.patch
+# to remove PATCHFILES += 1810-arm64-dtsi-amlogic-s4-add-cpu-dvfs.patch
 # not works. for future work PATCHFILES += 1811-arm64-dtsi-amlogic-s4-wip-add-cec.patch
 # s4/sc2 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
