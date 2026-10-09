@@ -1,0 +1,50 @@
+From 151dd2ed10e7d8f40cdac6d67dc71dfe355f72ad Mon Sep 17 00:00:00 2001
+From: Steve Erlenborn <1751095+SteveErl@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 14:35:24 -0500
+Subject: [PATCH] Remove huge delay in start of Listen to Music
+
+The AllMusic::resync() routine used a QList
+type for the idList variable. The call to
+idList.contains() ran very slow because it
+performs a linear search with O(N) time
+complexity. It scans every item from the
+beginning of the list until it finds a match.
+This is a very inefficient for large values
+of N.
+
+To fix this problem, the QList has been replaced
+with a QSet. QSets use hash tables, reducing
+lookup time from O(N) to O(1) on average.
+
+For the Issue which this change originated from,
+the startup time for Listen to Music, with 40553
+MP3 tracks, dropped from 24.872324 seconds to
+.007893 seconds.
+
+Resolves #1513
+---
+ mythtv/libs/libmythmetadata/musicmetadata.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/musicmetadata.cpp b/mythtv/libs/libmythmetadata/musicmetadata.cpp
+index 7ff78d4881b..55de771d65d 100644
+--- a/mythtv/libs/libmythmetadata/musicmetadata.cpp
++++ b/mythtv/libs/libmythmetadata/musicmetadata.cpp
+@@ -1533,7 +1533,7 @@ void AllMusic::resync()
+ 
+     m_numPcs = query.size() * 2;
+     m_numLoaded = 0;
+-    QList<MusicMetadata::IdType> idList;
++    QSet<MusicMetadata::IdType> idList;
+ 
+     if (query.isActive() && query.size() > 0)
+     {
+@@ -1541,7 +1541,7 @@ void AllMusic::resync()
+         {
+             MusicMetadata::IdType id = query.value(0).toInt();
+ 
+-            idList.append(id);
++            idList.insert(id);
+ 
+             auto *dbMeta = new MusicMetadata(
+                 query.value(12).toString(),    // filename

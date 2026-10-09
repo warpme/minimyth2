@@ -147,6 +147,8 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
 # --------Patches 350+ are plugins patches---------------------
+# Various mythmusic fixes
+PATCHFILES += 0350-mythmusic-pull1514-Remove-huge-delay-in-start-of-Listen-to-Music.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
