@@ -72,6 +72,7 @@ mm_SOFTWARE               ?= \
 #                             wireless_tools \
 #                             ffmpeg70 \
 #                             ffmpeg71 \
+#                             amlogic-openucode \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'
@@ -87,6 +88,7 @@ mm_SOFTWARE               ?= \
 # 'board-s905x4.x96_max_ultra'
 # 'board-s905y4.vim1s'
 # 'board-s912.beelink_gt1'
+# 'board-s912.beelink_gt1_ultimate'
 # 'board-g12.radxa_zero'
 # 'board-sm1.x96_air2g'
 # 'board-sm1.tanix_tx5_plus'
