@@ -179,6 +179,8 @@ PATCHFILES += 1803-arm64-dtsi-amlogic-s4-add-drm-support-v2.patch
 PATCHFILES += 1804-arm64-dtsi-amlogic-s4-add-gpu-support.patch
 PATCHFILES += 1805-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_dvfs_temp_sensor-support.patch
+PATCHFILES += 1807-arm64-dtsi-amlogic-s4-pwm-emmc-fixes.patch
+PATCHFILES += 1808-arm64-dtsi-amlogic-s4-add-video-decoder.patch
 # not works. for future work PATCHFILES += 1811-arm64-dtsi-amlogic-s4-wip-add-cec.patch
 # s4/sc2 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
