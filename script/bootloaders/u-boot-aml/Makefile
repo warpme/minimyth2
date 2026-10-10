@@ -22,7 +22,7 @@ endif
 ifeq (0,1)
 # s912 based gt1 ultimate
 SOC_TYPE                  = s912
-mm_U-BOOT_BOARD_TYPE      = board-s912.beelink_gt1
+mm_U-BOOT_BOARD_TYPE      = board-s912.beelink_gt1_ultimate
 mm_U-BOOT_BOARD_DEFCONFIG = beelink-gt1_defconfig
 FIP_BOARD                 = beelink-gt1
 endif
@@ -86,8 +86,8 @@ endif
 # Mainline U-boot
 GARNAME      = u-boot-aml
 
-# mainline 2026.10-rc5
-GARVERSION   = a06e89ab05eaa2b8344d521319399333cd760ae5
+# mainline 2026.10
+GARVERSION   = 5508406582f6f7120dce0c4b3059819a41788db2
 # mainline 2026.07 GA
 # GARVERSION   = ece349ade2973e220f524ce59e59711cc919263f
 # mainline 2026.04 GA - fails with sd/emmc reading
