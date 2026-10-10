@@ -2,57 +2,98 @@
 # For forcing given board (usually for testing)
 # test bootloader will be in usr/lib/u-boot/test-<soc>
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3328.
+# mm_U-BOOT_BOARD_TYPE      = board-rk3328.beelink_a1
 # mm_U-BOOT_BOARD_DEFCONFIG = beelink-a1-rk3328_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3328_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = evb-rk3328_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3399.
-# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-rk3399_defconfig
+# mm_U-BOOT_BOARD_TYPE      = board-rk3399.orangepi_4_lts
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-4-lts_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4b-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4se-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3399_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3528.
+# mm_U-BOOT_BOARD_TYPE      = board-rk3399.rockpi4-b
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4b-rk3399_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3399.rockpi4-se
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4se-rk3399_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3528.rock2-a
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3528_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3566.
+# mm_U-BOOT_BOARD_TYPE      = board-rk3566.orangepi_3b
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-3b-rk3566_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3566.quartz64-b
 # mm_U-BOOT_BOARD_DEFCONFIG = quartz64-b-rk3566_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3566.zero3e
 # mm_U-BOOT_BOARD_DEFCONFIG = radxa-zero-3-rk3566_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3566.x96_x6
 # mm_U-BOOT_BOARD_DEFCONFIG = x96-x6-rk3566_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3566.rock3-c
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-3c-rk3566_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3566.urve-pi
 # mm_U-BOOT_BOARD_DEFCONFIG = urve-pi-rk3566_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3568.
+# mm_U-BOOT_BOARD_TYPE      = board-rk3568.rock3-a
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-3a-rk3568_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-3b-rk3568_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3568_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3588_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3576.
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = roc-pc-rk3576_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-4d-rk3576_defconfig
+# mm_U-BOOT_BOARD_TYPE      = board-rk3568.rock3-b
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-3b-rk3568_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3576.nanopi_m5
+# mm_U-BOOT_BOARD_DEFCONFIG = nanopi-m5-rk3576_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3576.nanopi_r76s
 # mm_U-BOOT_BOARD_DEFCONFIG = nanopi-r76s-rk3576_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3588.
-# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock5b-rk3588_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-5-itx-rk3588_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock5t-rk3588_defconfig
+# mm_U-BOOT_BOARD_TYPE      = board-rk3576.rock_4d
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-4d-rk3576_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588.nanopc_t6
 # mm_U-BOOT_BOARD_DEFCONFIG = nanopc-t6-rk3588_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3588s.
-# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-rk3588s_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = nanopi-r6s-rk3588s_defconfig
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588.nanopc_t6_lts
+# mm_U-BOOT_BOARD_DEFCONFIG = nanopc-t6-rk3588_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588.orangepi_5_plus
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588.rock5-b
+# mm_U-BOOT_BOARD_DEFCONFIG = rock5b-rk3588_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588.rock5-itx
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-5-itx-rk3588_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588.rock5-t
+# mm_U-BOOT_BOARD_DEFCONFIG = rock5t-rk3588_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588s.edge2
+# mm_U-BOOT_BOARD_DEFCONFIG = khadas-edge2-rk3588s_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588s.nanopi_m6
 # mm_U-BOOT_BOARD_DEFCONFIG = nanopi-m6-rk3588s_defconfig
 
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588s.nanopi_r6s
+# mm_U-BOOT_BOARD_DEFCONFIG = nanopi-r6s-rk3588s_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588s.orangepi_5
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-rk3588s_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588s.orangepi_5_pro
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-rk3588s_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588s.rock5-a
+# mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3588s.rock5-c
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-5c-rk3588s_defconfig
+
 GARNAME      = u-boot-rk
-# git@ 06.07.2026 mainline 2026.07 GA
-GARVERSION   = ece349ade2973e220f524ce59e59711cc919263f
+# mainline 2026.10
+GARVERSION   = 5508406582f6f7120dce0c4b3059819a41788db2
+# mainline 2026.07 GA
+# GARVERSION   = ece349ade2973e220f524ce59e59711cc919263f
 # git@ 13.06.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = 74213af1e952c4683d2e35952507133b61394862
 MASTER_SITES = \
