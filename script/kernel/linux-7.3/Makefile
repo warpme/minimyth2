@@ -178,10 +178,7 @@ PATCHFILES += 1802-arm64-dtsi-amlogic-add-Amlogic-S4-hdmi-audio.patch
 PATCHFILES += 1803-arm64-dtsi-amlogic-s4-add-drm-support-v2.patch
 PATCHFILES += 1804-arm64-dtsi-amlogic-s4-add-gpu-support.patch
 PATCHFILES += 1805-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
-PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_temp_sensor-support.patch
-PATCHFILES += 1807-arm64-dts-amlogic-Add-video-decoder-driver-support-for-S4-SOCs-v7.patch
-PATCHFILES += 1809-arm64-dtsi-amlogic-s4-hack-stop-thermal-shutdowns.patch
-# to remove PATCHFILES += 1810-arm64-dtsi-amlogic-s4-add-cpu-dvfs.patch
+PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_dvfs_temp_sensor-support.patch
 # not works. for future work PATCHFILES += 1811-arm64-dtsi-amlogic-s4-wip-add-cec.patch
 # s4/sc2 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
@@ -189,7 +186,8 @@ PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
 PATCHFILES += 1902-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
 PATCHFILES += 1903-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
 PATCHFILES += 1904-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
-PATCHFILES += 1905-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-WIP-cpu-dfvs.patch
+# todo PATCHFILES += 1905-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-WIP-cpu-dfvs.patch
+PATCHFILES += 1906-arm64-dts-amlogic-meson-s4-khadas-1s-add-cpu-dfvs.patch
 endif
 #------------------------------------------------------------
 

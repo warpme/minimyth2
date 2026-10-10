@@ -6,17 +6,27 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/arch/arm64/boot/dts/amlogic/meson-s4.dtsi linux-7.3-rc6/arch/arm64/boot/dts/amlogic/meson-s4.dtsi
---- linux-7.3-rc6/arch/arm64/boot/dts/amlogic/meson-s4.dtsi	2026-10-09 22:34:32.328407614 +0200
-+++ linux-7.3-rc6/arch/arm64/boot/dts/amlogic/meson-s4.dtsi	2026-10-09 22:36:05.158460878 +0200
-@@ -17,6 +17,7 @@
+--- linux-7.3-rc6/arch/arm64/boot/dts/amlogic/meson-s4.dtsi	2026-10-10 12:37:58.356250340 +0200
++++ linux-7.3-rc6/arch/arm64/boot/dts/amlogic/meson-s4.dtsi	2026-10-10 12:36:47.505914877 +0200
+@@ -17,8 +17,17 @@
  #include <dt-bindings/reset/amlogic,meson-g12a-audio-reset.h>
  #include <dt-bindings/sound/meson-g12a-toacodec.h>
  #include <dt-bindings/sound/meson-g12a-tohdmitx.h>
 +#include <dt-bindings/thermal/thermal.h>
  
  / {
++	aliases {
++		serial0 = &uart_b;
++	};
++
++	chosen {
++		stdout-path = "serial0:921600n8";
++	};
++
  	cpus {
-@@ -28,6 +29,9 @@
+ 		#address-cells = <2>;
+ 		#size-cells = <0>;
+@@ -28,6 +37,9 @@
  			compatible = "arm,cortex-a35";
  			reg = <0x0 0x0>;
  			enable-method = "psci";
@@ -26,7 +36,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/arch/arm
  		};
  
  		cpu1: cpu@1 {
-@@ -35,6 +39,9 @@
+@@ -35,6 +47,9 @@
  			compatible = "arm,cortex-a35";
  			reg = <0x0 0x1>;
  			enable-method = "psci";
@@ -36,7 +46,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/arch/arm
  		};
  
  		cpu2: cpu@2 {
-@@ -42,6 +49,9 @@
+@@ -42,6 +57,9 @@
  			compatible = "arm,cortex-a35";
  			reg = <0x0 0x2>;
  			enable-method = "psci";
@@ -46,7 +56,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/arch/arm
  		};
  
  		cpu3: cpu@3 {
-@@ -49,6 +59,9 @@
+@@ -49,6 +67,9 @@
  			compatible = "arm,cortex-a35";
  			reg = <0x0 0x3>;
  			enable-method = "psci";
@@ -56,7 +66,35 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/arch/arm
  		};
  	};
  
-@@ -102,6 +115,75 @@
+@@ -78,6 +99,11 @@
+ 	};
+ 
+ 	firmware {
++		optee {
++			compatible = "linaro,optee-tz";
++			method = "smc";
++		};
++
+ 		sm: secure-monitor {
+ 			compatible = "amlogic,meson-gxbb-sm";
+ 
+@@ -88,6 +114,15 @@
+ 		};
+ 	};
+ 
++	cpu_temp: temperature-sensor@fe020000 {
++		compatible = "amlogic,s4-thermal", "amlogic,t7-thermal";
++		reg = <0x0 0xfe020000 0x0 0x50>;
++		interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&clkc_periphs CLKID_TS>;
++		#thermal-sensor-cells = <0>;
++		amlogic,secure-monitor = <&sm 1>;
++	};
++
+ 	saradc: adc@fe026000 {
+ 		compatible = "amlogic,meson-s4-saradc",
+ 			     "amlogic,meson-g12a-saradc";
+@@ -102,6 +137,75 @@
  		status = "disabled";
  	};
  
@@ -132,10 +170,41 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/arch/arm
  	gpu_opp_table: opp-table-gpu {
  		compatible = "operating-points-v2";
  
-@@ -208,6 +290,14 @@
- 				hdmi_tx_tmds_port: port@1 {
- 					reg = <1>;
- 				};
+@@ -135,6 +239,49 @@
+ 		};
+ 	};
+ 
++	thermal-zones {
++		cpu_thermal: cpu-thermal {
++			polling-delay = <1000>;
++			polling-delay-passive = <100>;
++			thermal-sensors = <&cpu_temp>;
++
++			trips {
++				cpu_passive: cpu-passive {
++					temperature = <85000>; /* millicelsius */
++					hysteresis = <5000>; /* millicelsius */
++					type = "passive";
++				};
++
++				cpu_hot: cpu-hot {
++					temperature = <95000>; /* millicelsius */
++					hysteresis = <5000>; /* millicelsius */
++					type = "hot";
++				};
++
++				cpu_critical: cpu-critical {
++					temperature = <105000>; /* millicelsius */
++					hysteresis = <1000>; /* millicelsius */
++					type = "critical";
++				};
++			};
++
++			cooling-maps {
++				map0 {
++					trip = <&cpu_passive>;
++					cooling-device = <&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++				};
 +
 +				map1 {
 +					trip = <&cpu_passive>;
@@ -144,10 +213,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-7.3-rc6/arch/arm
 +							 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
 +							 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 +				};
- 			};
- 
- 			clkc_periphs: clock-controller@0 {
-@@ -239,6 +329,7 @@
++			};
++		};
++	};
++
+ 	soc {
+ 		compatible = "simple-bus";
+ 		#address-cells = <2>;
+@@ -234,6 +380,7 @@
  				reg = <0x0 0x8000 0x0 0x1e8>;
  				clocks = <&xtal>;
  				clock-names = "xtal";
