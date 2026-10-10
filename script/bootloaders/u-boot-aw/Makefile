@@ -2,46 +2,75 @@
 # For forcing given board (usually for testing)
 # test bootloader will be in usr/lib/u-boot/test-<soc>
 
-# for h6 - rememnber also to rebuild crust...
-# mm_U-BOOT_BOARD_TYPE = test-h6.
+# for h6 - remember also to rebuild crust...
+# mm_U-BOOT_BOARD_TYPE      = board-h6.tanix_tx6
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6_defconfig
 # CRUST_CONFIG              = tanix_tx6_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h6.beelink_gs1
 # mm_U-BOOT_BOARD_DEFCONFIG = beelink_gs1_defconfig
 # CRUST_CONFIG              = beelink_gs1_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h6.orangepi_3_lts
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_3_lts_defconfig
 # CRUST_CONFIG              = orangepi_3_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-h616.
+# mm_U-BOOT_BOARD_TYPE      = board-h616.tanix_tx6s_axp313
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_axp313_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h616.tanix_tx6s
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h616.orangepi_zero2
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_kingston_lpddr3_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h616.pendoo_x12pro
 # mm_U-BOOT_BOARD_DEFCONFIG = pendoo-x12_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-h313.
+# mm_U-BOOT_BOARD_TYPE      = board-h313.x96_q_lpddr3
 # mm_U-BOOT_BOARD_DEFCONFIG = x96_q_lpddr3_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h313.x96_q_lpddr3_v1.3
 # mm_U-BOOT_BOARD_DEFCONFIG = x96_q_lpddr3_v1.3_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h313.x96_q
 # mm_U-BOOT_BOARD_DEFCONFIG = x96_q_ddr3_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h313.x96_q_v5.1
 # mm_U-BOOT_BOARD_DEFCONFIG = x96_q_ddr3_v5.1_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h313.tanix_tx1
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h313.tanix_tx1_v1.2
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_v1.2_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-h618.
+# mm_U-BOOT_BOARD_TYPE      = board-h618.orangepi_zero3
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero3_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h618.orangepi_zero2w
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2w_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h618.vontar_h618
 # mm_U-BOOT_BOARD_DEFCONFIG = vontar_h618_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-h618.transpeed-8k618-t
 # mm_U-BOOT_BOARD_DEFCONFIG = transpeed-8k618-t_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-a523.
+# mm_U-BOOT_BOARD_TYPE      = board-a523.cubie_a5e
 # mm_U-BOOT_BOARD_DEFCONFIG = radxa-cubie-a5e_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-a523.orangepi_4a
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_4a_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-a523.x96q_pro_plus
 # mm_U-BOOT_BOARD_DEFCONFIG = x96q_pro_plus_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-a733.
 # mm_U-BOOT_BOARD_DEFCONFIG = radxa-cubie-a7a_defconfig
 
 GARNAME      = u-boot-aw
-GARVERSION   = 2026.07
+GARVERSION   = 2026.10
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
