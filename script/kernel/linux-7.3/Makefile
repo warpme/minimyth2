@@ -172,6 +172,8 @@ PATCHFILES += 1723-firmware-meson_sm-add-the-DVFS-table-index-service.patch
 PATCHFILES += 1724-cpufreq-add-a-driver-for-binned-Amlogic-CPUs.patch
 PATCHFILES += 1725-WIP-mmc-meson-gx-mmc-add-delay-during-poweroff.patch
 PATCHFILES += 1726-mmc-meson-gx-add-the-S4-interface-3-tuning.patch
+PATCHFILES += 1727-drm-meson-vclk-set-up-the-S4-HDMI-PLL-like-the-vendo.patch
+PATCHFILES += 1728-drm-meson-vclk-wait-for-both-S4-PLL-lock-bits-for-CV.patch
 # s4/sc2 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
