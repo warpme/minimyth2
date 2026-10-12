@@ -1,0 +1,239 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+
+media: platform: meson: ao-cec-g12a: add support for the S4
+ SoC
+
+The AO-CEC-B block found in the Amlogic S4 SoC uses the same CEC core
+and indirect register access as the one in G12A/SM1, but differs in
+two ways:
+
+- The top level registers do not include the two CLK_CNTL registers
+  used for the internal dual divider, so GEN_CNTL, RW, INTR_MASKN,
+  INTR_CLR and INTR_STAT are located 8 bytes lower.
+- The 32768Hz core clock is provided by the SoC clock controller
+  instead of the internal dual divider.
+
+Add per-SoC data to describe the register offset shift and the external
+core clock, and add the "amlogic,meson-s4-ao-cec" compatible.
+
+---
+ .../media/cec/platform/meson/ao-cec-g12a.c    | 84 ++++++++++++++-----
+ 1 file changed, 61 insertions(+), 23 deletions(-)
+
+diff --git a/drivers/media/cec/platform/meson/ao-cec-g12a.c b/drivers/media/cec/platform/meson/ao-cec-g12a.c
+index 08f5922..b97f4fc 100644
+--- a/drivers/media/cec/platform/meson/ao-cec-g12a.c
++++ b/drivers/media/cec/platform/meson/ao-cec-g12a.c
+@@ -171,6 +171,10 @@
+ struct meson_ao_cec_g12a_data {
+ 	/* Setup the internal CECB_CTRL2 register */
+ 	bool				ctrl2_setup;
++	/* CEC core clock is provided by an external clock controller */
++	bool				ext_core_clk;
++	/* Offset to subtract from the CECB_* top register addresses */
++	unsigned int			reg_shift;
+ };
+ 
+ struct meson_ao_cec_g12a_device {
+@@ -186,6 +190,12 @@ struct meson_ao_cec_g12a_device {
+ 	const struct meson_ao_cec_g12a_data *data;
+ };
+ 
++static inline unsigned int
++cecb_reg(struct meson_ao_cec_g12a_device *ao_cec, unsigned int reg)
++{
++	return reg - ao_cec->data->reg_shift;
++}
++
+ static const struct regmap_config meson_ao_cec_g12a_regmap_conf = {
+ 	.reg_bits = 8,
+ 	.val_bits = 32,
+@@ -376,17 +386,17 @@ static int meson_ao_cec_g12a_read(void *context, unsigned int addr,
+ 	u32 reg = FIELD_PREP(CECB_RW_ADDR, addr);
+ 	int ret = 0;
+ 
+-	ret = regmap_write(ao_cec->regmap, CECB_RW_REG, reg);
++	ret = regmap_write(ao_cec->regmap, cecb_reg(ao_cec, CECB_RW_REG), reg);
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = regmap_read_poll_timeout(ao_cec->regmap, CECB_RW_REG, reg,
++	ret = regmap_read_poll_timeout(ao_cec->regmap, cecb_reg(ao_cec, CECB_RW_REG), reg,
+ 				       !(reg & CECB_RW_BUS_BUSY),
+ 				       5, 1000);
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = regmap_read(ao_cec->regmap, CECB_RW_REG, &reg);
++	ret = regmap_read(ao_cec->regmap, cecb_reg(ao_cec, CECB_RW_REG), &reg);
+ 
+ 	*data = FIELD_GET(CECB_RW_RD_DATA, reg);
+ 
+@@ -401,7 +411,7 @@ static int meson_ao_cec_g12a_write(void *context, unsigned int addr,
+ 		  FIELD_PREP(CECB_RW_WR_DATA, data) |
+ 		  CECB_RW_WRITE_EN;
+ 
+-	return regmap_write(ao_cec->regmap, CECB_RW_REG, reg);
++	return regmap_write(ao_cec->regmap, cecb_reg(ao_cec, CECB_RW_REG), reg);
+ }
+ 
+ static const struct regmap_config meson_ao_cec_g12a_cec_regmap_conf = {
+@@ -422,7 +432,7 @@ meson_ao_cec_g12a_irq_setup(struct meson_ao_cec_g12a_device *ao_cec,
+ 		  CECB_INTR_ARB_LOSS | CECB_INTR_INITIATOR_ERR |
+ 		  CECB_INTR_FOLLOWER_ERR;
+ 
+-	regmap_write(ao_cec->regmap, CECB_INTR_MASKN_REG,
++	regmap_write(ao_cec->regmap, cecb_reg(ao_cec, CECB_INTR_MASKN_REG),
+ 		     enable ? cfg : 0);
+ }
+ 
+@@ -456,7 +466,7 @@ static irqreturn_t meson_ao_cec_g12a_irq(int irq, void *data)
+ 	struct meson_ao_cec_g12a_device *ao_cec = data;
+ 	u32 stat;
+ 
+-	regmap_read(ao_cec->regmap, CECB_INTR_STAT_REG, &stat);
++	regmap_read(ao_cec->regmap, cecb_reg(ao_cec, CECB_INTR_STAT_REG), &stat);
+ 	if (stat)
+ 		return IRQ_WAKE_THREAD;
+ 
+@@ -468,8 +478,8 @@ static irqreturn_t meson_ao_cec_g12a_irq_thread(int irq, void *data)
+ 	struct meson_ao_cec_g12a_device *ao_cec = data;
+ 	u32 stat;
+ 
+-	regmap_read(ao_cec->regmap, CECB_INTR_STAT_REG, &stat);
+-	regmap_write(ao_cec->regmap, CECB_INTR_CLR_REG, stat);
++	regmap_read(ao_cec->regmap, cecb_reg(ao_cec, CECB_INTR_STAT_REG), &stat);
++	regmap_write(ao_cec->regmap, cecb_reg(ao_cec, CECB_INTR_CLR_REG), stat);
+ 
+ 	if (stat & CECB_INTR_DONE)
+ 		cec_transmit_attempt_done(ao_cec->adap, CEC_TX_STATUS_OK);
+@@ -587,14 +597,14 @@ static int meson_ao_cec_g12a_adap_enable(struct cec_adapter *adap, bool enable)
+ 
+ 	meson_ao_cec_g12a_irq_setup(ao_cec, false);
+ 
+-	regmap_update_bits(ao_cec->regmap, CECB_GEN_CNTL_REG,
++	regmap_update_bits(ao_cec->regmap, cecb_reg(ao_cec, CECB_GEN_CNTL_REG),
+ 			   CECB_GEN_CNTL_RESET, CECB_GEN_CNTL_RESET);
+ 
+ 	if (!enable)
+ 		return 0;
+ 
+ 	/* Setup Filter */
+-	regmap_update_bits(ao_cec->regmap, CECB_GEN_CNTL_REG,
++	regmap_update_bits(ao_cec->regmap, cecb_reg(ao_cec, CECB_GEN_CNTL_REG),
+ 			   CECB_GEN_CNTL_FILTER_TICK_SEL |
+ 			   CECB_GEN_CNTL_FILTER_DEL,
+ 			   FIELD_PREP(CECB_GEN_CNTL_FILTER_TICK_SEL,
+@@ -602,18 +612,18 @@ static int meson_ao_cec_g12a_adap_enable(struct cec_adapter *adap, bool enable)
+ 			   FIELD_PREP(CECB_GEN_CNTL_FILTER_DEL, 7));
+ 
+ 	/* Enable System Clock */
+-	regmap_update_bits(ao_cec->regmap, CECB_GEN_CNTL_REG,
++	regmap_update_bits(ao_cec->regmap, cecb_reg(ao_cec, CECB_GEN_CNTL_REG),
+ 			   CECB_GEN_CNTL_SYS_CLK_EN,
+ 			   CECB_GEN_CNTL_SYS_CLK_EN);
+ 
+ 	/* Enable gated clock (Normal mode). */
+-	regmap_update_bits(ao_cec->regmap, CECB_GEN_CNTL_REG,
++	regmap_update_bits(ao_cec->regmap, cecb_reg(ao_cec, CECB_GEN_CNTL_REG),
+ 			   CECB_GEN_CNTL_CLK_CTRL_MASK,
+ 			    FIELD_PREP(CECB_GEN_CNTL_CLK_CTRL_MASK,
+ 				       CECB_GEN_CNTL_CLK_ENABLE));
+ 
+ 	/* Release Reset */
+-	regmap_update_bits(ao_cec->regmap, CECB_GEN_CNTL_REG,
++	regmap_update_bits(ao_cec->regmap, cecb_reg(ao_cec, CECB_GEN_CNTL_REG),
+ 			   CECB_GEN_CNTL_RESET, 0);
+ 
+ 	if (ao_cec->data->ctrl2_setup)
+@@ -693,17 +703,35 @@ static int meson_ao_cec_g12a_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		goto out_probe_adapter;
+ 
+-	ao_cec->oscin = devm_clk_get(&pdev->dev, "oscin");
+-	if (IS_ERR(ao_cec->oscin)) {
+-		dev_err(&pdev->dev, "oscin clock request failed\n");
+-		ret = PTR_ERR(ao_cec->oscin);
+-		goto out_probe_adapter;
++	if (ao_cec->data->ext_core_clk) {
++		/* The 32768Hz core clock comes from the clock controller */
++		ao_cec->core = devm_clk_get(&pdev->dev, "core");
++		if (IS_ERR(ao_cec->core)) {
++			dev_err(&pdev->dev, "core clock request failed\n");
++			ret = PTR_ERR(ao_cec->core);
++			goto out_probe_adapter;
++		}
++
++		/* The rate may already have been set up from the device tree */
++		ret = clk_set_rate(ao_cec->core, 32768);
++		if (ret && clk_get_rate(ao_cec->core) != 32768) {
++			dev_err(&pdev->dev,
++				"core clock rate setup failed: %d\n", ret);
++			goto out_probe_adapter;
++		}
++	} else {
++		ao_cec->oscin = devm_clk_get(&pdev->dev, "oscin");
++		if (IS_ERR(ao_cec->oscin)) {
++			dev_err(&pdev->dev, "oscin clock request failed\n");
++			ret = PTR_ERR(ao_cec->oscin);
++			goto out_probe_adapter;
++		}
++
++		ret = meson_ao_cec_g12a_setup_clk(ao_cec);
++		if (ret)
++			goto out_probe_adapter;
+ 	}
+ 
+-	ret = meson_ao_cec_g12a_setup_clk(ao_cec);
+-	if (ret)
+-		goto out_probe_adapter;
+-
+ 	ret = clk_prepare_enable(ao_cec->core);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "core clock enable failed\n");
+@@ -726,7 +754,7 @@ static int meson_ao_cec_g12a_probe(struct platform_device *pdev)
+ 		goto out_probe_notify;
+ 
+ 	/* Setup Hardware */
+-	regmap_write(ao_cec->regmap, CECB_GEN_CNTL_REG, CECB_GEN_CNTL_RESET);
++	regmap_write(ao_cec->regmap, cecb_reg(ao_cec, CECB_GEN_CNTL_REG), CECB_GEN_CNTL_RESET);
+ 
+ 	return 0;
+ 
+@@ -763,6 +791,12 @@ static const struct meson_ao_cec_g12a_data ao_cec_sm1_data = {
+ 	.ctrl2_setup = true,
+ };
+ 
++static const struct meson_ao_cec_g12a_data ao_cec_s4_data = {
++	.ctrl2_setup = true,
++	.ext_core_clk = true,
++	.reg_shift = 8,
++};
++
+ static const struct of_device_id meson_ao_cec_g12a_of_match[] = {
+ 	{
+ 		.compatible = "amlogic,meson-g12a-ao-cec",
+@@ -772,6 +806,10 @@ static const struct of_device_id meson_ao_cec_g12a_of_match[] = {
+ 		.compatible = "amlogic,meson-sm1-ao-cec",
+ 		.data = &ao_cec_sm1_data,
+ 	},
++	{
++		.compatible = "amlogic,meson-s4-ao-cec",
++		.data = &ao_cec_s4_data,
++	},
+ 	{ /* sentinel */ }
+ };
+ MODULE_DEVICE_TABLE(of, meson_ao_cec_g12a_of_match);
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+
