@@ -148,7 +148,6 @@ PATCHFILES += 1604-arm64-dts-amlogic-meson-sm1-khadas-vim3l-dec-sd-clk-add-impro
 PATCHFILES += 1605-arm64-dts-meson-gxl-tx3mini-add-vfd-const-mac.patch
 # s4/sc2 drivers additions
 PATCHFILES += 1700-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
-PATCHFILES += 1701-mmc-meson-gx-Add-support-for-Meson-S4.patch
 PATCHFILES += 1702-reset-reset-meson-add-support-for-Amlogic-SC2.patch
 PATCHFILES += 1703-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
 PATCHFILES += 1704-dt-bindings-clock-meson-Add-audio-power-domain-for-S4-soc-v6.patch
@@ -171,6 +170,8 @@ PATCHFILES += 1721-dt-bindings-clock-amlogic-s4-pll-clkc-add-the-CPU-cl.patch
 PATCHFILES += 1722-clk-meson-s4-pll-add-the-CPU-clocks.patch
 PATCHFILES += 1723-firmware-meson_sm-add-the-DVFS-table-index-service.patch
 PATCHFILES += 1724-cpufreq-add-a-driver-for-binned-Amlogic-CPUs.patch
+PATCHFILES += 1725-WIP-mmc-meson-gx-mmc-add-delay-during-poweroff.patch
+PATCHFILES += 1726-mmc-meson-gx-add-the-S4-interface-3-tuning.patch
 # s4/sc2 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -181,7 +182,6 @@ PATCHFILES += 1805-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_dvfs_temp_sensor-support.patch
 PATCHFILES += 1807-arm64-dtsi-amlogic-s4-pwm-emmc-fixes.patch
 PATCHFILES += 1808-arm64-dtsi-amlogic-s4-add-video-decoder.patch
-# not works. for future work PATCHFILES += 1811-arm64-dtsi-amlogic-s4-wip-add-cec.patch
 # s4/sc2 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -190,6 +190,7 @@ PATCHFILES += 1903-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
 PATCHFILES += 1904-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
 # todo PATCHFILES += 1905-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-WIP-cpu-dfvs.patch
 PATCHFILES += 1906-arm64-dts-amlogic-meson-s4-khadas-1s-add-cpu-dfvs.patch
+PATCHFILES += 1907-arm64-dts-amlogic-meson-s4-khadas-1s-dec-sd-clock-for-reliability.patch
 endif
 #------------------------------------------------------------
 
@@ -544,6 +545,7 @@ PATCHFILES += 3731-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-NanoPC-T
 PATCHFILES += 3732-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-Radxa-ROCK-5b5t.patch
 PATCHFILES += 3733-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-Radxa-ROCK-5-itx.patch
 PATCHFILES += 3738-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-orangepi-5-plus.patch
+PATCHFILES += 3739-arm64-dts-rockchip-fix-M.2-E-key-reset-pinctrl-on-rk3588-rock-5-itx.patch
 endif
 #------------------------------------------------------------
 
@@ -621,7 +623,6 @@ PATCHFILES += 5077-0054-clk-qcom-clk-rcg2-fix-set_duty_cycle-integer-overflo.pat
 PATCHFILES += 5078-0055-clk-qcom-gcc-sc7280-switch-GP-clocks-to-clk_rcg2_gp_.patch
 # remoteproc patches
 PATCHFILES += 5086-0004-remoteproc-qcom-Check-glink-edge-in-glink_subdev_sto.patch
-#PATCHFILES += 5088-0276-remoteproc-qcom_q6v5_pas-attach-to-preloaded-firmwar.patch
 # firmware patches
 PATCHFILES += 5100-0008-dt-bindings-firmware-qcom-scm-Add-qcom-shm-bridge-vm.patch
 PATCHFILES += 5101-0009-wip-firmware-qcom-tzmem-Use-self-owner-bits-when-run.patch
