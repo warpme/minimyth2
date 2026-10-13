@@ -174,7 +174,8 @@ PATCHFILES += 1725-WIP-mmc-meson-gx-mmc-add-delay-during-poweroff.patch
 PATCHFILES += 1726-mmc-meson-gx-add-the-S4-interface-3-tuning.patch
 PATCHFILES += 1727-drm-meson-vclk-set-up-the-S4-HDMI-PLL-like-the-vendo.patch
 PATCHFILES += 1728-drm-meson-vclk-wait-for-both-S4-PLL-lock-bits-for-CV.patch
-PATCHFILES += 1729-media-platform-meson-ao-cec-g12a-add-support-for-the.patch
+PATCHFILES += 1729-clk-meson-s4-peripherals-allow-setting-the-CEC-32k-c.patch
+PATCHFILES += 1730-media-platform-meson-ao-cec-g12a-add-support-for-the.patch
 # s4/sc2 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -185,8 +186,8 @@ PATCHFILES += 1805-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_dvfs_temp_sensor-support.patch
 PATCHFILES += 1807-arm64-dtsi-amlogic-s4-pwm-emmc-fixes.patch
 PATCHFILES += 1808-arm64-dtsi-amlogic-s4-add-video-decoder.patch
-PATCHFILES += 1809-arm64-dtsi-amlogic-meson-s4-add-AO-CEC-B-node.patch
-PATCHFILES += 1810-arm64-dtsi-amlogic-meson-s4-add-HDMI-TX-CEC-pinctrl-g.patch
+PATCHFILES += 1809-arm64-dts-amlogic-meson-s4-add-AO-CEC-B-node.patch
+PATCHFILES += 1810-arm64-dts-amlogic-meson-s4-add-HDMI-TX-CEC-pinctrl-g.patch
 # s4/sc2 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -196,7 +197,7 @@ PATCHFILES += 1904-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
 # todo PATCHFILES += 1905-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-WIP-cpu-dfvs.patch
 PATCHFILES += 1906-arm64-dts-amlogic-meson-s4-khadas-1s-add-cpu-dfvs.patch
 PATCHFILES += 1907-arm64-dts-amlogic-meson-s4-khadas-1s-dec-sd-clock-for-reliability.patch
-PATCHFILES += 1910-arm64-dts-amlogic-meson-s4-s905y4-khadas-vim1s-enabl.patch
+PATCHFILES += 1908-arm64-dts-amlogic-meson-s4-s905y4-khadas-vim1s-enabl.patch
 endif
 #------------------------------------------------------------
 
