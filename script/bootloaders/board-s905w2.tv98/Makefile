@@ -1,12 +1,12 @@
 
 GARNAME      = bootfiles-s905w2.tv98
-GARVERSION   = 2025-11-22
+GARVERSION   = 2026-10-14
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
              boot.config \
              minimyth.conf \
-             box-s905w2-ap201.config \
+             box-s905w2-tv98.config \
 
 WORKSRC      = $(WORKDIR)
 
@@ -30,12 +30,12 @@ install-bootloader:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/boot.config $(DESTDIR)/boot/boot.config
 	@mkdir -p $(DESTDIR)/boot/box-config
-	@cp -rf   $(WORKSRC)/box-s905w2-ap201.config $(DESTDIR)/boot/box-config/
+	@cp -rf   $(WORKSRC)/box-s905w2-tv98.config $(DESTDIR)/boot/box-config/
 	@cp -f $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-bootloader:
-	@rm -rf $(DESTDIR)/boot/box-config/box-s905w2-ap201.config
+	@rm -rf $(DESTDIR)/boot/box-config/box-s905w2-tv98.config
 	@rm -f  $(DESTDIR)/boot/boot.config
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
 
