@@ -76,6 +76,10 @@ ifneq (,$(filter board-s905w2.tv98,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905w2.tv98
 endif
 
+ifneq (,$(filter board-s905w2.tanix_w2,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-s905w2.tanix_w2
+endif
+
 ifneq (,$(filter board-s905x4.x96_max_ultra,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905x4.x96_max_ultra
 endif
