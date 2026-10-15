@@ -17,6 +17,8 @@ DISTFILES    = \
 	sm1-generic.wks \
 	s4-generic.conf \
 	s4-generic.wks \
+	s4-vendor-generic.conf \
+	s4-vendor-generic.wks \
 	sc2-generic.conf \
 	sc2-generic.wks \
 	t7-generic.conf \
@@ -114,8 +116,12 @@ SM1_BOARDS_LIST= \
 
 # Amlogic S4 boards
 S4_BOARDS_LIST= \
-	board-s905w2.tv98 \
 	board-s905y4.vim1s \
+
+# Amlogic S4 boards with vendor u-boot
+S4_VENDOR_BOARDS_LIST= \
+	board-s905w2.tv98 \
+	board-s905w2.tanix_w2 \
 
 # Amlogic SC2 boards
 SC2_BOARDS_LIST= \
@@ -260,7 +266,7 @@ DEPENDS = \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
-INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards a733_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12a_boards g12b_boards sm1_boards s4_boards sc2_boards t7_boards
+INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards a733_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12a_boards g12b_boards sm1_boards s4_boards s4_vendor_boards sc2_boards t7_boards
 
 include ../../gar.mk
 
@@ -288,6 +294,9 @@ install-sm1_boards:
 
 install-s4_boards:
 	@$(call COPY_FILES, $(S4_BOARDS_LIST), s4-generic)
+
+install-s4_vendor_boards:
+	@$(call COPY_FILES, $(S4_VENDOR_BOARDS_LIST), s4-vendor-generic)
 
 install-sc2_boards:
 	@$(call COPY_FILES, $(SC2_BOARDS_LIST), sc2-generic)
