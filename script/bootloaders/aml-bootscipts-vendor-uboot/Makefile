@@ -1,6 +1,6 @@
 
 GARNAME      = aml-bootscipts-vendor-uboot
-GARVERSION   = 2025-11-22
+GARVERSION   = 2026-10-14
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
