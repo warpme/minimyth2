@@ -197,6 +197,7 @@ PATCHFILES += 1904-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
 PATCHFILES += 1906-arm64-dts-amlogic-meson-s4-khadas-1s-add-cpu-dfvs.patch
 PATCHFILES += 1907-arm64-dts-amlogic-meson-s4-khadas-1s-dec-sd-clock-for-reliability.patch
 PATCHFILES += 1908-arm64-dts-amlogic-meson-s4-s905y4-khadas-vim1s-enabl.patch
+PATCHFILES += 1909-arm64-dts-amlogic-add-dts-for-tv98-tvbox.patch
 endif
 #------------------------------------------------------------
 
