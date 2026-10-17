@@ -8,8 +8,8 @@ define BLURB
 endef
 
 DEPENDS = \
-	firmware/alsa-sof-firmware      \
 	firmware/linux-firmware         \
+	firmware/alsa-sof-firmware      \
 	firmware/wireless-regdb         \
 	firmware/xr819-firmware         \
 	firmware/qca9377-firmware       \
@@ -26,7 +26,7 @@ DEPENDS = \
 	firmware/aw859a-firmware        \
 	firmware/aic8800_sdio-firmware  \
 	firmware/aic8800_usb-firmware   \
-	$(if $(filter amlogic-openucode, $(mm_SOFTWARE)),firmware/amlogic-openucode-firmware) \
+	$(if $(filter amlogic-openucode, $(mm_SOFTWARE)), firmware/amlogic-openucode-firmware, firmware/amlogic-meson-vdec-firmware firmware/amlogic-optee_armtz-firmware ) \
 	$(if $(filter nouveau, $(mm_GRAPHICS)),firmware/nouveau-firmware) \
 	firmware/edid-firmware \
 	firmware/s9083s-firmware \
