@@ -167,6 +167,7 @@ DEPENDS = \
 	X11/xdotool \
 	utils/inxi \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
+		security/amvdec-tee \
 		utils/estimate-arm-cpu-frequency \
 		utils/tinymembench \
 		utils/mmc-utils \
