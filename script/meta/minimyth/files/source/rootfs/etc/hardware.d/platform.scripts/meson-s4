@@ -9,11 +9,34 @@
 
 
 
-# generating custom eglfs config file as it looks like on rpi5 qt automatic selection 
-# of drm device wrongly selects v3d (gpu) device insrtead of kms (vc4) device
+# generating custom eglfs config file as it looks like on s4 qt automatic selection
+# of drm device wrongly selects gpu device instead of kms device
 
+/usr/bin/logger -s -t minimyth -p "local0.info" "[platform.scripts/meson-s4] forcing eglfs device to /dev/dri/card0 ..."
 cat > /home/minimyth/.mythtv/eglfs-config.json <<EOF
 {
     "device": "/dev/dri/card0"
 }
 EOF
+
+/usr/bin/logger -s -t minimyth -p "local0.info" "[platform.scripts/meson-s4] starting tee-suplicant for s4 tee ..."
+
+mkdir -p /var/run/tee
+/usr/sbin/tee-supplicant -d
+
+if [ $? -eq 0 ]; then
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[platform.scripts/meson-s4] starting amvdec-tee for tee assisted load of video_ucode.bin ..."
+    /usr/bin/amvdec-tee /lib/firmware/meson/vdec/video_ucode.bin
+    if [ $? -ne 0 ]; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[platform.scripts/meson-s4] ERROR: load of video_ucode.bin failed!"
+        exit 1
+    fi
+
+else
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[platform.scripts/meson-s4] ERROR: starting tee-suplicant failed!"
+    exit 1
+fi
+
+exit 0
