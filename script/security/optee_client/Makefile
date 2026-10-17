@@ -1,0 +1,30 @@
+
+GARNAME      = optee_client
+GARVERSION   = 4.10.0
+CATEGORIES   = security
+MASTER_SITES = https://github.com/OP-TEE/optee_client/archive/
+DISTFILES    = $(GARVERSION).tar.gz
+LICENSE      = GPL
+
+DEPENDS = lang/c
+
+WORKBLD = $(WORKSRC)_build
+
+CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+BUILD_SCRIPTS     = $(WORKBLD)/Makefile
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+
+CMAKE_CONFIGURE_ARGS = \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCFG_WERROR=OFF \
+	-DWITH_TEEACL=OFF \
+	-DCFG_TEE_SUPP_PLUGINS=OFF \
+	-DCFG_TA_GPROF_SUPPORT=OFF \
+	-DCFG_FTRACE_SUPPORT=OFF \
+	-DCFG_ENABLE_SYSTEMD=OFF \
+	-DCFG_ENABLE_UDEV=OFF \
+	-DRPMB_EMU=ON \
+	-DCFG_TEE_CLIENT_LOAD_PATH=/usr/lib:/lib/firmware \
+	-DCFG_TEE_FS_PARENT_PATH=/var/run/tee \
+
+include ../../gar.mk
