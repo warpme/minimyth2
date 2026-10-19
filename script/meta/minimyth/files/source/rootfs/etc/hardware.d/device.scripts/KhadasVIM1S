@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# this script is called at very erlay boot from /etc/rc.d/init.d/modules_manual_early.
+# it is useful for any actions on system before init scripts will be executed.
+# name of script should be equal to string <model> in dt with all spaces removed.
+# i.e. if model in dt is <Raspberry Pi 5 Model B Rev 1.0>, filename should <RaspberryPi5ModelBRev1.0>.
+# you can determine required scrpit name by looking for value of variable MM_HW_DEVICE_NAME
+# in /etc/conf.d/hwdevice file under running system.
+
+device=$(basename "$0")
+
+if [ -e /lib/firmware/optee_armtz/VideoFW-TA.${device} ]; then
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[device.scripts/${device}] starting tee-suplicant for s4 tee ..."
+
+    mkdir -p /var/run/tee
+    /usr/sbin/tee-supplicant -d
+
+    if [ $? -eq 0 ]; then
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[device.scripts/${device}] starting amvdec-tee for loading video_ucode.bin ..."
+
+        rm -rf /lib/firmware/optee_armtz/526fc4fc-7ee6-4a12-96e3-83da9565bce8.ta
+        cp -f /lib/firmware/optee_armtz/VideoFW-TA.${device} /lib/firmware/optee_armtz/526fc4fc-7ee6-4a12-96e3-83da9565bce8.ta
+
+        /usr/bin/amvdec-tee /lib/firmware/meson/vdec/video_ucode.bin
+        if [ $? -ne 0 ]; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[device.scripts/${device}] ERROR: load of video_ucode.bin failed!"
+            exit 1
+        fi
+
+    else
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[device.scripts/${device}] ERROR: starting tee-suplicant failed!"
+        exit 1
+    fi
+fi
+
+exit 0
