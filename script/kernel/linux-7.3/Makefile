@@ -124,7 +124,7 @@ PATCHFILES += 1406-media-v4l2-ctrls-add-VC-1-profile-and-level-controls.patch
 PATCHFILES += 1407-media-uapi-add-VC-1-stateless-decoder-pixel-format-a.patch
 PATCHFILES += 1408-media-uapi-add-MPEG-4-Part-2-and-H.263-stateless-dec.patch
 ifeq (0,1)
-# stateless amvdec https://github.com/gusbourg/linux/commits/amlogic-vdec/rfc/ 26.09.2026 g8bb71d57f
+# gus aml stateless amvdec https://github.com/gusbourg/linux/commits/amlogic-vdec/rfc/ 26.09.2026 g8bb71d57f
 PATCHFILES += 1410-media-uapi-add-the-Amlogic-AM21C-compressed-format.patch
 PATCHFILES += 1411-media-amlogic-add-the-video-decoder-core.patch
 PATCHFILES += 1412-media-amlogic-amvdec-add-MPEG-2-decoding.patch
@@ -132,11 +132,28 @@ PATCHFILES += 1413-media-amlogic-amvdec-add-H.264-decoding.patch
 PATCHFILES += 1414-media-amlogic-amvdec-add-HEVC-decoding.patch
 PATCHFILES += 1415-media-amlogic-amvdec-add-VP9-decoding.patch
 endif
-ifeq (1,1)
-# stateless amvdec
-PATCHFILES += 1411-media-amlogic-inclide-amvdec-into-drivers-media.patch
-PATCHFILES += 1412-media-amlogic-add-amvdec-gc58504cf81.patch
+ifeq (0,1)
+# gus openucode stateless amvdec
+PATCHFILES += 1420-media-amlogic-inclide-amvdec-into-drivers-media.patch
+PATCHFILES += 1421-media-amlogic-add-amvdec-gc58504cf81.patch
 endif
+# LE aml stateless amvdec
+ifeq (1,1)
+PATCHFILES += 1430-media-videobuf2-dma-contig-fix-cache-maintenance-of-.patch
+PATCHFILES += 1431-media-uapi-add-the-Amlogic-AM21B-and-AM21C-compresse.patch
+PATCHFILES += 1432-media-amlogic-add-the-video-decoder-core.patch
+PATCHFILES += 1433-media-amlogic-amvdec-add-MPEG-2-decoding.patch
+PATCHFILES += 1434-media-amlogic-amvdec-add-H.264-decoding.patch
+PATCHFILES += 1435-media-amlogic-amvdec-add-HEVC-decoding.patch
+PATCHFILES += 1436-media-amlogic-amvdec-add-VP9-decoding.patch
+PATCHFILES += 1437-media-amlogic-amvdec-export-HEVC-basic-layout-compre.patch
+PATCHFILES += 1438-media-amlogic-amvdec-allow-4K-HEVC-on-GXBB.patch
+PATCHFILES += 1439-media-amlogic-amvdec-add-S4-support.patch
+endif
+# open tee support
+PATCHFILES += 1450-tee-optee-use-the-reserved-shared-memory-pool-on-Aml.patch
+PATCHFILES += 1451-tee-optee-send-the-Amlogic-boot-complete-notificatio.patch
+PATCHFILES += 1452-tee-optee-ignore-unimplemented-device-enumeration-co.patch
 # g12/sm1 dtsi additions
 PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 # g12/sm1 board dts additions
@@ -185,17 +202,15 @@ PATCHFILES += 1805-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_dvfs_temp_sensor-support.patch
 PATCHFILES += 1807-arm64-dtsi-amlogic-s4-pwm-emmc-fixes.patch
 PATCHFILES += 1808-arm64-dtsi-amlogic-s4-add-video-decoder.patch
-PATCHFILES += 1809-arm64-dts-amlogic-meson-s4-add-AO-CEC-B-node.patch
-PATCHFILES += 1810-arm64-dts-amlogic-meson-s4-add-HDMI-TX-CEC-pinctrl-g.patch
+PATCHFILES += 1809-arm64-dtsi-amlogic-meson-s4-add-AO-CEC-B-node.patch
+PATCHFILES += 1810-arm64-dtsi-amlogic-meson-s4-add-HDMI-TX-CEC-pinctrl-g.patch
 # s4/sc2 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
 PATCHFILES += 1902-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
 PATCHFILES += 1903-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
 PATCHFILES += 1904-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
-# todo PATCHFILES += 1905-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-WIP-cpu-dfvs.patch
 PATCHFILES += 1906-arm64-dts-amlogic-meson-s4-khadas-1s-add-cpu-dfvs.patch
-PATCHFILES += 1907-arm64-dts-amlogic-meson-s4-khadas-1s-dec-sd-clock-for-reliability.patch
 PATCHFILES += 1908-arm64-dts-amlogic-meson-s4-s905y4-khadas-vim1s-enabl.patch
 PATCHFILES += 1909-arm64-dts-amlogic-add-dts-for-tv98-tvbox.patch
 PATCHFILES += 1910-arm64-dts-amlogic-add-dts-for-tanix_w2-tvbox.patch
