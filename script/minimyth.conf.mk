@@ -278,8 +278,8 @@ mm_PYTHON_VERSION         ?= py3
 mm_SHELL                  ?= busybox
 
 # The version of kernel to use.
-# Valid values are: '7.1' '7,2'
-mm_KERNEL_VERSION         ?= 7.2
+# Valid values are: '7.2' '7,3'
+mm_KERNEL_VERSION         ?= 7.3
 
 # The version of ffmpeg used by apps requiring ffmpeg.
 # As mm2 uses mythffmpeg as system ffmpeg, this version needs to be the same
