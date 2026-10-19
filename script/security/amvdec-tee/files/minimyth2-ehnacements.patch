@@ -1,0 +1,869 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur amvdec-tee-1d7e8009cce1692fef04a729e859e8602b8eec9e/amvdec-tee.c amvdec-tee-1d7e8009cce1692fef04a729e859e8602b8eec9e/amvdec-tee.c
+--- amvdec-tee-1d7e8009cce1692fef04a729e859e8602b8eec9e/amvdec-tee.c	2026-10-07 09:00:17.000000000 +0200
++++ amvdec-tee-1d7e8009cce1692fef04a729e859e8602b8eec9e/amvdec-tee.c	2026-10-18 18:29:47.211003156 +0200
+@@ -5,75 +5,511 @@
+  * secure memory. The decoder driver then asks the secure monitor to load
+  * the image for each codec into the AMRISC.
+  *
++ * Besides the load itself this tool can inspect the package offline
++ * (--list, --check), wait for the TEE devices to show up (--wait), report
++ * TEE errors by name and origin, and be strict about the result of the
++ * final chunk (--strict).
++ *
++ * Package layout as observed in video_ucode.bin (not a documented format):
++ *
++ *   0x000  256 bytes     signature (size matches SIG_SIZE)
++ *   0x100  "PACK" header u32 magic, u32 size, u32 crc, u32 entries, ...
++ *   0x200  entries       2 x 0x100 header blocks ("CODE" tag in the 2nd),
++ *                        then the microcode, aligned to 0x100
++ *
++ * The CRC algorithm is not known, so the CRC fields are only displayed.
++ * Whether the signature covers the start or the end of the file is decided
++ * by the trusted application, not by this tool.
++ *
+  * Copyright (C) 2026-present Team LibreELEC (https://libreelec.tv)
+  */
+ 
++#define _GNU_SOURCE
++#include <ctype.h>
++#include <errno.h>
++#include <getopt.h>
++#include <inttypes.h>
++#include <stdarg.h>
++#include <stdbool.h>
++#include <stdint.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <sys/stat.h>
++#include <time.h>
++#include <unistd.h>
+ #include <tee_client_api.h>
+ 
+-#define CHUNK_SIZE	0x20000
+-#define CMD_LOAD	0
+-#define SIG_SIZE	256
++#define CHUNK_SIZE_DEFAULT	0x20000
++#define CHUNK_SIZE_MIN		0x1000
++#define CHUNK_SIZE_MAX		0x400000
++#define CMD_LOAD		0
++#define SIG_SIZE		256
+ 
+-static const TEEC_UUID video_fw_uuid = {
++/* Result codes as defined by the GlobalPlatform TEE Client API. */
++#define RES_SUCCESS		0x00000000
++#define RES_ERROR_BUSY		0xFFFF000D
++#define RES_ERROR_SECURITY	0xFFFF000F
++
++/* Package layout constants. */
++#define PACK_OFFSET		0x100
++#define PACK_TAG		0x5041434b	/* "PACK" */
++#define CODE_TAG		0x434f4445	/* "CODE" */
++#define ENTRY_ALIGN		0x100
++#define ENTRY_HDR_SIZE		0x200
++#define FIRST_ENTRY		0x200
++#define PACK_HDR_MIN_SIZE	(PACK_OFFSET + ENTRY_HDR_SIZE)
++#define NAME_LEN		32
++
++enum exit_code {
++	EXIT_OK		= 0,
++	EXIT_FAIL	= 1,
++	EXIT_USAGE	= 2,
++	EXIT_PACKAGE	= 3,
++	EXIT_TEE_INIT	= 4,
++	EXIT_TEE_OPEN	= 5,
++	EXIT_TEE_LOAD	= 6,
++};
++
++static int verbosity = 1;	/* 0 = quiet, 1 = normal, 2 = verbose */
++
++#define err(fmt, ...)	fprintf(stderr, "error: " fmt "\n", ##__VA_ARGS__)
++#define warn(fmt, ...)	do { if (verbosity >= 1) \
++	fprintf(stderr, "warning: " fmt "\n", ##__VA_ARGS__); } while (0)
++#define info(fmt, ...)	do { if (verbosity >= 1) \
++	printf(fmt "\n", ##__VA_ARGS__); } while (0)
++#define dbg(fmt, ...)	do { if (verbosity >= 2) \
++	printf(fmt "\n", ##__VA_ARGS__); } while (0)
++
++static const TEEC_UUID default_uuid = {
+ 	0x526fc4fc, 0x7ee6, 0x4a12,
+ 	{ 0x96, 0xe3, 0x83, 0xda, 0x95, 0x65, 0xbc, 0xe8 }
+ };
+ 
+-static unsigned char *read_file(const char *path, long *size)
++struct options {
++	const char *path;
++	TEEC_UUID uuid;
++	size_t chunk_size;
++	unsigned int wait_sec;
++	const char *require_soc;
++	const char *list_soc;
++	bool list;
++	bool check_only;
++	bool no_check;
++	bool strict;
++	bool timing;
++};
++
++struct pack_entry {
++	size_t offset;		/* start of the 0x200 byte entry header */
++	size_t data_offset;
++	size_t data_size;
++	uint32_t crc;
++	uint32_t timestamp;
++	bool empty;		/* payload is all zero, i.e. a placeholder */
++	char name[NAME_LEN + 1];
++	char format[NAME_LEN + 1];
++	char soc[NAME_LEN + 1];
++	char version[NAME_LEN + 1];
++	char author[NAME_LEN + 1];
++	char date[NAME_LEN + 1];
++};
++
++struct package {
++	const uint8_t *buf;
++	size_t size;
++	uint32_t pack_size;
++	uint32_t pack_crc;
++	uint32_t pack_count;
++	uint32_t pack_w4;
++	uint32_t pack_w5;
++	struct pack_entry *entries;
++	size_t n_entries;
++};
++
++/* ------------------------------------------------------------------ */
++/* Helpers                                                            */
++/* ------------------------------------------------------------------ */
++
++static uint32_t le32(const uint8_t *p)
++{
++	return p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24);
++}
++
++static double now_sec(void)
++{
++	struct timespec ts;
++
++	clock_gettime(CLOCK_MONOTONIC, &ts);
++	return ts.tv_sec + ts.tv_nsec / 1e9;
++}
++
++static const char *teec_result_str(uint32_t res)
++{
++	switch (res) {
++	case 0x00000000: return "TEEC_SUCCESS";
++	case 0xFFFF0000: return "TEEC_ERROR_GENERIC";
++	case 0xFFFF0001: return "TEEC_ERROR_ACCESS_DENIED";
++	case 0xFFFF0002: return "TEEC_ERROR_CANCEL";
++	case 0xFFFF0003: return "TEEC_ERROR_ACCESS_CONFLICT";
++	case 0xFFFF0004: return "TEEC_ERROR_EXCESS_DATA";
++	case 0xFFFF0005: return "TEEC_ERROR_BAD_FORMAT";
++	case 0xFFFF0006: return "TEEC_ERROR_BAD_PARAMETERS";
++	case 0xFFFF0007: return "TEEC_ERROR_BAD_STATE";
++	case 0xFFFF0008: return "TEEC_ERROR_ITEM_NOT_FOUND";
++	case 0xFFFF0009: return "TEEC_ERROR_NOT_IMPLEMENTED";
++	case 0xFFFF000A: return "TEEC_ERROR_NOT_SUPPORTED";
++	case 0xFFFF000B: return "TEEC_ERROR_NO_DATA";
++	case 0xFFFF000C: return "TEEC_ERROR_OUT_OF_MEMORY";
++	case 0xFFFF000D: return "TEEC_ERROR_BUSY";
++	case 0xFFFF000E: return "TEEC_ERROR_COMMUNICATION";
++	case 0xFFFF000F: return "TEEC_ERROR_SECURITY";
++	case 0xFFFF0010: return "TEEC_ERROR_SHORT_BUFFER";
++	case 0xFFFF3024: return "TEEC_ERROR_TARGET_DEAD";
++	case 0xFFFF3072: return "TEE_ERROR_SIGNATURE_INVALID";
++	default: return "unknown";
++	}
++}
++
++static const char *teec_origin_str(uint32_t origin)
++{
++	switch (origin) {
++	case 1: return "client API";
++	case 2: return "communication with the TEE";
++	case 3: return "TEE core";
++	case 4: return "trusted application";
++	default: return "unknown";
++	}
++}
++
++static void report_teec_error(const char *what, uint32_t res, uint32_t origin)
++{
++	err("%s failed: 0x%08x (%s), origin %u (%s)", what, res,
++	    teec_result_str(res), origin, teec_origin_str(origin));
++}
++
++static int parse_uuid(const char *s, TEEC_UUID *uuid)
++{
++	unsigned int a, b, c, d[8];
++	int n = 0;
++
++	if (sscanf(s, "%8x-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x%n", &a, &b, &c,
++		   &d[0], &d[1], &d[2], &d[3], &d[4], &d[5], &d[6], &d[7],
++		   &n) != 11 || s[n] != '\0')
++		return -1;
++
++	uuid->timeLow = a;
++	uuid->timeMid = b;
++	uuid->timeHiAndVersion = c;
++	for (int i = 0; i < 8; i++)
++		uuid->clockSeqAndNode[i] = d[i];
++
++	return 0;
++}
++
++static unsigned char *read_file(const char *path, size_t *size)
+ {
+ 	unsigned char *buf;
++	struct stat st;
++	size_t got;
+ 	FILE *f;
+ 
+ 	f = fopen(path, "rb");
+-	if (!f)
++	if (!f) {
++		err("cannot open %s: %s", path, strerror(errno));
+ 		return NULL;
++	}
+ 
+-	if (fseek(f, 0, SEEK_END) || (*size = ftell(f)) <= 0 ||
+-	    fseek(f, 0, SEEK_SET)) {
++	if (fstat(fileno(f), &st) || !S_ISREG(st.st_mode) || st.st_size <= 0) {
++		err("%s is not a non-empty regular file", path);
++		fclose(f);
++		return NULL;
++	}
++
++	if ((uint64_t)st.st_size > UINT32_MAX) {
++		err("%s is too large (%lld bytes)", path, (long long)st.st_size);
+ 		fclose(f);
+ 		return NULL;
+ 	}
+ 
++	*size = st.st_size;
+ 	buf = malloc(*size);
+-	if (buf && fread(buf, 1, *size, f) != (size_t)*size) {
+-		free(buf);
+-		buf = NULL;
++	if (!buf) {
++		err("out of memory");
++		fclose(f);
++		return NULL;
+ 	}
++
++	got = fread(buf, 1, *size, f);
+ 	fclose(f);
++	if (got != *size) {
++		err("short read from %s (%zu of %zu bytes)", path, got, *size);
++		free(buf);
++		return NULL;
++	}
+ 
+ 	return buf;
+ }
+ 
+-int main(int argc, char **argv)
++/* ------------------------------------------------------------------ */
++/* Package inspection                                                 */
++/* ------------------------------------------------------------------ */
++
++/* Copy a fixed width, possibly unterminated, field and make it printable. */
++static void copy_field(char *dst, const uint8_t *src, size_t max)
+ {
+-	TEEC_SharedMemory shm = { .size = CHUNK_SIZE, .flags = TEEC_MEM_INPUT };
++	size_t i;
++
++	for (i = 0; i < max && src[i]; i++)
++		dst[i] = isprint(src[i]) ? src[i] : '?';
++	dst[i] = '\0';
++}
++
++static bool is_zero(const uint8_t *p, size_t n)
++{
++	while (n--)
++		if (*p++)
++			return false;
++
++	return true;
++}
++
++static bool entry_at(const uint8_t *buf, size_t size, size_t off)
++{
++	if (off + ENTRY_HDR_SIZE > size)
++		return false;
++
++	return le32(buf + off + ENTRY_ALIGN) == CODE_TAG &&
++	       isalnum(buf[off]);
++}
++
++static void fill_entry(struct pack_entry *e, const uint8_t *buf, size_t off)
++{
++	const uint8_t *h1 = buf + off;
++	const uint8_t *h2 = buf + off + ENTRY_ALIGN;
++
++	e->offset = off;
++	e->data_offset = off + ENTRY_HDR_SIZE;
++	copy_field(e->name, h1 + 0x00, NAME_LEN);
++	copy_field(e->format, h1 + 0x20, NAME_LEN);
++	copy_field(e->soc, h1 + 0x40, NAME_LEN);
++	e->crc = le32(h2 + 4);
++	copy_field(e->version, h2 + 0x58, NAME_LEN);
++	copy_field(e->author, h2 + 0x78, NAME_LEN);
++	copy_field(e->date, h2 + 0x98, NAME_LEN);
++	e->timestamp = le32(h2 + 0xcc);
++}
++
++static int parse_package(struct package *pkg, const uint8_t *buf, size_t size,
++			 bool force)
++{
++	size_t pack_end, off, cap = 0;
++	int ret = 0;
++
++	memset(pkg, 0, sizeof(*pkg));
++	pkg->buf = buf;
++	pkg->size = size;
++
++	if (size < PACK_HDR_MIN_SIZE) {
++		err("file is too small (%zu bytes) to be a firmware package", size);
++		return -1;
++	}
++
++	if (le32(buf + PACK_OFFSET) != PACK_TAG) {
++		err("no \"PACK\" magic at 0x%x (found 0x%08x)", PACK_OFFSET,
++		    le32(buf + PACK_OFFSET));
++		if (!force)
++			return -1;
++		ret = -1;
++	}
++
++	pkg->pack_size = le32(buf + PACK_OFFSET + 4);
++	pkg->pack_crc = le32(buf + PACK_OFFSET + 8);
++	pkg->pack_count = le32(buf + PACK_OFFSET + 12);
++	pkg->pack_w4 = le32(buf + PACK_OFFSET + 16);
++	pkg->pack_w5 = le32(buf + PACK_OFFSET + 20);
++
++	pack_end = (size_t)PACK_OFFSET + pkg->pack_size;
++	if (pack_end > size) {
++		err("package claims 0x%x bytes, but the file ends at 0x%zx",
++		    pkg->pack_size, size);
++		if (!force)
++			return -1;
++		pack_end = size;
++		ret = -1;
++	}
++
++	/* Walk the entries: each one runs up to the next valid header. */
++	for (off = FIRST_ENTRY; off < pack_end;) {
++		size_t next;
++
++		if (!entry_at(buf, size, off)) {
++			off += ENTRY_ALIGN;
++			continue;
++		}
++
++		if (pkg->n_entries == cap) {
++			struct pack_entry *tmp;
++
++			cap = cap ? cap * 2 : 128;
++			tmp = realloc(pkg->entries, cap * sizeof(*tmp));
++			if (!tmp) {
++				err("out of memory");
++				return -1;
++			}
++			pkg->entries = tmp;
++		}
++
++		fill_entry(&pkg->entries[pkg->n_entries], buf, off);
++
++		for (next = off + ENTRY_HDR_SIZE; next < pack_end; next += ENTRY_ALIGN)
++			if (entry_at(buf, size, next))
++				break;
++		if (next > pack_end)
++			next = pack_end;
++
++		pkg->entries[pkg->n_entries].data_size = next - off - ENTRY_HDR_SIZE;
++		pkg->entries[pkg->n_entries].empty =
++			is_zero(buf + off + ENTRY_HDR_SIZE,
++				pkg->entries[pkg->n_entries].data_size);
++		pkg->n_entries++;
++		off = next;
++	}
++
++	if (pkg->n_entries != pkg->pack_count) {
++		warn("package header lists %u entries, found %zu", pkg->pack_count,
++		     pkg->n_entries);
++		ret = ret ? ret : 1;
++	}
++
++	return ret;
++}
++
++static bool soc_matches(const struct pack_entry *e, const char *soc)
++{
++	size_t n;
++
++	if (!soc)
++		return true;
++
++	n = strlen(soc);
++	return (!strncmp(e->name, soc, n) && e->name[n] == '_') ||
++	       !strcmp(e->soc, soc);
++}
++
++/* Count the entries for @soc; placeholders are counted separately. */
++static size_t count_soc(const struct package *pkg, const char *soc,
++			size_t *empty)
++{
++	size_t i, n = 0;
++
++	*empty = 0;
++	for (i = 0; i < pkg->n_entries; i++) {
++		if (!soc_matches(&pkg->entries[i], soc))
++			continue;
++		if (pkg->entries[i].empty)
++			(*empty)++;
++		else
++			n++;
++	}
++
++	return n;
++}
++
++static void print_package_summary(const struct package *pkg)
++{
++	size_t i, empty = 0;
++
++	for (i = 0; i < pkg->n_entries; i++)
++		empty += pkg->entries[i].empty;
++
++	info("package: %zu bytes, PACK size 0x%x, %u entries (found %zu, %zu "
++	     "with an all-zero placeholder payload)", pkg->size, pkg->pack_size,
++	     pkg->pack_count, pkg->n_entries, empty);
++	dbg("package: header crc 0x%08x (algorithm unknown, not checked), "
++	    "words 0x%x 0x%x", pkg->pack_crc, pkg->pack_w4, pkg->pack_w5);
++}
++
++static void print_list(const struct package *pkg, const char *soc)
++{
++	size_t i;
++
++	printf("%-4s %-9s %-9s %-28s %-6s %-16s %-6s %s\n", "#", "offset", "size",
++	       "name", "soc", "format", "data", "version / built (UTC)");
++
++	for (i = 0; i < pkg->n_entries; i++) {
++		const struct pack_entry *e = &pkg->entries[i];
++		char when[32] = "";
++		time_t t = e->timestamp;
++		struct tm tm;
++
++		if (!soc_matches(e, soc))
++			continue;
++
++		if (e->timestamp && gmtime_r(&t, &tm))
++			strftime(when, sizeof(when), "%Y-%m-%d %H:%M:%S", &tm);
++
++		printf("%-4zu 0x%-7zx 0x%-7zx %-28s %-6s %-16s %-6s %s  %s\n", i,
++		       e->data_offset, e->data_size, e->name, e->soc, e->format,
++		       e->empty ? "EMPTY" : "ok", e->version, when);
++	}
++}
++
++/* ------------------------------------------------------------------ */
++/* TEE                                                                */
++/* ------------------------------------------------------------------ */
++
++/* Wait for the TEE character devices, which appear once the driver and
++ * tee-supplicant are up. Returns 0 on success, -1 on timeout. */
++static int wait_for_tee(unsigned int seconds)
++{
++	static const char * const nodes[] = { "/dev/teepriv0", "/dev/tee0" };
++	double deadline = now_sec() + seconds;
++	size_t i;
++
++	for (;;) {
++		bool all = true;
++
++		for (i = 0; i < sizeof(nodes) / sizeof(nodes[0]); i++)
++			if (access(nodes[i], F_OK))
++				all = false;
++
++		if (all)
++			return 0;
++
++		if (now_sec() >= deadline)
++			break;
++
++		usleep(200 * 1000);
++	}
++
++	err("%s did not appear within %u s (driver loaded, tee-supplicant running?)",
++	    !access(nodes[0], F_OK) ? nodes[1] : nodes[0], seconds);
++	return -1;
++}
++
++static int load_firmware(const struct options *opt, const unsigned char *fw,
++			 size_t size)
++{
++	TEEC_SharedMemory shm = { .size = opt->chunk_size, .flags = TEEC_MEM_INPUT };
++	size_t sent = 0, nchunks, chunk = 0, busy = 0;
+ 	TEEC_Context ctx;
+ 	TEEC_Session sess;
+ 	TEEC_Operation op;
+ 	TEEC_Result res;
+-	unsigned char *fw;
+-	uint32_t origin;
+-	long size, sent = 0;
+-	int ret = 1;
++	uint32_t origin = 0;
++	double t0, t_open, t_end;
++	int ret = EXIT_TEE_INIT;
++	bool last_busy = false;
+ 
+-	if (argc != 2) {
+-		fprintf(stderr, "usage: %s <video_ucode.bin>\n", argv[0]);
+-		return 2;
+-	}
++	nchunks = (size + opt->chunk_size - 1) / opt->chunk_size;
+ 
+-	fw = read_file(argv[1], &size);
+-	if (!fw) {
+-		fprintf(stderr, "cannot read %s\n", argv[1]);
+-		return 1;
+-	}
++	t0 = now_sec();
+ 
+ 	res = TEEC_InitializeContext(NULL, &ctx);
+ 	if (res != TEEC_SUCCESS) {
+-		fprintf(stderr, "TEEC_InitializeContext: 0x%x\n", res);
+-		goto free_fw;
++		report_teec_error("TEEC_InitializeContext", res, 1);
++		return EXIT_TEE_INIT;
+ 	}
+ 
+ 	memset(&op, 0, sizeof(op));
+@@ -81,40 +517,90 @@
+ 					 TEEC_NONE, TEEC_NONE);
+ 	op.params[0].value.a = size;
+ 	op.params[1].value.a = SIG_SIZE;
+-	res = TEEC_OpenSession(&ctx, &sess, &video_fw_uuid, TEEC_LOGIN_PUBLIC,
++	res = TEEC_OpenSession(&ctx, &sess, &opt->uuid, TEEC_LOGIN_PUBLIC,
+ 			       NULL, &op, &origin);
+ 	if (res != TEEC_SUCCESS) {
+-		fprintf(stderr, "TEEC_OpenSession: 0x%x origin %u\n", res, origin);
++		report_teec_error("TEEC_OpenSession", res, origin);
++		if (res == TEEC_ERROR_ITEM_NOT_FOUND)
++			err("trusted application not found: is <uuid>.ta in "
++			    "/lib/optee_armtz and tee-supplicant running?");
++		else if (res == RES_ERROR_SECURITY && origin == 3)
++			err("the TEE core refused to load the trusted application: "
++			    "its signature or version probably does not match the "
++			    "OP-TEE (BL32) on this device. Use the .ta from this "
++			    "device's own firmware and check the UART log.");
++		ret = EXIT_TEE_OPEN;
+ 		goto finalize;
+ 	}
++	t_open = now_sec();
++	dbg("session open after %.3f s", t_open - t0);
+ 
+ 	res = TEEC_AllocateSharedMemory(&ctx, &shm);
+ 	if (res != TEEC_SUCCESS) {
+-		fprintf(stderr, "TEEC_AllocateSharedMemory: 0x%x\n", res);
++		report_teec_error("TEEC_AllocateSharedMemory", res, 1);
++		ret = EXIT_TEE_LOAD;
+ 		goto close;
+ 	}
+ 
++	ret = EXIT_TEE_LOAD;
+ 	while (sent < size) {
+-		size_t len = size - sent > CHUNK_SIZE ? CHUNK_SIZE : size - sent;
++		size_t len = size - sent > opt->chunk_size ? opt->chunk_size : size - sent;
++		bool last = sent + len == size;
++		char what[64];
+ 
+ 		memcpy(shm.buffer, fw + sent, len);
+ 		memset(&op, 0, sizeof(op));
+ 		op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_INPUT,
+ 						 TEEC_NONE, TEEC_NONE, TEEC_NONE);
+ 		op.params[0].memref.parent = &shm;
++		op.params[0].memref.offset = 0;
+ 		op.params[0].memref.size = len;
+ 
+ 		res = TEEC_InvokeCommand(&sess, CMD_LOAD, &op, &origin);
+-		if (res != TEEC_SUCCESS && res != TEEC_ERROR_BUSY) {
+-			fprintf(stderr, "TEEC_InvokeCommand at %ld: 0x%x origin %u\n",
+-				sent, res, origin);
++		chunk++;
++		dbg("chunk %zu/%zu (%zu bytes at 0x%zx): 0x%08x %s", chunk, nchunks,
++		    len, sent, res, teec_result_str(res));
++
++		if (res == RES_ERROR_BUSY) {
++			busy++;
++			if (last) {
++				last_busy = true;
++				if (opt->strict) {
++					report_teec_error("final chunk", res, origin);
++					goto release;
++				}
++			}
++		} else if (res != TEEC_SUCCESS) {
++			snprintf(what, sizeof(what), "TEEC_InvokeCommand (chunk %zu/%zu at 0x%zx)",
++				 chunk, nchunks, sent);
++			report_teec_error(what, res, origin);
+ 			goto release;
+ 		}
++
+ 		sent += len;
++
++		if (verbosity == 1 && isatty(STDOUT_FILENO))
++			printf("\rloading %3zu%%", sent * 100 / size), fflush(stdout);
+ 	}
++	if (verbosity == 1 && isatty(STDOUT_FILENO))
++		printf("\r");
+ 
+-	printf("loaded %s (%ld bytes)\n", argv[1], size);
+-	ret = 0;
++	t_end = now_sec();
++
++	if (last_busy)
++		warn("the final chunk returned TEEC_ERROR_BUSY; the load may not "
++		     "be complete (use --strict to treat this as an error)");
++
++	info("loaded %s (%zu bytes, %zu chunks%s)", opt->path, size, nchunks,
++	     busy ? ", BUSY on some" : "");
++	if (busy && verbosity >= 2)
++		dbg("%zu of %zu chunks returned TEEC_ERROR_BUSY", busy, nchunks);
++	if (opt->timing)
++		info("timing: open %.3f s, transfer %.3f s (%.1f MiB/s), total %.3f s",
++		     t_open - t0, t_end - t_open,
++		     size / 1048576.0 / (t_end - t_open > 0 ? t_end - t_open : 1e-9),
++		     t_end - t0);
++	ret = EXIT_OK;
+ 
+ release:
+ 	TEEC_ReleaseSharedMemory(&shm);
+@@ -122,7 +608,213 @@
+ 	TEEC_CloseSession(&sess);
+ finalize:
+ 	TEEC_FinalizeContext(&ctx);
+-free_fw:
++	return ret;
++}
++
++/* ------------------------------------------------------------------ */
++/* Command line                                                       */
++/* ------------------------------------------------------------------ */
++
++static void usage(FILE *out, const char *argv0)
++{
++	fprintf(out,
++"usage: %s [options] <video_ucode.bin>\n"
++"\n"
++"Load a signed Amlogic video microcode package through the vendor video\n"
++"firmware trusted application.\n"
++"\n"
++"Inspection (no TEE access):\n"
++"  -l, --list             list the entries of the package\n"
++"  -C, --check            check the package structure and exit\n"
++"  -S, --soc <name>       restrict --list to entries for <name> (e.g. s4, s4d)\n"
++"  -R, --require <name>   fail if the package has no non-empty entry for <name>\n"
++"      --no-check         skip the structure check before loading\n"
++"\n"
++"Loading:\n"
++"  -w, --wait <seconds>   wait for /dev/teepriv0 and /dev/tee0 first\n"
++"  -s, --strict           fail if the final chunk returns TEEC_ERROR_BUSY\n"
++"  -c, --chunk-size <n>   bytes per chunk (default 0x%x, %d..%d)\n"
++"  -u, --uuid <uuid>      trusted application UUID\n"
++"  -t, --timing           print timing information\n"
++"\n"
++"General:\n"
++"  -v, --verbose          more output (per chunk results)\n"
++"  -q, --quiet            only print errors\n"
++"  -h, --help             show this help\n"
++"\n"
++"Exit status: 0 ok, 1 failure, 2 usage, 3 invalid package, 4 TEE init,\n"
++"5 cannot open the trusted application session, 6 load failed.\n",
++		argv0, CHUNK_SIZE_DEFAULT, CHUNK_SIZE_MIN, CHUNK_SIZE_MAX);
++}
++
++static int parse_number(const char *s, size_t *out)
++{
++	char *end;
++	unsigned long long v;
++
++	errno = 0;
++	v = strtoull(s, &end, 0);
++	if (errno || end == s || *end || v > SIZE_MAX)
++		return -1;
++
++	*out = v;
++	return 0;
++}
++
++static int parse_args(int argc, char **argv, struct options *opt)
++{
++	static const struct option longopts[] = {
++		{ "list",	no_argument,	   NULL, 'l' },
++		{ "check",	no_argument,	   NULL, 'C' },
++		{ "soc",	required_argument, NULL, 'S' },
++		{ "require",	required_argument, NULL, 'R' },
++		{ "no-check",	no_argument,	   NULL, 1 },
++		{ "wait",	required_argument, NULL, 'w' },
++		{ "strict",	no_argument,	   NULL, 's' },
++		{ "chunk-size",	required_argument, NULL, 'c' },
++		{ "uuid",	required_argument, NULL, 'u' },
++		{ "timing",	no_argument,	   NULL, 't' },
++		{ "verbose",	no_argument,	   NULL, 'v' },
++		{ "quiet",	no_argument,	   NULL, 'q' },
++		{ "help",	no_argument,	   NULL, 'h' },
++		{ NULL, 0, NULL, 0 }
++	};
++	size_t n;
++	int c;
++
++	opt->uuid = default_uuid;
++	opt->chunk_size = CHUNK_SIZE_DEFAULT;
++
++	while ((c = getopt_long(argc, argv, "lCS:R:w:sc:u:tvqh", longopts, NULL)) != -1) {
++		switch (c) {
++		case 'l':
++			opt->list = true;
++			break;
++		case 'C':
++			opt->check_only = true;
++			break;
++		case 'S':
++			opt->list_soc = optarg;
++			break;
++		case 'R':
++			opt->require_soc = optarg;
++			break;
++		case 1:
++			opt->no_check = true;
++			break;
++		case 'w':
++			if (parse_number(optarg, &n) || n > 3600) {
++				err("invalid --wait value \"%s\" (0..3600)", optarg);
++				return -1;
++			}
++			opt->wait_sec = n;
++			break;
++		case 's':
++			opt->strict = true;
++			break;
++		case 'c':
++			if (parse_number(optarg, &n) || n < CHUNK_SIZE_MIN ||
++			    n > CHUNK_SIZE_MAX) {
++				err("invalid --chunk-size \"%s\" (%d..%d)", optarg,
++				    CHUNK_SIZE_MIN, CHUNK_SIZE_MAX);
++				return -1;
++			}
++			opt->chunk_size = n;
++			break;
++		case 'u':
++			if (parse_uuid(optarg, &opt->uuid)) {
++				err("invalid UUID \"%s\"", optarg);
++				return -1;
++			}
++			break;
++		case 't':
++			opt->timing = true;
++			break;
++		case 'v':
++			verbosity = 2;
++			break;
++		case 'q':
++			verbosity = 0;
++			break;
++		case 'h':
++			usage(stdout, argv[0]);
++			exit(EXIT_OK);
++		default:
++			return -1;
++		}
++	}
++
++	if (optind != argc - 1) {
++		fprintf(stderr, "usage: %s [options] <video_ucode.bin>\n"
++			"try '%s --help'\n", argv[0], argv[0]);
++		return -1;
++	}
++	opt->path = argv[optind];
++
++	return 0;
++}
++
++int main(int argc, char **argv)
++{
++	struct options opt = { 0 };
++	struct package pkg;
++	unsigned char *fw;
++	size_t size;
++	int ret;
++
++	if (parse_args(argc, argv, &opt))
++		return EXIT_USAGE;
++
++	fw = read_file(opt.path, &size);
++	if (!fw)
++		return EXIT_FAIL;
++
++	memset(&pkg, 0, sizeof(pkg));
++	ret = parse_package(&pkg, fw, size, opt.no_check);
++	if (ret < 0 && !opt.no_check) {
++		free(pkg.entries);
++		free(fw);
++		return EXIT_PACKAGE;
++	}
++	if (ret != 0 && opt.check_only)
++		warn("package structure differs from what this tool expects");
++
++	if (verbosity >= 1 && (opt.list || opt.check_only || verbosity >= 2))
++		print_package_summary(&pkg);
++
++	if (opt.list)
++		print_list(&pkg, opt.list_soc);
++
++	if (opt.require_soc) {
++		size_t empty, n = count_soc(&pkg, opt.require_soc, &empty);
++
++		if (!n) {
++			err("the package has no usable entries for \"%s\" (%zu "
++			    "placeholder entries with an all-zero payload)",
++			    opt.require_soc, empty);
++			free(pkg.entries);
++			free(fw);
++			return EXIT_PACKAGE;
++		}
++		dbg("%zu usable entries for %s (%zu placeholders)", n,
++		    opt.require_soc, empty);
++	}
++
++	if (opt.list || opt.check_only) {
++		free(pkg.entries);
++		free(fw);
++		return ret > 0 ? EXIT_PACKAGE : EXIT_OK;
++	}
++
++	free(pkg.entries);
++
++	if (opt.wait_sec && wait_for_tee(opt.wait_sec)) {
++		free(fw);
++		return EXIT_TEE_INIT;
++	}
++
++	ret = load_firmware(&opt, fw, size);
+ 	free(fw);
++
+ 	return ret;
+ }
+--
+
+MiniMyth2
+
