@@ -19,8 +19,11 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/optee_armtz
-	@cp -Rdf $(WORKSRC)/optee_armtz/526fc4fc-7ee6-4a12-96e3-83da9565bce8.ta $(DESTDIR)$(elibdir)/firmware/optee_armtz/
+	@cp -Rdf $(WORKSRC)/optee_armtz/526fc4fc-7ee6-4a12-96e3-83da9565bce8.ta $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.KhadasVIM1S
+	@cp -Rdf $(WORKDIR)/../../files/* $(DESTDIR)$(elibdir)/firmware/optee_armtz/
 	@$(MAKECOOKIE)
 
 clean-all: clean
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/526fc4fc-7ee6-4a12-96e3-83da9565bce8.ta
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.TanixW2TVBox
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.TV98TVBox
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.TanixW2TVBox
