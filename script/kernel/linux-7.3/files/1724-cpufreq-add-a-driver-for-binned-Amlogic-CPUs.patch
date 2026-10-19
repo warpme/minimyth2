@@ -1,42 +1,41 @@
-From 0261a0903b448cfbf7960ee9fa680569173ad95b Mon Sep 17 00:00:00 2001
+From 5af9e98ab89ee842f67e26b7a07b7e5feeb78566 Mon Sep 17 00:00:00 2001
 From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
 Date: Wed, 7 Oct 2026 12:32:44 +0000
-Subject: [PATCH 259/268] cpufreq: add a driver for binned Amlogic CPUs
+Subject: [PATCH 203/216] cpufreq: add a driver for binned Amlogic CPUs
 
-Newer Amlogic SoCs are binned at manufacture and the vendor kernel picks
-one of several CPU OPP tables by the bin the secure monitor reports.
-Better bins run the same frequencies at lower voltages. Without this,
-every chip runs the voltages of the lowest bin.
+Newer Amlogic SoCs are binned at manufacture, and better bins run the
+same CPU frequencies at lower voltages. Without this, every chip runs
+the voltages of the lowest bin.
 
-Read the bin through the secure monitor, select the matching
-opp-microvolt-bin<N> voltages for each CPU, then register cpufreq-dt.
-OPP tables without the S4 compatible keep their plain opp-microvolt
-values. Add S4 to the cpufreq-dt-platdev blocklist so the generic
-driver is only registered once the voltages are set.
+Bind to the S4 CPU OPP table, read the bin through the secure monitor,
+select the matching opp-microvolt-bin<N> voltages for each CPU, then
+register cpufreq-dt. Add S4 to the cpufreq-dt-platdev blocklist so the
+generic driver is only registered once the voltages are set.
 
 Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
-[christian: drop the intermediate clock handling now done by the S4 PLL
- clock driver, fall back to plain voltages for non-binned tables, use
- the existing amlogic,secure-monitor property, and fix the machine match]
+[chewitt: drop the intermediate clock handling now done by the S4 PLL
+ clock driver, use the existing amlogic,secure-monitor property, and
+ bind to the OPP table node instead of the machine compatible so the
+ module autoloads when built as =m]
 Assisted-by: Claude:claude-opus-5-5
 Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
 ---
  drivers/cpufreq/Kconfig.arm          |  14 +++
  drivers/cpufreq/Makefile             |   1 +
- drivers/cpufreq/amlogic-cpufreq.c    | 182 +++++++++++++++++++++++++++
+ drivers/cpufreq/amlogic-cpufreq.c    | 142 +++++++++++++++++++++++++++
  drivers/cpufreq/cpufreq-dt-platdev.c |   2 +
- 4 files changed, 199 insertions(+)
+ 4 files changed, 159 insertions(+)
  create mode 100644 drivers/cpufreq/amlogic-cpufreq.c
 
 diff --git a/drivers/cpufreq/Kconfig.arm b/drivers/cpufreq/Kconfig.arm
-index a441668f9..2c0ef9d23 100644
+index a441668f9e..e132ef9036 100644
 --- a/drivers/cpufreq/Kconfig.arm
 +++ b/drivers/cpufreq/Kconfig.arm
 @@ -24,6 +24,20 @@ config ARM_AIROHA_SOC_CPUFREQ
  	help
  	  This adds the CPUFreq driver for Airoha EN7581 SoCs.
  
-+config ARM_AMLOGIC_CPUFREQ
++config ARM_AMLOGIC_SOC_CPUFREQ
 +	tristate "Amlogic binned CPUFreq driver"
 +	depends on ARCH_MESON || COMPILE_TEST
 +	depends on MESON_SM
@@ -54,23 +53,23 @@ index a441668f9..2c0ef9d23 100644
  	tristate "Apple Silicon SoC CPUFreq support"
  	depends on ARCH_APPLE || (COMPILE_TEST && 64BIT)
 diff --git a/drivers/cpufreq/Makefile b/drivers/cpufreq/Makefile
-index 6c7a39b7f..781b92f9d 100644
+index 6c7a39b7f8..29021d3482 100644
 --- a/drivers/cpufreq/Makefile
 +++ b/drivers/cpufreq/Makefile
 @@ -54,6 +54,7 @@ obj-$(CONFIG_X86_AMD_FREQ_SENSITIVITY)	+= amd_freq_sensitivity.o
  ##################################################################################
  # ARM SoC drivers
  obj-$(CONFIG_ARM_AIROHA_SOC_CPUFREQ)	+= airoha-cpufreq.o
-+obj-$(CONFIG_ARM_AMLOGIC_CPUFREQ)	+= amlogic-cpufreq.o
++obj-$(CONFIG_ARM_AMLOGIC_SOC_CPUFREQ)	+= amlogic-cpufreq.o
  obj-$(CONFIG_ARM_APPLE_SOC_CPUFREQ)	+= apple-soc-cpufreq.o
  obj-$(CONFIG_ARM_ARMADA_37XX_CPUFREQ)	+= armada-37xx-cpufreq.o
  obj-$(CONFIG_ARM_ARMADA_8K_CPUFREQ)	+= armada-8k-cpufreq.o
 diff --git a/drivers/cpufreq/amlogic-cpufreq.c b/drivers/cpufreq/amlogic-cpufreq.c
 new file mode 100644
-index 000000000..3f39e7dc3
+index 0000000000..ade7bd9c87
 --- /dev/null
 +++ b/drivers/cpufreq/amlogic-cpufreq.c
-@@ -0,0 +1,182 @@
+@@ -0,0 +1,142 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Amlogic binned CPU frequency scaling
@@ -91,29 +90,19 @@ index 000000000..3f39e7dc3
 +#include <linux/pm_opp.h>
 +#include <linux/slab.h>
 +
-+static struct platform_device *amlogic_cpufreq_pdev;
-+
 +struct amlogic_cpufreq_priv {
 +	struct platform_device *cpufreq_dt_pdev;
 +	int opp_tokens[];
 +};
 +
-+static int amlogic_cpufreq_get_bin(struct device *dev, struct device *cpu_dev)
++static int amlogic_cpufreq_get_bin(struct device *dev)
 +{
 +	struct meson_sm_firmware *fw;
 +	s32 bin;
 +	int ret;
 +
-+	struct device_node *opp_np __free(device_node) =
-+		dev_pm_opp_of_get_opp_desc_node(cpu_dev);
-+	if (!opp_np)
-+		return -ENOENT;
-+
-+	if (!of_device_is_compatible(opp_np, "amlogic,s4-cpu-operating-points"))
-+		return 0;
-+
 +	struct device_node *sm_np __free(device_node) =
-+		of_parse_phandle(opp_np, "amlogic,secure-monitor", 0);
++		of_parse_phandle(dev->of_node, "amlogic,secure-monitor", 0);
 +	if (!sm_np)
 +		return dev_err_probe(dev, -ENODEV,
 +				     "Failed to get the secure monitor\n");
@@ -150,11 +139,7 @@ index 000000000..3f39e7dc3
 +	unsigned int cpu;
 +	int bin, ret;
 +
-+	cpu_dev = get_cpu_device(0);
-+	if (!cpu_dev)
-+		return -ENODEV;
-+
-+	bin = amlogic_cpufreq_get_bin(&pdev->dev, cpu_dev);
++	bin = amlogic_cpufreq_get_bin(&pdev->dev);
 +	if (bin < 0)
 +		return bin;
 +
@@ -208,60 +193,34 @@ index 000000000..3f39e7dc3
 +	amlogic_cpufreq_clear_config(priv);
 +}
 +
++static const struct of_device_id amlogic_cpufreq_match_list[] = {
++	{ .compatible = "amlogic,s4-cpu-operating-points" },
++	{}
++};
++MODULE_DEVICE_TABLE(of, amlogic_cpufreq_match_list);
++
 +static struct platform_driver amlogic_cpufreq_driver = {
 +	.probe = amlogic_cpufreq_probe,
 +	.remove = amlogic_cpufreq_remove,
 +	.driver = {
 +		.name = "amlogic-cpufreq",
++		.of_match_table = amlogic_cpufreq_match_list,
 +	},
 +};
-+
-+static const struct of_device_id amlogic_cpufreq_match_list[] = {
-+	{ .compatible = "amlogic,meson-s4" },
-+	{}
-+};
-+MODULE_DEVICE_TABLE(of, amlogic_cpufreq_match_list);
-+
-+static int __init amlogic_cpufreq_init(void)
-+{
-+	int ret;
-+
-+	if (!of_machine_device_match(amlogic_cpufreq_match_list))
-+		return -ENODEV;
-+
-+	ret = platform_driver_register(&amlogic_cpufreq_driver);
-+	if (ret)
-+		return ret;
-+
-+	amlogic_cpufreq_pdev = platform_device_register_simple("amlogic-cpufreq",
-+							       -1, NULL, 0);
-+	ret = PTR_ERR_OR_ZERO(amlogic_cpufreq_pdev);
-+	if (ret)
-+		platform_driver_unregister(&amlogic_cpufreq_driver);
-+
-+	return ret;
-+}
-+module_init(amlogic_cpufreq_init);
-+
-+static void __exit amlogic_cpufreq_exit(void)
-+{
-+	platform_device_unregister(amlogic_cpufreq_pdev);
-+	platform_driver_unregister(&amlogic_cpufreq_driver);
-+}
-+module_exit(amlogic_cpufreq_exit);
++module_platform_driver(amlogic_cpufreq_driver);
 +
 +MODULE_AUTHOR("Martin Blumenstingl <martin.blumenstingl@googlemail.com>");
 +MODULE_DESCRIPTION("Amlogic binned CPU frequency scaling driver");
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/cpufreq/cpufreq-dt-platdev.c b/drivers/cpufreq/cpufreq-dt-platdev.c
-index 371ca1fe9..7caf071ae 100644
+index 371ca1fe90..7caf071ae0 100644
 --- a/drivers/cpufreq/cpufreq-dt-platdev.c
 +++ b/drivers/cpufreq/cpufreq-dt-platdev.c
 @@ -115,6 +115,8 @@ static const struct of_device_id blocklist[] __initconst = {
  	{ .compatible = "allwinner,sun50i-h618", },
  	{ .compatible = "allwinner,sun50i-h700", },
  
-+	{ .compatible = "amlogic,meson-s4", },
++	{ .compatible = "amlogic,s4", },
 +
  	{ .compatible = "apple,arm-platform", },
  
