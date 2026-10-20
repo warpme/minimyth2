@@ -155,7 +155,7 @@ PATCHFILES += 1450-tee-optee-use-the-reserved-shared-memory-pool-on-Aml.patch
 PATCHFILES += 1451-tee-optee-send-the-Amlogic-boot-complete-notificatio.patch
 PATCHFILES += 1452-tee-optee-ignore-unimplemented-device-enumeration-co.patch
 # g12/sm1 dtsi additions
-PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
+PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-384MB.patch.patch
 # g12/sm1 board dts additions
 PATCHFILES += 1600-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
 PATCHFILES += 1601-arm64-dts-meson-sm1-disable-cvbs-on-meson-sm1-ac2xx-boards.patch
