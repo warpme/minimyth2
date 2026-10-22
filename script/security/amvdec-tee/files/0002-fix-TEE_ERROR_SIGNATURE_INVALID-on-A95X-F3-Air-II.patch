@@ -1,0 +1,201 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+
+Extend code to dealing with failing tee fw loading viao optee with rsa_verify 0xffff3072 (TEE_ERROR_SIGNATURE_INVALID).
+It adds in tee load command the second value param carrying the signed-block.
+Without this - on some TV Boxes like A95X-F3-Air-II the TA receives all chunks (need next data block … up to the full size) 
+and then fails rsa_verify 0xffff3072.
+For such cases You need to add --signed-block at amvdec-tee invocation
+
+Issue discovery is by great work of domeneponuda-beep (milion thx for this!)
+
+diff --speed-large-files --no-dereference --minimal -Naur amvdec-tee-1d7e8009cce1692fef04a729e859e8602b8eec9e/amvdec-tee.c amvdec-tee-1d7e8009cce1692fef04a729e859e8602b8eec9e/amvdec-tee.c
+--- amvdec-tee-1d7e8009cce1692fef04a729e859e8602b8eec9e/amvdec-tee.c	2026-10-22 09:58:32.610712496 +0200
++++ amvdec-tee-1d7e8009cce1692fef04a729e859e8602b8eec9e/amvdec-tee.c	2026-10-22 09:53:12.215093777 +0200
+@@ -44,12 +44,14 @@
+ #define CHUNK_SIZE_MIN		0x1000
+ #define CHUNK_SIZE_MAX		0x400000
+ #define CMD_LOAD		0
+-#define SIG_SIZE		256
++#define SIG_SIZE		256	/* default, see --sig-size */
++#define SIG_SIZE_MAX		0x10000
+ 
+ /* Result codes as defined by the GlobalPlatform TEE Client API. */
+ #define RES_SUCCESS		0x00000000
+ #define RES_ERROR_BUSY		0xFFFF000D
+ #define RES_ERROR_SECURITY	0xFFFF000F
++#define RES_ERROR_SIGNATURE_INVALID	0xFFFF3072
+ 
+ /* Package layout constants. */
+ #define PACK_OFFSET		0x100
+@@ -90,6 +92,8 @@
+ 	const char *path;
+ 	TEEC_UUID uuid;
+ 	size_t chunk_size;
++	size_t sig_size;
++	size_t signed_block;
+ 	unsigned int wait_sec;
+ 	const char *require_soc;
+ 	const char *list_soc;
+@@ -98,6 +102,7 @@
+ 	bool no_check;
+ 	bool strict;
+ 	bool timing;
++	bool has_signed_block;
+ };
+ 
+ struct pack_entry {
+@@ -516,7 +521,7 @@
+ 	op.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT, TEEC_VALUE_INPUT,
+ 					 TEEC_NONE, TEEC_NONE);
+ 	op.params[0].value.a = size;
+-	op.params[1].value.a = SIG_SIZE;
++	op.params[1].value.a = opt->sig_size;
+ 	res = TEEC_OpenSession(&ctx, &sess, &opt->uuid, TEEC_LOGIN_PUBLIC,
+ 			       NULL, &op, &origin);
+ 	if (res != TEEC_SUCCESS) {
+@@ -533,7 +538,11 @@
+ 		goto finalize;
+ 	}
+ 	t_open = now_sec();
+-	dbg("session open after %.3f s", t_open - t0);
++	dbg("session open after %.3f s (package %zu bytes, signature %zu bytes)",
++	    t_open - t0, size, opt->sig_size);
++	if (opt->has_signed_block)
++		dbg("passing signed-block size %zu with every chunk",
++		    opt->signed_block);
+ 
+ 	res = TEEC_AllocateSharedMemory(&ctx, &shm);
+ 	if (res != TEEC_SUCCESS) {
+@@ -550,11 +559,22 @@
+ 
+ 		memcpy(shm.buffer, fw + sent, len);
+ 		memset(&op, 0, sizeof(op));
++		/*
++		 * Optional second parameter: a VALUE_INPUT carrying the size
++		 * of the signed block, as in the MiniMyth2 patch. Some
++		 * trusted applications need it to verify the signature after
++		 * receiving all chunks (otherwise rsa_verify fails with
++		 * TEE_ERROR_SIGNATURE_INVALID, 0xffff3072).
++		 */
+ 		op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_INPUT,
+-						 TEEC_NONE, TEEC_NONE, TEEC_NONE);
++						 opt->has_signed_block ?
++						 TEEC_VALUE_INPUT : TEEC_NONE,
++						 TEEC_NONE, TEEC_NONE);
+ 		op.params[0].memref.parent = &shm;
+ 		op.params[0].memref.offset = 0;
+ 		op.params[0].memref.size = len;
++		if (opt->has_signed_block)
++			op.params[1].value.a = opt->signed_block;
+ 
+ 		res = TEEC_InvokeCommand(&sess, CMD_LOAD, &op, &origin);
+ 		chunk++;
+@@ -574,6 +594,12 @@
+ 			snprintf(what, sizeof(what), "TEEC_InvokeCommand (chunk %zu/%zu at 0x%zx)",
+ 				 chunk, nchunks, sent);
+ 			report_teec_error(what, res, origin);
++			if (res == RES_ERROR_SIGNATURE_INVALID &&
++			    !opt->has_signed_block)
++				err("signature verification failed: if this "
++				    "trusted application expects the signed-block "
++				    "size with every chunk, retry with "
++				    "--signed-block 256");
+ 			goto release;
+ 		}
+ 
+@@ -634,6 +660,9 @@
+ "  -w, --wait <seconds>   wait for /dev/teepriv0 and /dev/tee0 first\n"
+ "  -s, --strict           fail if the final chunk returns TEEC_ERROR_BUSY\n"
+ "  -c, --chunk-size <n>   bytes per chunk (default 0x%x, %d..%d)\n"
++"  -g, --sig-size <n>     signature size passed to the TA (default %d)\n"
++"  -b, --signed-block <n> also pass the signed-block size (e.g. 256) as a\n"
++"                         second VALUE_INPUT parameter with every load command\n"
+ "  -u, --uuid <uuid>      trusted application UUID\n"
+ "  -t, --timing           print timing information\n"
+ "\n"
+@@ -644,7 +673,7 @@
+ "\n"
+ "Exit status: 0 ok, 1 failure, 2 usage, 3 invalid package, 4 TEE init,\n"
+ "5 cannot open the trusted application session, 6 load failed.\n",
+-		argv0, CHUNK_SIZE_DEFAULT, CHUNK_SIZE_MIN, CHUNK_SIZE_MAX);
++		argv0, CHUNK_SIZE_DEFAULT, CHUNK_SIZE_MIN, CHUNK_SIZE_MAX, SIG_SIZE);
+ }
+ 
+ static int parse_number(const char *s, size_t *out)
+@@ -672,6 +701,8 @@
+ 		{ "wait",	required_argument, NULL, 'w' },
+ 		{ "strict",	no_argument,	   NULL, 's' },
+ 		{ "chunk-size",	required_argument, NULL, 'c' },
++		{ "sig-size",	required_argument, NULL, 'g' },
++		{ "signed-block",	required_argument, NULL, 'b' },
+ 		{ "uuid",	required_argument, NULL, 'u' },
+ 		{ "timing",	no_argument,	   NULL, 't' },
+ 		{ "verbose",	no_argument,	   NULL, 'v' },
+@@ -684,8 +715,9 @@
+ 
+ 	opt->uuid = default_uuid;
+ 	opt->chunk_size = CHUNK_SIZE_DEFAULT;
++	opt->sig_size = SIG_SIZE;
+ 
+-	while ((c = getopt_long(argc, argv, "lCS:R:w:sc:u:tvqh", longopts, NULL)) != -1) {
++	while ((c = getopt_long(argc, argv, "lCS:R:w:sc:g:b:u:tvqh", longopts, NULL)) != -1) {
+ 		switch (c) {
+ 		case 'l':
+ 			opt->list = true;
+@@ -721,6 +753,23 @@
+ 			}
+ 			opt->chunk_size = n;
+ 			break;
++		case 'g':
++			if (parse_number(optarg, &n) || n > SIG_SIZE_MAX) {
++				err("invalid --sig-size \"%s\" (0..%d)", optarg,
++				    SIG_SIZE_MAX);
++				return -1;
++			}
++			opt->sig_size = n;
++			break;
++		case 'b':
++			if (parse_number(optarg, &n) || n > SIG_SIZE_MAX) {
++				err("invalid --signed-block \"%s\" (0..%d)", optarg,
++				    SIG_SIZE_MAX);
++				return -1;
++			}
++			opt->signed_block = n;
++			opt->has_signed_block = true;
++			break;
+ 		case 'u':
+ 			if (parse_uuid(optarg, &opt->uuid)) {
+ 				err("invalid UUID \"%s\"", optarg);
+@@ -769,6 +818,22 @@
+ 	if (!fw)
+ 		return EXIT_FAIL;
+ 
++	if (opt.sig_size >= size) {
++		err("--sig-size 0x%zx is not smaller than the file (%zu bytes)",
++		    opt.sig_size, size);
++		free(fw);
++		return EXIT_USAGE;
++	}
++	if (opt.has_signed_block && opt.signed_block >= size) {
++		err("--signed-block 0x%zx is not smaller than the file (%zu bytes)",
++		    opt.signed_block, size);
++		free(fw);
++		return EXIT_USAGE;
++	}
++	if (opt.sig_size != SIG_SIZE)
++		warn("using a signature size of %zu instead of the default %d",
++		     opt.sig_size, SIG_SIZE);
++
+ 	memset(&pkg, 0, sizeof(pkg));
+ 	ret = parse_package(&pkg, fw, size, opt.no_check);
+ 	if (ret < 0 && !opt.no_check) {
+--
+
+MiniMyth2
+
