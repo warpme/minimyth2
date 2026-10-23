@@ -155,8 +155,8 @@ Amlogic sm1     | Tanix-TX5plus    | works  (rtl8822CS@SDIO)                | wo
 Amlogic s905d3  | Khadas VIM3l     | works  (ap6398s@SDIO)                  | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic g12a    | Radxa-Zero       | works  (ap6256@SDIO)                   | works     | n/a       | n/a       | works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic g12b    | Khadas VIM3      | works  (rtl4359@SDIO)                  | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
-Amlogic s905w2  | TV98             | not works (cdtech 47W3155)             | not tested| n/a       | wip       | works       | works       | not works (firmware issue)     | support in-progress           |
-Amlogic s905w2  | Tanix W2         | not works (cdtech 47W3155)             | not tested| n/a       | wip       | works       | works       | not works (firmware issue)     | support in-progress           |
+Amlogic s905w2  | TV98             | not works (cdtech 47W3155)             | not tested| n/a       | works     | works       | works       | not works (firmware issue)     | support in-progress           |
+Amlogic s905w2  | Tanix W2         | not works (cdtech 47W3155)             | not tested| n/a       | works     | works       | works       | not works (firmware issue)     | support in-progress           |
 Amlogic s905y4  | Khadas VIM1S     | works  (ap6256@SDIO)                   | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support in-progress           |
 Broadcom 2837   | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | n/a       | not tested| works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2711   | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
