@@ -76,6 +76,21 @@ FIP_BOARD                 = khadas-vim1s
 endif
 
 ifeq (0,1)
+SOC_TYPE                  = s4
+mm_U-BOOT_BOARD_TYPE      = board-s905w2.tv98
+mm_U-BOOT_BOARD_DEFCONFIG = tv98_defconfig
+FIP_BOARD                 = 
+endif
+
+ifeq (0,1)
+# s905w2 based tanix w2
+SOC_TYPE                  = s4
+mm_U-BOOT_BOARD_TYPE      = board-s905w2.tanix_w2
+mm_U-BOOT_BOARD_DEFCONFIG = tanix-w2_defconfig
+FIP_BOARD                 = 
+endif
+
+ifeq (0,1)
 # a311d2 based khadas vim4
 SOC_TYPE                  = a311d2
 mm_U-BOOT_BOARD_TYPE      = board-a311d2.vim4
@@ -144,6 +159,9 @@ PATCHFILES  += 0058-WIP-ARM-dts-meson-s4-s905y4-khadas-vim1s-set-the-VDD.patch
 PATCHFILES  += 0059-WIP-power-regulator-pwm-use-the-channel-from-the-pwm.patch
 PATCHFILES  += 0060-WIP-ARM-dts-meson-s4-s905y4-khadas-vim1s-let-the-SD-.patch
 PATCHFILES  += 0061-WIP-mmc-meson-gx-reset-the-delay-and-resampling-regi.patch
+# s4 dts additions
+PATCHFILES  += 0080-s4-add-tanix_w2_defconfig.patch
+PATCHFILES  += 0081-s4-add-tv98_defconfig.patch
 # fip additions
 PATCHFILES  += 0100-amlogic-boot-fip-add-enc-bins-support.patch
 PATCHFILES  += 0101-amlogic-boot-fip-add-x96-air-support.patch
@@ -208,9 +226,12 @@ build-custom:
 	@mkdir -p $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)
 	@echo " Storing built u-boot.bin as bl33.bin in [$(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)]"
 	@cp $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/bl33.bin
+	@echo " Creating u-boot.uimg and storing in [$(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)]"
+	@mkimage -A arm64 -O u-boot -T standalone -C none -a 0x1000000 -e 0x1000000 -n mainline-u-boot -d $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.uimg
 	@$(MAKECOOKIE)
 
 install-custom:
+ifneq ($(FIP_BOARD),)
 	@echo "Cleanup +x rights on FIP sources ..."
 	@find $(FIPSRC) -type f -name "aml_encrypt_*" -exec chmod +x {} +
 	@find $(FIPSRC) -type f -name "*.py" -exec chmod +x {} +
@@ -221,6 +242,7 @@ install-custom:
 	@cd $(FIPSRC) && ./build-fip.sh $(FIP_BOARD) $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/bl33.bin $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)
 	@echo "------FIP end ------------------------------------------------------------------"
 	@echo "Built: u-boot files are in [$(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)]"
+endif
 	@$(MAKECOOKIE)
 
 clean-all: clean
