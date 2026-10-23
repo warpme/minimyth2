@@ -3,15 +3,17 @@
 # mkimage -C none -A arm -T script -d bootscript.src bootscript
 #
 # Script is based on excellent work of https://github.com/devmfc (million thx devmfc!)
+# Extened for overlays loading and mainline u-boot chainloading
+# by Piotr Oniszczuk <piotr.oniszczuk@gmail.com> of MiniMyth2 project
 
 test "${devtype}" = "" && "${cmd_read}" = "" && echo "Missing boot devtype!" && exit
 test "${cmd_read}" = "" && setenv cmd_read "fatload ${devtype} ${devnum}:${distro_bootpart}"
 
 setenv cmd_var_expand		'setenv cmd_exp2 "setenv cmd_exp1 \"setenv ${arg_name} \\"\\$${arg_name}\\"\";run cmd_exp1;";run cmd_exp2'
 setenv cmd_array_append		'join_res=0; for var in "; 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"; do setenv cmd1 "setenv val \$${arg_name}${var};setenv ${arg_name}${var}";run cmd1;if test "${val}" != "";then if test "${join_res}" != "0"; then join_res="${join_res} ${val}";else join_res="${val}"; fi; fi; done; test "${join_res}" != "0" && setenv ${arg_name} "${join_res}"'
-setenv cmd_process_config	'echo "Trying config ${arg_name}..."; setenv run_cmd; setenv load_config; if ${cmd_read} ${loadaddr} ${arg_name}; then env import -t ${loadaddr} ${filesize}; arg_name="cmd_pre_boot" && run cmd_array_append; arg_name="bootargs" && run cmd_array_append; arg_name="run_cmd" && run cmd_array_append; test "${run_cmd}" != "" && run run_cmd; arg_name="load_config" && run cmd_array_append cmd_var_expand; for f in "${load_config}"; do arg_name="box-config/${f}" && run cmd_process_config; done; fi'
-setenv cmd_load_dtb			'${cmd_read} ${dtb_addr} "${dtb_img}" && echo "Using devicetree [${dtb_img}]" || echo "FAILED loading devicetree [${dtb_img}]"'
-setenv cmd_do_boot			'booti ${os_addr} ${rd_addr} ${dtb_addr}'
+setenv cmd_process_config	'echo "Trying config ${arg_name}..."; setenv run_cmd; setenv load_config; if ${cmd_read} ${loadaddr} ${arg_name}; then env import -t ${loadaddr} ${filesize}; arg_name="cmd_pre_boot" && run cmd_array_append; arg_name="bootargs" && run cmd_array_append; arg_name="run_cmd" && run cmd_array_append; test "${run_cmd}" != "" && run run_cmd; arg_name="load_config" && run cmd_array_append cmd_var_expand; for f in "${load_config}"; do arg_name="board-config/${f}" && run cmd_process_config; done; fi'
+setenv cmd_load_dtb		'${cmd_read} ${dtb_addr} "${dtb_img}" && echo "Using devicetree [${dtb_img}]" || echo "FAILED loading devicetree [${dtb_img}]"'
+setenv cmd_do_boot		'booti ${os_addr} ${rd_addr} ${dtb_addr}'
 
 ########	DEFAULTS	########
 setenv os_addr		0x02000000
@@ -25,7 +27,17 @@ setenv dtb_img		'null'
 setenv variant		'mainline'
 setenv bootargs_org ${bootargs}
 setenv bootargs
-setenv root			'/dev/sda2'
+setenv root		'/dev/sda2'
+# chainloading of mainline u-boot (can be overridden in boot.config)
+setenv chainload	'yes'
+# bootm = load ${uboot_uimg} (mkimage -T standalone wrapper) and start it with 'bootm'
+# go    = load raw ${uboot_img} to ${uboot_addr} and start it with 'go'
+# auto  = try bootm first, then go
+setenv chainload_method	'bootm'
+setenv uboot_uimg	'u-boot.uimg'
+setenv uboot_tmp_addr	0x3000000
+setenv uboot_img	'u-boot.ext'
+setenv uboot_addr	0x1000000
 
 ########	  MAIN  	########
 test "${devtype}" = 'mmc' && setenv root /dev/mmcblk${devnum}p2
@@ -34,8 +46,57 @@ test "${devtype}" = 'mmc' && setenv root /dev/mmcblk${devnum}p2
 if ${cmd_read} ${loadaddr} boot.config; then env import -t ${loadaddr} ${filesize}; else echo "No boot.config present"; fi
 
 # process configs
-for f in "box-${box}"; do arg_name="box-config/${f}.config"; run cmd_process_config; done
+for f in "board-${board}"; do arg_name="board-config/${f}.config"; run cmd_process_config; done
 arg_name="boot.config"; run cmd_process_config;
+
+########	CHAINLOAD MAINLINE U-BOOT	########
+# If a mainline u-boot image is present on the device this script was loaded
+# from, load it and start it. Mainline u-boot then boots the system on its own
+# (distro boot / extlinux). Nothing below this block runs in that case.
+#
+# Some vendor u-boots have the 'go' command disabled. For them the mainline
+# u-boot is wrapped as a u-boot "standalone application" and started with
+# 'bootm' (see chainload_method). Create the wrapper with:
+#   mkimage -A arm64 -O u-boot -T standalone -C none -a 0x1000000 -e 0x1000000 -n mainline-u-boot -d u-boot.bin u-boot.uimg
+# -a/-e must equal the address mainline u-boot is linked to (CONFIG_TEXT_BASE).
+# bootm copies it there from ${uboot_tmp_addr}.
+#
+# - disable in boot.config with: chainload=no
+# - chainload_method, uboot_uimg, uboot_img, uboot_addr, uboot_tmp_addr can be
+#   changed in boot.config
+# - mainline u-boot sets fdtcontroladdr, the vendor u-boot does not: this keeps
+#   us from chainloading again (boot loop) if mainline u-boot ever runs this
+#   script itself
+# - if the image is missing, unreadable or the jump returns, we just continue
+#   and boot Linux directly. To recover from a broken u-boot image remove or
+#   rename it, or set chainload=no
+if test "${chainload}" = "yes"; then
+	echo "Attempting to chainload mainline u-boot"
+#	if test "${fdtcontroladdr}" = ""; then
+		setenv autostart
+		if test "${chainload_method}" != "go"; then
+			echo "Checking for mainline u-boot [${uboot_uimg}] on ${devtype} ${devnum}:${distro_bootpart}"
+			if ${cmd_read} ${uboot_tmp_addr} "${uboot_uimg}"; then
+				echo "Chainloading mainline u-boot using bootm"
+				bootm ${uboot_tmp_addr}
+				echo "bootm returned"
+			fi
+		fi
+		if test "${chainload_method}" != "bootm"; then
+			echo "Checking for mainline u-boot [${uboot_img}] on ${devtype} ${devnum}:${distro_bootpart}"
+			if ${cmd_read} ${uboot_addr} "${uboot_img}"; then
+				echo "Chainloading mainline u-boot using go"
+				go ${uboot_addr}
+				echo "go returned"
+			else
+				# fallback (as before): look on first SD card and first USB disk
+				if fatload mmc 0 ${uboot_addr} "${uboot_img}"; then go ${uboot_addr}; fi;
+				if fatload usb 0 ${uboot_addr} "${uboot_img}"; then go ${uboot_addr}; fi;
+			fi
+		fi
+		echo "No valid chainload_method ('go' or 'bootm') configured. continuing with vendor bootloader"
+#	fi
+fi
 
 # Loading device tree
 setenv dtb_mem_addr ${dtb_addr}
@@ -62,10 +123,6 @@ arg_name="cmd_pre_boot" && run cmd_var_expand
 test "${cmd_pre_boot}" != "" && run cmd_pre_boot
 
 arg_name="bootargs" && run cmd_var_expand
-
-echo "Checking for (eventually) chainload to mainline u-boot"
-if fatload mmc 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
-if fatload usb 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
 
 echo "Starting linux with cmdline: ${bootargs}"
 run cmd_do_boot;

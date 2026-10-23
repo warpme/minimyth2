@@ -3,6 +3,8 @@
 # mkimage -C none -A arm -T script -d aml_autoscript.src aml_autoscript
 #
 # Script is based on excellent work of https://github.com/devmfc (million thx devmfc!)
+# Extened for overlays loading and mainline u-boot chainloading
+# by Piotr Oniszczuk <piotr.oniszczuk@gmail.com> of MiniMyth2 project
 
 setenv default_boot_order 	'sd usb emmc org'
 setenv boot_script_order 	'bootscript cfgload s905_autoscript boot.scr'
@@ -17,13 +19,39 @@ setenv	cmd_boot_get_order	'boot_order="${default_boot_order}"; if test "${onetim
 test "${cmd_boot_org}" = "" && setenv cmd_boot_org "${bootcmd}"
 setenv	bootcmd	 		'run cmd_boot_get_order; for var in "${boot_order}"; do run cmd_boot_${var}; done; run cmd_boot_org'
 
-# This autoscript file WILL NOT permanently change the u-boot environment
-# and should as such not damage your u-boot boot procedure. This also
-# means you should always use the update button of your box to boot this image.
-# You can install USB / SD card bootscript via aml-multiboot-setup.sh
-# If you DO want to _install_ multiboot via this aml_autoscript, with the risk 
-# that your u-boot boot procedure will not work anymore (although risk is small),
-# then uncomment the next line:
-saveenv
+# Whether this script stores the environment permanently (saveenv), and with
+# it the multiboot bootcmd built above, is controlled by persist_env in
+# boot.config on the SD card / USB disk the box was started from:
+#   persist_env=no     do not run saveenv: nothing is changed permanently and
+#                      the update button of the box has to be used every time
+#   persist_env=yes    run saveenv: permanently install the multiboot bootcmd
+#                      (small risk that your u-boot boot procedure will not
+#                      work anymore). Also "1"; "0" is the same as "no"
+# Without boot.config, or without persist_env in it, persist_default is used.
+# Only the persist_env key is read from boot.config here, nothing else of it is
+# imported (and so nothing else is stored by saveenv).
+setenv persist_default	'no'
+setenv cmd_cfg_try		'if fatload ${devtype} ${devnum}:${distro_bootpart} ${loadaddr} boot.config; then setenv cfg_found 1; env import -t ${loadaddr} ${filesize} persist_env; fi'
+setenv cmd_cfg_find		'setenv cfg_found; setenv persist_env; if mmcinfo; then setenv devtype mmc; setenv devnum 0; setenv distro_bootpart 1; run cmd_cfg_try; fi; if test "${cfg_found}" = ""; then if usb storage; then ; else usb start; fi; setenv devtype usb; setenv distro_bootpart 1; for devnum in "0 1 2 3"; do setenv devnum ${devnum}; if test "${cfg_found}" = ""; then run cmd_cfg_try; fi; done; fi'
+
+run cmd_cfg_find
+test "${persist_env}" = "" && setenv persist_env "${persist_default}"
+setenv do_save 1
+test "${persist_env}" = "no" && setenv do_save 0
+test "${persist_env}" = "0" && setenv do_save 0
+
+# leave nothing of the above in the environment that might get stored
+setenv persist_env; setenv persist_default; setenv cfg_found
+setenv devtype; setenv devnum; setenv distro_bootpart
+setenv cmd_cfg_try; setenv cmd_cfg_find
+
+if test "${do_save}" = "1"; then
+	setenv do_save
+	echo "persist_env: saving the environment (saveenv)"
+	saveenv
+else
+	setenv do_save
+	echo "persist_env=no: not saving the environment, nothing is changed permanently"
+fi
 
 run bootcmd

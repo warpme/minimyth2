@@ -1,6 +1,6 @@
 
 GARNAME      = aml-bootscipts-vendor-uboot
-GARVERSION   = 2026-10-14
+GARVERSION   = 2026-10-23
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
@@ -35,15 +35,15 @@ install-bootloader:
 	@cp -f $(WORKSRC)/boot.scr                $(DESTDIR)/boot/boot.scr
 	@cp -f $(WORKSRC)/bootscript              $(DESTDIR)/boot/bootscript
 	@cp -f $(WORKSRC)/cfgload                 $(DESTDIR)/boot/cfgload
-	@mkdir -p $(DESTDIR)/boot/box-config
-	@cp -rf   $(WORKSRC)/../../files/box*.config $(DESTDIR)/boot/box-config/
+	@mkdir -p $(DESTDIR)/boot/board-config
+	@cp -rf   $(WORKSRC)/../../files/board*.config $(DESTDIR)/boot/board-config/
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-bootloader:
 	@rm -f  $(DESTDIR)/boot/*_autoscript
 	@rm -f  $(DESTDIR)/boot/boot.*
 	@rm -f  $(DESTDIR)/boot/bootscript
-	@rm -rf $(DESTDIR)/boot/box-config*
+	@rm -rf $(DESTDIR)/boot/board-config*
 	@rm -f  $(DESTDIR)/boot/cfgload
 
 clean-all: clean-bootloader cookieclean downloadclean
