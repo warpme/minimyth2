@@ -21,11 +21,11 @@ $(U-BOOT-AML):
 	@$(MAKE) clean install  -C ../u-boot-aml
 	@$(MAKECOOKIE)
 
-install-bootloader:
+install-bootloader: $(U-BOOT-AML)
 	@$(MAKE) clean-all install -C ../aml-bootscipts-vendor-uboot
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/boot.config $(DESTDIR)/boot/boot.config
-	@cp -f $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.uimg $(DESTDIR)/boot/u-boot.uimg
+	@cp -f $(U-BOOT-AML) $(DESTDIR)/boot/u-boot.uimg
 	@mkdir -p $(DESTDIR)/boot/board-config
 	@cp -rf   $(WORKSRC)/$(mm_U-BOOT_BOARD_TYPE).config $(DESTDIR)/boot/board-config/
 	@cp -f $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
