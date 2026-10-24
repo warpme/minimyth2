@@ -31,7 +31,9 @@ setenv	bootcmd	 		'run cmd_boot_get_order; for var in "${boot_order}"; do run cm
 # Only the persist_env key is read from boot.config here, nothing else of it is
 # imported (and so nothing else is stored by saveenv).
 setenv persist_default	'no'
-setenv cmd_cfg_try		'if fatload ${devtype} ${devnum}:${distro_bootpart} ${loadaddr} boot.config; then setenv cfg_found 1; env import -t ${loadaddr} ${filesize} persist_env; fi'
+# scratch address for boot.config: must not be ${loadaddr}, where this script itself lives
+setenv cfg_addr		0x10000000
+setenv cmd_cfg_try		'if fatload ${devtype} ${devnum}:${distro_bootpart} ${cfg_addr} boot.config; then setenv cfg_found 1; env import -t ${cfg_addr} ${filesize} persist_env; fi'
 setenv cmd_cfg_find		'setenv cfg_found; setenv persist_env; if mmcinfo; then setenv devtype mmc; setenv devnum 0; setenv distro_bootpart 1; run cmd_cfg_try; fi; if test "${cfg_found}" = ""; then if usb storage; then ; else usb start; fi; setenv devtype usb; setenv distro_bootpart 1; for devnum in "0 1 2 3"; do setenv devnum ${devnum}; if test "${cfg_found}" = ""; then run cmd_cfg_try; fi; done; fi'
 
 run cmd_cfg_find
@@ -41,7 +43,7 @@ test "${persist_env}" = "no" && setenv do_save 0
 test "${persist_env}" = "0" && setenv do_save 0
 
 # leave nothing of the above in the environment that might get stored
-setenv persist_env; setenv persist_default; setenv cfg_found
+setenv persist_env; setenv persist_default; setenv cfg_found; setenv cfg_addr
 setenv devtype; setenv devnum; setenv distro_bootpart
 setenv cmd_cfg_try; setenv cmd_cfg_find
 

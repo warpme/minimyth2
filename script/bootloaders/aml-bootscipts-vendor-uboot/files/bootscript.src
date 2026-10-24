@@ -35,7 +35,7 @@ setenv chainload	'yes'
 # auto  = try bootm first, then go
 setenv chainload_method	'bootm'
 setenv uboot_uimg	'u-boot.uimg'
-setenv uboot_tmp_addr	0x3000000
+setenv uboot_tmp_addr	0x10000000
 setenv uboot_img	'u-boot.ext'
 setenv uboot_addr	0x1000000
 
@@ -61,18 +61,29 @@ arg_name="boot.config"; run cmd_process_config;
 # -a/-e must equal the address mainline u-boot is linked to (CONFIG_TEXT_BASE).
 # bootm copies it there from ${uboot_tmp_addr}.
 #
-# - disable in boot.config with: chainload=no
+# - disable in boot.config with: chainload=no. chainload=force skips the check
+#   for the vendor u-boot below
 # - chainload_method, uboot_uimg, uboot_img, uboot_addr, uboot_tmp_addr can be
 #   changed in boot.config
-# - mainline u-boot sets fdtcontroladdr, the vendor u-boot does not: this keeps
-#   us from chainloading again (boot loop) if mainline u-boot ever runs this
-#   script itself
+# - the vendor u-boot also sets fdtcontroladdr, so that can not tell the two
+#   apart. We chainload only if this is positively the vendor u-boot: it has
+#   bootloader_version (set by its get_bootloaderversion), mainline u-boot does
+#   not. A mainline u-boot can also say so with mainline_uboot=1 in its
+#   environment. This keeps us from chainloading again (boot loop) if mainline
+#   u-boot ever runs this script itself. If the vendor u-boot is not recognized
+#   the chainload is just skipped and Linux is booted directly
+# - uboot_tmp_addr must not overlap ${loadaddr} (this script, 0x3080000 on the
+#   vendor u-boot) nor the secure monitor memory (0x5000000)
 # - if the image is missing, unreadable or the jump returns, we just continue
 #   and boot Linux directly. To recover from a broken u-boot image remove or
 #   rename it, or set chainload=no
-if test "${chainload}" = "yes"; then
-	echo "Attempting to chainload mainline u-boot"
-#	if test "${fdtcontroladdr}" = ""; then
+if test "${chainload}" != "no"; then
+	setenv chainload_ok 0
+	test "${bootloader_version}" != "" && setenv chainload_ok 1
+	test "${mainline_uboot}" = "1" && setenv chainload_ok 0
+	test "${chainload}" = "force" && setenv chainload_ok 1
+	if test "${chainload_ok}" = "1"; then
+		echo "Attempting to chainload mainline u-boot"
 		setenv autostart
 		if test "${chainload_method}" != "go"; then
 			echo "Checking for mainline u-boot [${uboot_uimg}] on ${devtype} ${devnum}:${distro_bootpart}"
@@ -95,7 +106,8 @@ if test "${chainload}" = "yes"; then
 			fi
 		fi
 		echo "No valid chainload_method ('go' or 'bootm') configured. continuing with vendor bootloader"
-#	fi
+	fi
+	setenv chainload_ok
 fi
 
 # Loading device tree
