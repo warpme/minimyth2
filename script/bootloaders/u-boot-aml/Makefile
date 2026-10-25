@@ -231,6 +231,8 @@ build-custom:
 	@$(MAKECOOKIE)
 
 install-custom:
+# dealing with cases when we are not doing FIP.
+# in such cases car FIP_BOARD is empty.
 ifneq ($(FIP_BOARD),)
 	@echo "Cleanup +x rights on FIP sources ..."
 	@find $(FIPSRC) -type f -name "aml_encrypt_*" -exec chmod +x {} +
