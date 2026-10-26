@@ -24,6 +24,7 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all: clean
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.KhadasVIM1S
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.TanixW2TVBox
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.TV98TVBox
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.TanixW2TVBox
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/optee_armtz/VideoFW-TA.X96MaxPlusUltra
