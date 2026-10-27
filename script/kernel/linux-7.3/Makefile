@@ -163,10 +163,8 @@ PATCHFILES += 1602-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
 PATCHFILES += 1603-arm64-dts-meson-sm1-x96air-add-vfd-const-mac.patch
 PATCHFILES += 1604-arm64-dts-amlogic-meson-sm1-khadas-vim3l-dec-sd-clk-add-improvements.patch
 PATCHFILES += 1605-arm64-dts-meson-gxl-tx3mini-add-vfd-const-mac.patch
-# s4/sc2 drivers additions
+# s4 drivers additions
 PATCHFILES += 1700-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
-PATCHFILES += 1702-reset-reset-meson-add-support-for-Amlogic-SC2.patch
-PATCHFILES += 1703-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
 PATCHFILES += 1704-dt-bindings-clock-meson-Add-audio-power-domain-for-S4-soc-v6.patch
 PATCHFILES += 1705-dt-bindings-Asoc-axg-audio-Add-S4-audio-tocodec-v6.patch
 PATCHFILES += 1706-ASoC-meson-g12a-toacodec-Add-S4-tocodec-driver-v6.patch
@@ -192,19 +190,23 @@ PATCHFILES += 1726-mmc-meson-gx-add-the-S4-interface-3-tuning.patch
 PATCHFILES += 1728-drm-meson-vclk-wait-for-both-S4-PLL-lock-bits-for-CV.patch
 PATCHFILES += 1729-clk-meson-s4-peripherals-allow-setting-the-CEC-32k-c.patch
 PATCHFILES += 1730-media-platform-meson-ao-cec-g12a-add-support-for-the.patch
-# s4/sc2 dtsi additions
+# sc2 drivers additions
+PATCHFILES += 1702-reset-reset-meson-add-support-for-Amlogic-SC2.patch
+PATCHFILES += 1703-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
+# s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
 PATCHFILES += 1802-arm64-dtsi-amlogic-add-Amlogic-S4-hdmi-audio.patch
 PATCHFILES += 1803-arm64-dtsi-amlogic-s4-add-drm-support-v2.patch
 PATCHFILES += 1804-arm64-dtsi-amlogic-s4-add-gpu-support.patch
-PATCHFILES += 1805-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_dvfs_temp_sensor-support.patch
 PATCHFILES += 1807-arm64-dtsi-amlogic-s4-pwm-emmc-fixes.patch
 PATCHFILES += 1808-arm64-dtsi-amlogic-s4-add-video-decoder.patch
 PATCHFILES += 1809-arm64-dtsi-amlogic-meson-s4-add-AO-CEC-B-node.patch
 PATCHFILES += 1810-arm64-dtsi-amlogic-meson-s4-add-HDMI-TX-CEC-pinctrl-g.patch
-# s4/sc2 board dts additions
+# sc2 dtsi additions
+PATCHFILES += 1850-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
+# s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
 PATCHFILES += 1902-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
@@ -214,7 +216,8 @@ PATCHFILES += 1906-arm64-dts-amlogic-meson-s4-khadas-1s-add-cpu-dfvs.patch
 PATCHFILES += 1908-arm64-dts-amlogic-meson-s4-s905y4-khadas-vim1s-enabl.patch
 PATCHFILES += 1909-arm64-dts-amlogic-add-dts-for-tv98-tvbox.patch
 PATCHFILES += 1910-arm64-dts-amlogic-add-dts-for-tanix_w2-tvbox.patch
-PATCHFILES += 1911-arm64-dts-amlogic-add-dts-for-x96-max-ultra-plus-tvbox.patch
+# sc2 board dts additions
+PATCHFILES += 1950-arm64-dts-amlogic-add-dts-for-x96-max-ultra-plus-tvbox.patch
 endif
 #------------------------------------------------------------
 
