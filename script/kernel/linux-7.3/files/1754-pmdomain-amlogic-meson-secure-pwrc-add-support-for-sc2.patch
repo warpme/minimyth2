@@ -1,0 +1,109 @@
+From 24be02ca2bbe296073279e8d6cb00fa85ebbf613 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Tue, 27 Oct 2026 08:13:12 +0000
+Subject: [PATCH] pmdomain: amlogic: meson-secure-pwrc: add support for the SC2
+ SoC
+
+The SC2 (S905X4) secure power controller uses a different set of power
+domains than S4: the domain ID is also the index passed to the secure
+monitor, so using the S4 table on SC2 switches the wrong domains
+(e.g. the S4 USB_COMB ID 3 is DOS_VDEC on SC2, whose USB_COMB is 6).
+
+Add the SC2 domain IDs as a devicetree binding header and the SC2
+domain table with the "amlogic,sc2-pwrc" compatible.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/pmdomain/amlogic/meson-secure-pwrc.c | 25 ++++++++++++++++++++
+ include/dt-bindings/power/amlogic,sc2-pwrc.h | 22 +++++++++++++++++
+ 2 files changed, 47 insertions(+)
+ create mode 100644 include/dt-bindings/power/amlogic,sc2-pwrc.h
+
+diff --git a/drivers/pmdomain/amlogic/meson-secure-pwrc.c b/drivers/pmdomain/amlogic/meson-secure-pwrc.c
+index 1335499..40f5ee5 100644
+--- a/drivers/pmdomain/amlogic/meson-secure-pwrc.c
++++ b/drivers/pmdomain/amlogic/meson-secure-pwrc.c
+@@ -13,6 +13,7 @@
+ #include <dt-bindings/power/meson-a1-power.h>
+ #include <dt-bindings/power/amlogic,c3-pwrc.h>
+ #include <dt-bindings/power/meson-s4-power.h>
++#include <dt-bindings/power/amlogic,sc2-pwrc.h>
+ #include <dt-bindings/power/amlogic,t7-pwrc.h>
+ #include <dt-bindings/power/amlogic,a4-pwrc.h>
+ #include <dt-bindings/power/amlogic,a5-pwrc.h>
+@@ -264,6 +265,21 @@ static const struct meson_secure_pwrc_domain_desc s4_pwrc_domains[] = {
+ 	SEC_PD(S4_AUDIO,	0),
+ };
+ 
++static const struct meson_secure_pwrc_domain_desc sc2_pwrc_domains[] = {
++	SEC_PD(SC2_DSP,		0),
++	SEC_PD(SC2_DOS_HCODEC,	0),
++	SEC_PD(SC2_DOS_HEVC,	0),
++	SEC_PD(SC2_DOS_VDEC,	0),
++	SEC_PD(SC2_DOS_WAVE,	0),
++	SEC_PD(SC2_VPU_HDMI,	0),
++	SEC_PD(SC2_USB_COMB,	0),
++	SEC_PD(SC2_PCIE,	0),
++	SEC_PD(SC2_GE2D,	0),
++	/* ETH is for ethernet online wakeup, and should be always on */
++	SEC_PD(SC2_ETH,		GENPD_FLAG_ALWAYS_ON),
++	SEC_PD(SC2_AUDIO,	0),
++};
++
+ static const struct meson_secure_pwrc_domain_desc s6_pwrc_domains[] = {
+ 	SEC_PD(S6_DSPA,		0),
+ 	SEC_PD(S6_DOS_HEVC,	0),
+@@ -500,6 +516,11 @@ static const struct meson_secure_pwrc_domain_data meson_secure_s4_pwrc_data = {
+ 	.count = ARRAY_SIZE(s4_pwrc_domains),
+ };
+ 
++static const struct meson_secure_pwrc_domain_data meson_secure_sc2_pwrc_data = {
++	.domains = sc2_pwrc_domains,
++	.count = ARRAY_SIZE(sc2_pwrc_domains),
++};
++
+ static const struct meson_secure_pwrc_domain_data amlogic_secure_s6_pwrc_data = {
+ 	.domains = s6_pwrc_domains,
+ 	.count = ARRAY_SIZE(s6_pwrc_domains),
+@@ -545,6 +566,10 @@ static const struct of_device_id meson_secure_pwrc_match_table[] = {
+ 		.compatible = "amlogic,meson-s4-pwrc",
+ 		.data = &meson_secure_s4_pwrc_data,
+ 	},
++	{
++		.compatible = "amlogic,sc2-pwrc",
++		.data = &meson_secure_sc2_pwrc_data,
++	},
+ 	{
+ 		.compatible = "amlogic,s6-pwrc",
+ 		.data = &amlogic_secure_s6_pwrc_data,
+diff --git a/include/dt-bindings/power/amlogic,sc2-pwrc.h b/include/dt-bindings/power/amlogic,sc2-pwrc.h
+new file mode 100644
+index 0000000..16016ef
+--- /dev/null
++++ b/include/dt-bindings/power/amlogic,sc2-pwrc.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: (GPL-2.0-only OR MIT) */
++/*
++ * Power domain IDs of the Amlogic SC2 (S905X4) secure power controller.
++ * The ID is also the index passed to the secure monitor.
++ */
++
++#ifndef _DT_BINDINGS_POWER_AMLOGIC_SC2_PWRC_H
++#define _DT_BINDINGS_POWER_AMLOGIC_SC2_PWRC_H
++
++#define PWRC_SC2_DSP_ID		0
++#define PWRC_SC2_DOS_HCODEC_ID	1
++#define PWRC_SC2_DOS_HEVC_ID	2
++#define PWRC_SC2_DOS_VDEC_ID	3
++#define PWRC_SC2_DOS_WAVE_ID	4
++#define PWRC_SC2_VPU_HDMI_ID	5
++#define PWRC_SC2_USB_COMB_ID	6
++#define PWRC_SC2_PCIE_ID	7
++#define PWRC_SC2_GE2D_ID	8
++#define PWRC_SC2_ETH_ID		9
++#define PWRC_SC2_AUDIO_ID	10
++
++#endif
+-- 
+2.43.0
+
