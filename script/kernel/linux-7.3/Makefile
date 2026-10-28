@@ -191,9 +191,13 @@ PATCHFILES += 1728-drm-meson-vclk-wait-for-both-S4-PLL-lock-bits-for-CV.patch
 PATCHFILES += 1729-clk-meson-s4-peripherals-allow-setting-the-CEC-32k-c.patch
 PATCHFILES += 1730-media-platform-meson-ao-cec-g12a-add-support-for-the.patch
 # sc2 drivers additions
-PATCHFILES += 1752-reset-reset-meson-add-support-for-Amlogic-SC2.patch
-PATCHFILES += 1753-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
+PATCHFILES += 1750-clk-meson-add-clock-driver-for-SC2.patch
+PATCHFILES += 1751-pinctrl-meson-add-pinctrl-driver-for-SC2.patch
+PATCHFILES += 1752-reset-meson-add-support-for-SC2.patch
+PATCHFILES += 1753-irqchip-meson-gpio-add-support-for-SC2.patch
 PATCHFILES += 1754-pmdomain-amlogic-meson-secure-pwrc-add-support-for-sc2.patch
+PATCHFILES += 1755-dt-bindings-gpio-add-SC2.patch
+PATCHFILES += 1756-dt-bindings-reset-add-SC2.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
