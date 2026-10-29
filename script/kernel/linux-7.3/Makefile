@@ -215,14 +215,14 @@ PATCHFILES += 1850-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
 PATCHFILES += 1902-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
-PATCHFILES += 1903-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
 PATCHFILES += 1904-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
 PATCHFILES += 1906-arm64-dts-amlogic-meson-s4-khadas-1s-add-cpu-dfvs.patch
 PATCHFILES += 1908-arm64-dts-amlogic-meson-s4-s905y4-khadas-vim1s-enabl.patch
 PATCHFILES += 1909-arm64-dts-amlogic-add-dts-for-tv98-tvbox.patch
 PATCHFILES += 1910-arm64-dts-amlogic-add-dts-for-tanix_w2-tvbox.patch
 # sc2 board dts additions
-PATCHFILES += 1950-arm64-dts-amlogic-add-dts-for-x96-max-ultra-plus-tvbox.patch
+PATCHFILES += 1950-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
+PATCHFILES += 1951-arm64-dts-amlogic-add-dts-for-x96-max-ultra-plus-tvbox.patch
 endif
 #------------------------------------------------------------
 
