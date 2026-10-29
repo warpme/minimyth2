@@ -91,6 +91,14 @@ FIP_BOARD                 =
 endif
 
 ifeq (0,1)
+# s905x4 based x96 max plus ultra
+SOC_TYPE                  = sc2
+mm_U-BOOT_BOARD_TYPE      = board-s905x4.x96_max_ultra
+mm_U-BOOT_BOARD_DEFCONFIG = x96-max-plus-ultra_defconfig
+FIP_BOARD                 = 
+endif
+
+ifeq (0,1)
 # a311d2 based khadas vim4
 SOC_TYPE                  = a311d2
 mm_U-BOOT_BOARD_TYPE      = board-a311d2.vim4
@@ -162,6 +170,8 @@ PATCHFILES  += 0061-WIP-mmc-meson-gx-reset-the-delay-and-resampling-regi.patch
 # s4 dts additions
 PATCHFILES  += 0080-s4-add-tanix_w2_defconfig.patch
 PATCHFILES  += 0081-s4-add-tv98_defconfig.patch
+# sc2 dts additions
+PATCHFILES  += 0083-sc2-add-x96-max-plus-ultra_defconfig.patch
 # fip additions
 PATCHFILES  += 0100-amlogic-boot-fip-add-enc-bins-support.patch
 PATCHFILES  += 0101-amlogic-boot-fip-add-x96-air-support.patch
