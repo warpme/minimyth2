@@ -1,8 +1,8 @@
 
 ifeq (1,1)
-#--Use this for SCM mainline official x.y.z kernel --------
-MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
+#--Use this for https://www.kernel.org/ mainline official x.y.z kernel --------
+MASTER_SITES        = https://cdn.kernel.org/pub/linux/kernel/v7.x/
+DISTFILES           = $(DISTNAME).tar.xz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
