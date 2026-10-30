@@ -1,0 +1,47 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From c78c9e1060f408658abbb3497c41b9ca832f64e9 Mon Sep 17 00:00:00 2001
+From: Gus Bourg <gus@bourg.net>
+Date: Thu, 29 Oct 2026 12:40:02 -0700
+Subject: [PATCH 3/6] media: amlogic: amvdec: don't disable the HEVC front-end
+ clock twice
+
+When enabling "vdec_hevc" fails, __vdec_hevc_start() disabled
+"vdec_hevcf" and returned the error, and its only caller,
+amvdec_hevc_start(), then disabled "vdec_hevcf" again on that error.
+Leave it to the caller, which enabled it.
+
+Assisted-by: Claude Opus 5.5
+---
+ drivers/media/platform/amlogic/amvdec/amvdec_hevc.c | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+index bc5c68b..94b393b 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+@@ -427,11 +427,8 @@ static int __vdec_hevc_start(struct amvdec_session *sess)
+ 
+ 	clk_set_rate(core->amvdec_hevc_clk, 666666666);
+ 	ret = clk_prepare_enable(core->amvdec_hevc_clk);
+-	if (ret) {
+-		if (amvdec_hevc_has_hevcf(core))
+-			clk_disable_unprepare(core->amvdec_hevcf_clk);
++	if (ret)
+ 		return ret;
+-	}
+ 
+ 	if (core->pd_list) {
+ 		ret = meson_amvdec_power_domain_on(core, AMVDEC_PD_HEVC);
+-- 
+2.53.0
+
+--
+
+MiniMyth2
+

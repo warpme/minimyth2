@@ -1,0 +1,103 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From bb507302a0b329b145d4da1ef92fc77adc29d637 Mon Sep 17 00:00:00 2001
+From: Gus Bourg <gus@bourg.net>
+Date: Thu, 29 Oct 2026 12:39:51 -0700
+Subject: [PATCH 2/6] media: amlogic: amvdec: support the HEVC front-end clock
+ on S4-generation SoCs
+
+The HEVC core is clocked by two muxes, the back end ("vdec_hevc") and the
+front end ("vdec_hevcf"). The driver only requested and enabled the front
+end clock on G12A and SM1. SC2 has both muxes, and with only one of them
+running the first host access to the back end (HEVCD_IPP_TOP_CNTL)
+hangs the bus.
+
+Request "vdec_hevcf" as an optional clock on S4-generation SoCs and
+enable it wherever it was found. S4 device trees that do not list it are
+unchanged.
+
+Assisted-by: Claude Opus 5.5
+---
+ .../media/platform/amlogic/amvdec/amvdec.c    |  5 +++++
+ .../platform/amlogic/amvdec/amvdec_hevc.c     | 19 +++++++++++++------
+ 2 files changed, 18 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
+index 49bc877..e896252 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
+@@ -1507,6 +1507,11 @@ static int vdec_probe(struct platform_device *pdev)
+ 		core->amvdec_hevcf_clk = devm_clk_get(dev, "vdec_hevcf");
+ 		if (IS_ERR(core->amvdec_hevcf_clk))
+ 			return -EPROBE_DEFER;
++	} else if (core->platform->revision == AMVDEC_REVISION_S4) {
++		core->amvdec_hevcf_clk = devm_clk_get_optional(dev, "vdec_hevcf");
++		if (IS_ERR(core->amvdec_hevcf_clk))
++			return dev_err_probe(dev, PTR_ERR(core->amvdec_hevcf_clk),
++					     "failed to get vdec_hevcf clock\n");
+ 	}
+ 
+ 	if (amvdec_has_esparser(core)) {
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+index 6eefe7e..bc5c68b 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+@@ -220,6 +220,16 @@ static void amvdec_hevc_stop_stream_fetch(struct amvdec_core *core)
+  * Park HEVC DMC request ports and wait for idle. These registers remain
+  * accessible while the decoder power domain is off.
+  */
++/*
++ * The HEVC core has a back-end ("vdec_hevc") and a front-end ("vdec_hevcf")
++ * clock. G12A and SM1 always describe both; on the S4 generation the
++ * front-end clock is optional and only SoCs that need it (SC2) list it.
++ */
++static bool amvdec_hevc_has_hevcf(struct amvdec_core *core)
++{
++	return !IS_ERR_OR_NULL(core->amvdec_hevcf_clk);
++}
++
+ static int amvdec_hevc_dmc_park(struct amvdec_core *core)
+ {
+ 	if (!amvdec_has_dmc(core))
+@@ -403,8 +413,7 @@ static int amvdec_hevc_stop(struct amvdec_session *sess)
+ 		return ret;
+ 
+ 	clk_disable_unprepare(core->amvdec_hevc_clk);
+-	if (core->platform->revision == AMVDEC_REVISION_G12A ||
+-	    core->platform->revision == AMVDEC_REVISION_SM1)
++	if (amvdec_hevc_has_hevcf(core))
+ 		clk_disable_unprepare(core->amvdec_hevcf_clk);
+ 
+ 	return 0;
+@@ -419,8 +428,7 @@ static int __vdec_hevc_start(struct amvdec_session *sess)
+ 	clk_set_rate(core->amvdec_hevc_clk, 666666666);
+ 	ret = clk_prepare_enable(core->amvdec_hevc_clk);
+ 	if (ret) {
+-		if (core->platform->revision == AMVDEC_REVISION_G12A ||
+-		    core->platform->revision == AMVDEC_REVISION_SM1)
++		if (amvdec_hevc_has_hevcf(core))
+ 			clk_disable_unprepare(core->amvdec_hevcf_clk);
+ 		return ret;
+ 	}
+@@ -612,8 +620,7 @@ static int amvdec_hevc_start(struct amvdec_session *sess)
+ 	struct amvdec_core *core = sess->core;
+ 	int ret;
+ 
+-	if (core->platform->revision == AMVDEC_REVISION_G12A ||
+-	    core->platform->revision == AMVDEC_REVISION_SM1) {
++	if (amvdec_hevc_has_hevcf(core)) {
+ 		clk_set_rate(core->amvdec_hevcf_clk, 666666666);
+ 		ret = clk_prepare_enable(core->amvdec_hevcf_clk);
+ 		if (ret)
+-- 
+2.53.0
+
+--
+
+MiniMyth2
+

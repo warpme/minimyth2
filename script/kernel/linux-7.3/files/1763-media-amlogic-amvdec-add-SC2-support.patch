@@ -1,0 +1,130 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 32e8cd5cedcf0fc830f452b61194d538b2ac9178 Mon Sep 17 00:00:00 2001
+From: Gus Bourg <gus@bourg.net>
+Date: Thu, 29 Oct 2026 12:40:28 -0700
+Subject: [PATCH 4/6] media: amlogic: amvdec: add SC2 support
+
+The SC2 (S905X4) decoder is the S4 one: no ESPARSER, power domains
+through the secure monitor, firmware loaded through the TEE. It differs
+in the DMC: the channel status register sits at byte offset 0xf0 of the
+DMC window (the vendor driver's TM2_REVB_DMC_CHAN_STS) instead of 0x338
+(S4_DMC_CHAN_STS). With the S4 offset the status always reads 0, so
+every park times out.
+
+Carry the status offset in the platform data and add an
+"amlogic,sc2-vdec" compatible that uses the S4 formats with the SC2
+offset. Check the offset against the size of the "dmc" window.
+
+Tested on an X96 Max Plus Ultra (S905X4): HEVC (including seeks) and
+H.264 after it decode, and the DMC parks report idle for both cores.
+
+Assisted-by: Claude Opus 5.5
+---
+ drivers/media/platform/amlogic/amvdec/amvdec.c         |  2 ++
+ drivers/media/platform/amlogic/amvdec/amvdec_helpers.c |  6 ++++--
+ .../media/platform/amlogic/amvdec/amvdec_platform.c    |  9 +++++++++
+ .../media/platform/amlogic/amvdec/amvdec_platform.h    | 10 ++++++++++
+ 4 files changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
+index e896252..b08e239 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
+@@ -1407,6 +1407,8 @@ static const struct of_device_id vdec_dt_match[] = {
+ 	  .data = &meson_amvdec_platform_sm1 },
+ 	{ .compatible = "amlogic,s4-vdec",
+ 	  .data = &meson_amvdec_platform_s4 },
++	{ .compatible = "amlogic,sc2-vdec",
++	  .data = &meson_amvdec_platform_sc2 },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, vdec_dt_match);
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+index daacca0..4805143 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+@@ -175,7 +175,6 @@ int meson_amvdec_dma_verify_guard(struct device *dev, const char *name,
+ #define G12A_DMC_SIZE		0x100
+ 	#define DMC_REQ_CTRL	0x00
+ 	#define G12A_DMC_CHAN_STS	0xd8
+-	#define S4_DMC_CHAN_STS	0x338
+ 
+ /* RESET7 pulse register; bits 15:11 are the DMC decode pipelines */
+ #define G12A_RESET7_ADDR	0xffd01020
+@@ -195,8 +194,11 @@ int meson_amvdec_dmc_init(struct platform_device *pdev, struct amvdec_core *core
+ 		if (!res)
+ 			return -EINVAL;
+ 
++		if (core->platform->dmc_chan_sts + 4 > resource_size(res))
++			return -EINVAL;
++
+ 		core->dmc_base = devm_ioremap(dev, res->start, resource_size(res));
+-		core->dmc_chan_sts = S4_DMC_CHAN_STS;
++		core->dmc_chan_sts = core->platform->dmc_chan_sts;
+ 	} else if (amvdec_is_g12(core)) {
+ 		core->dmc_base = devm_ioremap(dev, G12A_DMC_BASE, G12A_DMC_SIZE);
+ 		core->dmc_chan_sts = G12A_DMC_CHAN_STS;
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+index f32f89c..5744725 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -493,6 +493,15 @@ const struct amvdec_platform meson_amvdec_platform_s4 = {
+ 	.formats = amvdec_formats_s4,
+ 	.num_formats = ARRAY_SIZE(amvdec_formats_s4),
+ 	.revision = AMVDEC_REVISION_S4,
++	.dmc_chan_sts = 0x338,
++};
++
++/* SC2: the S4 decoder, with the DMC channel status register at 0xf0. */
++const struct amvdec_platform meson_amvdec_platform_sc2 = {
++	.formats = amvdec_formats_s4,
++	.num_formats = ARRAY_SIZE(amvdec_formats_s4),
++	.revision = AMVDEC_REVISION_S4,
++	.dmc_chan_sts = 0xf0,
+ };
+ 
+ MODULE_FIRMWARE("meson/vdec/g12a_h264_multi.bin");
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+index 70df84f..abd30b2 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+@@ -23,10 +23,19 @@ enum amvdec_revision {
+ 	AMVDEC_REVISION_S4,
+ };
+ 
++/**
++ * struct amvdec_platform - per-compatible decoder description
++ * @formats: supported OUTPUT formats
++ * @num_formats: number of entries in @formats
++ * @revision: SoC generation
++ * @dmc_chan_sts: S4 generation: offset of the DMC channel status register
++ *		  in the "dmc" window
++ */
+ struct amvdec_platform {
+ 	const struct amvdec_format *formats;
+ 	const u32 num_formats;
+ 	enum amvdec_revision revision;
++	u32 dmc_chan_sts;
+ };
+ 
+ extern const struct amvdec_platform meson_amvdec_platform_gxbb;
+@@ -36,5 +45,6 @@ extern const struct amvdec_platform meson_amvdec_platform_gxlx;
+ extern const struct amvdec_platform meson_amvdec_platform_g12a;
+ extern const struct amvdec_platform meson_amvdec_platform_sm1;
+ extern const struct amvdec_platform meson_amvdec_platform_s4;
++extern const struct amvdec_platform meson_amvdec_platform_sc2;
+ 
+ #endif
+-- 
+2.53.0
+
+--
+
+MiniMyth2
+

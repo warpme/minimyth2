@@ -198,6 +198,12 @@ PATCHFILES += 1753-irqchip-meson-gpio-add-support-for-SC2.patch
 PATCHFILES += 1754-pmdomain-amlogic-meson-secure-pwrc-add-support-for-sc2.patch
 PATCHFILES += 1755-dt-bindings-gpio-add-SC2.patch
 PATCHFILES += 1756-dt-bindings-reset-add-SC2.patch
+PATCHFILES += 1757-dt-bindings-pwm-add-SC2.patch
+PATCHFILES += 1760-media-amlogic-amvdec-don-t-touch-a-powered-down-HEVC.patch
+PATCHFILES += 1761-media-amlogic-amvdec-support-the-HEVC-front-end-cloc.patch
+PATCHFILES += 1762-media-amlogic-amvdec-don-t-disable-the-HEVC-front-en.patch
+PATCHFILES += 1763-media-amlogic-amvdec-add-SC2-support.patch
+PATCHFILES += 1765-thermal-amlogic-Support-reading-trim_info-on-SC2.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch

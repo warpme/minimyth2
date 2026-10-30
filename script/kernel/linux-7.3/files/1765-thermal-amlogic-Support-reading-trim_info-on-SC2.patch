@@ -1,0 +1,73 @@
+From 6eb2db228a5efd5edc7e6800bacccf673189fdf5 Mon Sep 17 00:00:00 2001
+From: Heiner Kallweit <hkallweit1@gmail.com>
+Date: Thu, 29 Oct 2026 19:16:55 +0000
+Subject: [PATCH] thermal: amlogic: Support reading trim_info on SC2
+
+On SC2 platform the trim_info registers seem to not be part of ao-secure.
+Vendor driver uses a second IOMEM resource for specifying the register
+location. So let's mimic this approach.
+
+The second resource is optional: the ao-secure syscon is only looked up
+(and required) if the device doesn't provide it. Use platform_get_resource()
+instead of devm_platform_ioremap_resource() so that other SoCs, which have
+only one resource, don't get an "invalid resource" error message.
+
+Rebased on top of the secure monitor calibration readout support, i.e.
+the change is now in amlogic_thermal_probe_syscon().
+
+Signed-off-by: Heiner Kallweit <hkallweit1@gmail.com>
+---
+ drivers/thermal/amlogic_thermal.c | 34 +++++++++++++++++++++++--------
+ 1 file changed, 25 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/thermal/amlogic_thermal.c b/drivers/thermal/amlogic_thermal.c
+index af3ceff..48ae56a 100644
+--- a/drivers/thermal/amlogic_thermal.c
++++ b/drivers/thermal/amlogic_thermal.c
+@@ -10,18 +10,34 @@ static int amlogic_thermal_probe_syscon(struct platform_device *pdev,
+ 					struct amlogic_thermal *pdata)
+ {
+ 	struct device *dev = &pdev->dev;
++	struct resource *res;
++	void __iomem *trim_reg;
+ 	int ver;
+ 
+-	pdata->sec_ao_map =
+-		syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
+-						"amlogic,ao-secure");
+-	if (IS_ERR(pdata->sec_ao_map)) {
+-		dev_err(dev, "syscon regmap lookup failed.\n");
+-		return PTR_ERR(pdata->sec_ao_map);
+-	}
++	/*
++	 * On SC2 the trim_info register is not part of ao-secure. The vendor
++	 * driver specifies its location with a second memory resource, so
++	 * let's mimic this approach.
++	 */
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
++	if (res) {
++		trim_reg = devm_ioremap_resource(dev, res);
++		if (IS_ERR(trim_reg))
++			return PTR_ERR(trim_reg);
++
++		pdata->trim_info = readl(trim_reg);
++	} else {
++		pdata->sec_ao_map =
++			syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
++							"amlogic,ao-secure");
++		if (IS_ERR(pdata->sec_ao_map)) {
++			dev_err(dev, "syscon regmap lookup failed.\n");
++			return PTR_ERR(pdata->sec_ao_map);
++		}
+ 
+-	regmap_read(pdata->sec_ao_map, pdata->data->u_efuse_off,
+-		    &pdata->trim_info);
++		regmap_read(pdata->sec_ao_map, pdata->data->u_efuse_off,
++			    &pdata->trim_info);
++	}
+ 
+ 	ver = TSENSOR_TRIM_VERSION(pdata->trim_info);
+ 
+-- 
+2.43.0
+

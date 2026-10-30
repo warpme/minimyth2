@@ -1,0 +1,74 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From f77358810026d6aa8592ba2398722af4608ebd15 Mon Sep 17 00:00:00 2001
+From: Gus Bourg <gus@bourg.net>
+Date: Thu, 29 Oct 2026 12:39:36 -0700
+Subject: [PATCH 1/6] media: amlogic: amvdec: don't touch a powered-down HEVC
+ core when the DMC park fails
+
+__vdec_hevc_start() parks the HEVC DMC request ports before it powers the
+HEVC memories and resets the core. When the park timed out, the error
+path called __vdec_hevc_stop(), which writes HEVC_ASSIST_MBOX1_MASK, halts
+the AMRISC and quiesces the core. With the memories still powered down
+those accesses hard-lock the SoC (seen on SC2, whose DMC idle status is
+not where the S4 one is).
+
+Back out only what was done before the park: unpark, power the HEVC
+domain down again and disable the clock, then return the error. The
+session start fails and the other decoder core keeps working.
+
+Assisted-by: Claude Opus 5.5
+---
+ .../platform/amlogic/amvdec/amvdec_hevc.c     | 20 ++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+index 14f8a84..6eefe7e 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+@@ -446,7 +446,7 @@ static int __vdec_hevc_start(struct amvdec_session *sess)
+ 	 */
+ 	ret = amvdec_hevc_dmc_park(core);
+ 	if (ret)
+-		goto stop;
++		goto park_failed;
+ 
+ 	if (core->pd_list) {
+ 		/* Power the memories before the reset, and hold the reset */
+@@ -519,6 +519,24 @@ stop:
+ 	if (!__vdec_hevc_stop(sess))
+ 		clk_disable_unprepare(core->amvdec_hevc_clk);
+ 	return ret;
++
++park_failed:
++	/*
++	 * The HEVC memories are still powered down and the core has not been
++	 * reset: __vdec_hevc_stop() would access HEVC registers and lock up
++	 * the SoC. Undo only the power-up done so far.
++	 */
++	amvdec_hevc_dmc_unpark(core);
++	if (core->pd_list)
++		meson_amvdec_power_domain_off(core, AMVDEC_PD_HEVC);
++	else if (core->platform->revision == AMVDEC_REVISION_SM1)
++		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
++				   GEN_PWR_VDEC_HEVC_SM1, GEN_PWR_VDEC_HEVC_SM1);
++	else
++		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
++				   GEN_PWR_VDEC_HEVC, GEN_PWR_VDEC_HEVC);
++	clk_disable_unprepare(core->amvdec_hevc_clk);
++	return ret;
+ }
+ 
+ /*
+-- 
+2.53.0
+
+--
+
+MiniMyth2
+
