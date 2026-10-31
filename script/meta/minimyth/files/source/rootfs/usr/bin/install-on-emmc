@@ -30,6 +30,10 @@ log_file="/var/log/install-on-emmc.log"
 # bootloaders dir on NFS share
 bootloaders_dir="/initrd/bootloaders/"
 
+# URL with latest MiniMyth2 bootloaders used to on-line 
+# updates of bootloader
+MM_MINIMYTH_ONLINE_UPDATES_URL="http://minimyth2.mooo.com/pkg/aarch64/miniarch/"
+
 #-----------------------------
 
 
@@ -71,9 +75,8 @@ bootloaders_dir="/initrd/bootloaders/"
 
 
 
-. /etc/rc.d/functions
 
-ver=9.0
+ver=9.0.1
 
 command=$1
 
@@ -106,6 +109,7 @@ req_bin_list="\
   sfdisk \
   sleep \
   sync \
+  wget \
 "
 
 trap "_exit_" 0 1 2 3 9 15
@@ -912,12 +916,20 @@ get_bootloader_source_dir() {
         msg "Trying to find in local NFS share [${bootloaders_dir}] ..."
         if [ -z "$(ls -A "${bootloaders_dir}" 2>/dev/null)" ]; then
             msg "No any files in local NFS share [${bootloaders_dir}] ..."
-            msg "Downloading from MiniMyth2 on-line updaes server ..."
-            mm_do_online_update getbootloaders
-            if [ ! -e "/tmp/bootloaders/bootloaders.tar.bz2" ]; then
-                exit_now "Can't download bootloaders.tar.bz2 from MiniMyth2 on-line updates server. Exiting ..."
+            if [ -e /usr/bin/mm_do_online_update ]; then
+                # we are on MiniMyth2
+                msg "Rsyncing for latest bootloader from MiniMyth2 on-line updates server ..."
+                mm_do_online_update getbootloaders
             else
-                msg "bootloaders.tar.bz2 downloaded. Unpacking ..."
+                # we are on MiniArch / other OS
+                msg "Downloading latest bootloader from MiniMyth2 on-line updates server ..."
+                mkdir -p /tmp/bootloaders
+                wget -O /tmp/bootloaders/bootloaders.tar.bz2 ${MM_MINIMYTH_ONLINE_UPDATES_URL}/bootloaders.tar.bz2
+            fi
+            if [ ! -e "/tmp/bootloaders/bootloaders.tar.bz2" ]; then
+                exit_now "Can't get bootloaders.tar.bz2 from MiniMyth2 on-line updates server. Exiting ..."
+            else
+                msg "Got latest bootloaders.tar.bz2. Unpacking ..."
                 tar -C /tmp/ -xjf /tmp/bootloaders/bootloaders.tar.bz2
                 rm -f /tmp/bootloaders/bootloaders.tar.bz2
                 bootloaders_dir="/tmp/bootloaders"
