@@ -67,8 +67,6 @@ PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # some fixes to build on minimyth2
 PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
-#pull1532: VAAPI interop: accept VA surface ID 0
-PATCHFILES += 0121-pull1532-VAAPI-interop-accept-VA-surface-ID0.patch
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
