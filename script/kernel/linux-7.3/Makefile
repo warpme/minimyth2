@@ -111,7 +111,6 @@ endif
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
 # gxl/gxm drivers additions
-PATCHFILES += 1000-drm-meson-swap-primary-overlay-zpos.patch
 PATCHFILES += 1001-drm-panfrost-reset-the-Amlogic-GXM-GPU-on-runtime-resume.patch
 # board dts additions
 PATCHFILES += 1300-arm64-dts-meson-gxm-add-beelink-gt1.patch
