@@ -1,0 +1,67 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+
+On A95X F3 Air II (S905Y4, vendor u-boot, MiniArch kernel with the S4 DRM patches), anything on the overlay plane 
+(plane 40, VD1) came out as luma only: a strong green picture, chroma effectively zero.
+The primary plane (OSD) is fine; modetest SMPTE bars on the primary plane are perfect.
+
+It does not depend on the video source. A plain test pattern shows the same:
+
+gst-launch-1.0 videotestsrc pattern=smpte ! video/x-raw,format=NV12,width=1280,height=720 ! kmssink driver-name=meson plane-id=40
+It happens with NV12 and YUY2, with and without scaling. The VD1 format registers at the S4 
+addresses (FMT_CTRL 0x481d, FMT_W 0x481e, GEN_REG2 0x4819) were already correct.
+
+Root cause: the same issue as the existing upstream fix "drm/meson: fix colour distortion from HDR 
+set during vendor u-boot", but for the video planes. 
+
+The vendor u-boot leaves the HDR2 block enabled on VD1/VD2. The driver clears it only for OSD1:
+
+OSD1_HDR2_CTRL (0x38a0) = 0x0000C04F   <- cleared by meson_viu_init()
+VD1_HDR2_CTRL  (0x3800) = 0x0000E05F   <- bit 13 still set by vendor u-boot
+VD2_HDR2_CTRL  (0x3850) = 0x0000E05F
+
+Clearing bits 13 and 16 on VD1/VD2 (0xE05F -> 0xC05F) at runtime fixes it. 
+Colours become correct immediately, and 1080p60 H.264 plays in real time on plane 40 with correct colours.
+
+Issue identified by domeneponuda-beep
+Fix also developed by domeneponuda-beep
+May thx for this!
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3.1/drivers/gpu/drm/meson/meson_viu.c linux-7.3.1/drivers/gpu/drm/meson/meson_viu.c
+--- linux-7.3.1/drivers/gpu/drm/meson/meson_viu.c	2026-11-04 18:24:27.449318848 +0100
++++ linux-7.3.1/drivers/gpu/drm/meson/meson_viu.c	2026-11-04 18:23:48.674230615 +0100
+@@ -59,6 +59,9 @@
+ #define EOTF_COEFF_SIZE 10
+ #define EOTF_COEFF_RIGHTSHIFT 1
+ 
++#define VD1_HDR2_CTRL 0x3800
++#define VD2_HDR2_CTRL 0x3850
++
+ static int RGB709_to_YUV709l_coeff[MATRIX_5X3_COEF_SIZE] = {
+ 	0, 0, 0, /* pre offset */
+ 	COEFF_NORM(0.181873),	COEFF_NORM(0.611831),	COEFF_NORM(0.061765),
+@@ -498,6 +501,14 @@
+ 				    priv->io_base + _REG(DOLBY_PATH_CTRL));
+ 
+ 		meson_viu_g12a_disable_osd1_afbc(priv);
++
++		/* same vendor u-boot HDR2 leftover on the video planes */
++		writel_bits_relaxed(OSD1_HDR2_CTRL_REG_ONLY_MAT |
++				    OSD1_HDR2_CTRL_VDIN0_HDR2_TOP_EN, 0,
++				    priv->io_base + _REG(VD1_HDR2_CTRL));
++		writel_bits_relaxed(OSD1_HDR2_CTRL_REG_ONLY_MAT |
++				    OSD1_HDR2_CTRL_VDIN0_HDR2_TOP_EN, 0,
++				    priv->io_base + _REG(VD2_HDR2_CTRL));
+ 	}
+ 
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXM))
+--
+
+MiniMyth2
+
