@@ -55,6 +55,7 @@ PATCHFILES += 0110-drivers-net-wireless-brcmfmac-add-ap6330-firmware.patch
 endif
 
 PATCHFILES += 0111-fs-ovelays-move-xino-msg-to-debug.patch
+#PATCHFILES += 0112-net-r8169-enable-the-RxOverflow-interrupt-again.patch
 
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
