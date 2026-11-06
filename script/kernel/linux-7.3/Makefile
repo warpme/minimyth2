@@ -253,6 +253,7 @@ PATCHFILES += 1910-arm64-dts-amlogic-add-dts-for-tanix_w2-tvbox.patch
 # sc2 board dts additions
 PATCHFILES += 1950-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
 PATCHFILES += 1951-arm64-dts-amlogic-add-dts-for-x96-max-ultra-plus-tvbox.patch
+PATCHFILES += 1952-arm64-dts-meson-sc2-add-rbox-hk1-tvbox.patch
 # t7 board dts additions
 PATCHFILES += 1970-arm64-dts-t7-vim4-improvements.patch
 endif
