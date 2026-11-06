@@ -133,6 +133,7 @@ PATCHFILES  += 0004-sm1-add-tanix-tx5plus_defconfig.patch
 PATCHFILES  += 0005-sm1-add-x96-air_defconfig.patch
 PATCHFILES  += 0006-gxm-add-beelink-gt1_defconfig.patch
 PATCHFILES  += 0007-gxl-add-tanix-tx3mini_defconfig.patch
+PATCHFILES  += 0008-pxe-add-support-http-https.patch
 # s4 support https://github.com/brivolabs/u-boot/commits/meson_s4/ g4f79a80629 30.09.2026
 PATCHFILES  += 0016-pinctrl-meson-a1-Use-gpio-regs-for-ds.patch
 PATCHFILES  += 0017-net-mdio-mux-Don-t-crash-if-our-parent-never-shows-u.patch
