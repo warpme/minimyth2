@@ -133,6 +133,7 @@ SC2_BOARDS_LIST= \
 # Amlogic SC2 boards with vendor u-boot
 SC2_VENDOR_BOARDS_LIST= \
 	board-s905x4.x96_max_ultra \
+	board-s905x4.rbox_hk1 \
 
 # Amlogic T7 boards
 T7_BOARDS_LIST= \
