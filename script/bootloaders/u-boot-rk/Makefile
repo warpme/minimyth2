@@ -106,6 +106,7 @@ WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch
 PATCHFILES  += 02-rockchip-rk3328-set-vop-qos-to-high-priority.patch
 PATCHFILES  += 08-rockchip-change-spl-load-order.patch
+PATCHFILES  += 09-pxe-add-support-http-https.patch
 # dts/defconfig fixes
 PATCHFILES  += 50-my-boards-defconfigs-enable-overlays.patch
 PATCHFILES  += 51-my-boards-rk35xx-change-sdcard-alias-to-mmc0.patch
