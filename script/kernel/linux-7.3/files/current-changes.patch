@@ -1,0 +1,73 @@
+
+
+Commit 6994520a3328 ("r8169: disable interrupt source RxOverflow")
+removed RxOverflow (RxDescUnavail in the vendor driver) from the
+interrupt mask on the grounds that NAPI is scheduled anyway when the
+chip runs out of RX descriptors. On RTL8125B that does not hold.
+
+When the RTL8125B runs out of RX descriptors it sets RxOverflow and
+stops receiving. It does not start again when the driver returns
+descriptors to it, only when RxOverflow is cleared in IntrStatus.
+rtl8169_interrupt() clears only the bits it read on entry. If the ring
+fills while NAPI runs with the interrupt mask cleared, RxOverflow is
+set after that read and stays set: NAPI empties the ring, unmasks the
+interrupts and completes, the stopped receiver raises no RxOK, and
+RxOverflow is no longer an interrupt source. Reception stays stopped,
+and every frame is counted in rx_missed, until another event such as
+TxOK makes the handler clear all status bits.
+
+This was observed on a machine in real use: an RTL8125B (XID 641) on
+the PCIe bus of an arm64 Qualcomm QCS8550, running v7.2.6. With UDP
+at 800 Mbit/s inbound and nothing sent by the host, reception stopped
+for seconds in 13 of 20 30 s runs, losing 5% to 31% of the datagrams,
+and a single transmitted packet restarted it. To confirm the cause,
+a debugfs dump added to a test build of the driver showed, during each
+stop, IntrMask 0x2f, IntrStatus 0x50, NAPI idle and all 256 RX
+descriptors owned by the NIC. Writing only RxOverflow to IntrStatus
+from user space, through the sysfs PCI resource mapping and with
+nothing transmitted, restarted reception in 17 of 17 stops.
+Reproducing the stall itself needs no kernel modification.
+
+With this change backported to v7.2.6, 0 of 20 runs stopped and the
+worst run lost 0.03%, on two RTL8125B boards. It was build-tested,
+not run, on this tree, where the single-vector path RTL8125B uses
+is the same as in v7.2. The multi-vector mapping used by RTL8127 is
+not changed and was not tested.
+
+Restore the mask of the chips that had RxOverflow before that commit.
+Only RTL8125B was tested.
+
+The investigation was done with an AI coding assistant (Claude Code):
+it wrote the HIL test scripts, the debugfs instrumentation and the
+register tools used above, proposed this change and drafted this
+changelog. I reviewed the change and the evidence, and the test
+results above come from runs on our hardware.
+
+Fixes: 6994520a3328 ("r8169: disable interrupt source RxOverflow")
+Cc: stable@vger.kernel.org
+Signed-off-by: Jure Rebernik <jure.rebernik@luxonis.com>
+Reviewed-by: Jacob Keller <jacob.e.keller@intel.com>
+---
+
+Notes:
+    This restores RxOverflow for every chip that had it before 6994520a3328,
+    but I could only test RTL8125B. If you prefer, I can send a v2 that sets
+    it for the RTL8125 family only (rtl_is_8125()).
+
+ drivers/net/ethernet/realtek/r8169_main.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.3.1/drivers/net/ethernet/realtek/r8169_main.c linux-7.3.1/drivers/net/ethernet/realtek/r8169_main.c
+--- linux-7.3.1/drivers/net/ethernet/realtek/r8169_main.c	2026-10-30 13:09:52.000000000 +0100
++++ linux-7.3.1/drivers/net/ethernet/realtek/r8169_main.c	2026-11-06 19:59:43.600456611 +0100
+@@ -5323,7 +5323,9 @@
+ 	tp->irq_mask = RxOK | RxErr | TxOK | TxErr | LinkChg;
+ 
+ 	if (tp->mac_version <= RTL_GIGA_MAC_VER_06)
+-		tp->irq_mask |= SYSErr | RxFIFOOver;
++		tp->irq_mask |= SYSErr | RxOverflow | RxFIFOOver;
++	else
++		tp->irq_mask |= RxOverflow;
+ }
+ 
+ static int rtl_alloc_irq(struct rtl8169_private *tp)
