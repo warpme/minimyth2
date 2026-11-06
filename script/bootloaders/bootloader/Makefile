@@ -84,6 +84,10 @@ ifneq (,$(filter board-s905x4.x96_max_ultra,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905x4.x96_max_ultra
 endif
 
+ifneq (,$(filter board-s905x4.rbox_hk1,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-s905x4.rbox_hk1
+endif
+
 ifneq (,$(filter board-s905y4.vim1s,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905y4.vim1s
 endif
