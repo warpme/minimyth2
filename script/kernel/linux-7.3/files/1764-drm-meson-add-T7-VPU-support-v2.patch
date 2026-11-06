@@ -1,5 +1,7 @@
-
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Igor Pecovnik <igor@armbian.com>
+Date: Tue, 13 Oct 2026 18:34:02 +0000
+Subject: [PATCH 105/107] drm/meson: add T7 VPU support
 
 T7 uses the S4 register layout with these differences:
 - VIU to VENC mux and VPU_HDMI_SETTING bits for ENC0
@@ -153,7 +155,34 @@ diff --git a/drivers/gpu/drm/meson/meson_crtc.c b/drivers/gpu/drm/meson/meson_cr
 diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv.c
 --- a/drivers/gpu/drm/meson/meson_drv.c
 +++ b/drivers/gpu/drm/meson/meson_drv.c
-@@ -168,7 +168,7 @@
+@@ -128,12 +128,20 @@
+ 	return false;
+ }
+ 
+-static const struct regmap_config meson_regmap_config = {
+-	.reg_bits       = 32,
+-	.val_bits       = 32,
+-	.reg_stride     = 4,
+-	.max_register   = 0x1000,
+-};
++/* Distinct names, or debugfs complains about duplicate regmap entries */
++#define MESON_REGMAP_CONFIG(_name)			\
++	{						\
++		.name		= _name,		\
++		.reg_bits	= 32,			\
++		.val_bits	= 32,			\
++		.reg_stride	= 4,			\
++		.max_register	= 0x1000,		\
++	}
++
++static const struct regmap_config meson_hhi_regmap_config = MESON_REGMAP_CONFIG("hhi");
++static const struct regmap_config meson_sysctrl_regmap_config = MESON_REGMAP_CONFIG("sysctrl");
++static const struct regmap_config meson_clkctrl_regmap_config = MESON_REGMAP_CONFIG("clkctrl");
++static const struct regmap_config meson_pwrctrl_regmap_config = MESON_REGMAP_CONFIG("pwrctrl");
+ 
+ static void meson_vpu_init(struct meson_drm *priv)
+ {
+@@ -168,7 +176,7 @@
  	if (!priv || !priv->vpu_clk || !priv->vapb_clk)
  		return;
  
@@ -162,7 +191,15 @@ diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv
  		return;
  
  	if (enable) {
-@@ -270,7 +270,7 @@
+@@ -263,14 +271,14 @@
+ 	}
+ 
+ 	priv->hhi = devm_regmap_init_mmio(dev, regs,
+-					  &meson_regmap_config);
++					  &meson_hhi_regmap_config);
+ 	if (IS_ERR(priv->hhi)) {
+ 		dev_err(&pdev->dev, "Couldn't create the HHI regmap\n");
+ 		ret = PTR_ERR(priv->hhi);
  		goto free_drm;
  	}
  
@@ -171,7 +208,33 @@ diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv
  		res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "sysctrl");
  		if (!res) {
  			ret = -EINVAL;
-@@ -331,14 +331,28 @@
+@@ -284,7 +292,7 @@
+ 		}
+ 
+ 		priv->sysctrl = devm_regmap_init_mmio(dev, regs,
+-						  &meson_regmap_config);
++						  &meson_sysctrl_regmap_config);
+ 		if (IS_ERR(priv->sysctrl)) {
+ 			dev_err(&pdev->dev, "Couldn't create the SYSCTRL regmap\n");
+ 			ret = PTR_ERR(priv->sysctrl);
+@@ -304,7 +312,7 @@
+ 		}
+ 
+ 		priv->clkctrl = devm_regmap_init_mmio(dev, regs,
+-						  &meson_regmap_config);
++						  &meson_clkctrl_regmap_config);
+ 		if (IS_ERR(priv->clkctrl)) {
+ 			dev_err(&pdev->dev, "Couldn't create the clkctrl regmap\n");
+ 			ret = PTR_ERR(priv->clkctrl);
+@@ -324,21 +332,35 @@
+ 		}
+ 
+ 		priv->pwrctrl = devm_regmap_init_mmio(dev, regs,
+-						  &meson_regmap_config);
++						  &meson_pwrctrl_regmap_config);
+ 		if (IS_ERR(priv->pwrctrl)) {
+ 			dev_err(&pdev->dev, "Couldn't create the pwrctrl regmap\n");
+ 			ret = PTR_ERR(priv->pwrctrl);
  			goto free_drm;
  		}
  
@@ -202,7 +265,7 @@ diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv
  		if (IS_ERR(priv->vapb_clk)) {
  			dev_err(&pdev->dev, "vapb clock request failed\n");
  			ret = PTR_ERR(priv->vapb_clk);
-@@ -657,6 +671,11 @@
+@@ -657,6 +679,11 @@
  	.afbcd_ops = &meson_afbcd_g12a_ops,
  };
  
@@ -214,7 +277,7 @@ diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv
  static struct meson_drm_match_data meson_drm_s4_data = {
  	.compat = VPU_COMPATIBLE_S4,
  	.afbcd_ops = &meson_afbcd_g12a_ops,
-@@ -673,6 +692,8 @@
+@@ -673,6 +700,8 @@
  	  .data       = (void *)&meson_drm_g12a_data },
  	{ .compatible = "amlogic,meson-s4-vpu",
  	  .data       = (void *)&meson_drm_s4_data },
@@ -366,7 +429,18 @@ diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_p
  		priv->viu.osd1_blk0_cfg[0] |= OSD_MALI_SRC_EN |
  			priv->afbcd.ops->fmt_to_blk_mode(fb->modifier,
  							  fb->format->format);
-@@ -362,7 +362,7 @@
+@@ -249,6 +249,10 @@
+ 		break;
+ 	}
+ 
++	/* "Pixel blend mode" = None: ignore the pixel's alpha */
++	if (new_state->pixel_blend_mode == DRM_MODE_BLEND_PIXEL_NONE)
++		priv->viu.osd1_ctrl_stat2 |= OSD_REPLACE_EN;
++
+ 	/* Default scaler parameters */
+ 	vsc_bot_rcv_num = 0;
+ 	vsc_bot_rpt_p0_num = 0;
+@@ -362,7 +366,7 @@
  	priv->viu.osd1_blk0_cfg[4] = ((dest.y2 - 1) << 16) | dest.y1;
  
  	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
@@ -375,7 +449,7 @@ diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_p
  		priv->viu.osd_blend_din0_scope_h = ((dest.x2 - 1) << 16) | dest.x1;
  		priv->viu.osd_blend_din0_scope_v = ((dest.y2 - 1) << 16) | dest.y1;
  		priv->viu.osb_blend0_size = dst_h << 16 | dst_w;
-@@ -383,7 +383,7 @@
+@@ -383,7 +387,7 @@
  
  		/* Calculate decoder write stride */
  		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
@@ -384,7 +458,7 @@ diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_p
  			priv->viu.osd1_blk2_cfg4 =
  				meson_g12a_afbcd_line_stride(priv);
  	}
-@@ -415,8 +415,8 @@
+@@ -415,8 +419,8 @@
  
  	/* Disable OSD1 */
  	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
@@ -395,7 +469,7 @@ diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_p
  				    priv->io_base + _REG(OSD1_BLEND_SRC_CTRL));
  	else
  		writel_bits_relaxed(VPP_OSD1_POSTBLEND, 0,
-@@ -447,7 +447,7 @@
+@@ -447,7 +451,7 @@
  
  	if (!meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXM) &&
  	    !meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) &&
@@ -404,7 +478,7 @@ diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_p
  		return false;
  
  	if (modifier & ~DRM_FORMAT_MOD_ARM_AFBC(MESON_MOD_AFBC_VALID_BITS))
-@@ -555,7 +555,7 @@
+@@ -555,7 +559,7 @@
  	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXM))
  		format_modifiers = format_modifiers_afbc_gxm;
  	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
@@ -413,6 +487,16 @@ diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_p
  		format_modifiers = format_modifiers_afbc_g12a;
  
  	ret = drm_universal_plane_init(priv->drm, plane, 0xFF,
+@@ -573,6 +577,9 @@
+ 
+ 	/* For now, OSD Primary plane is always on the front */
+ 	drm_plane_create_zpos_immutable_property(plane, 1);
++	drm_plane_create_blend_mode_property(plane,
++					     BIT(DRM_MODE_BLEND_PIXEL_NONE) |
++					     BIT(DRM_MODE_BLEND_PREMULTI));
+ 
+ 	priv->primary_plane = plane;
+ 
 diff --git a/drivers/gpu/drm/meson/meson_rdma.c b/drivers/gpu/drm/meson/meson_rdma.c
 --- a/drivers/gpu/drm/meson/meson_rdma.c
 +++ b/drivers/gpu/drm/meson/meson_rdma.c

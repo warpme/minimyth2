@@ -211,7 +211,7 @@ PATCHFILES += 1760-usb-host-xhci-plat-Add-support-for-Amlogic-T7-SoC.patch
 PATCHFILES += 1761-PCI-dwc-meson-Protect-PCIe-DMA-memory-on-T7.patch
 PATCHFILES += 1762-clk-meson-t7-keep-the-HDMI-PLL-on.patch
 PATCHFILES += 1763-pmdomain-amlogic-t7-keep-the-VPU-power-domains-on.patch
-PATCHFILES += 1764-drm-meson-add-T7-VPU-support.patch
+PATCHFILES += 1764-drm-meson-add-T7-VPU-support-v2.patch
 PATCHFILES += 1765-drm-meson-add-the-T7-HDMI-2.1-transmitter-bridge.patch
 PATCHFILES += 1766-ASoC-meson-g12a-tohdmitx-add-T7-with-the-master-cloc.patch
 PATCHFILES += 1767-pwm-meson-Add-optional-bus-clock-for-S4-.patch
@@ -225,6 +225,7 @@ PATCHFILES += 1776-clk-meson-t7-keep-the-Ethernet-pipeline-clock-on.patch
 PATCHFILES += 1777-clk-meson-t7-keep-the-MMC-APB-clock-on.patch
 PATCHFILES += 1778-mmc-meson-gx-use-the-interface-3-tuning-on-T7.patch
 PATCHFILES += 1779-pmdomain-amlogic-t7-keep-the-USB-SDIO-and-eMMC-domai.patch
+PATCHFILES += 1780-tee-optee-use-the-reserved-shared-memory-pool-on-t7.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
