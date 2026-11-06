@@ -87,6 +87,7 @@ mm_SOFTWARE               ?= \
 # 'board-s905w2.tv98'
 # 'board-s905w2.tanix_w2'
 # 'board-s905x4.x96_max_ultra'
+# 'board-s905x4.rbox_hk1'
 # 'board-s905y4.vim1s'
 # 'board-s912.beelink_gt1'
 # 'board-s912.beelink_gt1_ultimate'

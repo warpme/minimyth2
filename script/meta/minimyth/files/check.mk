@@ -490,6 +490,7 @@ mm-all:
 		   [ ! "$${board}" = "board-s905w2.tv98"          ] && \
 		   [ ! "$${board}" = "board-s905w2.tanix_w2"      ] && \
 		   [ ! "$${board}" = "board-s905x4.x96_max_ultra" ] && \
+		   [ ! "$${board}" = "board-s905x4.rbox_hk1"      ] && \
 		   [ ! "$${board}" = "board-s905y4.vim1s"         ] && \
 		   [ ! "$${board}" = "board-s912.beelink_gt1"     ] && \
 		   [ ! "$${board}" = "board-s912.beelink_gt1_ultimate" ] && \
