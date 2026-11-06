@@ -1,0 +1,1003 @@
+
+From: Igor Pecovnik <igor@armbian.com>
+
+T7 uses the S4 register layout with these differences:
+- VIU to VENC mux and VPU_HDMI_SETTING bits for ENC0
+- HDMI PLL values and the vid_pll, ENC0 and HDMI clock dividers
+- OSD1 reads by linear address; blend source 4 selects OSD1
+- the VPP blends in RGB: OSD1 RGB to YUV matrix off, RGB background
+- the OSD1 scaler registers moved to 0x5a00
+- the secure firmware selects the encoder of HDMI: select ENC0
+- the VPU interrupt gate is a clock, held by the driver
+- the S4 modes plus 2160p up to 60 Hz
+
+Signed-off-by: Igor Pecovnik <igor@armbian.com>
+---
+ drivers/gpu/drm/meson/meson_crtc.c         |  72 +++++++++-----
+ drivers/gpu/drm/meson/meson_drv.c          |  29 +++++-
+ drivers/gpu/drm/meson/meson_drv.h          |  21 +++++
+ drivers/gpu/drm/meson/meson_encoder_cvbs.c |   4 +-
+ drivers/gpu/drm/meson/meson_encoder_hdmi.c |   6 +-
+ drivers/gpu/drm/meson/meson_overlay.c      |   4 +-
+ drivers/gpu/drm/meson/meson_plane.c        |  18 ++--
+ drivers/gpu/drm/meson/meson_rdma.c         |   2 +-
+ drivers/gpu/drm/meson/meson_registers.h    |   6 ++
+ drivers/gpu/drm/meson/meson_vclk.c         | 105 +++++++++++++++------
+ drivers/gpu/drm/meson/meson_venc.c         |  76 +++++++++++++--
+ drivers/gpu/drm/meson/meson_viu.c          |  12 ++-
+ drivers/gpu/drm/meson/meson_vpp.c          |  24 +++--
+ 13 files changed, 288 insertions(+), 91 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_crtc.c b/drivers/gpu/drm/meson/meson_crtc.c
+--- a/drivers/gpu/drm/meson/meson_crtc.c
++++ b/drivers/gpu/drm/meson/meson_crtc.c
+@@ -105,11 +105,11 @@
+ 	       crtc_state->mode.vdisplay << 16,
+ 	       priv->io_base + _REG(VPP_POSTBLEND_H_SIZE));
+ 
+-	writel_relaxed(0 << 16 |
+-			(crtc_state->mode.hdisplay - 1),
++	priv->viu.osd1_bld_h_scope = 0 << 16 | (crtc_state->mode.hdisplay - 1);
++	priv->viu.osd1_bld_v_scope = 0 << 16 | (crtc_state->mode.vdisplay - 1);
++	writel_relaxed(priv->viu.osd1_bld_h_scope,
+ 			priv->io_base + _REG(VPP_OSD1_BLD_H_SCOPE));
+-	writel_relaxed(0 << 16 |
+-			(crtc_state->mode.vdisplay - 1),
++	writel_relaxed(priv->viu.osd1_bld_v_scope,
+ 			priv->io_base + _REG(VPP_OSD1_BLD_V_SCOPE));
+ 	writel_relaxed(crtc_state->mode.hdisplay << 16 |
+ 			crtc_state->mode.vdisplay,
+@@ -281,8 +281,22 @@
+ 	writel_relaxed(priv->viu.osb_blend1_size,
+ 		       priv->io_base +
+ 		       _REG(VIU_OSD_BLEND_BLEND1_SIZE));
+-	writel_bits_relaxed(3 << 8, 3 << 8,
+-			    priv->io_base + _REG(OSD1_BLEND_SRC_CTRL));
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7)) {
++		/*
++		 * T7 does not keep these from the CRTC enable: set them on
++		 * each commit, as the vendor driver does.
++		 */
++		writel_relaxed(VIU_OSD1_POSTBLD_SRC_OSD1_T7 | VIU_OSD1_POSTBLD_EN_T7,
++			       priv->io_base + _REG(OSD1_BLEND_SRC_CTRL));
++		writel_relaxed(priv->viu.osd1_bld_h_scope,
++			       priv->io_base + _REG(VPP_OSD1_BLD_H_SCOPE));
++		writel_relaxed(priv->viu.osd1_bld_v_scope,
++			       priv->io_base + _REG(VPP_OSD1_BLD_V_SCOPE));
++	} else {
++		writel_bits_relaxed(VIU_OSD1_POSTBLD_SRC_MASK,
++				    VIU_OSD1_POSTBLD_SRC_OSD1,
++				    priv->io_base + _REG(OSD1_BLEND_SRC_CTRL));
++	}
+ }
+ 
+ static void meson_crtc_enable_vd1(struct meson_drm *priv)
+@@ -347,25 +361,25 @@
+ 		}
+ 
+ 		writel_relaxed(priv->viu.osd_sc_ctrl0,
+-				priv->io_base + _REG(VPP_OSD_SC_CTRL0));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_SC_CTRL0)));
+ 		writel_relaxed(priv->viu.osd_sc_i_wh_m1,
+-				priv->io_base + _REG(VPP_OSD_SCI_WH_M1));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_SCI_WH_M1)));
+ 		writel_relaxed(priv->viu.osd_sc_o_h_start_end,
+-				priv->io_base + _REG(VPP_OSD_SCO_H_START_END));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_SCO_H_START_END)));
+ 		writel_relaxed(priv->viu.osd_sc_o_v_start_end,
+-				priv->io_base + _REG(VPP_OSD_SCO_V_START_END));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_SCO_V_START_END)));
+ 		writel_relaxed(priv->viu.osd_sc_v_ini_phase,
+-				priv->io_base + _REG(VPP_OSD_VSC_INI_PHASE));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_VSC_INI_PHASE)));
+ 		writel_relaxed(priv->viu.osd_sc_v_phase_step,
+-				priv->io_base + _REG(VPP_OSD_VSC_PHASE_STEP));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_VSC_PHASE_STEP)));
+ 		writel_relaxed(priv->viu.osd_sc_h_ini_phase,
+-				priv->io_base + _REG(VPP_OSD_HSC_INI_PHASE));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_HSC_INI_PHASE)));
+ 		writel_relaxed(priv->viu.osd_sc_h_phase_step,
+-				priv->io_base + _REG(VPP_OSD_HSC_PHASE_STEP));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_HSC_PHASE_STEP)));
+ 		writel_relaxed(priv->viu.osd_sc_h_ctrl0,
+-				priv->io_base + _REG(VPP_OSD_HSC_CTRL0));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_HSC_CTRL0)));
+ 		writel_relaxed(priv->viu.osd_sc_v_ctrl0,
+-				priv->io_base + _REG(VPP_OSD_VSC_CTRL0));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_VSC_CTRL0)));
+ 
+ 		if (!priv->viu.osd1_afbcd)
+ 			meson_canvas_config(priv->canvas, priv->canvas_id_osd1,
+@@ -375,6 +389,18 @@
+ 					    MESON_CANVAS_WRAP_NONE,
+ 					    MESON_CANVAS_BLKMODE_LINEAR, 0);
+ 
++		/* T7: the OSD1 MIF reads by linear address, not by canvas */
++		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) &&
++		    !priv->viu.osd1_afbcd) {
++			writel_relaxed(priv->viu.osd1_addr >> 4,
++				       priv->io_base + _REG(VIU_OSD1_BLK1_CFG_W4));
++			writel_bits_relaxed(GENMASK(11, 0),
++					    DIV_ROUND_UP(priv->viu.osd1_stride, 16),
++					    priv->io_base + _REG(VIU_OSD1_BLK2_CFG_W4));
++			writel_bits_relaxed(OSD_MEM_LINEAR_ADDR, OSD_MEM_LINEAR_ADDR,
++					    priv->io_base + _REG(VIU_OSD1_CTRL_STAT));
++		}
++
+ 		/* Enable OSD1 */
+ 		if (meson_crtc->enable_osd1)
+ 			meson_crtc->enable_osd1(priv);
+@@ -481,7 +507,7 @@
+ 				priv->io_base + meson_crtc->viu_offset +
+ 				_REG(VD2_IF0_GEN_REG));
+ 
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		if (meson_vpu_is_s4_like(priv)) {
+ 			writel_relaxed(priv->viu.vd1_if0_gen_reg2,
+ 					priv->io_base +
+ 					_REG(VD1_IF0_GEN_REG2_S4));
+@@ -725,11 +751,11 @@
+ 	}
+ 
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	    meson_vpu_is_s4_like(priv)) {
+ 		meson_crtc->enable_osd1 = meson_g12a_crtc_enable_osd1;
+ 		meson_crtc->enable_vd1 = meson_g12a_crtc_enable_vd1;
+ 
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++		if (meson_vpu_is_s4_like(priv))
+ 			meson_crtc->viu_offset = MESON_S4_VIU_OFFSET;
+ 		else
+ 			meson_crtc->viu_offset = MESON_G12A_VIU_OFFSET;
+diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv.c
+--- a/drivers/gpu/drm/meson/meson_drv.c
++++ b/drivers/gpu/drm/meson/meson_drv.c
+@@ -168,7 +168,7 @@
+ 	if (!priv || !priv->vpu_clk || !priv->vapb_clk)
+ 		return;
+ 
+-	if (!meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (!meson_vpu_is_s4_like(priv))
+ 		return;
+ 
+ 	if (enable) {
+@@ -270,7 +270,7 @@
+ 		goto free_drm;
+ 	}
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	if (meson_vpu_is_s4_like(priv)) {
+ 		res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "sysctrl");
+ 		if (!res) {
+ 			ret = -EINVAL;
+@@ -331,14 +331,28 @@
+ 			goto free_drm;
+ 		}
+ 
+-		priv->vpu_clk = devm_clk_get(&pdev->dev, "vpu");
++		/*
++		 * T7: the VPU interrupt gate also clocks the OSD registers.
++		 * Keep it on through the clock framework.
++		 */
++		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7)) {
++			struct clk *intr_clk;
++
++			intr_clk = devm_clk_get_optional_enabled(&pdev->dev, "intr");
++			if (IS_ERR(intr_clk)) {
++				ret = PTR_ERR(intr_clk);
++				goto free_drm;
++			}
++		}
++
++		priv->vpu_clk = devm_clk_get_optional(&pdev->dev, "vpu");
+ 		if (IS_ERR(priv->vpu_clk)) {
+ 			dev_err(&pdev->dev, "vpu clock request failed\n");
+ 			ret = PTR_ERR(priv->vpu_clk);
+ 			goto free_drm;
+ 		}
+ 
+-		priv->vapb_clk = devm_clk_get(&pdev->dev, "vapb");
++		priv->vapb_clk = devm_clk_get_optional(&pdev->dev, "vapb");
+ 		if (IS_ERR(priv->vapb_clk)) {
+ 			dev_err(&pdev->dev, "vapb clock request failed\n");
+ 			ret = PTR_ERR(priv->vapb_clk);
+@@ -657,6 +671,11 @@
+ 	.afbcd_ops = &meson_afbcd_g12a_ops,
+ };
+ 
++/* T7: the G12A AFBC decoder reset hits OSD1 itself, no AFBC for now */
++static struct meson_drm_match_data meson_drm_t7_data = {
++	.compat = VPU_COMPATIBLE_T7,
++};
++
+ static struct meson_drm_match_data meson_drm_s4_data = {
+ 	.compat = VPU_COMPATIBLE_S4,
+ 	.afbcd_ops = &meson_afbcd_g12a_ops,
+@@ -673,6 +692,8 @@
+ 	  .data       = (void *)&meson_drm_g12a_data },
+ 	{ .compatible = "amlogic,meson-s4-vpu",
+ 	  .data       = (void *)&meson_drm_s4_data },
++	{ .compatible = "amlogic,meson-t7-vpu",
++	  .data       = (void *)&meson_drm_t7_data },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, dt_match);
+diff --git a/drivers/gpu/drm/meson/meson_drv.h b/drivers/gpu/drm/meson/meson_drv.h
+--- a/drivers/gpu/drm/meson/meson_drv.h
++++ b/drivers/gpu/drm/meson/meson_drv.h
+@@ -11,6 +11,8 @@
+ #include <linux/of.h>
+ #include <linux/regmap.h>
+ 
++#include "meson_registers.h"
++
+ struct drm_crtc;
+ struct drm_device;
+ struct drm_plane;
+@@ -23,6 +25,7 @@
+ 	VPU_COMPATIBLE_GXM  = 2,
+ 	VPU_COMPATIBLE_G12A = 3,
+ 	VPU_COMPATIBLE_S4 = 4,
++	VPU_COMPATIBLE_T7 = 5,
+ };
+ 
+ enum {
+@@ -79,6 +82,8 @@
+ 		uint32_t osd1_blk1_cfg4;
+ 		uint32_t osd1_blk2_cfg4;
+ 		uint32_t osd1_addr;
++		uint32_t osd1_bld_h_scope;
++		uint32_t osd1_bld_v_scope;
+ 		uint32_t osd1_stride;
+ 		uint32_t osd1_height;
+ 		uint32_t osd1_width;
+@@ -188,4 +193,20 @@
+ 	return priv->compat == family;
+ }
+ 
++/* T7 shares the S4 register layout and clock control blocks */
++static inline bool meson_vpu_is_s4_like(struct meson_drm *priv)
++{
++	return priv->compat == VPU_COMPATIBLE_S4 ||
++	       priv->compat == VPU_COMPATIBLE_T7;
++}
++
++/* Map a G12 OSD1 free scaler register to its T7 address */
++static inline u32 meson_osd_sc_reg(struct meson_drm *priv, u32 reg)
++{
++	if (priv->compat == VPU_COMPATIBLE_T7)
++		return reg - VPP_OSD_VSC_PHASE_STEP + T7_VPP_OSD_VSC_PHASE_STEP;
++
++	return reg;
++}
++
+ #endif /* __MESON_DRV_H */
+diff --git a/drivers/gpu/drm/meson/meson_encoder_cvbs.c b/drivers/gpu/drm/meson/meson_encoder_cvbs.c
+--- a/drivers/gpu/drm/meson/meson_encoder_cvbs.c
++++ b/drivers/gpu/drm/meson/meson_encoder_cvbs.c
+@@ -190,7 +190,7 @@
+ 	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A)) {
+ 		regmap_write(priv->hhi, HHI_VDAC_CNTL0_G12A, 0x906001);
+ 		regmap_write(priv->hhi, HHI_VDAC_CNTL1_G12A, 0);
+-	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	} else if (meson_vpu_is_s4_like(priv)) {
+ 		regmap_write(priv->hhi, ANACTRL_VDAC_CTRL0, 0x406802);
+ 		regmap_write(priv->hhi, ANACTRL_VDAC_CTRL1, 0xc4);
+ 	}
+@@ -207,7 +207,7 @@
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A)) {
+ 		regmap_write(priv->hhi, HHI_VDAC_CNTL0_G12A, 0);
+ 		regmap_write(priv->hhi, HHI_VDAC_CNTL1_G12A, 0);
+-	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	} else if (meson_vpu_is_s4_like(priv)) {
+ 		regmap_write(priv->hhi, ANACTRL_VDAC_CTRL0, 0);
+ 		regmap_write(priv->hhi, ANACTRL_VDAC_CTRL1, 0);
+ 	} else {
+diff --git a/drivers/gpu/drm/meson/meson_encoder_hdmi.c b/drivers/gpu/drm/meson/meson_encoder_hdmi.c
+--- a/drivers/gpu/drm/meson/meson_encoder_hdmi.c
++++ b/drivers/gpu/drm/meson/meson_encoder_hdmi.c
+@@ -108,7 +108,7 @@
+ 		venc_freq /= 2;
+ 
+ 	/* VCLK double pixels for 480p and 576p on S4 */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_s4_like(priv))
+ 		if (vic == 2 || vic == 3 || vic == 17 || vic == 18)
+ 			vclk_freq *= 2;
+ 
+@@ -187,7 +187,7 @@
+ 		venc_freq /= 2;
+ 
+ 	/* VCLK double pixels for 480p and 576p on S4 */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_s4_like(priv))
+ 		if (vic == 2 || vic == 3 || vic == 17 || vic == 18)
+ 			vclk_freq *= 2;
+ 
+@@ -458,7 +458,7 @@
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXL) ||
+ 	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXM) ||
+ 	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	    meson_vpu_is_s4_like(priv))
+ 		drm_connector_attach_hdr_output_metadata_property(meson_encoder_hdmi->connector);
+ 
+ 	drm_connector_attach_max_bpc_property(meson_encoder_hdmi->connector, 8, 8);
+diff --git a/drivers/gpu/drm/meson/meson_overlay.c b/drivers/gpu/drm/meson/meson_overlay.c
+--- a/drivers/gpu/drm/meson/meson_overlay.c
++++ b/drivers/gpu/drm/meson/meson_overlay.c
+@@ -734,7 +734,7 @@
+ 	priv->viu.vd1_enabled = false;
+ 
+ 	/* Disable VD1 */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	if (meson_vpu_is_s4_like(priv)) {
+ 		writel_relaxed(0, priv->io_base + _REG(VD1_BLEND_SRC_CTRL));
+ 		writel_relaxed(0, priv->io_base + _REG(VD2_BLEND_SRC_CTRL));
+ 		writel_relaxed(0, priv->io_base + _REG(VD1_IF0_GEN_REG + 0x2db0));
+diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_plane.c
+--- a/drivers/gpu/drm/meson/meson_plane.c
++++ b/drivers/gpu/drm/meson/meson_plane.c
+@@ -163,7 +163,7 @@
+ 	/* Check if AFBC decoder is required for this buffer */
+ 	if ((meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXM) ||
+ 	     meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	     meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) &&
++	     meson_vpu_is_s4_like(priv)) &&
+ 	    fb->modifier & DRM_FORMAT_MOD_ARM_AFBC(MESON_MOD_AFBC_VALID_BITS))
+ 		priv->viu.osd1_afbcd = true;
+ 	else
+@@ -184,7 +184,7 @@
+ 
+ 	if (priv->viu.osd1_afbcd) {
+ 		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-		    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		    meson_vpu_is_s4_like(priv)) {
+ 			/* This is the internal decoding memory address */
+ 			priv->viu.osd1_blk1_cfg4 = MESON_G12A_AFBCD_OUT_ADDR;
+ 			priv->viu.osd1_blk0_cfg[0] |= OSD_ENDIANNESS_BE;
+@@ -209,7 +209,7 @@
+ 
+ 	if (priv->viu.osd1_afbcd &&
+ 	    (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	     meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))) {
++	     meson_vpu_is_s4_like(priv))) {
+ 		priv->viu.osd1_blk0_cfg[0] |= OSD_MALI_SRC_EN |
+ 			priv->afbcd.ops->fmt_to_blk_mode(fb->modifier,
+ 							  fb->format->format);
+@@ -362,7 +362,7 @@
+ 	priv->viu.osd1_blk0_cfg[4] = ((dest.y2 - 1) << 16) | dest.y1;
+ 
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	    meson_vpu_is_s4_like(priv)) {
+ 		priv->viu.osd_blend_din0_scope_h = ((dest.x2 - 1) << 16) | dest.x1;
+ 		priv->viu.osd_blend_din0_scope_v = ((dest.y2 - 1) << 16) | dest.y1;
+ 		priv->viu.osb_blend0_size = dst_h << 16 | dst_w;
+@@ -383,7 +383,7 @@
+ 
+ 		/* Calculate decoder write stride */
+ 		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-		    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++		    meson_vpu_is_s4_like(priv))
+ 			priv->viu.osd1_blk2_cfg4 =
+ 				meson_g12a_afbcd_line_stride(priv);
+ 	}
+@@ -415,8 +415,8 @@
+ 
+ 	/* Disable OSD1 */
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
+-		writel_bits_relaxed(VIU_OSD1_POSTBLD_SRC_OSD1, 0,
++	    meson_vpu_is_s4_like(priv))
++		writel_bits_relaxed(VIU_OSD1_POSTBLD_SRC_MASK, 0,
+ 				    priv->io_base + _REG(OSD1_BLEND_SRC_CTRL));
+ 	else
+ 		writel_bits_relaxed(VPP_OSD1_POSTBLEND, 0,
+@@ -447,7 +447,7 @@
+ 
+ 	if (!meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXM) &&
+ 	    !meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) &&
+-	    !meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	    !meson_vpu_is_s4_like(priv))
+ 		return false;
+ 
+ 	if (modifier & ~DRM_FORMAT_MOD_ARM_AFBC(MESON_MOD_AFBC_VALID_BITS))
+@@ -555,7 +555,7 @@
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXM))
+ 		format_modifiers = format_modifiers_afbc_gxm;
+ 	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-		 meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++		 meson_vpu_is_s4_like(priv))
+ 		format_modifiers = format_modifiers_afbc_g12a;
+ 
+ 	ret = drm_universal_plane_init(priv->drm, plane, 0xFF,
+diff --git a/drivers/gpu/drm/meson/meson_rdma.c b/drivers/gpu/drm/meson/meson_rdma.c
+--- a/drivers/gpu/drm/meson/meson_rdma.c
++++ b/drivers/gpu/drm/meson/meson_rdma.c
+@@ -70,7 +70,7 @@
+ 
+ static void meson_rdma_trigger(struct meson_drm *priv, u32 trigger)
+ {
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	if (meson_vpu_is_s4_like(priv)) {
+ 		writel_relaxed(trigger, priv->io_base + _REG(RDMA_AUTO_SRC1_SEL));
+ 		return;
+ 	}
+diff --git a/drivers/gpu/drm/meson/meson_registers.h b/drivers/gpu/drm/meson/meson_registers.h
+--- a/drivers/gpu/drm/meson/meson_registers.h
++++ b/drivers/gpu/drm/meson/meson_registers.h
+@@ -159,6 +159,9 @@
+ #define		VIU_OSD1_POSTBLD_SRC_VD1        (1 << 8)
+ #define		VIU_OSD1_POSTBLD_SRC_VD2        (2 << 8)
+ #define		VIU_OSD1_POSTBLD_SRC_OSD1       (3 << 8)
++#define		VIU_OSD1_POSTBLD_SRC_OSD1_T7    (4 << 8) /* T7 adds VD3 as source 3 */
++#define		VIU_OSD1_POSTBLD_SRC_MASK       (0xf << 8)
++#define		VIU_OSD1_POSTBLD_EN_T7          BIT(20)
+ #define		VIU_OSD1_POSTBLD_SRC_OSD2       (4 << 8)
+ #define		VIU_OSD1_OSD_ENABLE             BIT(21)
+ #define		VIU_OSD1_CFG_SYN_EN             BIT(31)
+@@ -1097,6 +1100,7 @@
+ #define ENCT_TST_CLRBAR_WIDTH 0x1c2e
+ #define ENCT_TST_VDCNT_STSET 0x1c2f
+ #define ENCP_DVI_HSO_BEGIN 0x1c30
++#define VPU_VENC_CTRL 0x1cef
+ #define ENCP_DVI_HSO_END 0x1c31
+ #define ENCP_DVI_VSO_BLINE_EVN 0x1c32
+ #define ENCP_DVI_VSO_BLINE_ODD 0x1c33
+@@ -1894,6 +1898,8 @@
+ #define VPP_OSD1_IN_SIZE 0x1df1
+ #define VPP_GCLK_CTRL2 0x1df2
+ #define VD2_PPS_DUMMY_DATA 0x1df4
++/* T7: the OSD1 free scaler registers moved from 0x1dc0 to 0x5a00 */
++#define T7_VPP_OSD_VSC_PHASE_STEP 0x5a00
+ #define VPP_OSD1_BLD_H_SCOPE 0x1df5
+ #define VPP_OSD1_BLD_V_SCOPE 0x1df6
+ #define VPP_OSD2_BLD_H_SCOPE 0x1df7
+diff --git a/drivers/gpu/drm/meson/meson_vclk.c b/drivers/gpu/drm/meson/meson_vclk.c
+--- a/drivers/gpu/drm/meson/meson_vclk.c
++++ b/drivers/gpu/drm/meson/meson_vclk.c
+@@ -122,6 +122,11 @@
+ #define CLKCTRL_VIID_CLK_CTRL	0x0d0 /* 0x34 offset in data sheet */
+ 
+ #define CLKCTRL_VID_PLL_CLK_DIV	0x0e4 /* 0x39 offset in data sheet */
++/* T7 */
++#define CLKCTRL_ENC0_HDMI_CLK_CTRL	0x0d4 /* 0x35 */
++#define CLKCTRL_ENC_HDMI_CLK_CTRL	0x0dc /* 0x37 */
++#define CLKCTRL_HDMI_VID_PLL_CLK_DIV	0x204 /* 0x81 */
++#define T7_VID_PLL_CLK_EN		BIT(24)
+ #define CLKCTRL_HDMI_CLK_CTRL	0x0e0  /* 0x38 */
+ 
+ /* REG_BASE:  REGISTER_BASE_ADDR = 0xfe008000 */
+@@ -162,11 +167,15 @@
+ {
+ 	unsigned int shift_val = 0;
+ 	unsigned int shift_sel = 0;
++	unsigned int reg = CLKCTRL_VID_PLL_CLK_DIV;
++
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++		reg = CLKCTRL_HDMI_VID_PLL_CLK_DIV;
+ 
+ 	/* Disable vid_pll output clock */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
+-		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV, VID_PLL_EN, 0);
+-		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV, VID_PLL_PRESET, 0);
++	if (meson_vpu_is_s4_like(priv)) {
++		regmap_update_bits(priv->clkctrl, reg, VID_PLL_EN, 0);
++		regmap_update_bits(priv->clkctrl, reg, VID_PLL_PRESET, 0);
+ 	} else {
+ 		regmap_update_bits(priv->hhi, HHI_VID_PLL_CLK_DIV, VID_PLL_EN, 0);
+ 		regmap_update_bits(priv->hhi, HHI_VID_PLL_CLK_DIV, VID_PLL_PRESET, 0);
+@@ -231,38 +240,41 @@
+ 		break;
+ 	}
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	if (meson_vpu_is_s4_like(priv)) {
+ 		if (div == VID_PLL_DIV_1) {
+ 			/* Enable vid_pll bypass to HDMI pll */
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   VID_PLL_BYPASS, VID_PLL_BYPASS);
+ 		} else {
+ 			/* Disable Bypass */
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   VID_PLL_BYPASS, 0);
+ 			/* Clear sel */
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   3 << 16, 0);
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   VID_PLL_PRESET, 0);
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   0x7fff, 0);
+ 
+ 			/* Setup sel and val */
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   3 << 16, shift_sel << 16);
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   VID_PLL_PRESET, VID_PLL_PRESET);
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   0x7fff, shift_val);
+ 
+-			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++			regmap_update_bits(priv->clkctrl, reg,
+ 					   VID_PLL_PRESET, 0);
+ 		}
+ 
+ 		/* Enable the vid_pll output clock */
+-		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++		regmap_update_bits(priv->clkctrl, reg,
+ 					VID_PLL_EN, VID_PLL_EN);
++		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++			regmap_update_bits(priv->clkctrl, reg,
++					   T7_VID_PLL_CLK_EN, T7_VID_PLL_CLK_EN);
+ 	} else {
+ 		if (div == VID_PLL_DIV_1) {
+ 			/* Enable vid_pll bypass to HDMI pll */
+@@ -353,7 +365,7 @@
+ 		regmap_read_poll_timeout(priv->hhi, HHI_HDMI_PLL_CNTL, val,
+ 			((val & HDMI_PLL_LOCK_G12A) == HDMI_PLL_LOCK_G12A),
+ 			10, 0);
+-	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	} else if (meson_vpu_is_s4_like(priv)) {
+ 		regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL0, 0x3b01047b);
+ 		regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL1, 0x00018000);
+ 		regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL2, 0x00000000);
+@@ -368,7 +380,7 @@
+ 			((val & HDMI_PLL_LOCK_S4) == HDMI_PLL_LOCK_S4),
+ 			10, 0);
+ 	}
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	if (meson_vpu_is_s4_like(priv)) {
+ 		/* Disable VCLK2 */
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_VIID_CLK_CTRL, VCLK2_EN, 0);
+ 
+@@ -786,7 +798,18 @@
+ 	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL1, frac);
+ 	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL2, 0x00000000);
+ 
+-	if (m >= 0xf7) {
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7)) {
++		/* PHY at the VCO rate (2160p50/60, 5.94 Gbps): other loop values */
++		if (od1 == 1 && od2 == 1) {
++			regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL3, 0x6a685c00);
++			regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL4, 0x11551293);
++		} else {
++			regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL3, 0x6a68dc00);
++			regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL4, 0x65771290);
++		}
++		regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL5, 0x3927200a);
++		regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL6, 0x56540000);
++	} else if (m >= 0xf7) {
+ 		if (frac < 0x10000) {
+ 			regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL3, 0x6a685c00);
+ 			regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL4, 0x11551293);
+@@ -854,6 +877,7 @@
+ 		g12a_pll_set_params(priv, m, frac, od1, od2, od3);
+ 		break;
+ 	case VPU_COMPATIBLE_S4:
++	case VPU_COMPATIBLE_T7:
+ 		s4_pll_set_params(priv, m, frac, od1, od2, od3);
+ 		break;
+ 	default:
+@@ -897,7 +921,7 @@
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A))
+ 		frac_max = HDMI_FRAC_MAX_G12A;
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_s4_like(priv))
+ 		frac_max = HDMI_FRAC_MAX_S4;
+ 
+ 	/* We can have a perfect match !*/
+@@ -937,7 +961,7 @@
+ 			return false;
+ 		if (frac >= HDMI_FRAC_MAX_G12A)
+ 			return false;
+-	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	} else if (meson_vpu_is_s4_like(priv)) {
+ 		/* Empiric supported min/max dividers */
+ 		if (m < 106 || m > 247)
+ 			return false;
+@@ -1088,7 +1112,7 @@
+ {
+ 	unsigned int m = 0, frac = 0;
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	if (meson_vpu_is_s4_like(priv)) {
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_HDMI_CLK_CTRL,
+ 				CTS_HDMI_SYS_SEL_MASK, 0);
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_HDMI_CLK_CTRL,
+@@ -1104,6 +1128,13 @@
+ 		regmap_update_bits(priv->hhi, HHI_HDMI_CLK_CNTL,
+ 				   CTS_HDMI_SYS_EN, CTS_HDMI_SYS_EN);
+ 	}
++	/* T7: run the VCO at 5.94 GHz as the vendor does, same output rates */
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) &&
++	    pll_base_freq == 2970000000 && od1 < 4) {
++		pll_base_freq = 5940000000;
++		od1 *= 2;
++	}
++
+ 	/* Set HDMI PLL rate */
+ 	if (!od1 && !od2 && !od3) {
+ 		meson_hdmi_pll_generic_set(priv, pll_base_freq);
+@@ -1159,7 +1190,7 @@
+ 		}
+ 
+ 		meson_hdmi_pll_set_params(priv, m, frac, od1, od2, od3);
+-	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	} else if (meson_vpu_is_s4_like(priv)) {
+ 		switch (pll_base_freq) {
+ 		case 2970000000:
+ 			m = 0x7b;
+@@ -1181,7 +1212,7 @@
+ 	meson_vid_pll_set(priv, vid_pll_div);
+ 
+ 	/* Set VCLK div */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	if (meson_vpu_is_s4_like(priv)) {
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL,
+ 				   VCLK_SEL_MASK, 0);
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_DIV,
+@@ -1196,7 +1227,7 @@
+ 	/* Set HDMI-TX source */
+ 	switch (hdmi_tx_div) {
+ 	case 1:
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		if (meson_vpu_is_s4_like(priv)) {
+ 			/* enable vclk_div1 gate */
+ 			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL,
+ 					   VCLK_DIV1_EN, VCLK_DIV1_EN);
+@@ -1217,7 +1248,7 @@
+ 		}
+ 		break;
+ 	case 2:
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		if (meson_vpu_is_s4_like(priv)) {
+ 			/* enable vclk_div2 gate */
+ 			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL,
+ 					   VCLK_DIV2_EN, VCLK_DIV2_EN);
+@@ -1238,7 +1269,7 @@
+ 		}
+ 		break;
+ 	case 4:
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		if (meson_vpu_is_s4_like(priv)) {
+ 			/* enable vclk_div4 gate */
+ 			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL,
+ 					   VCLK_DIV4_EN, VCLK_DIV4_EN);
+@@ -1259,7 +1290,7 @@
+ 		}
+ 		break;
+ 	case 6:
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		if (meson_vpu_is_s4_like(priv)) {
+ 			/* enable vclk_div6 gate */
+ 			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL,
+ 					   VCLK_DIV6_EN, VCLK_DIV6_EN);
+@@ -1280,7 +1311,7 @@
+ 		}
+ 		break;
+ 	case 12:
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		if (meson_vpu_is_s4_like(priv)) {
+ 			/* enable vclk_div12 gate */
+ 			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL,
+ 					   VCLK_DIV12_EN, VCLK_DIV12_EN);
+@@ -1301,7 +1332,7 @@
+ 		}
+ 		break;
+ 	}
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_s4_like(priv))
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL2,
+ 				   HDMI_TX_PIXEL_EN, HDMI_TX_PIXEL_EN);
+ 	else
+@@ -1309,7 +1340,7 @@
+ 				   HDMI_TX_PIXEL_EN, HDMI_TX_PIXEL_EN);
+ 
+ 	/* Set ENCI/ENCP Source */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	if (meson_vpu_is_s4_like(priv)) {
+ 		switch (venc_div) {
+ 		case 1:
+ 			/* enable vclk_div1 gate */
+@@ -1393,6 +1424,22 @@
+ 					   CTS_ENCP_EN, CTS_ENCP_EN);
+ 
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL, VCLK_EN, VCLK_EN);
++
++		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7)) {
++			/* ENC0 pixel, fe and pnx dividers: div1 */
++			regmap_update_bits(priv->clkctrl, CLKCTRL_ENC0_HDMI_CLK_CTRL,
++					   GENMASK(27, 16), 0);
++			/* ENC0 encoder clock divider: div1 */
++			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_DIV,
++					   GENMASK(15, 12), 0);
++			/* encoder, fe, pnx and pixel gates */
++			regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL2,
++					   BIT(10) | BIT(9) | BIT(5) | BIT(3),
++					   BIT(10) | BIT(9) | BIT(5) | BIT(3));
++			/* HDMI pixel, fe and pnx clocks from ENC0 */
++			regmap_write(priv->clkctrl, CLKCTRL_ENC_HDMI_CLK_CTRL,
++				     0x00101010);
++		}
+ 	} else {
+ 		switch (venc_div) {
+ 		case 1:
+diff --git a/drivers/gpu/drm/meson/meson_venc.c b/drivers/gpu/drm/meson/meson_venc.c
+--- a/drivers/gpu/drm/meson/meson_venc.c
++++ b/drivers/gpu/drm/meson/meson_venc.c
+@@ -5,6 +5,7 @@
+  * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
+  */
+ 
++#include <linux/arm-smccc.h>
+ #include <linux/bitfield.h>
+ #include <linux/export.h>
+ #include <linux/iopoll.h>
+@@ -16,6 +17,10 @@
+ #include "meson_venc.h"
+ #include "meson_vpp.h"
+ 
++/* T7 secure monitor: HDMI TX operations, set encoder index */
++#define MESON_SMC_HDCPTX_IOOPR		0x820000ab
++#define MESON_HDCPTX_CONF_ENC_IDX	9
++
+ /**
+  * DOC: Video Encoder
+  *
+@@ -1147,6 +1152,29 @@
+ 	{ 0, NULL}, /* sentinel */
+ };
+ 
++/* T7: the S4 modes and 2160p up to 30 Hz (TMDS clock up to 297 MHz) */
++static struct meson_hdmi_venc_vic_mode meson_t7_hdmi_venc_vic_modes[] = {
++	{ 2, &meson_s4_hdmi_encp_mode_480p },
++	{ 3, &meson_s4_hdmi_encp_mode_480p },
++	{ 17, &meson_s4_hdmi_encp_mode_576p },
++	{ 18, &meson_s4_hdmi_encp_mode_576p },
++	{ 4, &meson_s4_hdmi_encp_mode_720p60 },
++	{ 19, &meson_s4_hdmi_encp_mode_720p50 },
++	{ 5, &meson_s4_hdmi_encp_mode_1080i60 },
++	{ 20, &meson_s4_hdmi_encp_mode_1080i50 },
++	{ 32, &meson_hdmi_encp_mode_1080p24 },
++	{ 33, &meson_hdmi_encp_mode_1080p50 },
++	{ 34, &meson_hdmi_encp_mode_1080p30 },
++	{ 31, &meson_hdmi_encp_mode_1080p50 },
++	{ 16, &meson_hdmi_encp_mode_1080p60 },
++	{ 93, &meson_hdmi_encp_mode_2160p24 },
++	{ 94, &meson_hdmi_encp_mode_2160p25 },
++	{ 95, &meson_hdmi_encp_mode_2160p30 },
++	{ 96, &meson_hdmi_encp_mode_2160p25 },
++	{ 97, &meson_hdmi_encp_mode_2160p30 },
++	{ 0, NULL}, /* sentinel */
++};
++
+ static signed int to_signed(unsigned int a)
+ {
+ 	if (a <= 7)
+@@ -1184,7 +1212,9 @@
+ {
+ 	struct meson_hdmi_venc_vic_mode *vmode = meson_hdmi_venc_vic_modes;
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++		vmode = meson_t7_hdmi_venc_vic_modes;
++	else if (meson_vpu_is_s4_like(priv))
+ 		vmode = meson_s4_hdmi_venc_vic_modes;
+ 
+ 	while (vmode->vic && vmode->mode) {
+@@ -1226,7 +1256,9 @@
+ {
+ 	struct meson_hdmi_venc_vic_mode *vmode = meson_hdmi_venc_vic_modes;
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++		vmode = meson_t7_hdmi_venc_vic_modes;
++	else if (meson_vpu_is_s4_like(priv))
+ 		vmode = meson_s4_hdmi_venc_vic_modes;
+ 
+ 	while (vmode->vic && vmode->mode) {
+@@ -1240,7 +1272,7 @@
+ 
+ bool meson_venc_hdmi_venc_repeat(struct meson_drm *priv, int vic)
+ {
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_s4_like(priv))
+ 		return false;
+ 	/* Repeat VENC pixels for 480/576i/p, 720p50/60 and 1080p50/60 */
+ 	if (vic == 6 || vic == 7 || /* 480i */
+@@ -1827,6 +1859,33 @@
+ 		meson_vpp_setup_mux(priv, MESON_VIU_VPP_MUX_ENCP);
+ 	}
+ 
++	/*
++	 * T7: bit 0 selects ENC0 for HDMI, VPU_VENC_CTRL selects the ENCP
++	 * timing in ENC0. The component maps stay 0: the VPP sends RGB.
++	 */
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7)) {
++		struct arm_smccc_res res;
++
++		/*
++		 * The secure firmware selects the encoder that feeds the HDMI
++		 * transmitter. The boot loader may leave ENC2: select ENC0.
++		 */
++		arm_smccc_smc(MESON_SMC_HDCPTX_IOOPR, MESON_HDCPTX_CONF_ENC_IDX,
++			      1, 0, 0, 0, 0, 0, &res);
++
++		reg = BIT(0);
++		if (mode->flags & DRM_MODE_FLAG_PHSYNC)
++			reg |= VPU_HDMI_INV_HSYNC;
++		if (mode->flags & DRM_MODE_FLAG_PVSYNC)
++			reg |= VPU_HDMI_INV_VSYNC;
++		writel_relaxed(use_enci ? 0 : 1, priv->io_base + _REG(VPU_VENC_CTRL));
++		writel_relaxed(reg, priv->io_base + _REG(VPU_HDMI_SETTING));
++		priv->venc.hdmi_repeat = hdmi_repeat;
++		priv->venc.venc_repeat = venc_repeat;
++		priv->venc.hdmi_use_enci = use_enci;
++		return;
++	}
++
+ 	/* Set VPU HDMI setting */
+ 	/* Select ENCP or ENCI data to HDMI */
+ 	if (use_enci)
+@@ -2268,7 +2327,10 @@
+ 			       priv->io_base + _REG(VENC_INTCTRL));
+ 	}
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	/* T7: the interrupt gate is a clock owned by meson_drv */
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++		;
++	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_SYS_CLK_EN0_REG2, BIT(25), BIT(25));
+ 	else
+ 		regmap_update_bits(priv->hhi, HHI_GCLK_MPEG2, BIT(25), BIT(25));
+@@ -2276,7 +2338,9 @@
+ 
+ void meson_venc_disable_vsync(struct meson_drm *priv)
+ {
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++		;
++	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_SYS_CLK_EN0_REG2, BIT(4), 0);
+ 	else
+ 		regmap_update_bits(priv->hhi, HHI_GCLK_MPEG2, BIT(25), 0);
+@@ -2289,7 +2353,7 @@
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A)) {
+ 		regmap_write(priv->hhi, HHI_VDAC_CNTL0_G12A, 0);
+ 		regmap_write(priv->hhi, HHI_VDAC_CNTL1_G12A, 8);
+-	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	} else if (meson_vpu_is_s4_like(priv)) {
+ 		regmap_write(priv->hhi, ANACTRL_VDAC_CTRL0, 0);
+ 		regmap_write(priv->hhi, ANACTRL_VDAC_CTRL1, 8);
+ 	} else {
+@@ -2301,7 +2365,7 @@
+ 	writel_relaxed(0xff, priv->io_base + _REG(VENC_VDAC_SETTING));
+ 
+ 	/* Disable HDMI PHY */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_s4_like(priv))
+ 		regmap_write(priv->hhi, ANACTRL_HDMIPHY_CTRL0, 0);
+ 	else
+ 		regmap_write(priv->hhi, HHI_HDMI_PHY_CNTL0, 0);
+diff --git a/drivers/gpu/drm/meson/meson_viu.c b/drivers/gpu/drm/meson/meson_viu.c
+--- a/drivers/gpu/drm/meson/meson_viu.c
++++ b/drivers/gpu/drm/meson/meson_viu.c
+@@ -429,9 +429,11 @@
+ 	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXL))
+ 		meson_viu_load_matrix(priv);
+ 	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-		 meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++		 meson_vpu_is_s4_like(priv)) {
++		/* T7: the VPP blends and outputs RGB, keep OSD1 in RGB */
+ 		meson_viu_set_g12a_osd1_matrix(priv, RGB709_to_YUV709l_coeff,
+-					       true);
++					       !meson_vpu_is_compatible(priv,
++								VPU_COMPATIBLE_T7));
+ 		/* fix green/pink color distortion from vendor u-boot */
+ 		writel_bits_relaxed(OSD1_HDR2_CTRL_REG_ONLY_MAT |
+ 				OSD1_HDR2_CTRL_VDIN0_HDR2_TOP_EN, 0,
+@@ -445,7 +447,7 @@
+ 		VIU_OSD_FIFO_LIMITS(2);      /* fifo_lim: 2*16=32 */
+ 
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	    meson_vpu_is_s4_like(priv))
+ 		reg |= (VIU_OSD_BURST_LENGTH_32 | VIU_OSD_HOLD_FIFO_LINES(31));
+ 	else
+ 		reg |= (VIU_OSD_BURST_LENGTH_64 | VIU_OSD_HOLD_FIFO_LINES(4));
+@@ -473,7 +475,7 @@
+ 			priv->io_base + _REG(VD2_IF0_LUMA_FIFO_SIZE));
+ 
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	    meson_vpu_is_s4_like(priv)) {
+ 		u32 val = (u32)VIU_OSD_BLEND_REORDER(0, 1) |
+ 			  (u32)VIU_OSD_BLEND_REORDER(1, 0) |
+ 			  (u32)VIU_OSD_BLEND_REORDER(2, 0) |
+diff --git a/drivers/gpu/drm/meson/meson_vpp.c b/drivers/gpu/drm/meson/meson_vpp.c
+--- a/drivers/gpu/drm/meson/meson_vpp.c
++++ b/drivers/gpu/drm/meson/meson_vpp.c
+@@ -35,6 +35,13 @@
+ 
+ void meson_vpp_setup_mux(struct meson_drm *priv, unsigned int mux)
+ {
++	/*
++	 * T7: [1:0], [3:2] and [5:4] select the encoder of VIU0, VIU1 and
++	 * VIU2 (0 = ENC0, 3 = none). Route VIU0 to ENC0 only.
++	 */
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++		mux = 0x3c;
++
+ 	writel(mux, priv->io_base + _REG(VPU_VIU_VENC_MUX_CTRL));
+ }
+ 
+@@ -57,10 +64,10 @@
+ 	int i;
+ 
+ 	writel_relaxed(is_horizontal ? VPP_SCALE_HORIZONTAL_COEF : 0,
+-			priv->io_base + _REG(VPP_OSD_SCALE_COEF_IDX));
++			priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_SCALE_COEF_IDX)));
+ 	for (i = 0; i < 33; i++)
+ 		writel_relaxed(coefs[i],
+-				priv->io_base + _REG(VPP_OSD_SCALE_COEF));
++				priv->io_base + _REG(meson_osd_sc_reg(priv, VPP_OSD_SCALE_COEF)));
+ }
+ 
+ static const uint32_t vpp_filter_coefs_bicubic[] = {
+@@ -90,6 +97,11 @@
+ 
+ void meson_vpp_init(struct meson_drm *priv)
+ {
++	/* T7: the post-blend runs in RGB, background is RGB black */
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++		writel_relaxed(0, priv->io_base +
++			       _REG(VPP_POST_BLEND_BLEND_DUMMY_DATA));
++
+ 	/* set dummy data default YUV black */
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXL))
+ 		writel_relaxed(0x108080, priv->io_base + _REG(VPP_DUMMY_DATA1));
+@@ -103,12 +115,12 @@
+ 		writel_relaxed(0x42020,
+ 				priv->io_base + _REG(VPP_DUMMY_DATA));
+ 	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-		   meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++		   meson_vpu_is_s4_like(priv))
+ 		writel_relaxed(0xf, priv->io_base + _REG(DOLBY_PATH_CTRL));
+ 
+ 	/* Initialize vpu fifo control registers */
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	    meson_vpu_is_s4_like(priv))
+ 		writel_relaxed(VPP_OFIFO_SIZE_DEFAULT,
+ 			       priv->io_base + _REG(VPP_OFIFO_SIZE));
+ 	else
+@@ -118,7 +130,7 @@
+ 		       priv->io_base + _REG(VPP_HOLD_LINES));
+ 
+ 	if (!meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A) &&
+-	    !meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++	    !meson_vpu_is_s4_like(priv)) {
+ 		/* Turn off preblend */
+ 		writel_bits_relaxed(VPP_PREBLEND_ENABLE, 0,
+ 				    priv->io_base + _REG(VPP_MISC));
+@@ -140,7 +152,7 @@
+ 				priv->io_base + _REG(VPP_BLEND_VD2_H_START_END));
+ 	}
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
++	if (meson_vpu_is_s4_like(priv))
+ 		writel_bits_relaxed(VPP_WATER_MARK_10BIT, 0, priv->io_base + _REG(VPP_MISC));
+ 
+ 	/* Disable Scalers */

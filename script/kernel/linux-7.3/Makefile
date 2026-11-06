@@ -165,46 +165,66 @@ PATCHFILES += 1604-arm64-dts-amlogic-meson-sm1-khadas-vim3l-dec-sd-clk-add-impro
 PATCHFILES += 1605-arm64-dts-meson-gxl-tx3mini-add-vfd-const-mac.patch
 # s4 drivers additions
 PATCHFILES += 1700-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
-PATCHFILES += 1704-dt-bindings-clock-meson-Add-audio-power-domain-for-S4-soc-v6.patch
-PATCHFILES += 1705-dt-bindings-Asoc-axg-audio-Add-S4-audio-tocodec-v6.patch
-PATCHFILES += 1706-ASoC-meson-g12a-toacodec-Add-S4-tocodec-driver-v6.patch
-PATCHFILES += 1707-clk-meson-axg_audio-add-S4-support-v6.patch
-PATCHFILES += 1708-ASoC-meson-add-s4-tohdmitx-control.patch
-PATCHFILES += 1709-soc-amlogic-meson-clk-measure-Add-support-for.patch
-PATCHFILES += 1710-drm-meson-add-s4-drm-driver-LEv9.10.2026.patch
-PATCHFILES += 1711-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
-PATCHFILES += 1712-net-wireless-broadcom-add-sdio-ID-43342.patch
-PATCHFILES += 1713-gpu-panfrost-add-meson-s4-support.patch
-PATCHFILES += 1714-thermal-amlogic-add-meson-s4-variant.patch
-PATCHFILES += 1715-clk-meson-s4-peripherals-keep-the-video-clocks-runni.patch
-PATCHFILES += 1716-drm-meson-venc-enable-the-S4-VPU-interrupt-clock.patch
-PATCHFILES += 1717-clk-meson-s4-pll-make-the-HDMI-PLL-read-only.patch
-PATCHFILES += 1718-drm-meson-rdma-use-the-S4-auto-trigger-source-regist.patch
-PATCHFILES += 1720-firmware-meson_sm-add-the-secure-PLL-and-CPU-clock-s.patch
-PATCHFILES += 1721-dt-bindings-clock-amlogic-s4-pll-clkc-add-the-CPU-cl.patch
-PATCHFILES += 1722-clk-meson-s4-pll-add-the-CPU-clocks.patch
-PATCHFILES += 1723-firmware-meson_sm-add-the-DVFS-table-index-service.patch
-PATCHFILES += 1724-cpufreq-add-a-driver-for-binned-Amlogic-CPUs.patch
-PATCHFILES += 1725-WIP-mmc-meson-gx-mmc-add-delay-during-poweroff.patch
-PATCHFILES += 1726-mmc-meson-gx-add-the-S4-interface-3-tuning.patch
-PATCHFILES += 1728-drm-meson-vclk-wait-for-both-S4-PLL-lock-bits-for-CV.patch
-PATCHFILES += 1729-clk-meson-s4-peripherals-allow-setting-the-CEC-32k-c.patch
-PATCHFILES += 1730-media-platform-meson-ao-cec-g12a-add-support-for-the.patch
-PATCHFILES += 1731-drm-meson-meson_viu-fix-green-playback-with-vendor-uboot.patch
+PATCHFILES += 1701-dt-bindings-clock-meson-Add-audio-power-domain-for-S4-soc-v6.patch
+PATCHFILES += 1702-dt-bindings-Asoc-axg-audio-Add-S4-audio-tocodec-v6.patch
+PATCHFILES += 1703-ASoC-meson-g12a-toacodec-Add-S4-tocodec-driver-v6.patch
+PATCHFILES += 1704-clk-meson-axg_audio-add-S4-support-v6.patch
+PATCHFILES += 1705-ASoC-meson-add-s4-tohdmitx-control.patch
+PATCHFILES += 1706-soc-amlogic-meson-clk-measure-Add-support-for.patch
+PATCHFILES += 1707-drm-meson-add-s4-drm-driver-LEv9.10.2026.patch
+PATCHFILES += 1708-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
+PATCHFILES += 1709-net-wireless-broadcom-add-sdio-ID-43342.patch
+PATCHFILES += 1710-gpu-panfrost-add-meson-s4-support.patch
+PATCHFILES += 1711-thermal-amlogic-add-meson-s4-variant.patch
+PATCHFILES += 1712-clk-meson-s4-peripherals-keep-the-video-clocks-runni.patch
+PATCHFILES += 1713-drm-meson-venc-enable-the-S4-VPU-interrupt-clock.patch
+PATCHFILES += 1714-clk-meson-s4-pll-make-the-HDMI-PLL-read-only.patch
+PATCHFILES += 1715-drm-meson-rdma-use-the-S4-auto-trigger-source-regist.patch
+PATCHFILES += 1716-firmware-meson_sm-add-the-secure-PLL-and-CPU-clock-s.patch
+PATCHFILES += 1717-dt-bindings-clock-amlogic-s4-pll-clkc-add-the-CPU-cl.patch
+PATCHFILES += 1718-clk-meson-s4-pll-add-the-CPU-clocks.patch
+PATCHFILES += 1719-firmware-meson_sm-add-the-DVFS-table-index-service.patch
+PATCHFILES += 1720-cpufreq-add-a-driver-for-binned-Amlogic-CPUs.patch
+PATCHFILES += 1721-mmc-meson-gx-mmc-add-delay-during-poweroff.patch
+PATCHFILES += 1721-mmc-meson-gx-enable-the-bus-pipeline-clock-on-T7.patch
+PATCHFILES += 1722-mmc-meson-gx-add-the-S4-interface-3-tuning.patch
+PATCHFILES += 1723-drm-meson-vclk-wait-for-both-S4-PLL-lock-bits-for-CV.patch
+PATCHFILES += 1724-clk-meson-s4-peripherals-allow-setting-the-CEC-32k-c.patch
+PATCHFILES += 1725-media-platform-meson-ao-cec-g12a-add-support-for-the.patch
+PATCHFILES += 1726-drm-meson-meson_viu-fix-green-playback-with-vendor-uboot.patch
 # sc2 drivers additions
-PATCHFILES += 1750-clk-meson-add-clock-driver-for-SC2.patch
-PATCHFILES += 1751-pinctrl-meson-add-pinctrl-driver-for-SC2.patch
-PATCHFILES += 1752-reset-meson-add-support-for-SC2.patch
-PATCHFILES += 1753-irqchip-meson-gpio-add-support-for-SC2.patch
-PATCHFILES += 1754-pmdomain-amlogic-meson-secure-pwrc-add-support-for-sc2.patch
-PATCHFILES += 1755-dt-bindings-gpio-add-SC2.patch
-PATCHFILES += 1756-dt-bindings-reset-add-SC2.patch
-PATCHFILES += 1757-dt-bindings-pwm-add-SC2.patch
-PATCHFILES += 1760-media-amlogic-amvdec-don-t-touch-a-powered-down-HEVC.patch
-PATCHFILES += 1761-media-amlogic-amvdec-support-the-HEVC-front-end-cloc.patch
-PATCHFILES += 1762-media-amlogic-amvdec-don-t-disable-the-HEVC-front-en.patch
-PATCHFILES += 1763-media-amlogic-amvdec-add-SC2-support.patch
-PATCHFILES += 1765-thermal-amlogic-Support-reading-trim_info-on-SC2.patch
+PATCHFILES += 1740-clk-meson-add-clock-driver-for-SC2.patch
+PATCHFILES += 1741-pinctrl-meson-add-pinctrl-driver-for-SC2.patch
+PATCHFILES += 1742-reset-meson-add-support-for-SC2.patch
+PATCHFILES += 1743-irqchip-meson-gpio-add-support-for-SC2.patch
+PATCHFILES += 1744-pmdomain-amlogic-meson-secure-pwrc-add-support-for-sc2.patch
+PATCHFILES += 1745-dt-bindings-gpio-add-SC2.patch
+PATCHFILES += 1746-dt-bindings-reset-add-SC2.patch
+PATCHFILES += 1747-dt-bindings-pwm-add-SC2.patch
+PATCHFILES += 1748-media-amlogic-amvdec-don-t-touch-a-powered-down-HEVC.patch
+PATCHFILES += 1749-media-amlogic-amvdec-support-the-HEVC-front-end-cloc.patch
+PATCHFILES += 1750-media-amlogic-amvdec-don-t-disable-the-HEVC-front-en.patch
+PATCHFILES += 1751-media-amlogic-amvdec-add-SC2-support.patch
+PATCHFILES += 1752-thermal-amlogic-Support-reading-trim_info-on-SC2.patch
+# t7 drivers additions
+PATCHFILES += 1760-usb-host-xhci-plat-Add-support-for-Amlogic-T7-SoC.patch
+PATCHFILES += 1761-PCI-dwc-meson-Protect-PCIe-DMA-memory-on-T7.patch
+PATCHFILES += 1762-clk-meson-t7-keep-the-HDMI-PLL-on.patch
+PATCHFILES += 1763-pmdomain-amlogic-t7-keep-the-VPU-power-domains-on.patch
+PATCHFILES += 1764-drm-meson-add-T7-VPU-support.patch
+PATCHFILES += 1765-drm-meson-add-the-T7-HDMI-2.1-transmitter-bridge.patch
+PATCHFILES += 1766-ASoC-meson-g12a-tohdmitx-add-T7-with-the-master-cloc.patch
+PATCHFILES += 1767-pwm-meson-Add-optional-bus-clock-for-S4-.patch
+PATCHFILES += 1769-thermal-drivers-amlogic-switch-to-clk_bulk-API-to-su.patch
+PATCHFILES += 1770-cpufreq-amlogic-add-T7-support.patch
+PATCHFILES += 1771-dt-bindings-clock-add-the-Amlogic-T7-CPU-clock-contr.patch
+PATCHFILES += 1772-clk-meson-add-the-T7-CPU-clock-controller.patch
+PATCHFILES += 1773-clk-meson-t7-keep-the-memory-fabric-clocks-running.patch
+PATCHFILES += 1775-clk-meson-t7-don-t-mark-sys_ampipe_nand-as-critical.patch
+PATCHFILES += 1776-clk-meson-t7-keep-the-Ethernet-pipeline-clock-on.patch
+PATCHFILES += 1777-clk-meson-t7-keep-the-MMC-APB-clock-on.patch
+PATCHFILES += 1778-mmc-meson-gx-use-the-interface-3-tuning-on-T7.patch
+PATCHFILES += 1779-pmdomain-amlogic-t7-keep-the-USB-SDIO-and-eMMC-domai.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -217,7 +237,9 @@ PATCHFILES += 1808-arm64-dtsi-amlogic-s4-add-video-decoder.patch
 PATCHFILES += 1809-arm64-dtsi-amlogic-meson-s4-add-AO-CEC-B-node.patch
 PATCHFILES += 1810-arm64-dtsi-amlogic-meson-s4-add-HDMI-TX-CEC-pinctrl-g.patch
 # sc2 dtsi additions
-PATCHFILES += 1850-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
+PATCHFILES += 1830-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
+# t7 dtsi additions
+PATCHFILES += 1850-arm64-dtsi-amlogic-t7-add-eth-usb-hdmi-audio-ths-dvfs.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -230,6 +252,8 @@ PATCHFILES += 1910-arm64-dts-amlogic-add-dts-for-tanix_w2-tvbox.patch
 # sc2 board dts additions
 PATCHFILES += 1950-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
 PATCHFILES += 1951-arm64-dts-amlogic-add-dts-for-x96-max-ultra-plus-tvbox.patch
+# t7 board dts additions
+PATCHFILES += 1970-arm64-dts-t7-vim4-improvements.patch
 endif
 #------------------------------------------------------------
 
