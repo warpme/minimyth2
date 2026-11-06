@@ -100,6 +100,7 @@ ifneq ($(filter $(AC300_BOARDS),$(mm_U-BOOT_BOARD_DEFCONFIG)),)
 # hack to get eth working on ac300 boards
 PATCHFILES  += 0011-hack-to-make-ac300-eth-working.patch
 endif
+PATCHFILES  += 0012-pxe-add-support-http-https.patch
 # dtsi additions
 PATCHFILES  += 0140-sun50i-h616.dtsi-add-emac1-nodes.patch
 # h616 boards aditions.
