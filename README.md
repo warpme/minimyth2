@@ -159,6 +159,8 @@ Amlogic s905w2  | TV98             | not works (cdtech 47W3155)             | no
 Amlogic s905w2  | Tanix W2         | not works (cdtech 47W3155)             | not tested| n/a       | works     | works       | FD650 works | not works (firmware issue)     | support in-progress           |
 Amlogic s905y4  | Khadas VIM1S     | works  (ap6256@SDIO)                   | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support in-progress           |
 Amlogic s905x4  | X96 MaxPlusUltra | not works  (FN-Link K255B-SR@SDIO)     | not tested| n/a       | works     | works       |AiP1628 works| not works (firmware issue)     | support in-progress           |
+Amlogic s905x4  | RBox HK1         | wip (HK6334Q)                          | not tested| n/a       | works     | works       | FD6551 works| not works (firmware issue)     | support in-progress           |
+Amlogic a311d2  | Khadas VIM4      | wip (AP6275@SDIO)                      | not tested| n/a       | not works | works       | n/a         | not works (firmware issue)     | support stalled               |
 Broadcom 2837   | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | n/a       | not tested| works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2711   | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2712   | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
@@ -174,33 +176,34 @@ This is video related functionality avaliable on current code (Linux kernel + Me
 At the moment quality of playback is good for technology preview. 
 On platforms with statefull v4l2_m2m video codecs: RPI3/RPI4 H.264 playback seek works well but fails on Amlogic.
 
-SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing     | Supported video render    | Remarks                                              |
------------------|----------------------------------------------|---------------------------------------|--------------------------------------------|-----------------------|---------------------------|------------------------------------------------------|
-Allwinner H6     | EachLink H6 Mini, TanixTX6, Beelink GS1, OPi3| cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
-Allwinner H313   | X96-Q (DDR3), X96-Q (LPDDR3)                 | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
-Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
-Allwinner H618   | Vontar H618, OrangePI-Zero3, OrangePI-Zero2W | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
-Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
-Rockchip 3399    | RockPi4, RockPi4SE, OrangePi4-LTS            | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
-Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3576    | Nanopi-M5                                    | rkvdec2(13)/v4l2_request              | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Amlogic s905     | TanixTX3-Mini                                | amvdec/v4l2_request                   | MPEG2, H.264, HEVC                         | X11, Wayland (2)      | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, limited HEVC on s905w
-Amlogic s912     | Beelink GT1                                  | amvdec/v4l2_request                   | MPEG2, H.264, HEVC                         | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Amlogic g12a     | Radxa-Zero                                   | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, VC1               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Amlogic g12b     | Khadas VIM3                                  | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, VC1               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Amlogic sm1      | Khadas VIM3L                                 | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, vC1               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, artefacts on H.264
-Amlogic s4       | Khadas VIM1S                                 | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | EGLFS (14)            | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Amlogic sc2      | X96 MaxPlusUltra                             | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | EGLFS (14)            | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
-Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
-Broadcom 2712    | Rpi5-b                                       | rpivid/v4l2_request                   | HEVC                                       | X11, EGLFS(12),Wayland| EGL_DMABUF, DRM_DMABUF    | Good playback
-Intel i5         | i5 NUC                                       | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
-Intel Z8500      | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS (4)        | EGL_DMABUF (3)            | Perfect playback
-Intel N3450      | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
-AMD E1-2100      | AMD Kabini                                   | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
-Intel D2550      | ION2                                         | VDPAU,VAPPI(11)                       | MPEG2, MPEG4, H.264, VC1                   | X11, (5)              | By GFx internally         | Perfect playback
+SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing     | Supported video render (MythTV)| Supported video render (KODI)  | Remarks |
+-----------------|----------------------------------------------|---------------------------------------|--------------------------------------------|-----------------------|--------------------------------|--------------------------------|---------|
+Allwinner H6     | EachLink H6 Mini, TanixTX6, Beelink GS1, OPi3| cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
+Allwinner H313   | X96-Q (DDR3), X96-Q (LPDDR3)                 | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
+Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
+Allwinner H618   | Vontar H618, OrangePI-Zero3, OrangePI-Zero2W | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
+Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
+Rockchip 3399    | RockPi4, RockPi4SE, OrangePi4-LTS            | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
+Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
+Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
+Rockchip 3576    | Nanopi-M5                                    | rkvdec2(13)/v4l2_request              | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
+Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
+Amlogic s905     | TanixTX3-Mini                                | amvdec/v4l2_request                   | MPEG2, H.264, HEVC                         | X11, Wayland (2)      | EGL_DMABUF, (15)               | (18),Direct-to-plane           |
+Amlogic s912     | Beelink GT1                                  | amvdec/v4l2_request                   | MPEG2, H.264, HEVC                         | X11, EGLFS, Wayland   | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic g12a     | Radxa-Zero                                   | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic g12b     | Khadas VIM3                                  | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic sm1      | Khadas VIM3L                                 | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic s4       | Khadas VIM1S                                 | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic sc2      | X96 MaxPlusUltra                             | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic t7       | Khadas VIM4                                  |                                       |                                            | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
+Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
+Broadcom 2712    | Rpi5-b                                       | rpivid/v4l2_request                   | HEVC                                       | X11, EGLFS(12),Wayland| EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
+Intel i5         | i5 NUC                                       | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland   | EGL_DMABUF (3)                 | EGL_DMABUF (3)                 |
+Intel Z8500      | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS (4)        | EGL_DMABUF (3)                 | EGL_DMABUF (3)                 |
+Intel N3450      | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland   | EGL_DMABUF (3)                 | EGL_DMABUF (3)                 |
+AMD E1-2100      | AMD Kabini                                   | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland   | EGL_DMABUF (3)                 | EGL_DMABUF (3)                 |
+Intel D2550      | ION2                                         | VDPAU,VAPPI(11)                       | MPEG2, MPEG4, H.264, VC1                   | X11, (5)              | By GFx internally              | By GFx internally              |
 
 - (1) - Wayland gives black screen on this HW
 - (2) - EGLFS not works due z-position issue in messon-drm driver on this HW
@@ -211,11 +214,16 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 - (7) - rkvdec2 is currently only partially supported on this SoC so some HEVC content is not decoded properly
 - (8) - vp9 is not yet supported on this SoC (no rkvdec2 vp9 support yet)
 - (9) - hw.video decode with rendering to DRM planes has no OSD (probably Z-order issue)
-- (10) - rendering to DRM Planes gives not visible OSD on this HW
+- (10) - rendering to DRM Planes gives not visible OSD
 - (11) - mesa nouveau as of 22.2.0 has issue with VAAPI decode on Nvidia ION1/ION2
 - (12) - as of 6.8-rc6 kernel EGLFS in DMABuf mode not works correctly
 - (13) - rkvdec2 is currently in development for this soc
-- (14) - due bug in messon-drm, currently only EGLFS works ok
+- (14) - due bug in meson-drm, currently only EGLFS works ok
+- (15) - playback is with black screen; OSD works ok
+- (16) - playback plays but only with green colour
+- (17) - no GUI (Qt: Failed to commit atomic request (code=-22)
+- (18) - video rednering shows ghost of GUI
+
 ### Video Decoding Test results
 
 
@@ -226,3 +234,6 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 ## Playback HW video decode tests on various HW.
 
 This is summary of video samples tests conducted on current MiniMyth2 code: [Video test summary](https://github.com/warpme/minimyth2/blob/master/video-test-summary.txt)
+
+
+no patch 1000
