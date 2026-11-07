@@ -1,0 +1,96 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Subject: [PATCH] media: platform: meson: ao-cec-g12a: add T7 support
+
+On T7 the CEC pad is shared by the CEC-A and CEC-B controllers. The
+VIM4 only wires the CEC_A pad, so the CEC-B controller must own it:
+set bit 4 of the CEC-A GEN_CNTL register and clear it in CEC-B.
+Without this the CEC-B controller transmits but nothing reaches the
+line. Add the amlogic,t7-ao-cec compatible, S4 like, with an extra
+reg entry for the CEC-A GEN_CNTL register.
+---
+diff --git a/drivers/media/cec/platform/meson/ao-cec-g12a.c b/drivers/media/cec/platform/meson/ao-cec-g12a.c
+--- a/drivers/media/cec/platform/meson/ao-cec-g12a.c
++++ b/drivers/media/cec/platform/meson/ao-cec-g12a.c
+@@ -72,6 +72,12 @@
+ #define CECB_GEN_CNTL_FILTER_TICK_100US	3
+ #define CECB_GEN_CNTL_FILTER_TICK_SEL	GENMASK(9, 8)
+ #define CECB_GEN_CNTL_FILTER_DEL	GENMASK(14, 12)
++/*
++ * T7: the CEC pad is shared by the two CEC controllers. Bit 4 of the
++ * GEN_CNTL register of each controller selects which one drives the pad:
++ * set in the CEC-A one and clear in the CEC-B one to give it to CEC-B.
++ */
++#define CEC_GEN_CNTL_SHARE_PAD		BIT(4)
+ 
+ /*
+  * [7:0] cec_reg_addr
+@@ -175,6 +181,8 @@
+ 	bool				ext_core_clk;
+ 	/* Offset to subtract from the CECB_* top register addresses */
+ 	unsigned int			reg_shift;
++	/* The CEC pad is shared with the CEC-A controller (second reg) */
++	bool				share_pad_ceca;
+ };
+ 
+ struct meson_ao_cec_g12a_device {
+@@ -695,6 +703,24 @@
+ 		goto out_probe_adapter;
+ 	}
+ 
++	if (ao_cec->data->share_pad_ceca) {
++		void __iomem *ceca_base;
++		u32 val;
++
++		ceca_base = devm_platform_ioremap_resource(pdev, 1);
++		if (IS_ERR(ceca_base)) {
++			ret = PTR_ERR(ceca_base);
++			goto out_probe_adapter;
++		}
++
++		/* Route the shared CEC pad to this (CEC-B) controller */
++		val = readl(ceca_base);
++		writel(val | CEC_GEN_CNTL_SHARE_PAD, ceca_base);
++		regmap_update_bits(ao_cec->regmap,
++				   cecb_reg(ao_cec, CECB_GEN_CNTL_REG),
++				   CEC_GEN_CNTL_SHARE_PAD, 0);
++	}
++
+ 	irq = platform_get_irq(pdev, 0);
+ 	ret = devm_request_threaded_irq(&pdev->dev, irq,
+ 					meson_ao_cec_g12a_irq,
+@@ -796,6 +822,13 @@
+ 	.reg_shift = 8,
+ };
+ 
++static const struct meson_ao_cec_g12a_data ao_cec_t7_data = {
++	.ctrl2_setup = true,
++	.ext_core_clk = true,
++	.reg_shift = 8,
++	.share_pad_ceca = true,
++};
++
+ static const struct of_device_id meson_ao_cec_g12a_of_match[] = {
+ 	{
+ 		.compatible = "amlogic,meson-g12a-ao-cec",
+@@ -809,6 +842,10 @@
+ 		.compatible = "amlogic,meson-s4-ao-cec",
+ 		.data = &ao_cec_s4_data,
+ 	},
++	{
++		.compatible = "amlogic,meson-t7-ao-cec",
++		.data = &ao_cec_t7_data,
++	},
+ 	{ /* sentinel */ }
+ };
+ MODULE_DEVICE_TABLE(of, meson_ao_cec_g12a_of_match);
+--
+
+MiniMyth2
+

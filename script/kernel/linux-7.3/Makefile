@@ -226,6 +226,7 @@ PATCHFILES += 1777-clk-meson-t7-keep-the-MMC-APB-clock-on.patch
 PATCHFILES += 1778-mmc-meson-gx-use-the-interface-3-tuning-on-T7.patch
 PATCHFILES += 1779-pmdomain-amlogic-t7-keep-the-USB-SDIO-and-eMMC-domai.patch
 PATCHFILES += 1780-tee-optee-use-the-reserved-shared-memory-pool-on-t7.patch
+PATCHFILES += 1781-media-meson-ao-cec-g12a-add-T7-support.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
