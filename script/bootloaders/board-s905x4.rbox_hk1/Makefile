@@ -11,7 +11,7 @@ DISTFILES    = \
 
 SOC_TYPE                  = sc2
 mm_U-BOOT_BOARD_TYPE      = board-s905x4.rbox_hk1
-mm_U-BOOT_BOARD_DEFCONFIG = x96-max-plus-ultra_defconfig
+mm_U-BOOT_BOARD_DEFCONFIG = rbox-hk1_defconfig
 FIP_BOARD                 = 
 
 include ../bootloader/install-board-bootloader-aml-vendor.mk
