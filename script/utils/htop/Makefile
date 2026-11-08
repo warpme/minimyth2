@@ -8,6 +8,7 @@ PATCHFILES   = 01-show-core-temperatures-a523.patch \
                02-read-current-cpu-freq-from-cpuinfo-sysfs.patch \
                03-LibSensors-adaptate-to-linux-commit-g996957016b.patch \
                04-show-core-temperatures-a733.patch \
+               05-show-core-temperatures-t7.patch \
 
 LICENSE      = GPL2
 
