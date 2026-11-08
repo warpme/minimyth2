@@ -34,6 +34,7 @@ DEPENDS = \
 	firmware/qcs6490-firmware \
 	firmware/ap6359sa-firmware \
 	firmware/ap6275p-firmware \
+	firmware/ap6275s-firmware \
 	firmware/sc8280-firmware \
 	firmware/qcom-audioreach-firmware \
 
