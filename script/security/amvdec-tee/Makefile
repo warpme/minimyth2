@@ -6,6 +6,7 @@ MASTER_SITES = https://github.com/LibreELEC/amvdec-tee/archive/
 DISTFILES    = $(GARVERSION).tar.gz
 PATCHFILES   = 0001-minimyth2-ehnacements.patch \
                0002-fix-TEE_ERROR_SIGNATURE_INVALID-on-A95X-F3-Air-II.patch \
+               0003-skip-the-PWEN-index-header.patch \
 
 LICENSE      = GPL
 

@@ -1,0 +1,152 @@
+
+From: Christian Hewitt <christianshewitt@gmail.com>
+Subject: [PATCH] skip the PWEN index header
+
+Newer per-SoC ucode packages (e.g. T7) start with a 0x8000 byte
+plaintext "PWEN" index ahead of the signed package, and the TA rejects
+the file when it is sent whole. Skip the index as the vendor CA does:
+when the file starts with "PWEN" and the package after it is not a
+plain "PACK".
+
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ amvdec-tee.c | 53 +-
+ 1 file changed
+
+diff --git a/amvdec-tee.c b/amvdec-tee.c
+index 9251fca..861ddff 100644
+--- a/amvdec-tee.c
++++ b/amvdec-tee.c
+@@ -57,6 +57,8 @@
+ #define PACK_OFFSET		0x100
+ #define PACK_TAG		0x5041434b	/* "PACK" */
+ #define CODE_TAG		0x434f4445	/* "CODE" */
++#define PWEN_TAG		0x4e455750	/* "PWEN" */
++#define PWEN_HDR_SIZE		0x8000
+ #define ENTRY_ALIGN		0x100
+ #define ENTRY_HDR_SIZE		0x200
+ #define FIRST_ENTRY		0x200
+@@ -270,6 +272,22 @@ static void copy_field(char *dst, const uint8_t *src, size_t max)
+ 	dst[i] = '\0';
+ }
+ 
++/*
++ * Newer per-SoC packages (e.g. T7) start with a 0x8000 byte plaintext "PWEN"
++ * index ahead of the signed package, and the TA rejects the file when it is
++ * sent whole. Like the vendor CA, skip the index when the file starts with
++ * "PWEN" and the data after it is not a plain "PACK".
++ */
++static size_t pwen_skip(const uint8_t *buf, size_t size, size_t sig_size)
++{
++	if (size > PWEN_HDR_SIZE + sig_size + 4 &&
++	    le32(buf) == PWEN_TAG &&
++	    le32(buf + PWEN_HDR_SIZE + sig_size) != PACK_TAG)
++		return PWEN_HDR_SIZE;
++
++	return 0;
++}
++
+ static bool is_zero(const uint8_t *p, size_t n)
+ {
+ 	while (n--)
+@@ -807,27 +825,34 @@ int main(int argc, char **argv)
+ {
+ 	struct options opt = { 0 };
+ 	struct package pkg;
+-	unsigned char *fw;
+-	size_t size;
++	unsigned char *buf, *fw;
++	size_t size, skip;
++	bool inspect;
+ 	int ret;
+ 
+ 	if (parse_args(argc, argv, &opt))
+ 		return EXIT_USAGE;
+ 
+-	fw = read_file(opt.path, &size);
+-	if (!fw)
++	buf = read_file(opt.path, &size);
++	if (!buf)
+ 		return EXIT_FAIL;
+ 
++	skip = pwen_skip(buf, size, opt.sig_size);
++	if (skip)
++		dbg("skipping the 0x%zx byte PWEN index", skip);
++	fw = buf + skip;
++	size -= skip;
++
+ 	if (opt.sig_size >= size) {
+ 		err("--sig-size 0x%zx is not smaller than the file (%zu bytes)",
+ 		    opt.sig_size, size);
+-		free(fw);
++		free(buf);
+ 		return EXIT_USAGE;
+ 	}
+ 	if (opt.has_signed_block && opt.signed_block >= size) {
+ 		err("--signed-block 0x%zx is not smaller than the file (%zu bytes)",
+ 		    opt.signed_block, size);
+-		free(fw);
++		free(buf);
+ 		return EXIT_USAGE;
+ 	}
+ 	if (opt.sig_size != SIG_SIZE)
+@@ -835,16 +860,21 @@ int main(int argc, char **argv)
+ 		     opt.sig_size, SIG_SIZE);
+ 
+ 	memset(&pkg, 0, sizeof(pkg));
+-	ret = parse_package(&pkg, fw, size, opt.no_check);
++	/*
++	 * The package behind a PWEN index need not use the layout parsed
++	 * here, so only check it when asked to (--list, --check, --require).
++	 */
++	inspect = !skip || opt.list || opt.check_only || opt.require_soc;
++	ret = inspect ? parse_package(&pkg, fw, size, opt.no_check) : 0;
+ 	if (ret < 0 && !opt.no_check) {
+ 		free(pkg.entries);
+-		free(fw);
++		free(buf);
+ 		return EXIT_PACKAGE;
+ 	}
+ 	if (ret != 0 && opt.check_only)
+ 		warn("package structure differs from what this tool expects");
+ 
+-	if (verbosity >= 1 && (opt.list || opt.check_only || verbosity >= 2))
++	if (inspect && verbosity >= 1 && (opt.list || opt.check_only || verbosity >= 2))
+ 		print_package_summary(&pkg);
+ 
+ 	if (opt.list)
+@@ -858,7 +888,7 @@ int main(int argc, char **argv)
+ 			    "placeholder entries with an all-zero payload)",
+ 			    opt.require_soc, empty);
+ 			free(pkg.entries);
+-			free(fw);
++			free(buf);
+ 			return EXIT_PACKAGE;
+ 		}
+ 		dbg("%zu usable entries for %s (%zu placeholders)", n,
+@@ -867,19 +897,19 @@ int main(int argc, char **argv)
+ 
+ 	if (opt.list || opt.check_only) {
+ 		free(pkg.entries);
+-		free(fw);
++		free(buf);
+ 		return ret > 0 ? EXIT_PACKAGE : EXIT_OK;
+ 	}
+ 
+ 	free(pkg.entries);
+ 
+ 	if (opt.wait_sec && wait_for_tee(opt.wait_sec)) {
+-		free(fw);
++		free(buf);
+ 		return EXIT_TEE_INIT;
+ 	}
+ 
+ 	ret = load_firmware(&opt, fw, size);
+-	free(fw);
++	free(buf);
+ 
+ 	return ret;
+ }
+-- 
+2.43.0
