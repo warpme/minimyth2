@@ -2,9 +2,8 @@
 GARNAME      = linux-firmware-meson
 GARVERSION   = f23e523ba82e3fd0701f995896c7776b388e4f74
 CATEGORIES   = firmware
-MASTER_SITES = https://github.com/jefflessard/meson-vdec-extra/archive/ \
-               https://github.com/LibreELEC/meson-firmware/raw/614c2a824e8f22f2f02baa7faa9668cb9efb6a95/meson/vdec/
-DISTFILES    = $(GARVERSION).zip video_ucode.bin
+MASTER_SITES = https://github.com/jefflessard/meson-vdec-extra/archive/
+DISTFILES    = $(GARVERSION).zip
 LICENSE      =
 DESCRIPTION  =
 define BLURB
@@ -28,7 +27,6 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/gxm_h264_multi.bin   $(DESTDIR)$(elibdir)/firmware/meson/vdec/
 	@cp -Rdf $(WORKSRC)/g12a_h264_multi.bin  $(DESTDIR)$(elibdir)/firmware/meson/vdec/
 	@cp -Rdf $(WORKSRC)/sm1_h264_multi.bin   $(DESTDIR)$(elibdir)/firmware/meson/vdec/
-	@cp -Rdf $(WORKDIR)/video_ucode.bin      $(DESTDIR)$(elibdir)/firmware/meson/vdec/
 	@$(MAKECOOKIE)
 
 clean-all: clean
@@ -37,4 +35,3 @@ clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/gxm_h264_multi.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/g12a_h264_multi.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/sm1_h264_multi.bin
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/meson/vdec/video_ucode.bin
