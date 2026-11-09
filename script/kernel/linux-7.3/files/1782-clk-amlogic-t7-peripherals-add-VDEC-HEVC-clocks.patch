@@ -1,0 +1,162 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Subject: [PATCH] clk: amlogic: t7-peripherals: add VDEC, HEVCF and HEVCB clocks
+
+Add the video decoder clocks (cts_vdec_clk, cts_hevcf_clk,
+cts_hevcb_clk). Each is a pair of sel/div/gate branches (p0/p1) selected
+by a glitch-free final mux, with registers and bit positions taken from
+the vendor T7 clock driver.
+
+
+---
+diff --git a/drivers/clk/meson/t7-peripherals.c b/drivers/clk/meson/t7-peripherals.c
+index 7594c8d..0738af5 100644
+--- a/drivers/clk/meson/t7-peripherals.c
++++ b/drivers/clk/meson/t7-peripherals.c
+@@ -30,6 +30,10 @@
+ #define ANAKIN_CLK_CTRL		0xac
+ #define MIPI_CSI_PHY_CLK_CTRL	0x10c
+ #define MIPI_ISP_CLK_CTRL	0x110
++#define VDEC_CLK_CTRL		0x140
++#define VDEC2_CLK_CTRL		0x144
++#define VDEC3_CLK_CTRL		0x148
++#define VDEC4_CLK_CTRL		0x14c
+ #define TS_CLK_CTRL		0x158
+ #define MALI_CLK_CTRL		0x15c
+ #define ETH_CLK_CTRL		0x164
+@@ -711,6 +715,95 @@ static struct clk_regmap t7_mali = {
+ 	},
+ };
+ 
++static const struct clk_parent_data t7_dec_parents[] = {
++	{ .fw_name = "fdiv2p5", },
++	{ .fw_name = "fdiv3", },
++	{ .fw_name = "fdiv4", },
++	{ .fw_name = "fdiv5", },
++	{ .fw_name = "fdiv7", },
++	{ .fw_name = "hifi", },
++	{ .fw_name = "gp0", },
++	{ .fw_name = "xtal", },
++};
++
++static T7_COMP_SEL(vdec_0, VDEC_CLK_CTRL, 9, 0x7, t7_dec_parents);
++static T7_COMP_DIV(vdec_0, VDEC_CLK_CTRL, 0, 7);
++static T7_COMP_GATE(vdec_0, VDEC_CLK_CTRL, 8, 0);
++
++static T7_COMP_SEL(vdec_1, VDEC3_CLK_CTRL, 9, 0x7, t7_dec_parents);
++static T7_COMP_DIV(vdec_1, VDEC3_CLK_CTRL, 0, 7);
++static T7_COMP_GATE(vdec_1, VDEC3_CLK_CTRL, 8, 0);
++
++static struct clk_regmap t7_vdec = {
++	.data = &(struct clk_regmap_mux_data){
++		.offset = VDEC3_CLK_CTRL,
++		.mask = 1,
++		.shift = 15,
++	},
++	.hw.init = &(struct clk_init_data){
++		.name = "vdec",
++		.ops = &clk_regmap_mux_ops,
++		.parent_hws = (const struct clk_hw *[]) {
++			&t7_vdec_0.hw,
++			&t7_vdec_1.hw,
++		},
++		.num_parents = 2,
++		.flags = CLK_SET_RATE_PARENT,
++	},
++};
++
++static T7_COMP_SEL(hevcf_0, VDEC2_CLK_CTRL, 9, 0x7, t7_dec_parents);
++static T7_COMP_DIV(hevcf_0, VDEC2_CLK_CTRL, 0, 7);
++static T7_COMP_GATE(hevcf_0, VDEC2_CLK_CTRL, 8, 0);
++
++static T7_COMP_SEL(hevcf_1, VDEC4_CLK_CTRL, 9, 0x7, t7_dec_parents);
++static T7_COMP_DIV(hevcf_1, VDEC4_CLK_CTRL, 0, 7);
++static T7_COMP_GATE(hevcf_1, VDEC4_CLK_CTRL, 8, 0);
++
++static struct clk_regmap t7_hevcf = {
++	.data = &(struct clk_regmap_mux_data){
++		.offset = VDEC4_CLK_CTRL,
++		.mask = 1,
++		.shift = 15,
++	},
++	.hw.init = &(struct clk_init_data){
++		.name = "hevcf",
++		.ops = &clk_regmap_mux_ops,
++		.parent_hws = (const struct clk_hw *[]) {
++			&t7_hevcf_0.hw,
++			&t7_hevcf_1.hw,
++		},
++		.num_parents = 2,
++		.flags = CLK_SET_RATE_PARENT,
++	},
++};
++
++static T7_COMP_SEL(hevcb_0, VDEC2_CLK_CTRL, 25, 0x7, t7_dec_parents);
++static T7_COMP_DIV(hevcb_0, VDEC2_CLK_CTRL, 16, 7);
++static T7_COMP_GATE(hevcb_0, VDEC2_CLK_CTRL, 24, 0);
++
++static T7_COMP_SEL(hevcb_1, VDEC4_CLK_CTRL, 25, 0x7, t7_dec_parents);
++static T7_COMP_DIV(hevcb_1, VDEC4_CLK_CTRL, 16, 7);
++static T7_COMP_GATE(hevcb_1, VDEC4_CLK_CTRL, 24, 0);
++
++static struct clk_regmap t7_hevcb = {
++	.data = &(struct clk_regmap_mux_data){
++		.offset = VDEC4_CLK_CTRL,
++		.mask = 1,
++		.shift = 31,
++	},
++	.hw.init = &(struct clk_init_data){
++		.name = "hevcb",
++		.ops = &clk_regmap_mux_ops,
++		.parent_hws = (const struct clk_hw *[]) {
++			&t7_hevcb_0.hw,
++			&t7_hevcb_1.hw,
++		},
++		.num_parents = 2,
++		.flags = CLK_SET_RATE_PARENT,
++	},
++};
++
+ /*
+  * parent index 2, 3, 4, 5, 6 not connect any clock signal,
+  * the last parent connect external PAD
+@@ -1089,6 +1182,27 @@ static struct clk_hw *t7_peripherals_hw_clks[] = {
+ 	[CLKID_MALI_1_DIV]		= &t7_mali_1_div.hw,
+ 	[CLKID_MALI_1]			= &t7_mali_1.hw,
+ 	[CLKID_MALI]			= &t7_mali.hw,
++	[CLKID_VDEC_0_SEL]	= &t7_vdec_0_sel.hw,
++	[CLKID_VDEC_0_DIV]	= &t7_vdec_0_div.hw,
++	[CLKID_VDEC_0]		= &t7_vdec_0.hw,
++	[CLKID_VDEC_1_SEL]	= &t7_vdec_1_sel.hw,
++	[CLKID_VDEC_1_DIV]	= &t7_vdec_1_div.hw,
++	[CLKID_VDEC_1]		= &t7_vdec_1.hw,
++	[CLKID_VDEC]		= &t7_vdec.hw,
++	[CLKID_HEVCF_0_SEL]	= &t7_hevcf_0_sel.hw,
++	[CLKID_HEVCF_0_DIV]	= &t7_hevcf_0_div.hw,
++	[CLKID_HEVCF_0]		= &t7_hevcf_0.hw,
++	[CLKID_HEVCF_1_SEL]	= &t7_hevcf_1_sel.hw,
++	[CLKID_HEVCF_1_DIV]	= &t7_hevcf_1_div.hw,
++	[CLKID_HEVCF_1]		= &t7_hevcf_1.hw,
++	[CLKID_HEVCF]		= &t7_hevcf.hw,
++	[CLKID_HEVCB_0_SEL]	= &t7_hevcb_0_sel.hw,
++	[CLKID_HEVCB_0_DIV]	= &t7_hevcb_0_div.hw,
++	[CLKID_HEVCB_0]		= &t7_hevcb_0.hw,
++	[CLKID_HEVCB_1_SEL]	= &t7_hevcb_1_sel.hw,
++	[CLKID_HEVCB_1_DIV]	= &t7_hevcb_1_div.hw,
++	[CLKID_HEVCB_1]		= &t7_hevcb_1.hw,
++	[CLKID_HEVCB]		= &t7_hevcb.hw,
+ 	[CLKID_ETH_RMII_SEL]		= &t7_eth_rmii_sel.hw,
+ 	[CLKID_ETH_RMII_DIV]		= &t7_eth_rmii_div.hw,
+ 	[CLKID_ETH_RMII]		= &t7_eth_rmii.hw,
+
+--
+
+MiniMyth2
+

@@ -227,6 +227,8 @@ PATCHFILES += 1778-mmc-meson-gx-use-the-interface-3-tuning-on-T7.patch
 PATCHFILES += 1779-pmdomain-amlogic-t7-keep-the-USB-SDIO-and-eMMC-domai.patch
 PATCHFILES += 1780-tee-optee-use-the-reserved-shared-memory-pool-on-t7.patch
 PATCHFILES += 1781-media-meson-ao-cec-g12a-add-T7-support.patch
+PATCHFILES += 1782-clk-amlogic-t7-peripherals-add-VDEC-HEVC-clocks.patch
+PATCHFILES += 1783-dt-bindings-clock-t7-add-VDEC-HEVC-clocks.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -242,6 +244,7 @@ PATCHFILES += 1810-arm64-dtsi-amlogic-meson-s4-add-HDMI-TX-CEC-pinctrl-g.patch
 PATCHFILES += 1830-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 # t7 dtsi additions
 PATCHFILES += 1850-arm64-dtsi-amlogic-t7-add-eth-usb-hdmi-audio-ths-dvfs.patch
+PATCHFILES += 1851-arm64-dtsi-amlogic-t7-add-vdec-nodes.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -257,6 +260,8 @@ PATCHFILES += 1951-arm64-dts-amlogic-add-dts-for-x96-max-ultra-plus-tvbox.patch
 PATCHFILES += 1952-arm64-dts-meson-sc2-add-rbox-hk1-tvbox.patch
 # t7 board dts additions
 PATCHFILES += 1970-arm64-dts-t7-vim4-improvements.patch
+PATCHFILES += 1971-arm42-dts-vim4-enable-vdec.patch
+
 endif
 #------------------------------------------------------------
 
