@@ -717,7 +717,6 @@ PATCHFILES += 5153-0166-net-stmmac-dwmac-tc956x-Read-MAC-address-from-firmwa.pat
 PATCHFILES += 5154-0038-r8169-Remove-the-check-of-a-register-to-enable-ASPM-.patch
 # pci patches
 PATCHFILES += 5160-0065-PCI-pwrctrl-tc9563-Make-error-teardown-safe.patch
-PATCHFILES += 5161-0115-PCI-qcom-Restrict-PERST-parsing-to-PCI-bridge-nodes.patch
 PATCHFILES += 5162-0120-PCI-of-Avoid-config-reads-for-disabled-bridge-nodes.patch
 PATCHFILES += 5163-0123-PCI-pwrctrl-tc9563-Add-AXI-half-frequency-support.patch
 PATCHFILES += 5164-0163-PCI-qcom-Override-NO_SNOOP-attribute-for-SC8280XP-pl.patch
