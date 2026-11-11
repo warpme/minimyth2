@@ -133,7 +133,7 @@ PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
 # --------Patches 350+ are plugins patches---------------------
 # Various mythweather patches
-PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
+# todo PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
 
 # Various mythzoneminder patches
 PATCHFILES += 0500-mythzmserver-update-to-support-zm1.36.13.patch
