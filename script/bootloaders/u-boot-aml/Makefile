@@ -130,8 +130,8 @@ GARVERSION   = 5508406582f6f7120dce0c4b3059819a41788db2
 # mainline 2025.04 GA
 # GARVERSION   = 34820924edbc4ec7803eb89d9852f4b870fa760a
 
-# git@ 03.10.2026
-FIPVERSION   = 7c2070c20f69ecd832f2ec1e9d242dbbf39ab64a
+# git@ 04.11.2026
+FIPVERSION   = 19d415fb036a57592e40f1e88ce2c39bb180f1e2
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/ \
                https://github.com/LibreELEC/amlogic-boot-fip/archive/
 DISTFILES    = $(GARVERSION).zip $(FIPVERSION).zip
