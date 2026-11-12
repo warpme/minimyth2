@@ -123,20 +123,6 @@ PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
 PATCHFILES += 1406-media-v4l2-ctrls-add-VC-1-profile-and-level-controls.patch
 PATCHFILES += 1407-media-uapi-add-VC-1-stateless-decoder-pixel-format-a.patch
 PATCHFILES += 1408-media-uapi-add-MPEG-4-Part-2-and-H.263-stateless-dec.patch
-ifeq (0,1)
-# gus aml stateless amvdec https://github.com/gusbourg/linux/commits/amlogic-vdec/rfc/ 26.09.2026 g8bb71d57f
-PATCHFILES += 1410-media-uapi-add-the-Amlogic-AM21C-compressed-format.patch
-PATCHFILES += 1411-media-amlogic-add-the-video-decoder-core.patch
-PATCHFILES += 1412-media-amlogic-amvdec-add-MPEG-2-decoding.patch
-PATCHFILES += 1413-media-amlogic-amvdec-add-H.264-decoding.patch
-PATCHFILES += 1414-media-amlogic-amvdec-add-HEVC-decoding.patch
-PATCHFILES += 1415-media-amlogic-amvdec-add-VP9-decoding.patch
-endif
-ifeq (0,1)
-# gus openucode stateless amvdec
-PATCHFILES += 1420-media-amlogic-inclide-amvdec-into-drivers-media.patch
-PATCHFILES += 1421-media-amlogic-add-amvdec-gc58504cf81.patch
-endif
 # LE aml stateless amvdec
 ifeq (1,1)
 PATCHFILES += 1430-media-videobuf2-dma-contig-fix-cache-maintenance-of-.patch
@@ -149,6 +135,8 @@ PATCHFILES += 1436-media-amlogic-amvdec-add-VP9-decoding.patch
 PATCHFILES += 1437-media-amlogic-amvdec-export-HEVC-basic-layout-compre.patch
 PATCHFILES += 1438-media-amlogic-amvdec-allow-4K-HEVC-on-GXBB.patch
 PATCHFILES += 1439-media-amlogic-amvdec-add-S4-support.patch
+#PATCHFILES += 1440-media-amlogic-amvdec-add-VC-1-decoding.patch
+#PATCHFILES += 1441-media-amlogic-amvdec-add-AV1-decoding-on-S4.patch
 endif
 # open tee support
 PATCHFILES += 1450-tee-optee-use-the-reserved-shared-memory-pool-on-Aml.patch
