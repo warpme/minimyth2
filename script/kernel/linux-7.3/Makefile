@@ -135,8 +135,8 @@ PATCHFILES += 1436-media-amlogic-amvdec-add-VP9-decoding.patch
 PATCHFILES += 1437-media-amlogic-amvdec-export-HEVC-basic-layout-compre.patch
 PATCHFILES += 1438-media-amlogic-amvdec-allow-4K-HEVC-on-GXBB.patch
 PATCHFILES += 1439-media-amlogic-amvdec-add-S4-support.patch
-#PATCHFILES += 1440-media-amlogic-amvdec-add-VC-1-decoding.patch
-#PATCHFILES += 1441-media-amlogic-amvdec-add-AV1-decoding-on-S4.patch
+PATCHFILES += 1440-media-amlogic-amvdec-add-VC-1-decoding.patch
+PATCHFILES += 1441-media-amlogic-amvdec-add-AV1-decoding-on-S4.patch
 endif
 # open tee support
 PATCHFILES += 1450-tee-optee-use-the-reserved-shared-memory-pool-on-Aml.patch
