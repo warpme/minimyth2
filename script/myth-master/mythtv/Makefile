@@ -99,6 +99,8 @@ PATCHFILES += 0171-libmythtv-decoders-mythv4l2m2mcontext-add-vc1_request-support
 PATCHFILES += 0172-ffmpeg-hwcontext-v4l2request-add-NV12M.patch
 PATCHFILES += 0173-ffmpeg-v4l2request-report-capture-errors.patch
 # myth egl dmabuff not supports afbc so commented: PATCHFILES += 0174-ffmpeg-v4l2request-add-amlogic-afbc-am21c-support.patch
+# fix for myth wrongly selects sw. libav1d instead of v4l2_reques hw av1 decoder
+PATCHFILES += 0175-libmythtv-decoders-use-native-av1-decoder-for-v4l2-request.patch
 endif
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch

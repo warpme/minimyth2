@@ -1,0 +1,126 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+libmythtv: use the native 'av1' AVCodec for V4L2 Request (stateless) AV1
+decoding when libdav1d is also built in.
+
+With --enable-libdav1d ffmpeg registers two AVCodec entries for
+AV_CODEC_ID_AV1: the native 'av1' decoder (hwaccel capable, needed by the
+V4L2 Request API on e.g. Rockchip Hantro) and the software-only 'libdav1d'.
+av_find_best_stream() in AvFormatDecoder::autoSelectVideoTrack() may pick
+'libdav1d', and MythV4L2M2MContext::GetSupportedCodec() never replaced it.
+The result was software YUV frames flowing into a pipeline configured for
+DRM-PRIME ('Not a DRM PRIME buffer', 'bad dst image pointers', ...).
+
+1) mythv4l2m2mcontext.cpp: in GetSupportedCodec() swap *Codec for the
+   native decoder (same codec id, empty wrapper_name) on the request path.
+
+2) avformatdecoder.cpp: the AVCodecContext (incl. priv_data) was allocated
+   for the original codec, so it cannot be re-pointed at another AVCodec
+   (avcodec_open2() errors out / asserts on priv_class). Re-create it when
+   it does not match the substituted codec, carrying over opaque, threads
+   and loop filter settings and the pix_fmt required by HwDecoderInit().
+   For AV1 the pix_fmt is then cleared before avcodec_open2() so that the
+   native decoder calls get_format(), which creates the V4L2 request
+   hw device/frames context (otherwise get_buffer() fails with EINVAL).
+
+diff --speed-large-files --no-dereference --minimal -Naur mythtv/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp mythtv-patched/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp
+--- mythtv/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp
++++ mythtv-patched/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp
+@@ -88,6 +88,41 @@
+         request = true;
+     }
+
++    if (request)
++    {
++        // av_find_best_stream() may have selected a software-only wrapper
++        // decoder (e.g. 'libdav1d' for AV_CODEC_ID_AV1) that has no
++        // hwaccel/get_format support, instead of the native FFmpeg decoder
++        // that the V4L2 Request API hwaccel path requires. If the codec
++        // currently selected is such a wrapper (it has a non-empty
++        // wrapper_name - the native decoder's wrapper_name is empty),
++        // explicitly switch to the native decoder with the same codec_id
++        // before forcing AV_PIX_FMT_DRM_PRIME below. Without this, the
++        // wrapper decoder silently ignores the hwaccel pix_fmt/get_format
++        // and decodes in software, while the rest of the pipeline is left
++        // configured for DRM-PRIME.
++        if ((*Codec)->wrapper_name && (*Codec)->wrapper_name[0] != '\0')
++        {
++            void *opaque = nullptr;
++            const AVCodec *candidate = nullptr;
++            while ((candidate = av_codec_iterate(&opaque)))
++            {
++                if (candidate->id != (*Codec)->id)
++                    continue;
++                if (!av_codec_is_decoder(candidate))
++                    continue;
++                if (candidate->wrapper_name && candidate->wrapper_name[0] != '\0')
++                    continue; // still a wrapper (e.g. another libXXX variant)
++                *Codec = candidate;
++                // AVCodecContext was allocated for the original (wrapper)
++                // codec; avcodec_open2() requires avctx->codec to match
++                // the codec pointer passed to it, so update it here too.
++                (*Context)->codec = *Codec;
++                break;
++            }
++        }
++    }
++
+ #if CONFIG_MMAL
+     // If MMAL is available, assume this is a Raspberry Pi and check the supported
+     // video sizes
+diff --speed-large-files --no-dereference --minimal -Naur mythtv/mythtv/libs/libmythtv/decoders/avformatdecoder.cpp mythtv-patched/mythtv/libs/libmythtv/decoders/avformatdecoder.cpp
+--- mythtv/mythtv/libs/libmythtv/decoders/avformatdecoder.cpp
++++ mythtv-patched/mythtv/libs/libmythtv/decoders/avformatdecoder.cpp
+@@ -2048,6 +2048,32 @@
+         break;
+     }
+ 
++    // A hardware decoder backend may have substituted the AVCodec. The
++    // context was allocated (including priv_data) for the original codec,
++    // so it must be re-created for the new one.
++    const bool ctxmismatch = codec && codecContext &&
++        ((codecContext->codec && codecContext->codec != codec) ||
++         (codec->priv_class && codecContext->priv_data &&
++          *static_cast<const AVClass* const *>(codecContext->priv_data) != codec->priv_class));
++    if (ctxmismatch)
++    {
++        LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("Codec context does not match codec '%1' - re-creating codec context")
++            .arg(codec->name));
++        void *opaque = codecContext->opaque;
++        int threads = codecContext->thread_count;
++        AVDiscard skiploop = codecContext->skip_loop_filter;
++        AVPixelFormat pixfmt = codecContext->pix_fmt;
++        m_codecMap.FreeCodecContext(stream);
++        codecContext = m_codecMap.GetCodecContext(stream, codec);
++        if (!codecContext)
++            return -1;
++        codecContext->opaque = opaque;
++        codecContext->thread_count = threads;
++        codecContext->skip_loop_filter = skiploop;
++        // HwDecoderInit() requires the pix_fmt forced by the backend
++        codecContext->pix_fmt = pixfmt;
++    }
++
+     if (FlagIsSet(kDecodeSingleThreaded))
+         thread_count = 1;
+ 
+@@ -2063,7 +2089,15 @@
+         codecContext->thread_count = static_cast<int>(thread_count);
+     }
+ 
+     InitVideoCodec(stream, codecContext, true);
++
++    // The native AV1 decoder does not call get_format() when pix_fmt has been
++    // pre-set (GetSupportedCodec forces DRM_PRIME), so hw_device_ctx /
++    // hw_frames_ctx are never created and get_buffer() fails with EINVAL.
++    // HwDecoderInit() has already run, so let FFmpeg negotiate the format
++    // itself, as 'mythffmpeg -hwaccel v4l2request' does.
++    if (foundgpudecoder && codecContext->codec_id == AV_CODEC_ID_AV1)
++        codecContext->pix_fmt = AV_PIX_FMT_NONE;
+ 
+     ScanATSCCaptionStreams(stream_index);
+     UpdateATSCCaptionTracks();
+--
