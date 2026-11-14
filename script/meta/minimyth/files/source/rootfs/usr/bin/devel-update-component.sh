@@ -27,7 +27,7 @@
 #
 # 3.make sure on target machine in this script variable 'src_rsync_module' has
 # correct IP address on devel.machine. Current autosetup IP for your env. is:
-# src_rsync_module="192.168.1.190::devel-updates"
+# src_rsync_module="@MM_DEVEL_IP@::devel-updates"
 #
 # 4. Run script on target and select component to update...
 #
@@ -66,7 +66,7 @@
 # dry_run="yes"
 
 # Default host IP::Module where new files reside
-src_rsync_module="192.168.1.190::devel-updates"
+src_rsync_module="@MM_DEVEL_IP@::devel-updates"
 
 # Log file with output from rsync
 log_file="/var/log/online-update.log"
@@ -178,14 +178,13 @@ component_4="FFmpeg"
 directory_list4=""
 
 file_list4=" \
-usr/lib/libswscale.so*:usr/lib \
-usr/lib/libswresample.so*:usr/lib \
-usr/lib/libpostproc.so*:usr/lib \
-usr/lib/libavutil.so*:usr/lib \
 usr/lib/libavcodec.so*:usr/lib \
-usr/lib/libavformat.so*:usr/lib \
-usr/lib/libavfilter.so*:usr/lib \
 usr/lib/libavdevice.so*:usr/lib \
+usr/lib/libavfilter.so*:usr/lib \
+usr/lib/libavformat.so*:usr/lib \
+usr/lib/libavutil.so*:usr/lib \
+usr/lib/libswresample.so*:usr/lib \
+usr/lib/libswscale.so*:usr/lib \
 usr/bin/ffprobe:usr/bin \
 usr/bin/ffplay:usr/bin \
 usr/bin/ffmpeg:usr/bin"
@@ -317,7 +316,7 @@ epilog_cmdz="sync"
 
 
 
-ver="v2.0 by (c)Piotr Oniszczuk"
+ver="v2.1 by (c)Piotr Oniszczuk"
 
 clear
 
