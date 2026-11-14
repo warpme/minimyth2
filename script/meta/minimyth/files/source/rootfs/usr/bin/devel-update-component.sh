@@ -192,6 +192,26 @@ usr/bin/ffmpeg:usr/bin"
 epilog_cmd4="sync"
 #--------------------------
 
+# ---- FFmpeg dir/files ---
+component_41="FFmpeg"
+
+directory_list41=""
+
+file_list41=" \
+usr/lib/libavcodec.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libavdevice.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libavfilter.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libavformat.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libavutil.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libswresample.so*:rootfs/rootfs-ro/usr/lib \
+usr/lib/libswscale.so*:rootfs/rootfs-ro/usr/lib \
+usr/bin/ffprobe:rootfs/rootfs-ro/usr/bin \
+usr/bin/ffplay:rootfs/rootfs-ro/usr/bin \
+usr/bin/ffmpeg:rootfs/rootfs-ro/usr/bin"
+
+epilog_cmd41="sync"
+#--------------------------
+
 # --- gstreamer lib/bin files ---
 component_5="Gstreamer"
 directory_list5=" \
@@ -354,6 +374,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (3)  for "${component_3}
     echo "  (31) for "${component_31}
     echo "  (4)  for "${component_4}
+    echo "  (41) for "${component_41}
     echo "  (5)  for "${component_5}
     echo "  (6)  for "${component_6}
     echo "  (7)  for "${component_7}
@@ -418,6 +439,15 @@ case "${selection}" in
         directory_list=${directory_list4}
         file_list=${file_list4}
         epilog_cmd="${epilog_cmd4}" ;;
+
+    41) echo "Updating ${component_41} ..."
+        # unset dest_prefix as for nfs root case this
+        # script is run from nfs root dir (which has loc. 
+        # dependent on mm2 ver, etc)
+        dest_prefix=""
+        directory_list=${directory_list41}
+        file_list=${file_list41}
+        epilog_cmd="${epilog_cmd41}" ;;
 
     5)  echo "Updating ${component_5} ..."
         directory_list=${directory_list5}
