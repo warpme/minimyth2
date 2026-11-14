@@ -59,7 +59,7 @@
 
 
 # -----Config are BEGIN -------
-my $default_be_ip         = "192.168.1.254";
+my $default_be_ip         = "@MM_MASTER_SERVER@";
 my $fe_ip_list            = "127.0.0.1";
 
 my $frontend_proces_list  = "mythfrontend";
