@@ -88,6 +88,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (11) Update mythtv in NFS rootfs"
     echo "  (21) Update mesa in NFS rootfs"
     echo "  (31) Update kernel in NFS rootfs"
+    echo "  (41) Update FFmpeg in NFS rootfs"
     echo " "
     echo "or press Enter to exit..."
     echo
@@ -224,6 +225,16 @@ case "${selection}" in
         echo "  Please provide root password..."
         echo " "
         sudo chroot ${nfs_top_dir}; sudo ${nfs_devel_script} 31
+        ;;
+
+    41) echo "changing working dir to: [${nfs_top_dir}]"
+        cd ${nfs_top_dir}
+        echo "running: /${nfs_devel_script} 41"
+        echo " "
+        echo "  Updating kernel on NFS rootfs content requires root priviliges."
+        echo "  Please provide root password..."
+        echo " "
+        sudo chroot ${nfs_top_dir}; sudo ${nfs_devel_script} 41
         ;;
 
     *)
