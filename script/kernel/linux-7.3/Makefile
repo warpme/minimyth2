@@ -180,6 +180,7 @@ PATCHFILES += 1723-drm-meson-vclk-wait-for-both-S4-PLL-lock-bits-for-CV.patch
 PATCHFILES += 1724-clk-meson-s4-peripherals-allow-setting-the-CEC-32k-c.patch
 PATCHFILES += 1725-media-platform-meson-ao-cec-g12a-add-support-for-the.patch
 PATCHFILES += 1726-drm-meson-meson_viu-fix-green-playback-with-vendor-uboot.patch
+PATCHFILES += 1727-drm-meson-s4-fix-wrong-VD1-AFBC-decoder-registers.patch
 # sc2 drivers additions
 PATCHFILES += 1740-clk-meson-add-clock-driver-for-SC2.patch
 PATCHFILES += 1741-pinctrl-meson-add-pinctrl-driver-for-SC2.patch

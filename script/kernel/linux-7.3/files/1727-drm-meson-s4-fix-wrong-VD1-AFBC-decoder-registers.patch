@@ -1,0 +1,169 @@
+
+Issue: amvdec decoder outputs AM21C fine (CAPTURE bytesused = 0x48000 header).
+FFmpeg exports YU10 + AMLOGIC_FBC(SCATTER), Kodi puts it on overlay plane 42 and
+every atomic commit succeeds, but the screen stays black.
+
+Cause: meson_crtc.c writes the VD1 AFBC decoder registers at the G12A
+addresses (AFBC_ENABLE 0x1ae0 .. AFBC_VD_CFMT_H 0x1af1).
+
+On S4/SC2 that block moved to 0x4840..0x4851 (vendor viu_regs.h SC2_AFBC_*, same order), so on
+S4 the AFBC decoder is never programmed. 
+MESON_S4_VIU_OFFSET (0xb6c0) is right for VD1_IF0 (0x4800) but
+not for AFBC (0x4840 - 0x1ae0 = 0x2d60 regs).
+
+With this fix: HEVC Main10 4K60 shows correctly via AM21C with direct to
+plane: drop 0, skip 0-1 in Kodi player debug, picture correct (10-bit, no NV12 rounding).
+1080p HEVC 10-bit also runs as AM21C.
+
+Fidings and fix proposal comes from domeneponuda-beep (great work)!
+
+diff -ruN a/drivers/gpu/drm/meson/meson_crtc.c b/drivers/gpu/drm/meson/meson_crtc.c
+--- a/drivers/gpu/drm/meson/meson_crtc.c	2026-11-09 22:16:15.512531047 +0100
++++ b/drivers/gpu/drm/meson/meson_crtc.c	2026-11-09 22:16:15.531447598 +0100
+@@ -29,6 +29,8 @@
+ 
+ #define MESON_G12A_VIU_OFFSET	0x5ec0
+ #define MESON_S4_VIU_OFFSET	0xb6c0
++/* S4: the VD1 AFBC decoder moved from 0x1ae0 (G12A) to 0x4840 (vendor SC2_AFBC_*) */
++#define MESON_S4_AFBC_OFFSET	((0x4840 - 0x1ae0) << 2)
+ 
+ /* CRTC definition */
+ 
+@@ -320,9 +322,13 @@
+ 		       VD_BLEND_POSTBLD_PREMULT_EN,
+ 		       priv->io_base + _REG(VD1_BLEND_SRC_CTRL));
+ 
+-	writel_relaxed(priv->viu.vd1_afbc ?
+-		       (VD1_AXI_SEL_AFBC | AFBC_VD1_SEL) : 0,
+-		       priv->io_base + _REG(VD1_AFBCD0_MISC_CTRL));
++	u32 misc = priv->viu.vd1_afbc ? (VD1_AXI_SEL_AFBC | AFBC_VD1_SEL) : 0;
++
++	/* TL1 and later (S4): afbc0 memory select, as the vendor vd1_path_select() */
++	if (priv->viu.vd1_afbc && priv->compat == VPU_COMPATIBLE_S4)
++		misc |= VD1_AFBC0_MEM_SEL;
++
++	writel_relaxed(misc, priv->io_base + _REG(VD1_AFBCD0_MISC_CTRL));
+ }
+ 
+ void meson_crtc_irq(struct meson_drm *priv)
+@@ -417,52 +423,58 @@
+ 
+ 	/* Update the VD1 registers */
+ 	if (priv->viu.vd1_enabled && priv->viu.vd1_commit) {
++		u32 afbc_off = priv->compat == VPU_COMPATIBLE_S4 ?
++			       MESON_S4_AFBC_OFFSET : 0;
++
+ 
+ 		if (priv->viu.vd1_afbc) {
++			if (priv->compat == VPU_COMPATIBLE_S4)
++				writel_relaxed(0, priv->io_base + afbc_off +
++					       _REG(AFBCDEC_IQUANT_ENABLE));
+ 			writel_relaxed(priv->viu.vd1_afbc_head_addr,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_HEAD_BADDR));
+ 			writel_relaxed(priv->viu.vd1_afbc_body_addr,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_BODY_BADDR));
+ 			writel_relaxed(priv->viu.vd1_afbc_en,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_ENABLE));
+ 			writel_relaxed(priv->viu.vd1_afbc_mode,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_MODE));
+ 			writel_relaxed(priv->viu.vd1_afbc_size_in,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_SIZE_IN));
+ 			writel_relaxed(priv->viu.vd1_afbc_dec_def_color,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_DEC_DEF_COLOR));
+ 			writel_relaxed(priv->viu.vd1_afbc_conv_ctrl,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_CONV_CTRL));
+ 			writel_relaxed(priv->viu.vd1_afbc_size_out,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_SIZE_OUT));
+ 			writel_relaxed(priv->viu.vd1_afbc_vd_cfmt_ctrl,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_VD_CFMT_CTRL));
+ 			writel_relaxed(priv->viu.vd1_afbc_vd_cfmt_w,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_VD_CFMT_W));
+ 			writel_relaxed(priv->viu.vd1_afbc_mif_hor_scope,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_MIF_HOR_SCOPE));
+ 			writel_relaxed(priv->viu.vd1_afbc_mif_ver_scope,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_MIF_VER_SCOPE));
+ 			writel_relaxed(priv->viu.vd1_afbc_pixel_hor_scope,
+-				       priv->io_base+
++				       priv->io_base + afbc_off+
+ 				       _REG(AFBC_PIXEL_HOR_SCOPE));
+ 			writel_relaxed(priv->viu.vd1_afbc_pixel_ver_scope,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_PIXEL_VER_SCOPE));
+ 			writel_relaxed(priv->viu.vd1_afbc_vd_cfmt_h,
+-				       priv->io_base +
++				       priv->io_base + afbc_off +
+ 				       _REG(AFBC_VD_CFMT_H));
+ 		} else {
+ 			switch (priv->viu.vd1_planes) {
+@@ -497,7 +509,7 @@
+ 						    MESON_CANVAS_ENDIAN_SWAP64);
+ 			}
+ 
+-			writel_relaxed(0, priv->io_base + _REG(AFBC_ENABLE));
++			writel_relaxed(0, priv->io_base + afbc_off + _REG(AFBC_ENABLE));
+ 		}
+ 
+ 		writel_relaxed(priv->viu.vd1_if0_gen_reg,
+diff -ruN a/drivers/gpu/drm/meson/meson_overlay.c b/drivers/gpu/drm/meson/meson_overlay.c
+--- a/drivers/gpu/drm/meson/meson_overlay.c	2026-11-09 22:16:15.512563586 +0100
++++ b/drivers/gpu/drm/meson/meson_overlay.c	2026-11-09 22:16:15.531553284 +0100
+@@ -507,6 +507,15 @@
+ 
+ 		priv->viu.vd1_afbc_conv_ctrl = AFBC_CONV_LBUF_LEN(256);
+ 
++		/*
++		 * TL1 and later (S4), as the vendor driver for decoder frames:
++		 * dos_uncomp in AFBC_ENABLE and 420 in AFBC_CONV_CTRL[13:12]
++		 */
++		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4)) {
++			priv->viu.vd1_afbc_en |= BIT(19);
++			priv->viu.vd1_afbc_conv_ctrl |= (2 << 12);
++		}
++
+ 		priv->viu.vd1_afbc_dec_def_color = AFBC_DEF_COLOR_Y(1023);
+ 
+ 		/* 420: horizontal / 2, vertical / 4 */
+diff -ruN a/drivers/gpu/drm/meson/meson_registers.h b/drivers/gpu/drm/meson/meson_registers.h
+--- a/drivers/gpu/drm/meson/meson_registers.h	2026-11-09 22:16:15.512585737 +0100
++++ b/drivers/gpu/drm/meson/meson_registers.h	2026-11-09 22:16:15.530290092 +0100
+@@ -152,6 +152,7 @@
+ #define VD1_AFBCD0_MISC_CTRL 0x1a0a
+ #define		VD1_AXI_SEL_AFBC		(1 << 12)
+ #define		AFBC_VD1_SEL			(1 << 10)
++#define		VD1_AFBC0_MEM_SEL		(1 << 22)
+ #define VD2_AFBCD1_MISC_CTRL 0x1a0b
+ #define VIU_OSD1_CTRL_STAT 0x1a10
+ #define		VIU_OSD1_OSD_BLK_ENABLE         BIT(0)
+@@ -412,6 +413,7 @@
+ #define AFBC_PIXEL_HOR_SCOPE 0x1aef
+ #define AFBC_PIXEL_VER_SCOPE 0x1af0
+ #define AFBC_VD_CFMT_H 0x1af1
++#define AFBCDEC_IQUANT_ENABLE 0x1af2
+ 
+ /* vpp */
+ #define VPP_DUMMY_DATA 0x1d00
