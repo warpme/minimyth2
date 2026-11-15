@@ -11,24 +11,36 @@ endef
 
 DEPENDS   = myth/mythtv
 
+include ../../minimyth.conf.mk
+
+ifneq (,$(filter master,$(mm_VERSION_MYTH)))
+MYTHTV_VER_SUFFIX = -37
+else
+MYTHTV_VER_SUFFIX = -$(mm_VERSION_MYTH)
+endif
+
+ifneq (,$(filter 35 36,$(mm_VERSION_MYTH)))
+MYTHTV_VER_SUFFIX = 
+endif
+
 HEADERS_DIRS   = libavcodec    libavdevice    libavfilter    libavformat    libavutil    libswresample    libswscale
 PC_FILES       = libavcodec.pc libavdevice.pc libavfilter.pc libavformat.pc libavutil.pc libswresample.pc libswscale.pc
-DEST_LIB_FILES = libavcodec.*  libavdevice.*  libavfilter.*  libavformat.*  libavutil.*  libswresample.*  libswscale.*
+DEST_LIB_FILES = libavcodec*  libavdevice*  libavfilter*  libavformat*  libavutil*  libswresample*  libswscale*
 SRC_LIB_FILES  = \
- libmythavcodec.so.63.1.100 \
- libmythavcodec.so.63 \
- libmythavdevice.so.63.1.100 \
- libmythavdevice.so.63 \
- libmythavfilter.so.12.1.100 \
- libmythavfilter.so.12 \
- libmythavformat.so.63.1.100 \
- libmythavformat.so.63 \
- libmythavutil.so.61.1.100 \
- libmythavutil.so.61 \
- libmythswresample.so.7.1.100 \
- libmythswresample.so.7 \
- libmythswscale.so.10.1.100 \
- libmythswscale.so.10
+ libmythavcodec$(MYTHTV_VER_SUFFIX).so.63.1.100 \
+ libmythavcodec$(MYTHTV_VER_SUFFIX).so.63 \
+ libmythavdevice$(MYTHTV_VER_SUFFIX).so.63.1.100 \
+ libmythavdevice$(MYTHTV_VER_SUFFIX).so.63 \
+ libmythavfilter$(MYTHTV_VER_SUFFIX).so.12.1.100 \
+ libmythavfilter$(MYTHTV_VER_SUFFIX).so.12 \
+ libmythavformat$(MYTHTV_VER_SUFFIX).so.63.1.100 \
+ libmythavformat$(MYTHTV_VER_SUFFIX).so.63 \
+ libmythavutil$(MYTHTV_VER_SUFFIX).so.61.1.100 \
+ libmythavutil$(MYTHTV_VER_SUFFIX).so.61 \
+ libmythswresample$(MYTHTV_VER_SUFFIX).so.7.1.100 \
+ libmythswresample$(MYTHTV_VER_SUFFIX).so.7 \
+ libmythswscale$(MYTHTV_VER_SUFFIX).so.10.1.100 \
+ libmythswscale$(MYTHTV_VER_SUFFIX).so.10
 DEST_BIN_FILES = ffmpeg ffprobe ffplay
 SRC_BIN_FILES  = mythffmpeg mythffprobe mythffplay
 
@@ -82,7 +94,7 @@ install-custom: delete-headers delete-pcfiles delete-libs delete-bins
 	@echo "installing lib files" ; \
 	 for file in $(SRC_LIB_FILES) ; do \
 		if [ -e $(DESTDIR)$(libdir)/$${file} ] ; then \
-			destfile=$$(echo $${file} | sed -e 's/myth//g') ; \
+			destfile=$$(echo $${file} | sed -e 's/myth//g' -e 's/$(MYTHTV_VER_SUFFIX)//g') ; \
 			destsofile=$$(echo $${destfile} | sed -e 's/so.*/so/g') ; \
 			echo $${destfile} ; \
 			echo $${destsofile} ; \
