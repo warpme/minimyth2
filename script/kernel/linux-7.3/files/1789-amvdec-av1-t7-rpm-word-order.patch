@@ -1,0 +1,91 @@
+Patch from MiniMyth2 project
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+meson-amvdec: AV1 on T7 - undo the word order of the RPM block
+
+The T7 AV1 microcode stores the RPM parameter block with the order of every
+group of four 16-bit words reversed (the vendor driver reverses it back when
+it reads the block). Read at the S4 offsets, frame type, order hint and
+height came out wrong (e.g. "firmware parsed type 0 hint 7 size 1920x1920,
+controls 1 32 1920x1080"), and intra_only taken from the block would be
+read from the wrong word.
+
+Add an av1_rpm_swap platform capability, set for T7, and reverse the groups
+after copying the block. Verified from dumps: after the swap type, order hint,
+width and height match the V4L2 controls on every frame.
+Needs 0007 applied.
+
+diff --speed-large-files --no-dereference --minimal -Naur -r a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	2026-11-16 21:49:16.564066525 +0100
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	2026-11-16 21:49:16.614634423 +0100
+@@ -642,6 +642,7 @@
+ 	.revision = AMVDEC_REVISION_S4,
+ 	.dos_canvas = true,
+ 	.av1_host_parser = true,
++	.av1_rpm_swap = true,
+ };
+ 
+ MODULE_FIRMWARE("amrisc/amrisc_vc1.bin");
+diff --speed-large-files --no-dereference --minimal -Naur -r a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	2026-11-16 21:49:16.564246226 +0100
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	2026-11-16 21:49:16.614490952 +0100
+@@ -35,6 +35,8 @@
+  * @av1_host_parser: the AV1 microcode does not program the stream/parser
+  *		front-end itself (T7): the host must do it, as the vendor
+  *		driver does, or the microcode never finds the sequence header
++ * @av1_rpm_swap: the AV1 microcode writes the RPM parameter block with the
++ *		order of every group of four 16-bit words reversed (T7)
+  */
+ struct amvdec_platform {
+ 	const struct amvdec_format *formats;
+@@ -43,6 +45,7 @@
+ 	u32 dmc_chan_sts;
+ 	bool dos_canvas;
+ 	bool av1_host_parser;
++	bool av1_rpm_swap;
+ };
+ 
+ extern const struct amvdec_platform meson_amvdec_platform_gxbb;
+diff --speed-large-files --no-dereference --minimal -Naur -r a/drivers/media/platform/amlogic/amvdec/codec_av1.c b/drivers/media/platform/amlogic/amvdec/codec_av1.c
+--- a/drivers/media/platform/amlogic/amvdec/codec_av1.c	2026-11-16 21:49:16.564395995 +0100
++++ b/drivers/media/platform/amlogic/amvdec/codec_av1.c	2026-11-16 21:49:25.506162988 +0100
+@@ -222,7 +222,7 @@
+ 	bool failed;
+ 	bool restream_pending;
+ 
+-	u16 rpm[AV1_RPM_WORDS];
++	u16 rpm[ALIGN(AV1_RPM_WORDS, 4)];
+ 
+ 	/* loop filter thresholds and levels */
+ 	u8 lf_lim[AV1_MAX_LOOP_FILTER + 1];
+@@ -1275,6 +1275,20 @@
+ 	cur->valid = true;
+ }
+ 
++/*
++ * The T7 microcode stores the RPM block with each group of four words in
++ * reverse order; the vendor driver undoes that when it reads the block.
++ */
++static void av1_rpm_swap(u16 *r)
++{
++	int i;
++
++	for (i = 0; i < ALIGN(AV1_RPM_WORDS, 4); i += 4) {
++		swap(r[i], r[i + 3]);
++		swap(r[i + 1], r[i + 2]);
++	}
++}
++
+ static void av1_check_rpm(struct amvdec_session *sess, struct codec_av1 *av1)
+ {
+ 	const struct v4l2_ctrl_av1_frame *f = &av1->req.frame;
+@@ -1303,6 +1317,8 @@
+ 	int ret;
+ 
+ 	memcpy(av1->rpm, av1->workspace_vaddr + AV1_RPM_OFF, sizeof(av1->rpm));
++	if (core->platform->av1_rpm_swap)
++		av1_rpm_swap(av1->rpm);
+ 	av1_check_rpm(sess, av1);
+ 
+ 	if (!av1->configured) {

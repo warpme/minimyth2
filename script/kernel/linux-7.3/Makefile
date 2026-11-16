@@ -222,6 +222,8 @@ PATCHFILES += 1784-media-amvdec-add-T7-platform.patch
 PATCHFILES += 1785-media-amvdec-t7-use-DOS-internal-canvas-LUT.patch
 PATCHFILES += 1786-media-amvdec-t7-shadow-frames-with-byte-swap.patch
 PATCHFILES += 1787-media-amvdec-t7-byte-swap-MPEG-2-output.patch
+PATCHFILES += 1788-amvdec-av1-t7-program-parser-front-end-from-host.patch
+PATCHFILES += 1789-amvdec-av1-t7-rpm-word-order.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch

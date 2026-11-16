@@ -1,0 +1,102 @@
+Patch from MiniMyth2 project
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+meson-amvdec: AV1 on T7 - program the parser front-end from the host
+
+The S4 and SC2 AV1 microcode programs the stream and parser front-end
+(HEVC_SHIFT_STARTCODE/EMULATECODE, CABAC_CONTROL, PARSER_CORE_CONTROL,
+PARSER_IF_CONTROL, PARSER_INT_CONTROL, SHIFT_STATUS) itself as soon as
+data arrives, and stops on the sequence header (status 0xf2). The T7
+microcode leaves all of them at their reset values, never starts parsing
+and only answers AOM_NAL_DECODE_DONE (0x25), so no AV1 stream can be
+decoded.
+
+The vendor driver writes these registers from the host. Do the same on
+SoCs flagged with the new av1_host_parser platform capability, set for T7.
+All of the registers are needed: each subset tried on its own leaves the
+microcode on 0x25.
+
+diff --speed-large-files --no-dereference --minimal -Naur -r a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	2026-11-16 21:38:15.453820657 +0100
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c	2026-11-16 21:38:15.528916997 +0100
+@@ -641,6 +641,7 @@
+ 	.num_formats = ARRAY_SIZE(amvdec_formats_s4),
+ 	.revision = AMVDEC_REVISION_S4,
+ 	.dos_canvas = true,
++	.av1_host_parser = true,
+ };
+ 
+ MODULE_FIRMWARE("amrisc/amrisc_vc1.bin");
+diff --speed-large-files --no-dereference --minimal -Naur -r a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	2026-11-16 21:38:15.456565243 +0100
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h	2026-11-16 21:38:15.528799585 +0100
+@@ -32,6 +32,9 @@
+  *		  in the "dmc" window
+  * @dos_canvas: the decoder has no DMC canvas LUT and uses the one inside the
+  *		DOS bus (MDEC_CAV_*); output frames need the T7 byte swap
++ * @av1_host_parser: the AV1 microcode does not program the stream/parser
++ *		front-end itself (T7): the host must do it, as the vendor
++ *		driver does, or the microcode never finds the sequence header
+  */
+ struct amvdec_platform {
+ 	const struct amvdec_format *formats;
+@@ -39,6 +42,7 @@
+ 	enum amvdec_revision revision;
+ 	u32 dmc_chan_sts;
+ 	bool dos_canvas;
++	bool av1_host_parser;
+ };
+ 
+ extern const struct amvdec_platform meson_amvdec_platform_gxbb;
+diff --speed-large-files --no-dereference --minimal -Naur -r a/drivers/media/platform/amlogic/amvdec/codec_av1.c b/drivers/media/platform/amlogic/amvdec/codec_av1.c
+--- a/drivers/media/platform/amlogic/amvdec/codec_av1.c	2026-11-16 21:38:15.450831789 +0100
++++ b/drivers/media/platform/amlogic/amvdec/codec_av1.c	2026-11-16 21:38:15.530680009 +0100
+@@ -440,6 +440,27 @@
+ 	meson_amvdec_write_dos(core, AV1_LMEM_DUMP_ADR, ws + AV1_LMEM_OFF);
+ }
+ 
++/*
++ * The S4/SC2 AV1 microcode programs the stream and parser front-end itself.
++ * The T7 microcode leaves these registers at their reset values, never starts
++ * parsing and only answers AOM_NAL_DECODE_DONE (0x25) without a sequence or
++ * frame header. The vendor driver sets them from the host
++ * (aom_init_decoder_hw()/vav1_prot_init()); the values are what the S4
++ * microcode leaves in the registers while it decodes.
++ */
++static void av1_host_parser_init(struct amvdec_core *core)
++{
++	meson_amvdec_write_dos(core, HEVC_SHIFT_STARTCODE, 1);
++	meson_amvdec_write_dos(core, HEVC_SHIFT_EMULATECODE, 0x300);
++	meson_amvdec_write_dos(core, HEVC_CABAC_CONTROL, BIT(0));
++	meson_amvdec_write_dos(core, HEVC_PARSER_CORE_CONTROL, BIT(0));
++	meson_amvdec_write_dos(core, HEVC_PARSER_IF_CONTROL,
++			       BIT(5) | BIT(2) | BIT(0));
++	meson_amvdec_write_dos(core, HEVC_PARSER_INT_CONTROL, 0x6d400091);
++	/* start code check on */
++	meson_amvdec_write_dos_bits(core, HEVC_SHIFT_STATUS, BIT(0));
++}
++
+ static int codec_av1_start(struct amvdec_session *sess)
+ {
+ 	struct codec_av1 *av1;
+@@ -462,6 +483,8 @@
+ 	}
+ 	sess->priv = av1;
+ 	av1_hw_init(sess, av1);
++	if (sess->core->platform->av1_host_parser)
++		av1_host_parser_init(sess->core);
+ 	return 0;
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur -r a/drivers/media/platform/amlogic/amvdec/hevc_regs.h b/drivers/media/platform/amlogic/amvdec/hevc_regs.h
+--- a/drivers/media/platform/amlogic/amvdec/hevc_regs.h	2026-11-16 21:38:15.459288114 +0100
++++ b/drivers/media/platform/amlogic/amvdec/hevc_regs.h	2026-11-16 21:38:15.528599638 +0100
+@@ -47,6 +47,7 @@
+ #define HEVC_STREAM_FIFO_CTL 0xc41c
+ #define HEVC_SHIFT_CONTROL 0xc420
+ #define HEVC_SHIFT_STARTCODE 0xc424
++#define HEVC_SHIFT_EMULATECODE 0xc428
+ #define HEVC_SHIFT_STATUS 0xc42c
+ #define HEVC_SHIFT_BYTE_COUNT 0xc434
+ #define HEVC_CABAC_CONTROL 0xc440
