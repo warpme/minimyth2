@@ -1,0 +1,77 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Subject: [PATCH] media: amvdec: add the T7 platform
+
+T7 uses the S4 generation decoder, but its DMC has no VDEC port to park
+(DMC_REQ_CTRL only implements bits 0..7), so do not set up the DMC
+window for a revision S4 platform without dmc_chan_sts.
+
+Other platforms are untouched: S4 and SC2 set dmc_chan_sts.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
+@@ -1534,6 +1534,8 @@
+ 	  .data = &meson_amvdec_platform_s4 },
+ 	{ .compatible = "amlogic,sc2-vdec",
+ 	  .data = &meson_amvdec_platform_sc2 },
++	{ .compatible = "amlogic,t7-vdec",
++	  .data = &meson_amvdec_platform_t7 },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, vdec_dt_match);
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+@@ -189,6 +189,12 @@
+ 	struct device *dev = &pdev->dev;
+ 	struct resource *res;
+ 
++	if (core->platform->revision == AMVDEC_REVISION_S4 &&
++	    !core->platform->dmc_chan_sts) {
++		/* No DMC port parking on this SoC (T7). */
++		return 0;
++	}
++
+ 	if (core->platform->revision == AMVDEC_REVISION_S4) {
+ 		res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dmc");
+ 		if (!res)
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -631,6 +631,17 @@
+ 	.dmc_chan_sts = 0xf0,
+ };
+ 
++/*
++ * T7: the S4 decoder, without DMC port parking. On T7 DMC_REQ_CTRL only
++ * implements bits 0..7 (reads 0xff) and has no VDEC port at bit 21, so the
++ * park/unpark sequence used on G12A..SC2 does nothing there.
++ */
++const struct amvdec_platform meson_amvdec_platform_t7 = {
++	.formats = amvdec_formats_s4,
++	.num_formats = ARRAY_SIZE(amvdec_formats_s4),
++	.revision = AMVDEC_REVISION_S4,
++};
++
+ MODULE_FIRMWARE("amrisc/amrisc_vc1.bin");
+ MODULE_FIRMWARE("meson/vdec/g12a_h264_multi.bin");
+ MODULE_FIRMWARE("meson/vdec/g12a_hevc_mmu.bin");
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+@@ -46,5 +46,6 @@
+ extern const struct amvdec_platform meson_amvdec_platform_sm1;
+ extern const struct amvdec_platform meson_amvdec_platform_s4;
+ extern const struct amvdec_platform meson_amvdec_platform_sc2;
++extern const struct amvdec_platform meson_amvdec_platform_t7;
+ 
+ #endif
+--
+
+MiniMyth2
+

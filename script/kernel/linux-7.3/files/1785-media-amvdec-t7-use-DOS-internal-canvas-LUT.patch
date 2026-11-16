@@ -1,0 +1,184 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Subject: [PATCH] media: amvdec: T7: use the DOS internal canvas LUT
+
+T7 has no DMC canvas LUT (vendor hw_canvas_support == 0); the decoder
+indexes a 128 entry LUT inside the DOS bus (MDEC_CAV_*) instead.
+
+Add a dos_canvas flag to struct amvdec_platform, set only for T7. When it
+is set, canvases are written to the DOS LUT and ids >= 128 are rejected;
+otherwise meson_canvas_config() is used exactly as before.
+
+MDEC_CAV_CFG0 bit 0 is never set: it makes the decoder write to wrong
+physical addresses.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+@@ -382,6 +382,63 @@
+ 		     meson_amvdec_amfbc_head_size(width, height), SZ_64K);
+ }
+ 
++/*
++ * T7 generation: the DMC canvas LUT is gone (vendor "no canvas",
++ * hw_canvas_support == 0).  The decoder owns an internal 128-entry LUT in the
++ * DOS bus (MDEC_CAV_*) which ANC0/REC/DBK_CANVAS_ADDR index instead.
++ */
++#define MDEC_CAV_LUT_DATAL	0x27a8	/* 0x09ea * 4 */
++#define MDEC_CAV_LUT_DATAH	0x27ac
++#define MDEC_CAV_LUT_ADDR	0x27b0
++#define MDEC_CAV_CFG0		0x27b4
++#define MDEC_CAV_LUT_MAX	128
++
++static bool amvdec_has_dos_canvas(struct amvdec_core *core)
++{
++	return core->platform->dos_canvas;
++}
++
++static void amvdec_canvas_config(struct amvdec_core *core, u8 id, dma_addr_t addr,
++				 u32 width, u32 height, u32 wrap, u32 blkmode,
++				 u32 endian)
++{
++	u32 w8, datal, datah;
++
++	if (!amvdec_has_dos_canvas(core)) {
++		meson_canvas_config(core->canvas, id, addr, width, height, wrap,
++				    blkmode, endian);
++		return;
++	}
++
++	if (id >= MDEC_CAV_LUT_MAX) {
++		dev_err_ratelimited(core->dev_dec, "canvas %u outside the DOS LUT\n", id);
++		return;
++	}
++
++	/*
++	 * The endian field of the T7 LUT has no effect on the output (checked
++	 * with values 0, 4 and 7), so the caller's SWAP64 request is ignored
++	 * and the vendor value 0 is programmed.
++	 */
++	endian = 0;
++
++	w8 = (width + 7) >> 3;
++	datal = (u32)(((addr + 7) >> 3) & 0x1fffffff) | ((w8 & 0x7) << 29);
++	datah = (w8 >> 3) | ((height & 0x1fff) << 9) | ((blkmode & 3) << 24) |
++		((endian & 0xf) << 26);
++
++	/*
++	 * MDEC_CAV_CFG0 stays 0: its bit 0 ("canv_mode") makes the decoder write
++	 * through addresses that are not ours and corrupts kernel memory.
++	 */
++	meson_amvdec_write_dos(core, MDEC_CAV_CFG0, 0);
++	meson_amvdec_write_dos(core, MDEC_CAV_LUT_DATAL, datal);
++	meson_amvdec_write_dos(core, MDEC_CAV_LUT_DATAH, datah);
++	meson_amvdec_write_dos(core, MDEC_CAV_LUT_ADDR, id);
++	dev_dbg(core->dev_dec, "dos canvas %u: addr=%pad w=%u h=%u datah=0x%08x datal=0x%08x\n",
++		id, &addr, width, height, datah, datal);
++}
++
+ static int canvas_alloc(struct amvdec_session *sess, u8 *canvas_id)
+ {
+ 	int ret;
+@@ -394,6 +451,10 @@
+ 	ret = meson_canvas_alloc(sess->core->canvas, canvas_id);
+ 	if (ret)
+ 		return ret;
++	if (amvdec_has_dos_canvas(sess->core) && *canvas_id >= MDEC_CAV_LUT_MAX) {
++		meson_canvas_free(sess->core->canvas, *canvas_id);
++		return -ENOSPC;
++	}
+ 
+ 	sess->canvas_alloc[sess->canvas_num++] = *canvas_id;
+ 	return 0;
+@@ -428,19 +489,19 @@
+ 	}
+ 
+ 	/* Y plane */
+-	meson_canvas_config(core->canvas, canvas_id[0], buf_paddr[0],
++	amvdec_canvas_config(core, canvas_id[0], buf_paddr[0],
+ 			    width, height, MESON_CANVAS_WRAP_NONE,
+ 			    MESON_CANVAS_BLKMODE_LINEAR,
+ 			    MESON_CANVAS_ENDIAN_SWAP64);
+ 
+ 	/* U plane */
+-	meson_canvas_config(core->canvas, canvas_id[1], buf_paddr[1],
++	amvdec_canvas_config(core, canvas_id[1], buf_paddr[1],
+ 			    width / 2, height / 2, MESON_CANVAS_WRAP_NONE,
+ 			    MESON_CANVAS_BLKMODE_LINEAR,
+ 			    MESON_CANVAS_ENDIAN_SWAP64);
+ 
+ 	/* V plane */
+-	meson_canvas_config(core->canvas, canvas_id[2], buf_paddr[2],
++	amvdec_canvas_config(core, canvas_id[2], buf_paddr[2],
+ 			    width / 2, height / 2, MESON_CANVAS_WRAP_NONE,
+ 			    MESON_CANVAS_BLKMODE_LINEAR,
+ 			    MESON_CANVAS_ENDIAN_SWAP64);
+@@ -475,13 +536,13 @@
+ 	}
+ 
+ 	/* Y plane */
+-	meson_canvas_config(core->canvas, canvas_id[0], buf_paddr[0],
++	amvdec_canvas_config(core, canvas_id[0], buf_paddr[0],
+ 			    width, height, MESON_CANVAS_WRAP_NONE,
+ 			    MESON_CANVAS_BLKMODE_LINEAR,
+ 			    MESON_CANVAS_ENDIAN_SWAP64);
+ 
+ 	/* U/V plane */
+-	meson_canvas_config(core->canvas, canvas_id[1], buf_paddr[1],
++	amvdec_canvas_config(core, canvas_id[1], buf_paddr[1],
+ 			    width, height / 2, MESON_CANVAS_WRAP_NONE,
+ 			    MESON_CANVAS_BLKMODE_LINEAR,
+ 			    MESON_CANVAS_ENDIAN_SWAP64);
+@@ -517,11 +578,11 @@
+ 				return ret;
+ 		}
+ 	}
+-	meson_canvas_config(core->canvas, id[0], y,
++	amvdec_canvas_config(core, id[0], y,
+ 			    width, height, MESON_CANVAS_WRAP_NONE,
+ 			    MESON_CANVAS_BLKMODE_LINEAR,
+ 			    MESON_CANVAS_ENDIAN_SWAP64);
+-	meson_canvas_config(core->canvas, id[1], uv,
++	amvdec_canvas_config(core, id[1], uv,
+ 			    width, height / 2, MESON_CANVAS_WRAP_NONE,
+ 			    MESON_CANVAS_BLKMODE_LINEAR,
+ 			    MESON_CANVAS_ENDIAN_SWAP64);
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -640,6 +640,7 @@
+ 	.formats = amvdec_formats_s4,
+ 	.num_formats = ARRAY_SIZE(amvdec_formats_s4),
+ 	.revision = AMVDEC_REVISION_S4,
++	.dos_canvas = true,
+ };
+ 
+ MODULE_FIRMWARE("amrisc/amrisc_vc1.bin");
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+@@ -30,12 +30,15 @@
+  * @revision: SoC generation
+  * @dmc_chan_sts: S4 generation: offset of the DMC channel status register
+  *		  in the "dmc" window
++ * @dos_canvas: the decoder has no DMC canvas LUT and uses the one inside the
++ *		DOS bus (MDEC_CAV_*); output frames need the T7 byte swap
+  */
+ struct amvdec_platform {
+ 	const struct amvdec_format *formats;
+ 	const u32 num_formats;
+ 	enum amvdec_revision revision;
+ 	u32 dmc_chan_sts;
++	bool dos_canvas;
+ };
+ 
+ extern const struct amvdec_platform meson_amvdec_platform_gxbb;
+--
+
+MiniMyth2
+

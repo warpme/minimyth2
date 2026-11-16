@@ -1,0 +1,71 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Subject: [PATCH] media: amvdec: T7: byte-swap MPEG-2 output
+
+The stateless MPEG-2 path builds its canvases through
+meson_amvdec_canvas_nv12m_spec(), bypassing the T7 shadow frames, so its
+CAPTURE buffers came out byte-reversed per 64 bits.
+
+On dos_canvas platforms give each CAPTURE buffer a private frame keyed by
+its index (destination and references keep the decoder-native layout) and
+swap it into the CAPTURE buffer when a picture, or the first field of a
+pair, completes. Other SoCs are unchanged.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+@@ -698,9 +698,21 @@
+ int meson_amvdec_canvas_nv12m_spec(struct amvdec_session *sess, struct vb2_buffer *vb,
+ 			     u32 width, u32 height, u32 *spec)
+ {
++	int ret;
++
++	/*
++	 * Codecs that name destination and references per picture key the
++	 * private frame (see meson_amvdec_shadow_to_capture()) by CAPTURE index.
++	 */
++	if (amvdec_has_dos_canvas(sess->core)) {
++		ret = amvdec_shadow_prepare(sess, vb->index, vb);
++		if (ret)
++			return ret;
++	}
++
+ 	return meson_amvdec_canvas_nv12_spec(sess,
+-					     vb2_dma_contig_plane_dma_addr(vb, 0),
+-					     vb2_dma_contig_plane_dma_addr(vb, 1),
++					     amvdec_canvas_plane_addr(sess, vb, vb->index, 0),
++					     amvdec_canvas_plane_addr(sess, vb, vb->index, 1),
+ 					     width, height, spec);
+ }
+ 
+--- a/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
++++ b/drivers/media/platform/amlogic/amvdec/codec_mpeg12.c
+@@ -428,6 +428,8 @@
+ 		m->pair_dst = sess->request_job.dst->vb2_buf.index;
+ 		m->pair_structure = m->cur_structure;
+ 		m->pair_temporal_ref = m->cur_temporal_ref;
++		meson_amvdec_shadow_to_capture(sess, &sess->request_job.dst->vb2_buf,
++					       sess->request_job.dst->vb2_buf.index);
+ 		meson_amvdec_request_signal(sess, sess->request_job.dst);
+ 		return IRQ_HANDLED;
+ 	}
+@@ -439,6 +441,8 @@
+ 		sess->request_job.error = true;
+ 	}
+ 	meson_amvdec_write_dos(core, MREG_BUFFEROUT, 0);
++	meson_amvdec_shadow_to_capture(sess, &sess->request_job.dst->vb2_buf,
++				       sess->request_job.dst->vb2_buf.index);
+ 	meson_amvdec_request_signal(sess, sess->request_job.dst);
+ 	return IRQ_HANDLED;
+ }
+--
+
+MiniMyth2
+

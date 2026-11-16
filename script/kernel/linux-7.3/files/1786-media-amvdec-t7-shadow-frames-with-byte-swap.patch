@@ -1,0 +1,267 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Subject: [PATCH] media: amvdec: T7: decode into shadow frames and byte-swap into CAPTURE
+
+The T7 DOS memory output is byte-reversed per 64 bits. Decode into
+private per-firmware-index frames, which keep the decoder's native
+layout so references stay valid, and byte-swap them into the CAPTURE
+buffer when a picture is done.
+
+Only active for platforms with dos_canvas set; other SoCs allocate
+nothing and take no extra copy.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
+@@ -499,6 +499,7 @@
+ 		meson_canvas_free(sess->core->canvas, sess->canvas_alloc[i]);
+ 
+ 	sess->canvas_num = 0;
++	meson_amvdec_free_shadow(sess);
+ 
+ 	/* The firmware buffer mappings name the canvases just freed. */
+ 	sess->num_fw_bufs = 0;
+@@ -1475,6 +1476,7 @@
+ 	v4l2_fh_del(&sess->fh, file);
+ 	v4l2_fh_exit(&sess->fh);
+ 	v4l2_ctrl_handler_free(&sess->ctrl_handler);
++	meson_amvdec_free_shadow(sess);
+ 
+ 	mutex_destroy(&sess->lock);
+ 
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.h
+@@ -434,6 +434,15 @@
+ 	u32 fw_buf_canvas[32];
+ 	dma_addr_t fw_buf_paddr[32][3];
+ 
++	/*
++	 * T7: private decoder-native frames per firmware index.  The decoder
++	 * stores them byte-reversed per 64 bits; they stay intact as references
++	 * and are byte-swapped into the CAPTURE buffer on completion.
++	 */
++	void *shadow_vaddr[32][3];
++	dma_addr_t shadow_paddr[32][3];
++	size_t shadow_size[32][3];
++
+ 	enum amvdec_status status;
+ 	void *priv;
+ };
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+@@ -10,6 +10,7 @@
+ #include <linux/delay.h>
+ #include <linux/firmware.h>
+ #include <linux/io.h>
++#include <linux/swab.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_domain.h>
+ #include <linux/pm_runtime.h>
+@@ -439,6 +440,112 @@
+ 		id, &addr, width, height, datah, datal);
+ }
+ 
++static void amvdec_free_shadow_plane(struct amvdec_session *sess, u32 fw_idx, unsigned int p)
++{
++	if (!sess->shadow_vaddr[fw_idx][p])
++		return;
++	dma_free_noncoherent(sess->core->dev, sess->shadow_size[fw_idx][p],
++			     sess->shadow_vaddr[fw_idx][p],
++			     sess->shadow_paddr[fw_idx][p], DMA_FROM_DEVICE);
++	sess->shadow_vaddr[fw_idx][p] = NULL;
++	sess->shadow_size[fw_idx][p] = 0;
++}
++
++void meson_amvdec_free_shadow(struct amvdec_session *sess)
++{
++	u32 i;
++	unsigned int p;
++
++	if (!amvdec_has_dos_canvas(sess->core))
++		return;
++
++	for (i = 0; i < ARRAY_SIZE(sess->shadow_vaddr); i++)
++		for (p = 0; p < ARRAY_SIZE(sess->shadow_vaddr[0]); p++)
++			amvdec_free_shadow_plane(sess, i, p);
++}
++
++static int amvdec_shadow_prepare(struct amvdec_session *sess, u32 fw_idx,
++				 struct vb2_buffer *vb)
++{
++	unsigned int p;
++
++	if (fw_idx >= ARRAY_SIZE(sess->shadow_vaddr) ||
++	    vb->num_planes > ARRAY_SIZE(sess->shadow_vaddr[0]))
++		return -EINVAL;
++
++	for (p = 0; p < vb->num_planes; p++) {
++		size_t size = vb2_plane_size(vb, p);
++		dma_addr_t dma;
++		void *va;
++
++		if (sess->shadow_vaddr[fw_idx][p] && sess->shadow_size[fw_idx][p] >= size)
++			continue;
++		amvdec_free_shadow_plane(sess, fw_idx, p);
++		va = dma_alloc_noncoherent(sess->core->dev, size, &dma,
++					   DMA_FROM_DEVICE, GFP_KERNEL);
++		if (!va)
++			return -ENOMEM;
++		/*
++		 * The allocation was zeroed through the cache: write those dirty
++		 * lines back now, or they may later overwrite what the decoder
++		 * stores in the buffer.
++		 */
++		dma_sync_single_for_device(sess->core->dev, dma, size, DMA_FROM_DEVICE);
++		sess->shadow_vaddr[fw_idx][p] = va;
++		sess->shadow_paddr[fw_idx][p] = dma;
++		sess->shadow_size[fw_idx][p] = size;
++	}
++	return 0;
++}
++
++static dma_addr_t amvdec_canvas_plane_addr(struct amvdec_session *sess,
++					   struct vb2_buffer *vb, u32 fw_idx,
++					   unsigned int plane)
++{
++	if (fw_idx < ARRAY_SIZE(sess->shadow_vaddr) &&
++	    plane < ARRAY_SIZE(sess->shadow_vaddr[0]) &&
++	    sess->shadow_vaddr[fw_idx][plane])
++		return sess->shadow_paddr[fw_idx][plane];
++
++	return vb2_dma_contig_plane_dma_addr(vb, plane);
++}
++
++void meson_amvdec_shadow_to_capture(struct amvdec_session *sess,
++				    struct vb2_buffer *vb, u32 fw_idx)
++{
++	u32 luma = ALIGN(sess->width, 64) * ALIGN(sess->height, 32);
++	unsigned int p;
++
++	if (!amvdec_has_dos_canvas(sess->core) ||
++	    fw_idx >= ARRAY_SIZE(sess->shadow_vaddr))
++		return;
++
++	for (p = 0; p < vb->num_planes && p < ARRAY_SIZE(sess->shadow_vaddr[0]); p++) {
++		const u64 *src = sess->shadow_vaddr[fw_idx][p];
++		u64 *dst;
++		size_t len, i;
++
++		if (!src)
++			continue;
++
++		len = p == 0 ? luma : (sess->pixfmt_cap == V4L2_PIX_FMT_NV12M ? luma / 2 : luma / 4);
++		len = min_t(size_t, len, min(vb2_plane_size(vb, p), sess->shadow_size[fw_idx][p]));
++		len &= ~7UL;
++
++		dst = vb2_plane_vaddr(vb, p);
++		if (!dst) {
++			dev_err_ratelimited(sess->core->dev_dec,
++					    "no kernel mapping for CAPTURE plane %u\n", p);
++			continue;
++		}
++
++		dma_sync_single_for_cpu(sess->core->dev, sess->shadow_paddr[fw_idx][p],
++					len, DMA_FROM_DEVICE);
++		for (i = 0; i < len / 8; i++)
++			dst[i] = swab64(src[i]);
++	}
++}
++
+ static int canvas_alloc(struct amvdec_session *sess, u8 *canvas_id)
+ {
+ 	int ret;
+@@ -467,7 +574,7 @@
+  * is set.
+  */
+ static int set_canvas_yuv420m(struct amvdec_session *sess,
+-			      struct vb2_buffer *vb, u32 width,
++			      struct vb2_buffer *vb, u32 fw_idx, u32 width,
+ 			      u32 height, u32 reg, u32 *spec)
+ {
+ 	struct amvdec_core *core = sess->core;
+@@ -484,8 +591,7 @@
+ 				return ret;
+ 		}
+ 
+-		buf_paddr[i] =
+-		    vb2_dma_contig_plane_dma_addr(vb, i);
++		buf_paddr[i] = amvdec_canvas_plane_addr(sess, vb, fw_idx, i);
+ 	}
+ 
+ 	/* Y plane */
+@@ -514,7 +620,7 @@
+ }
+ 
+ static int set_canvas_nv12m(struct amvdec_session *sess,
+-			    struct vb2_buffer *vb, u32 width,
++			    struct vb2_buffer *vb, u32 fw_idx, u32 width,
+ 			    u32 height, u32 reg, u32 *spec)
+ {
+ 	struct amvdec_core *core = sess->core;
+@@ -531,8 +637,7 @@
+ 				return ret;
+ 		}
+ 
+-		buf_paddr[i] =
+-		    vb2_dma_contig_plane_dma_addr(vb, i);
++		buf_paddr[i] = amvdec_canvas_plane_addr(sess, vb, fw_idx, i);
+ 	}
+ 
+ 	/* Y plane */
+@@ -690,13 +795,19 @@
+ 		return -EINVAL;
+ 	reg_cur = reg_base[reg_base_cur] + reg_num_cur * 4;
+ 
++	if (amvdec_has_dos_canvas(sess->core)) {
++		ret = amvdec_shadow_prepare(sess, fw_idx, vb);
++		if (ret)
++			return ret;
++	}
++
+ 	switch (pixfmt) {
+ 	case V4L2_PIX_FMT_NV12M:
+-		ret = set_canvas_nv12m(sess, vb, width, height, reg_cur,
++		ret = set_canvas_nv12m(sess, vb, fw_idx, width, height, reg_cur,
+ 				       &sess->fw_buf_canvas[fw_idx]);
+ 		break;
+ 	case V4L2_PIX_FMT_YUV420M:
+-		ret = set_canvas_yuv420m(sess, vb, width, height, reg_cur,
++		ret = set_canvas_yuv420m(sess, vb, fw_idx, width, height, reg_cur,
+ 					 &sess->fw_buf_canvas[fw_idx]);
+ 		break;
+ 	default:
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.h
+@@ -74,6 +74,11 @@
+ 			      struct vb2_buffer *vb,
+ 			      u32 reg_base[], u32 reg_num[]);
+ 
++/* T7: byte-swap the decoder-native shadow frame of @fw_idx into @vb. */
++void meson_amvdec_shadow_to_capture(struct amvdec_session *sess,
++				    struct vb2_buffer *vb, u32 fw_idx);
++void meson_amvdec_free_shadow(struct amvdec_session *sess);
++
+ /* Complete the request control handler before returning the OUTPUT buffer. */
+ void meson_amvdec_src_buf_done(struct amvdec_session *sess,
+ 			 struct vb2_v4l2_buffer *vbuf,
+--- a/drivers/media/platform/amlogic/amvdec/codec_h264.c
++++ b/drivers/media/platform/amlogic/amvdec/codec_h264.c
+@@ -2042,6 +2042,7 @@
+ 			vb2_set_plane_payload(&dst->vb2_buf, 2, output_size / 4);
+ 			break;
+ 		}
++		meson_amvdec_shadow_to_capture(sess, &dst->vb2_buf, h264->multi_done_fw_idx);
+ 		v4l2_m2m_buf_copy_metadata(h264->multi_src_vbuf, dst);
+ 		dst->field = V4L2_FIELD_NONE;
+ 		if (h264->multi_field_mate)
+--
+
+MiniMyth2
+
