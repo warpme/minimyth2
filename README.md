@@ -97,79 +97,79 @@ MiniMyth2 [Wiki](https://github.com/warpme/minimyth2/wiki)
 ### General Functionality
 This is general functionality avaliable on current code (Mainline Linux kernel)
 
-| Net boot  SoC | Tested on        | WiFi Chip & Support                    | eMMC boot | SPI boot  | Net boot  | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
-----------------|------------------|----------------------------------------|-----------|-----------|-----------|-------------|-------------|--------------------------------|-------------------------------|
-Allwinner H6    | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works     | n/a       | not tested| works       | works       | well supported                 | well supported                |
-Allwinner H6    | TanixTX6         | works  (ap6330@SDIO)                   | works     | n/a       | not tested| works       | works       | works                          | well supported                |
-Allwinner H6    | TanixTX6-Mini    | works  (xr819@SDIO)                    | not tested| n/a       | not tested| works       | n/a         | not works                      | well supported                |
-Allwinner H6    | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works     | n/a       | not works | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H6    | OrangePi-3 LTS   | not works (aw859a)                     | works     | works     | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H313  | X96-Q(DDR3)      | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H313  | X96-Q(LPDDR3)    | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H313  | TanixTX1         | not works (9082@SDIO)                  | works     | n/a       | n/a       | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H616  | TanixTX6s-axp313 | works  (ap6330@SDIO)                   | not tested| n/a       | not tested| works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616  | TanixTX6s        | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616  | Pendoo-X12Pro    | works  (sp6330@SDIO)                   | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616  | OrangePi-Zero2   | works  (aw859a@SDIO)                   | not tested| not works | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H618  | OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | not tested| works     | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H618  | Vontar H618      | works  (ap6334@SDIO)                   | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H618  | OrangePi-Zero2w  | works  (uwe5622a@SDIO)                 | not tested| works     | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H618  | Transpeed-8k618t | works  (hk2735@SDIO)                   | works     | n/a       | works     | works       | FD650 works | not works (firmware issue)     | some things are still missing |
-Rockchip 3328   | Beelink A1       | works  (rtl8821@USB)                   | not works | n/a       | not works | works       |AiP1618 works| currently power off/on         | well supported                |
-Rockchip 3399   | RockPI 4-b       | works  (ap6256@SDIO)                   | works     | not works | works     | works       | n/a         | currently power off/on         | well supported                |
-Rockchip 3399   | RockPI 4-se      | works  (ap6255@SDIO)                   | works     | not tested| works     | works       | n/a         | currently power off/on         | well supported                |
-Rockchip 3399   | OrangePi-4 LTS   | works  (uwe5622@SDIO)                  | works     | not tested| not works | works       | n/a         | not works                      | good prospects                |
-Rockchip 3528   | Vontar-R3        | not works                              | not tested| n/a       | not tested| not works   | not works   | not works                      | missing VOP3 so no HDMI       |
-Rockchip 3566   | X96-X6           | works  (am7256@SDIO)                   | works     | n/a       | not tested| works       |AiP1628 works| not works                      | good prospects                |
-Rockchip 3566   | Quartz64 Model B | works  (cm256sm@SDIO)                  | not tested| works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3566   | URVE Pi          | works  (rtl8821@SDIO)                  | works     | n/a       | not tested| not works   | n/a         | not works                      | good prospects                |
-Rockchip 3566   | OrangePi-3B      | works  (uwe5622@SDIO)                  | not tested| n/a       | not tested| works       | n/a         | not works                      | good prospects                |
-Rockchip 3566   | Zero-3w (wifi6)  | works  (aic8800@SDIO)                  | works     | n/a       | n/a       | works       | n/a         | not works                      | good prospects                |
-Rockchip 3566   | Zero-3w (wifi5)  | works  (ap6212@SDIO)                   | works     | n/a       | n/a       | works       | n/a         | not works                      | good prospects                |
-Rockchip 3566   | Zero-3e          | n/a                                    | n/a       | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3566   | Rock3-C          | works  (ap6256@SDIO)                   | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3568   | Rock3-A          | works  (iwl7265@PCI-e)                 | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3568   | Rock3-B          | works  (iwl7265@PCI-e)                 | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s  | Rock5A           | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s  | Rock5C           | works  (aic8800@USB)                   | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3576   | NanoPi-M5        | works  (rtl8822cs@SDIO)                | not tested| n/a       | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3576   | NanoPi-R76S      | works  (rtl8822cs@SDIO)                | works     | n/a       | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3576   | Rock4D           | works  (aic8800@SDIO)                  | UFS,works | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s  | NanoPi-M6        | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s  | NanoPi-R6S       | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s  | OrangePi 5       | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s  | OrangePi 5 Pro   | works  (ap6256@SDIO)                   | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s2 | Khadas Edge2     | works  (ap6275p@PCI-e)                 | works     | works     | n/a       | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588   | Rock5B           | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588   | Rock5T           | works  (rtl8852@PCI-e)                 | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588   | Orange5 Plus     | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588   | NanoPC-T6        | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588   | NanoPC-T6-LTS    | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588   | Rock5 ITX        | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
-Qualcomm QCS6490| Dragon Q6A       | works  (aic8800@USB)                   | works     | works     | works     | n/a         | n/a         | not works                      | good prospects                |
-Qualcomm SC8280 | Dragon Q8B       | n/a                                    | not tested| works     | works     | works       | n/a         | not works                      | good prospects                |
-Amlogic s905    | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not tested| n/a       | works     | works       | FD650 works | not works (firmware issue)     | support stalled               |
-Amlogic s912    | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
-Amlogic sm1     | X96-Air          | works  (rtl8189@SDIO)                  | works     | n/a       | works     | works       | TMI1628     | not works (firmware issue)     | support stalled               |
-Amlogic sm1     | Tanix-TX5plus    | works  (rtl8822CS@SDIO)                | works     | n/a       | works     | works       | FD650 works | not works (firmware issue)     | support stalled               |
-Amlogic s905d3  | Khadas VIM3l     | works  (ap6398s@SDIO)                  | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
-Amlogic g12a    | Radxa-Zero       | works  (ap6256@SDIO)                   | works     | n/a       | n/a       | works       | n/a         | not works (firmware issue)     | support stalled               |
-Amlogic g12b    | Khadas VIM3      | works  (rtl4359@SDIO)                  | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
-Amlogic s905w2  | TV98             | not works (cdtech 47W3155)             | not tested| n/a       | works     | works       | FD650 works | not works (firmware issue)     | support in-progress           |
-Amlogic s905w2  | Tanix W2         | not works (cdtech 47W3155)             | not tested| n/a       | works     | works       | FD650 works | not works (firmware issue)     | support in-progress           |
-Amlogic s905y4  | Khadas VIM1S     | works  (ap6256@SDIO)                   | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support in-progress           |
-Amlogic s905x4  | X96 MaxPlusUltra | not works  (FN-Link K255B-SR@SDIO)     | not tested| n/a       | works     | works       |AiP1628 works| not works (firmware issue)     | support in-progress           |
-Amlogic s905x4  | RBox HK1         | wip (HK6334Q)                          | not tested| n/a       | works     | works       | FD6551 works| not works (firmware issue)     | support in-progress           |
-Amlogic a311d2  | Khadas VIM4      | wip (AP6275@SDIO)                      | not tested| n/a       | not works | works       | n/a         | not works (firmware issue)     | support stalled               |
-Broadcom 2837   | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | n/a       | not tested| works       | n/a         | no plans                       | all basics works nicelly      |
-Broadcom 2711   | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
-Broadcom 2712   | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
-Intel i5        | i5 NUC           | n/a                                    | n/a       | n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support               |
-Intel Z8500     | Beelink MII-V    | works  (ac3165@PCI-e)                  | not tested| n/a       | works     | n/a         | n/a         | works (s1idle)                 | perfect support               |
-Intel N3450     | Beelink BT4      | works  (ac3165@PCI-e)                  | not tested| n/a       | works     | n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
-Intel N3450     | Beelink T34      | works  (ac3165@PCI-e)                  | not tested| n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support, bootsplah nok|
-AMD E1-2100     | AMD Kabini       | n/a                                    | n/a       | n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support               |
-Intel D2550     | ION2             | n/a                                    | n/a       | n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support               |
+| Net boot  SoC    | Tested on        | WiFi Chip & Support                    | eMMC boot | SPI boot  | Net boot  | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
+-------------------|------------------|----------------------------------------|-----------|-----------|-----------|-------------|-------------|--------------------------------|-------------------------------|
+Allwinner H6       | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works     | n/a       | not tested| works       | works       | well supported                 | well supported                |
+Allwinner H6       | TanixTX6         | works  (ap6330@SDIO)                   | works     | n/a       | not tested| works       | works       | works                          | well supported                |
+Allwinner H6       | TanixTX6-Mini    | works  (xr819@SDIO)                    | not tested| n/a       | not tested| works       | n/a         | not works                      | well supported                |
+Allwinner H6       | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works     | n/a       | not works | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H6       | OrangePi-3 LTS   | not works (aw859a)                     | works     | works     | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H313     | X96-Q(DDR3)      | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H313     | X96-Q(LPDDR3)    | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H313     | TanixTX1         | not works (9082@SDIO)                  | works     | n/a       | n/a       | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H616     | TanixTX6s-axp313 | works  (ap6330@SDIO)                   | not tested| n/a       | not tested| works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H616     | TanixTX6s        | works  (xr819@SDIO)                    | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H616     | Pendoo-X12Pro    | works  (sp6330@SDIO)                   | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H616     | OrangePi-Zero2   | works  (aw859a@SDIO)                   | not tested| not works | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H618     | OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | not tested| works     | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H618     | Vontar H618      | works  (ap6334@SDIO)                   | works     | n/a       | works     | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H618     | OrangePi-Zero2w  | works  (uwe5622a@SDIO)                 | not tested| works     | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H618     | Transpeed-8k618t | works  (hk2735@SDIO)                   | works     | n/a       | works     | works       | FD650 works | not works (firmware issue)     | some things are still missing |
+Rockchip 3328      | Beelink A1       | works  (rtl8821@USB)                   | not works | n/a       | not works | works       |AiP1618 works| currently power off/on         | well supported                |
+Rockchip 3399      | RockPI 4-b       | works  (ap6256@SDIO)                   | works     | not works | works     | works       | n/a         | currently power off/on         | well supported                |
+Rockchip 3399      | RockPI 4-se      | works  (ap6255@SDIO)                   | works     | not tested| works     | works       | n/a         | currently power off/on         | well supported                |
+Rockchip 3399      | OrangePi-4 LTS   | works  (uwe5622@SDIO)                  | works     | not tested| not works | works       | n/a         | not works                      | good prospects                |
+Rockchip 3528      | Vontar-R3        | not works                              | not tested| n/a       | not tested| not works   | not works   | not works                      | missing VOP3 so no HDMI       |
+Rockchip 3566      | X96-X6           | works  (am7256@SDIO)                   | works     | n/a       | not tested| works       |AiP1628 works| not works                      | good prospects                |
+Rockchip 3566      | Quartz64 Model B | works  (cm256sm@SDIO)                  | not tested| works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3566      | URVE Pi          | works  (rtl8821@SDIO)                  | works     | n/a       | not tested| not works   | n/a         | not works                      | good prospects                |
+Rockchip 3566      | OrangePi-3B      | works  (uwe5622@SDIO)                  | not tested| n/a       | not tested| works       | n/a         | not works                      | good prospects                |
+Rockchip 3566      | Zero-3w (wifi6)  | works  (aic8800@SDIO)                  | works     | n/a       | n/a       | works       | n/a         | not works                      | good prospects                |
+Rockchip 3566      | Zero-3w (wifi5)  | works  (ap6212@SDIO)                   | works     | n/a       | n/a       | works       | n/a         | not works                      | good prospects                |
+Rockchip 3566      | Zero-3e          | n/a                                    | n/a       | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3566      | Rock3-C          | works  (ap6256@SDIO)                   | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3568      | Rock3-A          | works  (iwl7265@PCI-e)                 | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3568      | Rock3-B          | works  (iwl7265@PCI-e)                 | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s     | Rock5A           | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s     | Rock5C           | works  (aic8800@USB)                   | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3576      | NanoPi-M5        | works  (rtl8822cs@SDIO)                | not tested| n/a       | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3576      | NanoPi-R76S      | works  (rtl8822cs@SDIO)                | works     | n/a       | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3576      | Rock4D           | works  (aic8800@SDIO)                  | UFS,works | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s     | NanoPi-M6        | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s     | NanoPi-R6S       | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s     | OrangePi 5       | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s     | OrangePi 5 Pro   | works  (ap6256@SDIO)                   | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s2    | Khadas Edge2     | works  (ap6275p@PCI-e)                 | works     | works     | n/a       | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588      | Rock5B           | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588      | Rock5T           | works  (rtl8852@PCI-e)                 | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588      | Orange5 Plus     | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588      | NanoPC-T6        | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588      | NanoPC-T6-LTS    | n.a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588      | Rock5 ITX        | n/a                                    | works     | works     | works     | works       | n/a         | not works                      | good prospects                |
+Qualcomm QCS6490   | Dragon Q6A       | works  (aic8800@USB)                   | works     | works     | works     | n/a         | n/a         | not works                      | good prospects                |
+Qualcomm SC8280    | Dragon Q8B       | n/a                                    | not tested| works     | works     | works       | n/a         | not works                      | good prospects                |
+Amlogic s905w(gxl) | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not tested| n/a       | works     | works       | FD650 works | not works (firmware issue)     | support stalled               |
+Amlogic s912(gxm)  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic s905x3(sm1)| X96-Air          | works  (rtl8189@SDIO)                  | works     | n/a       | works     | works       | TMI1628     | not works (firmware issue)     | support stalled               |
+Amlogic s905x3(sm1)| Tanix-TX5plus    | works  (rtl8822CS@SDIO)                | works     | n/a       | works     | works       | FD650 works | not works (firmware issue)     | support stalled               |
+Amlogic s905d3(sm1)| Khadas VIM3l     | works  (ap6398s@SDIO)                  | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic s905y2(g12a| Radxa-Zero       | works  (ap6256@SDIO)                   | works     | n/a       | n/a       | works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic a311d(g12b)| Khadas VIM3      | works  (rtl4359@SDIO)                  | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic s905w2(s4) | TV98             | not works (cdtech 47W3155)             | not tested| n/a       | works     | works       | FD650 works | not works (firmware issue)     | support in-progress           |
+Amlogic s905w2(s4) | Tanix W2         | not works (cdtech 47W3155)             | not tested| n/a       | works     | works       | FD650 works | not works (firmware issue)     | support in-progress           |
+Amlogic s905y4(s4) | Khadas VIM1S     | works  (ap6256@SDIO)                   | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support in-progress           |
+Amlogic s905x4(sc2)| X96 MaxPlusUltra | not works  (FN-Link K255B-SR@SDIO)     | not tested| n/a       | works     | works       |AiP1628 works| not works (firmware issue)     | support in-progress           |
+Amlogic s905x4(sc2)| RBox HK1         | wip (HK6334Q)                          | not tested| n/a       | works     | works       | FD6551 works| not works (firmware issue)     | support in-progress           |
+Amlogic a311d2(t7) | Khadas VIM4      | wip (AP6275@SDIO)                      | not tested| n/a       | not works | works       | n/a         | not works (firmware issue)     | support stalled               |
+Broadcom 2837      | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | n/a       | not tested| works       | n/a         | no plans                       | all basics works nicelly      |
+Broadcom 2711      | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
+Broadcom 2712      | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
+Intel i5           | i5 NUC           | n/a                                    | n/a       | n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support               |
+Intel Z8500        | Beelink MII-V    | works  (ac3165@PCI-e)                  | not tested| n/a       | works     | n/a         | n/a         | works (s1idle)                 | perfect support               |
+Intel N3450        | Beelink BT4      | works  (ac3165@PCI-e)                  | not tested| n/a       | works     | n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
+Intel N3450        | Beelink T34      | works  (ac3165@PCI-e)                  | not tested| n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support, bootsplah nok|
+AMD E1-2100        | AMD Kabini       | n/a                                    | n/a       | n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support               |
+Intel D2550        | ION2             | n/a                                    | n/a       | n/a       | works     | n/a         | n/a         | works (s3ram)                  | perfect support               |
 
 ### Hardware Video Decode support
 This is video related functionality avaliable on current code (Linux kernel + Mesa + MythTV)
@@ -179,23 +179,23 @@ On platforms with statefull v4l2_m2m video codecs: RPI3/RPI4 H.264 playback seek
 SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing     | Supported video render (MythTV)| Supported video render (KODI)  | Remarks |
 -----------------|----------------------------------------------|---------------------------------------|--------------------------------------------|-----------------------|--------------------------------|--------------------------------|---------|
 Allwinner H6     | EachLink H6 Mini, TanixTX6, Beelink GS1, OPi3| cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
-Allwinner H313   | X96-Q (DDR3), X96-Q (LPDDR3)                 | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
-Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
-Allwinner H618   | Vontar H618, OrangePI-Zero3, OrangePI-Zero2W | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
+Allwinner H313   | X96-Q (DDR3), X96-Q (LPDDR3)                 | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
+Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
+Allwinner H618   | Vontar H618, OrangePI-Zero3, OrangePI-Zero2W | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9, VC1          | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)      | EGL_DMABUF, DRM_DMABU1(6)      |
 Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
 Rockchip 3399    | RockPi4, RockPi4SE, OrangePi4-LTS            | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
-Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
-Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
-Rockchip 3576    | Nanopi-M5                                    | rkvdec2(13)/v4l2_request              | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
-Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
+Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2/v4l2_request           | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
+Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2/v4l2_request           | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
+Rockchip 3576    | Nanopi-M5                                    | rkvdec2/v4l2_request                  | H.264, HEVC, VP9                           | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
+Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2/v4l2_request           | MPEG2, H.264, HEVC, VP8, VP9, AV1          | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
 Amlogic s905     | TanixTX3-Mini                                | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, VC1               | X11, Wayland (2)      | EGL_DMABUF, (15)               | (18),Direct-to-plane           |
 Amlogic s912     | Beelink GT1                                  | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, VC1               | X11, EGLFS, Wayland   | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
 Amlogic g12a     | Radxa-Zero                                   | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, VC1               | X11, EGLFS, Wayland   | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
 Amlogic g12b     | Khadas VIM3                                  | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, VC1               | X11, EGLFS, Wayland   | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
 Amlogic sm1      | Khadas VIM3L                                 | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, VC1               | X11, EGLFS, Wayland   | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
-Amlogic s4       | Khadas VIM1S                                 | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
-Amlogic sc2      | X96 MaxPlusUltra                             | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9                    | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
-Amlogic t7       | Khadas VIM4                                  |                                       |                                            | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic s4       | Khadas VIM1S                                 | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, AV1               | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic sc2      | X96 MaxPlusUltra                             | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, AV1               | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic t7       | Khadas VIM4                                  | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, AV1               | EGLFS (14)            | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
 Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
 Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
 Broadcom 2712    | Rpi5-b                                       | rpivid/v4l2_request                   | HEVC                                       | X11, EGLFS(12),Wayland| EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
@@ -203,7 +203,7 @@ Intel i5         | i5 NUC                                       | VAAPI         
 Intel Z8500      | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS (4)        | EGL_DMABUF (3)                 | EGL_DMABUF (3)                 |
 Intel N3450      | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland   | EGL_DMABUF (3)                 | EGL_DMABUF (3)                 |
 AMD E1-2100      | AMD Kabini                                   | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland   | EGL_DMABUF (3)                 | EGL_DMABUF (3)                 |
-Intel D2550      | ION2                                         | VDPAU,VAPPI(11)                       | MPEG2, MPEG4, H.264, VC1                   | X11, (5)              | By GFx internally              | By GFx internally              |
+Intel D2550      | ION2                                         | VDPAU,VAAPI                           | MPEG2, MPEG4, H.264, VC1                   | X11, (5)              | By GFx internally              | By GFx internally              |
 
 - (1) - Wayland gives black screen on this HW
 - (2) - EGLFS not works due z-position issue in messon-drm driver on this HW
@@ -211,7 +211,6 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 - (4) - mythfrontend segfaults in Wayland on this HW
 - (5) - EGLFS and Wayland not working on this HW as legacy Nvidia drivers are not providing EGL nor DRM
 - (6) - hw.video decode with rendering to DRM planes has very dark picture on this HW
-- (7) - rkvdec2 is currently only partially supported on this SoC so some HEVC content is not decoded properly
 - (8) - vp9 is not yet supported on this SoC (no rkvdec2 vp9 support yet)
 - (9) - hw.video decode with rendering to DRM planes has no OSD (probably Z-order issue)
 - (10) - rendering to DRM Planes gives not visible OSD
@@ -221,7 +220,6 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 - (14) - due bug in meson-drm, currently only EGLFS works ok
 - (15) - playback is with black screen; OSD works ok
 - (16) - playback plays but only with green colour
-- (17) - no GUI (Qt: Failed to commit atomic request (code=-22)
 - (18) - video rednering shows ghost of GUI
 
 ### Video Decoding Test results
@@ -235,5 +233,3 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 
 This is summary of video samples tests conducted on current MiniMyth2 code: [Video test summary](https://github.com/warpme/minimyth2/blob/master/video-test-summary.txt)
 
-
-no patch 1000
