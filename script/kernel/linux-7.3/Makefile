@@ -569,6 +569,8 @@ PATCHFILES += 3573-media-rkvdec-vdpu381-vp9-use-the-real-buffer-stride.patch
 PATCHFILES += 3574-media-rkvdec-Add-support-for-the-VDPU346-variant.patch
 # vp9 for 3576 based on https://github.com/SympleNZ/rkvdec-vdpu383-vp9
 PATCHFILES += 3575-media-rkvdec-add-rk3576-vdpu383-vp9.patch
+# av1 for 3576 based on https://github.com/SympleNZ/rkvdec-vdpu383-av1
+PATCHFILES += 3576-rkvdec-add-rk3576-vdpu383-av1-experimental.patch
 # rk35xx dtsi additions
 PATCHFILES += 3600-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 3601-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
