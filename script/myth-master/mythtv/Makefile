@@ -90,7 +90,7 @@ PATCHFILES += 0161-hack-hack-hack-ffmpeg9.0-libavcodec-v4l2-m2m-backport-rpi-see
 # rkvdec2 hevc long sps/rps support
 PATCHFILES += 0162-ffmpeg-libavcodec-hevc-wip-add-support-for-sps_st_rps-control.patch
 # support for NV15 NV30
-# PATCHFILES += 0163-ffmpeg-add-handling-AV_PIX_FMT_NV15_NV20BS_NV30.patch
+PATCHFILES += 0163-ffmpeg-add-handling-AV_PIX_FMT_NV15_NV20BS_NV30.patch
 # support for vc1 v4l2_request decoding - gus
 PATCHFILES += 0170-avcodec-add-V4L2-Request-API-VC-1-WMV3-hwaccel.patch
 PATCHFILES += 0171-avcodec-add-V4L2-Request-API-MPEG-4-Part-2-and-H.263.patch
