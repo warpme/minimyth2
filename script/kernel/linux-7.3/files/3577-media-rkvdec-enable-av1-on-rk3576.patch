@@ -1,0 +1,105 @@
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Subject: [PATCH] media: rkvdec: Enable AV1 with 8 and 10 bit output on the RK3576
+
+Expose the AV1 backend on the RK3576 and let it produce 10-bit output.
+
+AV1 carries the bit depth in the sequence header, so, as for VP9, default the
+CAPTURE queue to 8-bit NV12 and switch to NV15 once an AV1_SEQUENCE control
+with bit_depth 10 is set. This needs the control to have the driver's
+control ops, which call get_image_fmt().
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Assisted-by: Claude:claude-sonnet-5-5
+
+---
+diff --no-dereference --minimal -Naur -r '--exclude=*.orig' linux-7.1.3/drivers/media/platform/rockchip/rkvdec/rkvdec.c linux-7.1.3/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+--- linux-7.1.3/drivers/media/platform/rockchip/rkvdec/rkvdec.c	2026-11-17 15:55:47.532965656 +0100
++++ linux-7.1.3/drivers/media/platform/rockchip/rkvdec/rkvdec.c	2026-11-17 15:55:47.536748394 +0100
+@@ -590,6 +590,39 @@
+ 	},
+ };
+ 
++static const struct rkvdec_ctrl_desc vdpu383_av1_ctrl_descs[] = {
++	{
++		.cfg.id = V4L2_CID_STATELESS_AV1_SEQUENCE,
++		.cfg.ops = &rkvdec_ctrl_ops,
++	},
++	{
++		.cfg.id = V4L2_CID_STATELESS_AV1_FRAME,
++	},
++	{
++		.cfg.id = V4L2_CID_STATELESS_AV1_TILE_GROUP_ENTRY,
++		.cfg.dims = { V4L2_AV1_MAX_TILE_COUNT },
++	},
++	{
++		.cfg.id = V4L2_CID_STATELESS_AV1_FILM_GRAIN,
++	},
++};
++
++static const struct rkvdec_ctrls vdpu383_av1_ctrls = {
++	.ctrls = vdpu383_av1_ctrl_descs,
++	.num_ctrls = ARRAY_SIZE(vdpu383_av1_ctrl_descs),
++};
++
++static const struct rkvdec_decoded_fmt_desc vdpu383_av1_decoded_fmts[] = {
++	{
++		.fourcc = V4L2_PIX_FMT_NV12,
++		.image_fmt = RKVDEC_IMG_FMT_420_8BIT,
++	},
++	{
++		.fourcc = V4L2_PIX_FMT_NV15,
++		.image_fmt = RKVDEC_IMG_FMT_420_10BIT,
++	},
++};
++
+ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
+ 	{
+ 		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
+@@ -809,6 +842,21 @@
+ 		.decoded_fmts = vdpu381_vp9_decoded_fmts,
+ 		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
+ 	},
++	{
++		.fourcc = V4L2_PIX_FMT_AV1_FRAME,
++		.frmsize = {
++			.min_width = 64,
++			.max_width = 65472,
++			.step_width = 64,
++			.min_height = 64,
++			.max_height = 65472,
++			.step_height = 64,
++		},
++		.ctrls = &vdpu383_av1_ctrls,
++		.ops = &rkvdec_vdpu383_av1_fmt_ops,
++		.num_decoded_fmts = ARRAY_SIZE(vdpu383_av1_decoded_fmts),
++		.decoded_fmts = vdpu383_av1_decoded_fmts,
++	},
+ };
+ 
+ static const struct rkvdec_coded_fmt_desc *
+@@ -1032,15 +1080,17 @@
+ 	ctx->image_fmt = RKVDEC_IMG_FMT_ANY;
+ 
+ 	/*
+-	 * VP9 carries bit depth in the per-frame header, not in an SPS that is
+-	 * set up-front (as HEVC does). If we leave image_fmt as ANY, the CAPTURE
+-	 * queue enumerates both NV12 and NV15 before the first frame control is
+-	 * seen, which breaks 8-bit zero-copy clients (they end up with a wrong
+-	 * import layout -> green frames). Default VP9 to 8-bit/NV12 so only that
+-	 * format is exposed until a 10-bit frame switches image_fmt to NV15 via
+-	 * the VP9_FRAME control's get_image_fmt() callback.
++	 * VP9 carries bit depth in the per-frame header and AV1 in the sequence
++	 * header, neither of which is set up-front (as the HEVC SPS is). If we
++	 * leave image_fmt as ANY, the CAPTURE queue enumerates both NV12 and
++	 * NV15 before the first frame control is seen, which breaks 8-bit
++	 * zero-copy clients (they end up with a wrong import layout -> green
++	 * frames). Default VP9 and AV1 to 8-bit/NV12 so only that format is
++	 * exposed until a 10-bit stream switches image_fmt to NV15 via the
++	 * get_image_fmt() callback of the VP9_FRAME or AV1_SEQUENCE control.
+ 	 */
+-	if (desc->fourcc == V4L2_PIX_FMT_VP9_FRAME)
++	if (desc->fourcc == V4L2_PIX_FMT_VP9_FRAME ||
++	    desc->fourcc == V4L2_PIX_FMT_AV1_FRAME)
+ 		ctx->image_fmt = RKVDEC_IMG_FMT_420_8BIT;
+ 
+ 	rkvdec_reset_decoded_fmt(ctx);
