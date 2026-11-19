@@ -1,0 +1,125 @@
+From c24a289411d6ce75cdac68134b339400928b3e71 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 18 Nov 2026 16:00:30 +0100
+Subject: [PATCH 1/4] drm/meson: add Amlogic S6 VPU compatible
+
+The S6 VPU has the G12A/S4 class OSD, VPP and VENC blocks, the S4 style
+clkctrl/sysctrl/pwrctrl register zones and a T7 style HDMI 2.1
+transmitter. Add a VPU_COMPATIBLE_S6 family that is "S4 like" for all
+the register layout and clock decisions, but:
+
+- uses the S4 VIC mode tables (through meson_vpu_is_s4_like()),
+- does not take the S4 only AFBC path or the S4 SYS_CLK_EN0_REG2
+  vsync gate, and requests the optional "intr" clock like T7.
+
+Add the "amlogic,meson-s6-vpu" compatible.
+
+Based on the Amlogic BSP; not tested on hardware.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ drivers/gpu/drm/meson/meson_drv.c  | 18 +++++++++++++++---
+ drivers/gpu/drm/meson/meson_drv.h  |  6 ++++--
+ drivers/gpu/drm/meson/meson_venc.c |  8 +++++---
+ 3 files changed, 24 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv.c
+index 5dff1fe..f97d3c1 100644
+--- a/drivers/gpu/drm/meson/meson_drv.c
++++ b/drivers/gpu/drm/meson/meson_drv.c
+@@ -340,10 +340,12 @@ static int meson_drv_bind_master(struct device *dev, bool has_components)
+ 		}
+ 
+ 		/*
+-		 * T7: the VPU interrupt gate also clocks the OSD registers.
+-		 * Keep it on through the clock framework.
++		 * T7, S6: the VPU interrupt gate also clocks the OSD registers.
++		 * Keep it on through the clock framework (optional: the
++		 * S6 device tree may leave the gate to the boot loader).
+ 		 */
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7)) {
++		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) ||
++		    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6)) {
+ 			struct clk *intr_clk;
+ 
+ 			intr_clk = devm_clk_get_optional_enabled(&pdev->dev, "intr");
+@@ -684,6 +686,14 @@ static struct meson_drm_match_data meson_drm_t7_data = {
+ 	.compat = VPU_COMPATIBLE_T7,
+ };
+ 
++/*
++ * S6: G12A/S4 class OSD and VPP, with the T7 style HDMI 2.1 transmitter.
++ * No AFBC until it is tested.
++ */
++static struct meson_drm_match_data meson_drm_s6_data = {
++	.compat = VPU_COMPATIBLE_S6,
++};
++
+ static struct meson_drm_match_data meson_drm_s4_data = {
+ 	.compat = VPU_COMPATIBLE_S4,
+ 	.afbcd_ops = &meson_afbcd_g12a_ops,
+@@ -702,6 +712,8 @@ static const struct of_device_id dt_match[] = {
+ 	  .data       = (void *)&meson_drm_s4_data },
+ 	{ .compatible = "amlogic,meson-t7-vpu",
+ 	  .data       = (void *)&meson_drm_t7_data },
++	{ .compatible = "amlogic,meson-s6-vpu",
++	  .data       = (void *)&meson_drm_s6_data },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, dt_match);
+diff --git a/drivers/gpu/drm/meson/meson_drv.h b/drivers/gpu/drm/meson/meson_drv.h
+index 867ff3a..519ece4 100644
+--- a/drivers/gpu/drm/meson/meson_drv.h
++++ b/drivers/gpu/drm/meson/meson_drv.h
+@@ -26,6 +26,7 @@ enum vpu_compatible {
+ 	VPU_COMPATIBLE_G12A = 3,
+ 	VPU_COMPATIBLE_S4 = 4,
+ 	VPU_COMPATIBLE_T7 = 5,
++	VPU_COMPATIBLE_S6 = 6,
+ };
+ 
+ enum {
+@@ -193,11 +194,12 @@ static inline int meson_vpu_is_compatible(struct meson_drm *priv,
+ 	return priv->compat == family;
+ }
+ 
+-/* T7 shares the S4 register layout and clock control blocks */
++/* T7 and S6 share the S4 register layout and clock control blocks */
+ static inline bool meson_vpu_is_s4_like(struct meson_drm *priv)
+ {
+ 	return priv->compat == VPU_COMPATIBLE_S4 ||
+-	       priv->compat == VPU_COMPATIBLE_T7;
++	       priv->compat == VPU_COMPATIBLE_T7 ||
++	       priv->compat == VPU_COMPATIBLE_S6;
+ }
+ 
+ /* Map a G12 OSD1 free scaler register to its T7 address */
+diff --git a/drivers/gpu/drm/meson/meson_venc.c b/drivers/gpu/drm/meson/meson_venc.c
+index fb1cee5..c13d378 100644
+--- a/drivers/gpu/drm/meson/meson_venc.c
++++ b/drivers/gpu/drm/meson/meson_venc.c
+@@ -2327,8 +2327,9 @@ void meson_venc_enable_vsync(struct meson_drm *priv)
+ 			       priv->io_base + _REG(VENC_INTCTRL));
+ 	}
+ 
+-	/* T7: the interrupt gate is a clock owned by meson_drv */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++	/* T7, S6: the interrupt gate is not in SYS_CLK_EN0_REG2 */
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) ||
++	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
+ 		;
+ 	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_SYS_CLK_EN0_REG2, BIT(25), BIT(25));
+@@ -2338,7 +2339,8 @@ void meson_venc_enable_vsync(struct meson_drm *priv)
+ 
+ void meson_venc_disable_vsync(struct meson_drm *priv)
+ {
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7))
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) ||
++	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
+ 		;
+ 	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_SYS_CLK_EN0_REG2, BIT(4), 0);
+-- 
+2.43.0
+
