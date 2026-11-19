@@ -233,6 +233,7 @@ PATCHFILES += 1789-drm-meson-add-Amlogic-S6-VPU-compatible.patch
 PATCHFILES += 1790-drm-meson-vclk-add-Amlogic-S6-HDMI-PLL-and-analog-cl.patch
 PATCHFILES += 1791-drm-meson-encoder_hdmi-convert-YCbCr-to-RGB-in-the-V.patch
 PATCHFILES += 1792-drm-meson-hdmitx21-add-Amlogic-S6-PHY-support.patch
+PATCHFILES += 1793-media-meson-amvdec-add-Amlogic-S6-support.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch

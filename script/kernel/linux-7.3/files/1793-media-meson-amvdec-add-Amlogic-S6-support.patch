@@ -1,0 +1,241 @@
+From 193235b0242a3c9e1cd0b5c325eda3b4f4d25c29 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 18 Nov 2026 18:00:54 +0100
+Subject: [PATCH] media: meson: amvdec: add Amlogic S6 support
+
+Add an S6 platform description and the "amlogic,s6-vdec" compatible,
+derived from the vendor driver:
+
+- the S4 format table, DOS-bus canvas and the T7 AV1 handling
+- DMC port parking with the S6 status register (word 0xd8), VDEC_1 on
+  bit 8 and HEVC on bits 6 and 7; the park masks become per-platform
+- S6 relocates part of the HEVC_ASSIST block, HEVC_STREAM_CRC/VP9_ACP_CTRL
+  and AV1D_IPP_DIR_CFG relative to the G12A..T7 layout; remap those
+  accesses in the DOS register accessors
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ .../media/platform/amlogic/amvdec/amvdec.c    |  2 ++
+ .../media/platform/amlogic/amvdec/amvdec_1.c  | 11 +++---
+ .../platform/amlogic/amvdec/amvdec_helpers.c  | 35 +++++++++++++++++--
+ .../platform/amlogic/amvdec/amvdec_hevc.c     |  5 ++-
+ .../platform/amlogic/amvdec/amvdec_platform.c | 18 ++++++++++
+ .../platform/amlogic/amvdec/amvdec_platform.h | 19 ++++++++++
+ 6 files changed, 79 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
+index d5c6a2d..8726d29 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
+@@ -1538,6 +1538,8 @@ static const struct of_device_id vdec_dt_match[] = {
+ 	  .data = &meson_amvdec_platform_sc2 },
+ 	{ .compatible = "amlogic,t7-vdec",
+ 	  .data = &meson_amvdec_platform_t7 },
++	{ .compatible = "amlogic,s6-vdec",
++	  .data = &meson_amvdec_platform_s6 },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, vdec_dt_match);
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_1.c b/drivers/media/platform/amlogic/amvdec/amvdec_1.c
+index cd602cf..7945475 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_1.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_1.c
+@@ -24,8 +24,7 @@
+ 
+ #define MC_SIZE			AMVDEC_FW_SIZE
+ 
+-/* G12A, G12B and SM1 use DMC ambus channel 5 for VDEC_1. */
+-#define DMC_REQ_VDEC_1		BIT(21)
++/* G12A, G12B and SM1 use DMC ambus channel 5 for VDEC_1 (see platform.h). */
+ 
+ /* Reset VLD, VLD_PART, VFIFO, MC, DBLK and PIC_DC with the DMC port parked. */
+ #define DOS_SW_RESET0_VDEC_1_QUIESCE					\
+@@ -75,9 +74,9 @@ static void amvdec_1_quiesce_reset(struct amvdec_core *core)
+ 		return;
+ 	}
+ 
+-	meson_amvdec_dmc_park(core, DMC_REQ_VDEC_1);
++	meson_amvdec_dmc_park(core, amvdec_dmc_vdec_mask(core->platform));
+ 	amvdec_1_core_scrub(core);
+-	meson_amvdec_dmc_unpark(core, DMC_REQ_VDEC_1);
++	meson_amvdec_dmc_unpark(core, amvdec_dmc_vdec_mask(core->platform));
+ }
+ 
+ static int amvdec_1_power_on(struct amvdec_core *core)
+@@ -351,7 +350,7 @@ static int amvdec_1_start(struct amvdec_session *sess)
+ 	 * the memories are powered and isolation is removed, then reset the core.
+ 	 */
+ 	if (amvdec_has_dmc(core))
+-		meson_amvdec_dmc_park(core, DMC_REQ_VDEC_1);
++		meson_amvdec_dmc_park(core, amvdec_dmc_vdec_mask(core->platform));
+ 
+ 	if (core->pd_list) {
+ 		/* Power the memories before the reset, and hold the reset */
+@@ -378,7 +377,7 @@ static int amvdec_1_start(struct amvdec_session *sess)
+ 	/* Domain fully up: scrub the sub-engines, then reconnect DDR */
+ 	amvdec_1_core_scrub(core);
+ 	if (amvdec_has_dmc(core))
+-		meson_amvdec_dmc_unpark(core, DMC_REQ_VDEC_1);
++		meson_amvdec_dmc_unpark(core, amvdec_dmc_vdec_mask(core->platform));
+ 
+ 	/* Reset DOS top registers */
+ 	meson_amvdec_write_dos(core, DOS_VDEC_MCRCC_STALL_CTRL, 0);
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+index e110cca..7aed6e2 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_helpers.c
+@@ -314,14 +314,45 @@ int meson_amvdec_firmware_payload(struct device *dev, const struct firmware *fw,
+ 	return 0;
+ }
+ 
++/*
++ * S6 moved parts of the HEVC_ASSIST block and a few HEVC registers relative
++ * to the G12A..T7 layout used by the register headers. Offsets are in
++ * 32-bit words, ranges are the old (G12A..T7) word addresses.
++ */
++static u32 meson_amvdec_dos_reg(struct amvdec_core *core, u32 reg)
++{
++	static const struct {
++		u16 first, last;
++		s16 off;
++	} s6_remap[] = {
++		{ 0x3025, 0x3045, -0x10 },	/* HEVC_ASSIST_AMR1_INT0..MBX_SSEL */
++		{ 0x3060, 0x3067, -0x2a },	/* HEVC_ASSIST_TIMER0_LO..DMA_INT_MSK2 */
++		{ 0x3070, 0x307f, -0x30 },	/* HEVC_ASSIST_MBOX0_IRQ_REG..AXI_STATUS2_LO */
++		{ 0x30c0, 0x30d7, -0x10 },	/* HEVC_ASSIST_SCRATCH_0..N */
++		{ 0x3175, 0x3176, 1 },		/* HEVC_STREAM_CRC, VP9_ACP_CTRL */
++		{ 0x3490, 0x3490, -0x77 },	/* AV1D_IPP_DIR_CFG */
++	};
++	u32 word = reg >> 2;
++	int i;
++
++	if (!core->platform->dos_reg_s6)
++		return reg;
++
++	for (i = 0; i < ARRAY_SIZE(s6_remap); i++)
++		if (word >= s6_remap[i].first && word <= s6_remap[i].last)
++			return (word + s6_remap[i].off) << 2;
++
++	return reg;
++}
++
+ u32 meson_amvdec_read_dos(struct amvdec_core *core, u32 reg)
+ {
+-	return readl_relaxed(core->dos_base + reg);
++	return readl_relaxed(core->dos_base + meson_amvdec_dos_reg(core, reg));
+ }
+ 
+ void meson_amvdec_write_dos(struct amvdec_core *core, u32 reg, u32 val)
+ {
+-	writel_relaxed(val, core->dos_base + reg);
++	writel_relaxed(val, core->dos_base + meson_amvdec_dos_reg(core, reg));
+ }
+ 
+ void meson_amvdec_write_dos_action(struct amvdec_core *core, u32 reg, u32 val)
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+index 160b6dd..8c9ef0d 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_hevc.c
+@@ -31,7 +31,6 @@
+ #define MC_SIZE	AMVDEC_FW_SIZE
+ 
+ /* HEVC uses DMC axibus channels 4 (front) and 8 (back) on G12A, G12B and SM1. */
+-#define DMC_REQ_HEVC		(BIT(4) | BIT(8))
+ 
+ #define G12B_RESET7_LEVEL_ADDR	0xffd0109c	/* level register (low = reset) */
+ 	#define RESET7_LEVEL_HEVC_DMC	(BIT(14) | BIT(13))
+@@ -236,7 +235,7 @@ static int amvdec_hevc_dmc_park(struct amvdec_core *core)
+ 	if (!amvdec_has_dmc(core))
+ 		return 0;
+ 
+-	return meson_amvdec_dmc_park(core, DMC_REQ_HEVC);
++	return meson_amvdec_dmc_park(core, amvdec_dmc_hevc_mask(core->platform));
+ }
+ 
+ static void amvdec_hevc_dmc_unpark(struct amvdec_core *core)
+@@ -244,7 +243,7 @@ static void amvdec_hevc_dmc_unpark(struct amvdec_core *core)
+ 	if (!amvdec_has_dmc(core))
+ 		return;
+ 
+-	meson_amvdec_dmc_unpark(core, DMC_REQ_HEVC);
++	meson_amvdec_dmc_unpark(core, amvdec_dmc_hevc_mask(core->platform));
+ }
+ 
+ /*
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+index acdc15b..05563ea 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -645,6 +645,24 @@ const struct amvdec_platform meson_amvdec_platform_t7 = {
+ 	.av1_rpm_swap = true,
+ };
+ 
++/*
++ * S6: the S4 decoder with the DOS-bus canvas and the T7 AV1 handling, but
++ * with DMC port parking (status word 0xd8, VDEC_1 bit 8, HEVC bits 6 and 7)
++ * and a few relocated HEVC_ASSIST/HEVC registers (dos_reg_s6).
++ */
++const struct amvdec_platform meson_amvdec_platform_s6 = {
++	.formats = amvdec_formats_s4,
++	.num_formats = ARRAY_SIZE(amvdec_formats_s4),
++	.revision = AMVDEC_REVISION_S4,
++	.dmc_chan_sts = 0x360,
++	.dmc_vdec_mask = BIT(8),
++	.dmc_hevc_mask = BIT(6) | BIT(7),
++	.dos_canvas = true,
++	.av1_host_parser = true,
++	.av1_rpm_swap = true,
++	.dos_reg_s6 = true,
++};
++
+ MODULE_FIRMWARE("amrisc/amrisc_vc1.bin");
+ MODULE_FIRMWARE("meson/vdec/g12a_h264_multi.bin");
+ MODULE_FIRMWARE("meson/vdec/g12a_hevc_mmu.bin");
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+index 3143950..7c418cc 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+@@ -35,6 +35,10 @@ enum amvdec_revision {
+  * @av1_host_parser: the AV1 microcode does not program the stream/parser
+  *		front-end itself (T7): the host must do it, as the vendor
+  *		driver does, or the microcode never finds the sequence header
++ * @dmc_vdec_mask: DMC port mask to park for VDEC_1 (0: BIT(21))
++ * @dmc_hevc_mask: DMC port mask to park for HEVC (0: BIT(4) | BIT(8))
++ * @dos_reg_s6: S6 moved some HEVC_ASSIST and related DOS registers; see
++ *		meson_amvdec_dos_reg()
+  * @av1_rpm_swap: the AV1 microcode writes the RPM parameter block with the
+  *		order of every group of four 16-bit words reversed (T7)
+  */
+@@ -46,8 +50,22 @@ struct amvdec_platform {
+ 	bool dos_canvas;
+ 	bool av1_host_parser;
+ 	bool av1_rpm_swap;
++	u32 dmc_vdec_mask;
++	u32 dmc_hevc_mask;
++	bool dos_reg_s6;
+ };
+ 
++/* DMC port masks: G12A..SC2 defaults unless the platform overrides them */
++static inline u32 amvdec_dmc_vdec_mask(const struct amvdec_platform *p)
++{
++	return p->dmc_vdec_mask ? p->dmc_vdec_mask : BIT(21);
++}
++
++static inline u32 amvdec_dmc_hevc_mask(const struct amvdec_platform *p)
++{
++	return p->dmc_hevc_mask ? p->dmc_hevc_mask : (BIT(4) | BIT(8));
++}
++
+ extern const struct amvdec_platform meson_amvdec_platform_gxbb;
+ extern const struct amvdec_platform meson_amvdec_platform_gxm;
+ extern const struct amvdec_platform meson_amvdec_platform_gxl;
+@@ -57,5 +75,6 @@ extern const struct amvdec_platform meson_amvdec_platform_sm1;
+ extern const struct amvdec_platform meson_amvdec_platform_s4;
+ extern const struct amvdec_platform meson_amvdec_platform_sc2;
+ extern const struct amvdec_platform meson_amvdec_platform_t7;
++extern const struct amvdec_platform meson_amvdec_platform_s6;
+ 
+ #endif
+-- 
+2.43.0
+
