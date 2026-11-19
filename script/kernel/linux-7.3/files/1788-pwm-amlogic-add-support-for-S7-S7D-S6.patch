@@ -1,0 +1,94 @@
+
+Series is from https://patchwork.kernel.org/series/1072740/
+
+From: Xianwei Zhao <xianwei.zhao@amlogic.com>
+
+Add support for Amlogic S7 PWM. Amlogic S7 different from the
+previous SoCs, a controller includes one pwm, at the same time,
+the controller has only one input clock source.
+
+Signed-off-by: Xianwei Zhao <xianwei.zhao@amlogic.com>
+---
+ drivers/pwm/pwm-meson.c | 32 ++++++++++++++++++++++++++++++--
+ 1 file changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/pwm/pwm-meson.c b/drivers/pwm/pwm-meson.c
+index 8c6bf3d49753..3d16694e254e 100644
+--- a/drivers/pwm/pwm-meson.c
++++ b/drivers/pwm/pwm-meson.c
+@@ -113,6 +113,7 @@ struct meson_pwm_data {
+ 	int (*channels_init)(struct pwm_chip *chip);
+ 	bool has_constant;
+ 	bool has_polarity;
++	bool single_pwm;
+ };
+ 
+ struct meson_pwm {
+@@ -503,6 +504,18 @@ static void meson_pwm_s4_put_clk(void *data)
+ 	clk_put(clk);
+ }
+ 
++static int meson_pwm_init_channels_s7(struct pwm_chip *chip)
++{
++	struct device *dev = pwmchip_parent(chip);
++	struct meson_pwm *meson = to_meson_pwm(chip);
++
++	meson->channels[0].clk = devm_clk_get(dev, NULL);
++	if (IS_ERR(meson->channels[0].clk))
++		return dev_err_probe(dev, PTR_ERR(meson->channels[0].clk),
++				     "Failed to get clk\n");
++	return 0;
++}
++
+ static int meson_pwm_init_channels_s4(struct pwm_chip *chip)
+ {
+ 	struct device *dev = pwmchip_parent(chip);
+@@ -592,6 +605,13 @@ static const struct meson_pwm_data pwm_s4_data = {
+ 	.has_polarity = true,
+ };
+ 
++static const struct meson_pwm_data pwm_s7_data = {
++	.channels_init = meson_pwm_init_channels_s7,
++	.has_constant = true,
++	.has_polarity = true,
++	.single_pwm = true,
++};
++
+ static const struct of_device_id meson_pwm_matches[] = {
+ 	{
+ 		.compatible = "amlogic,meson8-pwm-v2",
+@@ -642,6 +662,10 @@ static const struct of_device_id meson_pwm_matches[] = {
+ 		.compatible = "amlogic,meson-s4-pwm",
+ 		.data = &pwm_s4_data
+ 	},
++	{
++		.compatible = "amlogic,s7-pwm",
++		.data = &pwm_s7_data
++	},
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, meson_pwm_matches);
+@@ -650,9 +674,13 @@ static int meson_pwm_probe(struct platform_device *pdev)
+ {
+ 	struct pwm_chip *chip;
+ 	struct meson_pwm *meson;
++	const struct meson_pwm_data *pdata = of_device_get_match_data(&pdev->dev);
+ 	int err;
+ 
+-	chip = devm_pwmchip_alloc(&pdev->dev, MESON_NUM_PWMS, sizeof(*meson));
++	if (pdata->single_pwm)
++		chip = devm_pwmchip_alloc(&pdev->dev, 1, sizeof(*meson));
++	else
++		chip = devm_pwmchip_alloc(&pdev->dev, MESON_NUM_PWMS, sizeof(*meson));
+ 	if (IS_ERR(chip))
+ 		return PTR_ERR(chip);
+ 	meson = to_meson_pwm(chip);
+@@ -664,7 +692,7 @@ static int meson_pwm_probe(struct platform_device *pdev)
+ 	spin_lock_init(&meson->lock);
+ 	chip->ops = &meson_pwm_ops;
+ 
+-	meson->data = of_device_get_match_data(&pdev->dev);
++	meson->data = pdata;
+ 
+ 	err = meson->data->channels_init(chip);
+ 	if (err < 0)
