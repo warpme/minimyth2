@@ -1,0 +1,143 @@
+From 0f0c1103a570f5f5cfb779cf9eae9ba819b2fc3f Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 18 Nov 2026 16:12:14 +0100
+Subject: [PATCH] arm64: dts: amlogic: s6: add VPU and HDMI TX
+
+Add the pinmux for the HDMI TX HPD and DDC pins, the canvas, the VPU
+and the HDMI 2.1 transmitter, and enable them with an HDMI connector on
+the BL201 board.
+
+The VPU register window is at 0xff000000 as in the vendor HDMI TX
+node (the vendor DRM node lists 0xff900000 for it).
+
+The HDMI TX needs the PRIF and 200M clocks to be on and at 200 MHz to
+reach its registers and the DDC master.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi   | 97 +++++++++++++++++++
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
+index f10a3ba38..7e53d7e85 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
+@@ -675,6 +675,19 @@ sdio_clk_gate_pins: group-clk-gate-pins {
+ 					};
+ 				};
+ 
++				func-hdmitx {
++					hdmitx_hpd_pins: group-hpd-pins {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_H, 2, 1)>;
++						bias-disable;
++					};
++
++					hdmitx_ddc_pins: group-ddc-pins {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_H, 0, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_H, 1, 1)>;
++						bias-disable;
++					};
++				};
++
+ 				func-remote {
+ 					remote_pins: group-pins {
+ 						pinmux = <AML_PINMUX(AMLOGIC_GPIO_F, 3, 1)>;
+@@ -854,6 +867,55 @@ clk_msr: clock-measure@48000 {
+ 			};
+ 		};
+ 
++		hdmi_tx: hdmi-tx@fe300000 {
++			compatible = "amlogic,s6-hdmi-tx";
++			reg = <0x0 0xfe300000 0x0 0x10000>,
++			      <0x0 0xfe310000 0x0 0x10000>;
++			reg-names = "top", "cor";
++			interrupts = <GIC_SPI 204 IRQ_TYPE_LEVEL_HIGH>;
++			power-domains = <&pwrc PWRC_S6_VPU_HDMI_ID>;
++			/*
++			 * APB gate for the controller. The 200 MHz I2C and
++			 * PRIF clocks are also needed to reach its registers.
++			 */
++			clocks = <&clkc_periphs CLKID_SYS_HDMITX_APB>,
++				 <&clkc_periphs CLKID_HDMITX_PRIF>,
++				 <&clkc_periphs CLKID_HDMITX_200M>;
++			clock-names = "pclk", "prif", "i2c";
++			assigned-clocks = <&clkc_periphs CLKID_HDMITX_PRIF>,
++					  <&clkc_periphs CLKID_HDMITX_200M>;
++			assigned-clock-rates = <200000000>, <200000000>;
++			resets = <&reset RESET_HDMITX_CAPB3>,
++				 <&reset RESET_HDMITX>,
++				 <&reset RESET_HDMITXPHY>;
++			reset-names = "apb", "hdmitx", "phy";
++			pinctrl-0 = <&hdmitx_hpd_pins>, <&hdmitx_ddc_pins>;
++			pinctrl-names = "default";
++			status = "disabled";
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				/* VPU */
++				hdmi_tx_port0: port@0 {
++					reg = <0>;
++
++					hdmi_tx_in: endpoint {
++						remote-endpoint = <&hdmi_tx_out>;
++					};
++				};
++
++				/* connector */
++				hdmi_tx_port1: port@1 {
++					reg = <1>;
++
++					hdmi_tx_tmds_out: endpoint {
++					};
++				};
++			};
++		};
++
+ 		ethmac: ethernet@fe368000 {
+ 			compatible = "amlogic,meson-axg-dwmac",
+ 				     "snps,dwmac-4.00";
+@@ -942,5 +1004,40 @@ emmc: mmc@fe08c000 {
+ 			assigned-clocks = <&clkc_periphs CLKID_SD_EMMC_C>;
+ 			assigned-clock-rates = <24000000>;
+ 		};
++
++		/* Canvas LUT in the DMC, same offset as on G12A */
++		canvas: video-lut@ff638048 {
++			compatible = "amlogic,canvas";
++			reg = <0x0 0xff638048 0x0 0x14>;
++		};
++
++		vpu: vpu@ff000000 {
++			compatible = "amlogic,meson-s6-vpu";
++			reg = <0x0 0xff000000 0x0 0x40000>,
++			      <0x0 0xfe008000 0x0 0x2000>,
++			      <0x0 0xfe000000 0x0 0x2000>,
++			      <0x0 0xfe00c000 0x0 0x2000>,
++			      <0x0 0xfe010000 0x0 0x2000>;
++			reg-names = "vpu", "hhi", "clkctrl", "pwrctrl", "sysctrl";
++			interrupts = <GIC_SPI 197 IRQ_TYPE_LEVEL_HIGH>;
++			power-domains = <&pwrc PWRC_S6_VPU_HDMI_ID>;
++			clocks = <&clkc_periphs CLKID_VPU>,
++				 <&clkc_periphs CLKID_VAPB>,
++				 <&clkc_periphs CLKID_SYS_VPU_INTR>;
++			clock-names = "vpu", "vapb", "intr";
++			amlogic,canvas = <&canvas>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++			status = "disabled";
++
++			/* CVBS is port 0 on other SoCs, not wired on S6 */
++			hdmi_tx_port: port@1 {
++				reg = <1>;
++
++				hdmi_tx_out: endpoint {
++					remote-endpoint = <&hdmi_tx_in>;
++				};
++			};
++		};
+ 	};
+ };
+-- 
+2.43.0
+
