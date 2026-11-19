@@ -225,7 +225,8 @@ PATCHFILES += 1775-media-amvdec-t7-byte-swap-MPEG-2-output.patch
 PATCHFILES += 1776-amvdec-av1-t7-program-parser-front-end-from-host.patch
 PATCHFILES += 1777-amvdec-av1-t7-rpm-word-order.patch
 # s6 drivers additions
-
+PATCHFILES += 1785-clk-amlogic-add-s7-clock-controllers.patch
+PATCHFILES += 1786-clk-amlogic-clk-measure-add-support-for-more-SoCs.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
