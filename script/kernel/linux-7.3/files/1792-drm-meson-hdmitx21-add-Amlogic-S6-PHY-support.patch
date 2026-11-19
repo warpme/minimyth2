@@ -1,0 +1,246 @@
+From 087a72e09f00a6b875a15ca83497a3e2ee2992bc Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 18 Nov 2026 16:05:15 +0100
+Subject: [PATCH 4/4] drm/meson: hdmitx21: add Amlogic S6 PHY support
+
+The S6 HDMI 2.1 transmitter controller is the same as the T7 one, the
+PHY is not: different PHY_CTRL0/3/5 values per TMDS bit rate band, the
+termination resistor trim comes from the efuse through the secure
+monitor (HDMITX_GET_RTERM), the lanes are enabled by later writes to
+PHY_CTRL3 and the TMDS clock output is restarted afterwards.
+
+Add per-SoC data with the PHY on/off operations and use it for the T7
+(unchanged behaviour) and the new "amlogic,s6-hdmi-tx" compatible.
+
+The vendor driver has no PHY_CTRL0 bandgap step on S6, so none is done
+for DDC; the PHY is just off between modes.
+
+Based on the Amlogic BSP; not tested on hardware.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ drivers/gpu/drm/meson/meson_hdmitx21.c | 127 ++++++++++++++++++++++++-
+ 1 file changed, 124 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_hdmitx21.c b/drivers/gpu/drm/meson/meson_hdmitx21.c
+index 9395e2a..1f1feed 100644
+--- a/drivers/gpu/drm/meson/meson_hdmitx21.c
++++ b/drivers/gpu/drm/meson/meson_hdmitx21.c
+@@ -10,6 +10,8 @@
+  * Register sequences follow the Amlogic vendor driver (hdmitx21).
+  */
+ 
++#include <linux/arm-smccc.h>
++#include <linux/bitfield.h>
+ #include <linux/clk.h>
+ #include <linux/delay.h>
+ #include <linux/i2c.h>
+@@ -19,6 +21,7 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
++#include <linux/property.h>
+ #include <linux/regmap.h>
+ #include <linux/reset.h>
+ 
+@@ -157,6 +160,31 @@
+ /* PHY bandgap only: needed for DDC while the TMDS output is off */
+ #define PHY_CTRL0_BANDGAP	0x0b4242
+ 
++/* S6 PHY */
++#define S6_PHY_CTRL0_RTERM	GENMASK(31, 28)
++#define S6_PHY_CTRL3_CLK_TODIG	GENMASK(1, 0)
++#define S6_PHY_CTRL3_TMDS_CLK	BIT(3)
++#define S6_PHY_CTRL3_RESETN	BIT(4)
++#define S6_PHY_CTRL3_EN_11_10	GENMASK(11, 10)
++#define S6_PHY_CTRL3_EN_29_28	GENMASK(29, 28)
++#define S6_PHY_CTRL3_EN_30	BIT(30)
++
++/* Secure monitor: read the termination resistor trim from the efuse */
++#define MESON_SMC_HDCPTX_IOOPR	0x820000ab
++#define MESON_HDCPTX_GET_RTERM	10
++#define MESON_RTERM_INVALID	0xff
++
++struct meson_hdmitx21;
++
++struct meson_hdmitx21_data {
++	/* PHY settings for the TMDS clock (kHz), after the common PHY reset */
++	void (*phy_set)(struct meson_hdmitx21 *tx, int tmds_khz);
++	/* PHY off state while the controller stays accessible */
++	void (*phy_off)(struct meson_hdmitx21 *tx);
++	/* Keep PHY_CTRL0 bandgap on for DDC while the output is off */
++	bool phy_bandgap;
++};
++
+ #define DDC_SEGMENT_ADDR	0x30
+ #define DDC_EDID_ADDR		0x50
+ #define DDC_SCDC_ADDR		0x54
+@@ -164,6 +192,7 @@
+ 
+ struct meson_hdmitx21 {
+ 	struct device *dev;
++	const struct meson_hdmitx21_data *data;
+ 	struct drm_bridge bridge;
+ 	struct drm_bridge *next_bridge;
+ 	void __iomem *top;
+@@ -426,6 +455,9 @@ static const struct i2c_algorithm meson_hdmitx21_i2c_algo = {
+ 
+ static void meson_hdmitx21_phy_bandgap(struct meson_hdmitx21 *tx)
+ {
++	if (!tx->data->phy_bandgap)
++		return;
++
+ 	if (!phy_read(tx, PHY_CTRL0))
+ 		phy_write(tx, PHY_CTRL0, PHY_CTRL0_BANDGAP);
+ }
+@@ -471,6 +503,11 @@ static void meson_hdmitx21_phy_on(struct meson_hdmitx21 *tx, int tmds_khz)
+ 		phy_write(tx, PHY_CTRL1, val | 0xe);
+ 		mdelay(2);
+ 	}
++	tx->data->phy_set(tx, tmds_khz);
++}
++
++static void meson_hdmitx21_t7_phy_set(struct meson_hdmitx21 *tx, int tmds_khz)
++{
+ 	/* PHY values by TMDS clock: up to 150 MHz, 300 MHz, 600 MHz */
+ 	if (tmds_khz > 300000) {
+ 		phy_write(tx, PHY_CTRL5, 0x0000080b);
+@@ -482,13 +519,84 @@ static void meson_hdmitx21_phy_on(struct meson_hdmitx21 *tx, int tmds_khz)
+ 	phy_write(tx, PHY_CTRL3, 0x2ab0ff3b);
+ }
+ 
+-static void meson_hdmitx21_phy_off(struct meson_hdmitx21 *tx)
++static void meson_hdmitx21_t7_phy_off(struct meson_hdmitx21 *tx)
+ {
+ 	phy_write(tx, PHY_CTRL0, PHY_CTRL0_BANDGAP);
+ 	phy_write(tx, PHY_CTRL3, 0x3);
+ 	phy_write(tx, PHY_CTRL5, 0x800);
+ }
+ 
++static void meson_hdmitx21_s6_phy_set(struct meson_hdmitx21 *tx, int tmds_khz)
++{
++	struct arm_smccc_res res;
++	u32 val;
++
++	/* PHY values by TMDS bit rate: 5.94/4.5/3.7 Gbps, 2.97 Gbps, lower */
++	if (tmds_khz > 300000) {
++		phy_write(tx, PHY_CTRL0, 0x8003cafb);
++	} else if (tmds_khz > 150000) {
++		phy_write(tx, PHY_CTRL0, 0x800380dd);
++	} else {
++		phy_write(tx, PHY_CTRL0, 0x82038088);
++	}
++	phy_write(tx, PHY_CTRL5, 0x2555);
++	phy_write(tx, PHY_CTRL3, 0x4ef00b);
++
++	/* Termination resistor trim from the efuse, 0xff: not programmed */
++	arm_smccc_smc(MESON_SMC_HDCPTX_IOOPR, MESON_HDCPTX_GET_RTERM,
++		      0, 0, 0, 0, 0, 0, &res);
++	if ((res.a0 & 0xff) != MESON_RTERM_INVALID) {
++		val = phy_read(tx, PHY_CTRL0);
++		val &= ~S6_PHY_CTRL0_RTERM;
++		val |= FIELD_PREP(S6_PHY_CTRL0_RTERM, res.a0 & 0xff);
++		phy_write(tx, PHY_CTRL0, val);
++	}
++
++	/* The reset bit is set later than the other ones */
++	usleep_range(100, 110);
++	val = phy_read(tx, PHY_CTRL3);
++	val |= S6_PHY_CTRL3_EN_11_10 | S6_PHY_CTRL3_RESETN;
++	phy_write(tx, PHY_CTRL3, val);
++	/* Enable the lanes last */
++	usleep_range(1000, 1010);
++	val = phy_read(tx, PHY_CTRL3);
++	val |= S6_PHY_CTRL3_EN_29_28 | S6_PHY_CTRL3_EN_30;
++	phy_write(tx, PHY_CTRL3, val);
++
++	/* Clock and data to the controller: restart the TMDS clock output */
++	val = phy_read(tx, PHY_CTRL3);
++	phy_write(tx, PHY_CTRL3, val & ~(BIT(1) | S6_PHY_CTRL3_TMDS_CLK));
++	usleep_range(100, 110);
++	phy_write(tx, PHY_CTRL3, val | S6_PHY_CTRL3_CLK_TODIG | S6_PHY_CTRL3_TMDS_CLK);
++}
++
++static void meson_hdmitx21_s6_phy_off(struct meson_hdmitx21 *tx)
++{
++	phy_write(tx, PHY_CTRL0, 0);
++	phy_write(tx, PHY_CTRL3, 0);
++	phy_write(tx, PHY_CTRL5, 0);
++}
++
++static void meson_hdmitx21_phy_off(struct meson_hdmitx21 *tx)
++{
++	tx->data->phy_off(tx);
++}
++
++static const struct meson_hdmitx21_data meson_hdmitx21_t7_data = {
++	.phy_set = meson_hdmitx21_t7_phy_set,
++	.phy_off = meson_hdmitx21_t7_phy_off,
++	.phy_bandgap = true,
++};
++
++/*
++ * The vendor driver has no bandgap step for S6: the DDC is expected to
++ * work with the PHY off. If EDID reads fail, this is the first suspect.
++ */
++static const struct meson_hdmitx21_data meson_hdmitx21_s6_data = {
++	.phy_set = meson_hdmitx21_s6_phy_set,
++	.phy_off = meson_hdmitx21_s6_phy_off,
++};
++
+ static void meson_hdmitx21_write_infoframe(struct meson_hdmitx21 *tx, u8 sel,
+ 					   const u8 *buf, ssize_t len)
+ {
+@@ -920,6 +1028,7 @@ static int meson_hdmitx21_probe(struct platform_device *pdev)
+ 	struct device *dev = &pdev->dev;
+ 	struct meson_hdmitx21 *tx;
+ 	struct reset_control *rst;
++	struct clk *prif, *i2c;
+ 	int irq, ret;
+ 
+ 	tx = devm_drm_bridge_alloc(dev, struct meson_hdmitx21, bridge,
+@@ -927,6 +1036,9 @@ static int meson_hdmitx21_probe(struct platform_device *pdev)
+ 	if (IS_ERR(tx))
+ 		return PTR_ERR(tx);
+ 	tx->dev = dev;
++	tx->data = device_get_match_data(dev);
++	if (!tx->data)
++		return -EINVAL;
+ 	platform_set_drvdata(pdev, tx);
+ 	mutex_init(&tx->ddc_lock);
+ 	mutex_init(&tx->audio_lock);
+@@ -942,6 +1054,14 @@ static int meson_hdmitx21_probe(struct platform_device *pdev)
+ 	if (IS_ERR(tx->pclk))
+ 		return dev_err_probe(dev, PTR_ERR(tx->pclk), "failed to get pclk\n");
+ 
++	/* S6: the controller registers and the DDC master have their own clocks */
++	prif = devm_clk_get_optional_enabled(dev, "prif");
++	if (IS_ERR(prif))
++		return dev_err_probe(dev, PTR_ERR(prif), "failed to get prif clock\n");
++	i2c = devm_clk_get_optional_enabled(dev, "i2c");
++	if (IS_ERR(i2c))
++		return dev_err_probe(dev, PTR_ERR(i2c), "failed to get i2c clock\n");
++
+ 	rst = devm_reset_control_array_get_optional_exclusive(dev);
+ 	if (IS_ERR(rst))
+ 		return dev_err_probe(dev, PTR_ERR(rst), "failed to get resets\n");
+@@ -996,7 +1116,8 @@ static int meson_hdmitx21_probe(struct platform_device *pdev)
+ }
+ 
+ static const struct of_device_id meson_hdmitx21_of_match[] = {
+-	{ .compatible = "amlogic,t7-hdmi-tx" },
++	{ .compatible = "amlogic,t7-hdmi-tx", .data = &meson_hdmitx21_t7_data },
++	{ .compatible = "amlogic,s6-hdmi-tx", .data = &meson_hdmitx21_s6_data },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, meson_hdmitx21_of_match);
+@@ -1010,5 +1131,5 @@ static struct platform_driver meson_hdmitx21_driver = {
+ };
+ module_platform_driver(meson_hdmitx21_driver);
+ 
+-MODULE_DESCRIPTION("Amlogic T7 HDMI 2.1 transmitter bridge");
++MODULE_DESCRIPTION("Amlogic T7/S6 HDMI 2.1 transmitter bridge");
+ MODULE_LICENSE("GPL");
+-- 
+2.43.0
+
