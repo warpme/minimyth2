@@ -278,7 +278,8 @@ PATCHFILES += 1952-arm64-dts-meson-sc2-add-rbox-hk1-tvbox.patch
 # t7 board dts additions
 PATCHFILES += 1970-arm64-dts-t7-vim4-improvements.patch
 PATCHFILES += 1971-arm42-dts-vim4-enable-vdec.patch
-
+# s6 board additions
+PATCHFILES += 1980-arm64-dts-amlogic-add-s905x5-bl201-board.patch
 endif
 #------------------------------------------------------------
 
