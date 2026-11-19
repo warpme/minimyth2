@@ -256,6 +256,7 @@ PATCHFILES += 1852-arm64-dtsi-meson-t7-add-gpu-dfs.patch
 # s6 dtsi additions
 PATCHFILES += 1870-arm64-dtsi-amlogic-s6-add-clocks-reset-pinmux-and-per.patch
 PATCHFILES += 1871-arm64-dtsi-amlogic-s6-add-VPU-and-HDMI-TX.patch
+PATCHFILES += 1872-arm64-dtsi-amlogic-s6-add-video-decoder-node.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch

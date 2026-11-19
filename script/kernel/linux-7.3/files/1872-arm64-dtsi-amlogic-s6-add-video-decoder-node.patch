@@ -1,0 +1,50 @@
+From 197c5336040e87491b7274d383f806abe0879ef1 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 18 Nov 2026 17:48:34 +0100
+Subject: [PATCH 8/9] arm64: dts: amlogic: s6: add video decoder node
+
+Add the DOS/VDEC block (DOS at 0xfe320000, mailbox IRQs 91/92, VDEC and
+HEVCF clocks, VDEC/HEVC power domains) and enable it on the BL201 board.
+S6 has no separate HEVCB clock, so HEVCF is used for both the vdec_hevc
+and vdec_hevcf clock names.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi   | 21 +++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
+index cf640d5c1..0177b7a61 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
+@@ -865,6 +865,27 @@ hwrng: rng@440788 {
+ 				reg = <0x0 0x440788 0x0 0x0c>;
+ 			};
+ 
++			vdec: video-decoder@320000 {
++				compatible = "amlogic,s6-vdec";
++				reg = <0x0 0x320000 0x0 0x10000>,
++				      <0x0 0x36000 0x0 0x400>;
++				reg-names = "dos", "dmc";
++				interrupts = <GIC_SPI 91 IRQ_TYPE_EDGE_RISING>,
++					     <GIC_SPI 92 IRQ_TYPE_EDGE_RISING>;
++				interrupt-names = "mbox0", "vdec";
++				/* S6 has a single HEVC clock (HEVCF), used for both names */
++				clocks = <&clkc_periphs CLKID_SYS_DOS>,
++					 <&clkc_periphs CLKID_VDEC>,
++					 <&clkc_periphs CLKID_HEVCF>,
++					 <&clkc_periphs CLKID_HEVCF>;
++				clock-names = "dos", "vdec_1", "vdec_hevc", "vdec_hevcf";
++				power-domains = <&pwrc PWRC_S6_DOS_VDEC_ID>,
++						<&pwrc PWRC_S6_DOS_HEVC_ID>;
++				power-domain-names = "vdec", "hevc";
++				amlogic,canvas = <&canvas>;
++				status = "disabled";
++			};
++
+ 			clk_msr: clock-measure@48000 {
+ 				compatible = "amlogic,s6-clk-measure";
+ 				reg = <0x0 0x48000 0x0 0x1c>;
+-- 
+2.43.0
+
