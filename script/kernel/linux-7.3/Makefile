@@ -260,6 +260,7 @@ PATCHFILES += 1872-arm64-dtsi-amlogic-s6-add-video-decoder-node.patch
 PATCHFILES += 1873-arm64-dtsi-amlogic-s6-move-canvas-LUT-to-the-DMC-wind.patch
 PATCHFILES += 1874-arm64-dtsi-amlogic-s6-add-HDMI-CEC-AO-CEC-B.patch
 PATCHFILES += 1875-arm64-dtsi-amlogic-s6-add-audio-blocks-and-HDMI-audio.patch
+PATCHFILES += 1876-arm64-dtsi-amlogic-s6-add-temperature-sensors-thermal.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
