@@ -37,7 +37,6 @@ PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music
 # Some patches for better logging
 PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
 PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
-PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 
@@ -134,9 +133,6 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
 # --------Patches 350+ are plugins patches---------------------
-# Various mythweather patches
-# todo PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
-
 # Various mythzoneminder patches
 PATCHFILES += 0500-mythzmserver-update-to-support-zm1.36.13.patch
 
