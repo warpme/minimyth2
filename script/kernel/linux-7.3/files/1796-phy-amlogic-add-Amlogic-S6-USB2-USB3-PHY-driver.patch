@@ -1,0 +1,867 @@
+From 411d2dab8d5d9c1b394ff935c6e33112e7615a5e Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 19 Nov 2026 16:15:08 +0100
+Subject: [PATCH 16/17] phy: amlogic: add Amlogic S6 USB2/USB3 PHY driver
+
+The S6 has two CRG USB controllers. Each has a USB2 PHY, and the second
+one is also paired with a USB3 PHY. Add a driver for both, based on the
+PHY initialization sequences of the vendor BSP:
+
+ - USB2: reset sequence, efuse based trim, disconnect/squelch tuning, PLL
+   enable, host/device/otg mode and VBUS regulator handling
+ - USB3: reset/APB handling, hardware or software PLL configuration, efuse
+   trim and TX/RX calibration, low power state when unused
+
+Resets are taken from the reset controller instead of poking the shared
+reset registers directly.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ .../bindings/phy/amlogic,s6-usb-phy.yaml      | 137 ++++
+ drivers/phy/amlogic/Kconfig                   |  10 +
+ drivers/phy/amlogic/Makefile                  |   1 +
+ drivers/phy/amlogic/phy-meson-s6-usb.c        | 654 ++++++++++++++++++
+ 4 files changed, 802 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/phy/amlogic,s6-usb-phy.yaml
+ create mode 100644 drivers/phy/amlogic/phy-meson-s6-usb.c
+
+diff --git a/Documentation/devicetree/bindings/phy/amlogic,s6-usb-phy.yaml b/Documentation/devicetree/bindings/phy/amlogic,s6-usb-phy.yaml
+new file mode 100644
+index 000000000..06a7ebe83
+--- /dev/null
++++ b/Documentation/devicetree/bindings/phy/amlogic,s6-usb-phy.yaml
+@@ -0,0 +1,137 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/phy/amlogic,s6-usb-phy.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Amlogic S6 USB2 and USB3 PHYs
++
++maintainers:
++  - Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++
++properties:
++  compatible:
++    enum:
++      - amlogic,s6-usb2-phy
++      - amlogic,s6-usb3-phy
++
++  reg:
++    minItems: 2
++    maxItems: 3
++
++  reg-names:
++    minItems: 2
++    maxItems: 3
++
++  clocks:
++    minItems: 1
++    maxItems: 2
++
++  clock-names:
++    minItems: 1
++    maxItems: 2
++
++  resets:
++    minItems: 2
++    maxItems: 2
++
++  reset-names:
++    minItems: 2
++    maxItems: 2
++
++  phy-supply:
++    description:
++      Regulator providing VBUS for the port, enabled while the PHY is in
++      host mode.
++
++  amlogic,pll-sw-cfg:
++    type: boolean
++    description:
++      Configure the USB3 PLLs by software instead of relying on the hardware
++      sequencer.
++
++  "#phy-cells":
++    const: 0
++
++required:
++  - compatible
++  - reg
++  - reg-names
++  - clocks
++  - clock-names
++  - resets
++  - reset-names
++  - "#phy-cells"
++
++allOf:
++  - if:
++      properties:
++        compatible:
++          const: amlogic,s6-usb2-phy
++    then:
++      properties:
++        reg:
++          items:
++            - description: PHY control registers
++            - description: PHY configuration registers
++            - description: eFuse shadow register with the calibration trim
++        reg-names:
++          items:
++            - const: ctrl
++            - const: cfg
++            - const: trim
++        clocks:
++          maxItems: 1
++        clock-names:
++          items:
++            - const: general
++        reset-names:
++          items:
++            - const: phy
++            - const: comb
++        amlogic,pll-sw-cfg: false
++      required:
++        - reg
++  - if:
++      properties:
++        compatible:
++          const: amlogic,s6-usb3-phy
++    then:
++      properties:
++        reg:
++          items:
++            - description: PHY control registers
++            - description: eFuse shadow register with the calibration trim
++        reg-names:
++          items:
++            - const: ctrl
++            - const: trim
++        clocks:
++          minItems: 2
++        clock-names:
++          items:
++            - const: apb
++            - const: pipe
++        reset-names:
++          items:
++            - const: phy
++            - const: apb
++        phy-supply: false
++
++additionalProperties: false
++
++examples:
++  - |
++    #include <dt-bindings/clock/amlogic,s6-peripherals-clkc.h>
++    #include <dt-bindings/reset/amlogic,s6-reset.h>
++
++    phy@348000 {
++        compatible = "amlogic,s6-usb2-phy";
++        reg = <0x348000 0x10>, <0x34c000 0x60>, <0x10330 0x4>;
++        reg-names = "ctrl", "cfg", "trim";
++        clocks = <&clkc CLKID_SYS_USB2DRD>;
++        clock-names = "general";
++        resets = <&reset RESET_U2DRD_USB2PHY>, <&reset RESET_U2DRD_COMB>;
++        reset-names = "phy", "comb";
++        #phy-cells = <0>;
++    };
+diff --git a/drivers/phy/amlogic/Kconfig b/drivers/phy/amlogic/Kconfig
+index ce7ba3eb2..a60545e91 100644
+--- a/drivers/phy/amlogic/Kconfig
++++ b/drivers/phy/amlogic/Kconfig
+@@ -60,6 +60,16 @@ config PHY_MESON_G12A_USB2
+ 	  G12A SoCs.
+ 	  If unsure, say N.
+ 
++config PHY_MESON_S6_USB
++	tristate "Meson S6 USB2 and USB3 PHY driver"
++	default ARCH_MESON
++	depends on OF && (ARCH_MESON || COMPILE_TEST)
++	select GENERIC_PHY
++	help
++	  Enable this to support the USB2 and USB3 PHYs found in Amlogic
++	  S6 (S905X5) SoCs.
++	  If unsure, say N.
++
+ config PHY_MESON_G12A_USB3_PCIE
+ 	tristate "Meson G12A USB3+PCIE Combo PHY driver"
+ 	default ARCH_MESON
+diff --git a/drivers/phy/amlogic/Makefile b/drivers/phy/amlogic/Makefile
+index 91e3b9790..c72e544e2 100644
+--- a/drivers/phy/amlogic/Makefile
++++ b/drivers/phy/amlogic/Makefile
+@@ -3,6 +3,7 @@ obj-$(CONFIG_PHY_MESON8_HDMI_TX)		+= phy-meson8-hdmi-tx.o
+ obj-$(CONFIG_PHY_MESON8B_USB2)			+= phy-meson8b-usb2.o
+ obj-$(CONFIG_PHY_MESON_GXL_USB2)		+= phy-meson-gxl-usb2.o
+ obj-$(CONFIG_PHY_MESON_G12A_USB2)		+= phy-meson-g12a-usb2.o
++obj-$(CONFIG_PHY_MESON_S6_USB)			+= phy-meson-s6-usb.o
+ obj-$(CONFIG_PHY_MESON_G12A_USB3_PCIE)		+= phy-meson-g12a-usb3-pcie.o
+ obj-$(CONFIG_PHY_MESON_G12A_MIPI_DPHY_ANALOG)	+= phy-meson-g12a-mipi-dphy-analog.o
+ obj-$(CONFIG_PHY_MESON_AXG_PCIE)		+= phy-meson-axg-pcie.o
+diff --git a/drivers/phy/amlogic/phy-meson-s6-usb.c b/drivers/phy/amlogic/phy-meson-s6-usb.c
+new file mode 100644
+index 000000000..f912bf79a
+--- /dev/null
++++ b/drivers/phy/amlogic/phy-meson-s6-usb.c
+@@ -0,0 +1,654 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Amlogic S6 USB2 and USB3 PHY driver
++ *
++ * The S6 has two USB controllers (CRG DRD, "U2DRD" and "U3DRD"), each of them
++ * with its own USB2 PHY, and a USB3 PHY next to the second one. The PHYs
++ * are programmed with sequences derived from the vendor BSP.
++ *
++ * Copyright (c) 2019 Amlogic, Inc. All rights reserved.
++ */
++
++#include <linux/bitfield.h>
++#include <linux/bits.h>
++#include <linux/clk.h>
++#include <linux/delay.h>
++#include <linux/io.h>
++#include <linux/iopoll.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/phy/phy.h>
++#include <linux/platform_device.h>
++#include <linux/regulator/consumer.h>
++#include <linux/reset.h>
++
++/* USB2 PHY "ctrl" registers (reg index 0) */
++#define U2P_R0				0x0
++#define  U2P_R0_HOST_DEVICE		BIT(0)
++#define  U2P_R0_POR			BIT(3)
++#define  U2P_R0_IDPULLUP0		BIT(4)
++#define U2P_R1				0x4
++#define  U2P_R1_PHY_RDY			BIT(0)
++
++/* USB2 PHY "cfg" registers (reg index 1) */
++#define U2_CFG_DISC_SQUELCH		0x0c
++#define  U2_CFG_DISC_SQUELCH_VAL	0x39
++#define U2_CFG_TRIM			0x10
++#define  U2_CFG_TRIM_MASK		GENMASK(11, 0)
++#define U2_CFG_MISC			0x38
++#define  U2_CFG_MISC_REG_CFG_DIS	BIT(27)
++#define U2_CFG_PLL			0x40
++#define  U2_PLL_DONE			BIT(31)
++#define  U2_PLL_MPLL_EN_CTRL		BIT(27)
++#define  U2_PLL_BIAS_EN			BIT(26)
++#define  U2_PLL_RSTN			BIT(25)
++#define  U2_PLL_LOCK_EN			BIT(24)
++#define  U2_PLL_DEFAULT			0x549540
++#define U2_CFG_EDGEDRV			0x50
++#define  U2_EDGEDRV_VAL			0x7e18
++#define U2_CFG_OTG			0x54
++#define  U2_OTG_ACA_EN			BIT(2)
++
++/* USB2 PHY efuse trim shadow register (reg index 2) */
++#define U2_TRIM_EN			BIT(12)
++#define U2_TRIM_VAL			GENMASK(11, 8)
++#define U2_TRIM_MAX			12
++#define U2_TRIM_DEFAULT			7
++
++/* USB3 PHY "ctrl" registers (reg index 0) */
++#define U3_CTRL_AFE0			0x04
++#define U3_CTRL_RX_CAL			0x10
++#define U3_CTRL_CFG_RXLDO		0x20
++#define U3_CTRL_CFG_IGEN		0x28
++#define U3_CTRL_PLL_CFG0		0x2c
++#define U3_CTRL_PLL_CFG1		0x30
++#define U3_CTRL_PLL_CFG2		0x34
++#define U3_CTRL_PLL_CFG3		0x38
++#define U3_CTRL_PLL_CFG4		0x3c
++#define U3_CTRL_PLL_CFG5		0x40
++#define U3_CTRL_PLL_CFG6		0x44
++#define  U3_PLL0_BIAS_EN		BIT(9)
++#define  U3_PLL0_RSTN			BIT(10)
++#define  U3_PLL0_LOCK_EN		BIT(11)
++#define  U3_PLL_HCSL_LDO_EN_TM		BIT(16)
++#define  U3_PLL_HCSL_DREN0_TM		BIT(17)
++#define  U3_PLL1_BIAS_EN		BIT(20)
++#define  U3_PLL1_RSTN			BIT(21)
++#define  U3_PLL1_RSTN_LOCK		BIT(22)
++#define  U3_PLL1_LOCK_START		BIT(23)
++#define U3_CTRL_PLL_SW			0x50
++#define  U3_PLL_SW_EN			GENMASK(31, 25)
++#define U3_CTRL_TRAIN_TIMER		0x9c
++#define U3_CTRL_TX_CAL0			0xcc
++#define U3_CTRL_TX_CAL1			0xf0
++#define U3_CTRL_TX_CAL2			0xfc
++#define U3_CTRL_TXDETRX_TIMER		0x104
++#define U3_CTRL_TX_CFG0			0xbc
++#define U3_CTRL_TX_CFG1			0xc0
++#define U3_CTRL_TX_TERM			0x16c
++#define U3_CTRL_PLL_STATUS		0x154
++#define  U3_PLL1_LOCK_FLAG		BIT(24)
++#define  U3_PLL0_DONE			BIT(25)
++#define  U3_PLL_LOCKED			(U3_PLL1_LOCK_FLAG | U3_PLL0_DONE)
++
++/* USB3 PHY efuse trim shadow register (reg index 1) */
++#define U3_TRIM_TX_TERM_EN		BIT(5)
++#define U3_TRIM_TX_TERM			GENMASK(4, 0)
++#define U3_TRIM_RX_TERM_EN		BIT(10)
++#define U3_TRIM_RX_TERM			GENMASK(9, 6)
++
++struct meson_s6_usb2_phy {
++	struct device *dev;
++	void __iomem *ctrl;
++	void __iomem *cfg;
++	void __iomem *trim;
++	struct clk *clk;
++	struct reset_control *phy_rst;
++	struct reset_control *comb_rst;
++	struct regulator *vbus;
++	enum phy_mode mode;
++	bool vbus_on;
++};
++
++struct meson_s6_usb3_phy {
++	struct device *dev;
++	void __iomem *ctrl;
++	void __iomem *trim;
++	struct clk_bulk_data clks[2];
++	struct reset_control *phy_rst;
++	struct reset_control *apb_rst;
++	bool pll_sw_cfg;
++};
++
++static void meson_s6_modify(void __iomem *reg, u32 clear, u32 set)
++{
++	u32 val = readl(reg);
++
++	val &= ~clear;
++	val |= set;
++	writel(val, reg);
++}
++
++/* ---------------------------------- USB2 -------------------------------- */
++
++static int meson_s6_usb2_set_pll(struct meson_s6_usb2_phy *priv)
++{
++	void __iomem *pll = priv->cfg + U2_CFG_PLL;
++	u32 val;
++	int retry, i;
++
++	meson_s6_modify(pll, 0, U2_PLL_MPLL_EN_CTRL);
++	usleep_range(10, 20);
++
++	for (retry = 0; retry < 5; retry++) {
++		val = U2_PLL_DEFAULT | U2_PLL_MPLL_EN_CTRL;
++		writel(val, pll);
++		usleep_range(10, 20);
++		val |= U2_PLL_BIAS_EN;
++		writel(val, pll);
++		usleep_range(20, 30);
++		val |= U2_PLL_RSTN;
++		writel(val, pll);
++		usleep_range(20, 30);
++		val |= U2_PLL_LOCK_EN;
++		writel(val, pll);
++
++		for (i = 0; i < 5; i++) {
++			usleep_range(20, 30);
++			if (readl(pll) & U2_PLL_DONE)
++				return 0;
++		}
++	}
++
++	dev_err(priv->dev, "USB2 PLL did not lock (0x%08x)\n", readl(pll));
++	return -ETIMEDOUT;
++}
++
++static void meson_s6_usb2_calibrate(struct meson_s6_usb2_phy *priv)
++{
++	u32 cali = U2_TRIM_DEFAULT, val;
++
++	if (priv->trim) {
++		val = readl(priv->trim);
++		if (val & U2_TRIM_EN)
++			cali = min_t(u32, FIELD_GET(U2_TRIM_VAL, val),
++				     U2_TRIM_MAX);
++	}
++
++	/* The trim code is thermometer coded */
++	meson_s6_modify(priv->cfg + U2_CFG_TRIM, U2_CFG_TRIM_MASK,
++			(1U << cali) - 1);
++
++	/*
++	 * The default disconnect threshold of 0 leads to HS handshake errors.
++	 * REG_CFG_DIS is unused but set by default, clear it.
++	 */
++	writel(U2_CFG_DISC_SQUELCH_VAL, priv->cfg + U2_CFG_DISC_SQUELCH);
++	meson_s6_modify(priv->cfg + U2_CFG_MISC, U2_CFG_MISC_REG_CFG_DIS, 0);
++
++	/* Edge driver calibration for signal quality */
++	writel(U2_EDGEDRV_VAL, priv->cfg + U2_CFG_EDGEDRV);
++}
++
++static int meson_s6_usb2_apply_mode(struct meson_s6_usb2_phy *priv,
++				    enum phy_mode mode)
++{
++	switch (mode) {
++	case PHY_MODE_USB_HOST:
++		meson_s6_modify(priv->ctrl + U2P_R0, U2P_R0_POR,
++				U2P_R0_HOST_DEVICE);
++		break;
++	case PHY_MODE_USB_DEVICE:
++		meson_s6_modify(priv->ctrl + U2P_R0,
++				U2P_R0_POR | U2P_R0_HOST_DEVICE, 0);
++		break;
++	case PHY_MODE_USB_OTG:
++		meson_s6_modify(priv->ctrl + U2P_R0, 0, U2P_R0_IDPULLUP0);
++		meson_s6_modify(priv->cfg + U2_CFG_OTG, U2_OTG_ACA_EN, 0);
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
++static int meson_s6_usb2_set_mode(struct phy *phy, enum phy_mode mode,
++				  int submode)
++{
++	struct meson_s6_usb2_phy *priv = phy_get_drvdata(phy);
++	int ret;
++
++	ret = meson_s6_usb2_apply_mode(priv, mode);
++	if (ret)
++		return ret;
++
++	priv->mode = mode;
++
++	if (priv->vbus_on && mode == PHY_MODE_USB_DEVICE) {
++		regulator_disable(priv->vbus);
++		priv->vbus_on = false;
++	} else if (!priv->vbus_on && mode == PHY_MODE_USB_HOST && priv->vbus) {
++		ret = regulator_enable(priv->vbus);
++		if (ret)
++			return ret;
++		priv->vbus_on = true;
++	}
++
++	return 0;
++}
++
++static int meson_s6_usb2_init(struct phy *phy)
++{
++	struct meson_s6_usb2_phy *priv = phy_get_drvdata(phy);
++	u32 val;
++	int ret;
++
++	ret = clk_prepare_enable(priv->clk);
++	if (ret)
++		return ret;
++
++	ret = reset_control_deassert(priv->phy_rst);
++	if (ret)
++		goto err_clk;
++
++	ret = reset_control_deassert(priv->comb_rst);
++	if (ret)
++		goto err_clk;
++	usleep_range(50, 100);
++
++	meson_s6_usb2_apply_mode(priv, priv->mode);
++
++	/* Reset the PHY configuration state machine */
++	reset_control_assert(priv->phy_rst);
++	usleep_range(50, 100);
++	reset_control_deassert(priv->phy_rst);
++	usleep_range(50, 100);
++
++	meson_s6_usb2_calibrate(priv);
++
++	ret = readl_poll_timeout(priv->ctrl + U2P_R1, val,
++				 val & U2P_R1_PHY_RDY, 5, 2500);
++	if (ret)
++		dev_warn(priv->dev, "timeout waiting for PHY ready\n");
++
++	ret = meson_s6_usb2_set_pll(priv);
++	if (ret)
++		goto err_rst;
++
++	return 0;
++
++err_rst:
++	reset_control_assert(priv->phy_rst);
++err_clk:
++	clk_disable_unprepare(priv->clk);
++	return ret;
++}
++
++static int meson_s6_usb2_exit(struct phy *phy)
++{
++	struct meson_s6_usb2_phy *priv = phy_get_drvdata(phy);
++
++	reset_control_assert(priv->phy_rst);
++	clk_disable_unprepare(priv->clk);
++
++	return 0;
++}
++
++static int meson_s6_usb2_power_on(struct phy *phy)
++{
++	struct meson_s6_usb2_phy *priv = phy_get_drvdata(phy);
++	int ret;
++
++	if (priv->vbus && priv->mode != PHY_MODE_USB_DEVICE && !priv->vbus_on) {
++		ret = regulator_enable(priv->vbus);
++		if (ret)
++			return ret;
++		priv->vbus_on = true;
++	}
++
++	return 0;
++}
++
++static int meson_s6_usb2_power_off(struct phy *phy)
++{
++	struct meson_s6_usb2_phy *priv = phy_get_drvdata(phy);
++
++	if (priv->vbus_on) {
++		regulator_disable(priv->vbus);
++		priv->vbus_on = false;
++	}
++
++	return 0;
++}
++
++static const struct phy_ops meson_s6_usb2_ops = {
++	.init		= meson_s6_usb2_init,
++	.exit		= meson_s6_usb2_exit,
++	.power_on	= meson_s6_usb2_power_on,
++	.power_off	= meson_s6_usb2_power_off,
++	.set_mode	= meson_s6_usb2_set_mode,
++	.owner		= THIS_MODULE,
++};
++
++static int meson_s6_usb2_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct meson_s6_usb2_phy *priv;
++	struct phy_provider *provider;
++	struct phy *phy;
++
++	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	priv->dev = dev;
++	priv->mode = PHY_MODE_USB_HOST;
++
++	priv->ctrl = devm_platform_ioremap_resource_byname(pdev, "ctrl");
++	if (IS_ERR(priv->ctrl))
++		return PTR_ERR(priv->ctrl);
++
++	priv->cfg = devm_platform_ioremap_resource_byname(pdev, "cfg");
++	if (IS_ERR(priv->cfg))
++		return PTR_ERR(priv->cfg);
++
++	/*
++	 * The trim register is an efuse shadow register that lives in the
++	 * middle of another block, do not claim the region.
++	 */
++	priv->trim = devm_of_iomap(dev, dev->of_node, 2, NULL);
++	if (IS_ERR(priv->trim))
++		priv->trim = NULL;
++
++	priv->clk = devm_clk_get(dev, NULL);
++	if (IS_ERR(priv->clk))
++		return dev_err_probe(dev, PTR_ERR(priv->clk), "failed to get clock\n");
++
++	priv->phy_rst = devm_reset_control_get_exclusive(dev, "phy");
++	if (IS_ERR(priv->phy_rst))
++		return dev_err_probe(dev, PTR_ERR(priv->phy_rst),
++				     "failed to get phy reset\n");
++
++	priv->comb_rst = devm_reset_control_get_exclusive(dev, "comb");
++	if (IS_ERR(priv->comb_rst))
++		return dev_err_probe(dev, PTR_ERR(priv->comb_rst),
++				     "failed to get comb reset\n");
++
++	priv->vbus = devm_regulator_get_optional(dev, "phy");
++	if (IS_ERR(priv->vbus)) {
++		if (PTR_ERR(priv->vbus) != -ENODEV)
++			return dev_err_probe(dev, PTR_ERR(priv->vbus),
++					     "failed to get supply\n");
++		priv->vbus = NULL;
++	}
++
++	/* Keep the PHY in reset until it is initialized */
++	reset_control_assert(priv->phy_rst);
++
++	phy = devm_phy_create(dev, NULL, &meson_s6_usb2_ops);
++	if (IS_ERR(phy))
++		return dev_err_probe(dev, PTR_ERR(phy), "failed to create PHY\n");
++
++	phy_set_drvdata(phy, priv);
++
++	provider = devm_of_phy_provider_register(dev, of_phy_simple_xlate);
++
++	return PTR_ERR_OR_ZERO(provider);
++}
++
++/* ---------------------------------- USB3 -------------------------------- */
++
++static int meson_s6_usb3_wait_pll(struct meson_s6_usb3_phy *priv)
++{
++	u32 val;
++
++	return readl_poll_timeout(priv->ctrl + U3_CTRL_PLL_STATUS, val,
++				  (val & U3_PLL_LOCKED) == U3_PLL_LOCKED,
++				  150, 15000);
++}
++
++static void meson_s6_usb3_power_down(struct meson_s6_usb3_phy *priv)
++{
++	reset_control_assert(priv->phy_rst);
++	reset_control_assert(priv->apb_rst);
++
++	/* The APB must be accessible to program the low power defaults */
++	reset_control_deassert(priv->apb_rst);
++
++	/* The default register values are power consuming */
++	writel(0x71, priv->ctrl + U3_CTRL_AFE0);
++	writel(0x0, priv->ctrl + 0x8);
++	writel(0x0, priv->ctrl + U3_CTRL_RX_CAL);
++	writel(0x0, priv->ctrl + 0x14);
++	usleep_range(100, 200);
++}
++
++static void meson_s6_usb3_pll_cfg(struct meson_s6_usb3_phy *priv)
++{
++	void __iomem *ctrl = priv->ctrl;
++
++	/* Delay frequency tracking start: fr_en 1us -> 300us (41.668ns unit) */
++	writel(0x1c20, ctrl + U3_CTRL_TRAIN_TIMER);
++	/* Software control of upcrx_igen_en and upcrx_ldo_en */
++	meson_s6_modify(ctrl + U3_CTRL_CFG_RXLDO, 0, 0x3 << 14);
++	meson_s6_modify(ctrl + U3_CTRL_CFG_IGEN, 0, 0x3);
++
++	if (priv->pll_sw_cfg)
++		meson_s6_modify(ctrl + U3_CTRL_PLL_SW, 0, U3_PLL_SW_EN);
++
++	writel(0x00fa114d, ctrl + U3_CTRL_PLL_CFG0);
++	writel(0x72007820, ctrl + U3_CTRL_PLL_CFG1);
++	writel(0xa0900000, ctrl + U3_CTRL_PLL_CFG2);
++	writel(0x081c1c23, ctrl + U3_CTRL_PLL_CFG3);
++	writel(0x1435dc92, ctrl + U3_CTRL_PLL_CFG4);
++	writel(0x00000000, ctrl + U3_CTRL_PLL_CFG5);
++
++	if (!priv->pll_sw_cfg) {
++		/* The hardware sequencer starts the PLLs, drop unused clock */
++		meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6,
++				U3_PLL_HCSL_LDO_EN_TM | U3_PLL_HCSL_DREN0_TM, 0);
++		return;
++	}
++
++	meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6, 0, U3_PLL0_BIAS_EN);
++	udelay(5);
++	meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6, 0, U3_PLL0_RSTN);
++	usleep_range(40, 140);
++	meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6, 0, U3_PLL0_LOCK_EN);
++	usleep_range(160, 260);
++	/* Switch off the unused USB3 PHY digital 100M clock */
++	meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6,
++			U3_PLL_HCSL_LDO_EN_TM | U3_PLL_HCSL_DREN0_TM, 0);
++	usleep_range(20, 120);
++	meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6, 0, U3_PLL1_BIAS_EN);
++	usleep_range(50, 150);
++	meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6, 0, U3_PLL1_RSTN);
++	usleep_range(40, 140);
++	meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6, 0, U3_PLL1_RSTN_LOCK);
++	udelay(1);
++	meson_s6_modify(ctrl + U3_CTRL_PLL_CFG6, 0, U3_PLL1_LOCK_START);
++}
++
++static void meson_s6_usb3_trim(struct meson_s6_usb3_phy *priv)
++{
++	u32 raw, val;
++
++	if (!priv->trim)
++		return;
++
++	raw = readl(priv->trim);
++
++	/* TX termination impedance */
++	val = (raw & U3_TRIM_TX_TERM_EN) ? FIELD_GET(U3_TRIM_TX_TERM, raw) : 0x10;
++	meson_s6_modify(priv->ctrl + U3_CTRL_TX_TERM, 0xffU << 24, val << 24);
++
++	/* RX termination impedance */
++	val = (raw & U3_TRIM_RX_TERM_EN) ? FIELD_GET(U3_TRIM_RX_TERM, raw) : 0x7;
++	meson_s6_modify(priv->ctrl + U3_CTRL_AFE0, 0xf << 4, val << 4);
++}
++
++static void meson_s6_usb3_txrx_cali(struct meson_s6_usb3_phy *priv)
++{
++	void __iomem *ctrl = priv->ctrl;
++
++	writel(0x240014a4, ctrl + U3_CTRL_RX_CAL);
++
++	writel(0x003154da, ctrl + U3_CTRL_TX_CAL0);
++	writel(0x003154da, ctrl + U3_CTRL_TX_CAL1);
++	writel(0x00f154da, ctrl + U3_CTRL_TX_CAL2);
++	/* txdetrx_1st_timer -> 5us */
++	meson_s6_modify(ctrl + U3_CTRL_TXDETRX_TIMER, GENMASK(15, 0), 0x78);
++}
++
++static int meson_s6_usb3_init(struct phy *phy)
++{
++	struct meson_s6_usb3_phy *priv = phy_get_drvdata(phy);
++	int ret;
++
++	ret = clk_bulk_prepare_enable(ARRAY_SIZE(priv->clks), priv->clks);
++	if (ret)
++		return ret;
++
++	reset_control_deassert(priv->phy_rst);
++	reset_control_deassert(priv->apb_rst);
++
++	/*
++	 * Reset the APB and the PHY, the PHY reset starts the hardware PLL
++	 * initialization sequence.
++	 */
++	ret = reset_control_reset(priv->apb_rst);
++	if (ret)
++		goto err_clk;
++	ret = reset_control_reset(priv->phy_rst);
++	if (ret)
++		goto err_clk;
++
++	if (meson_s6_usb3_wait_pll(priv))
++		dev_warn(priv->dev, "timeout waiting for HW PLL init\n");
++
++	meson_s6_usb3_pll_cfg(priv);
++
++	ret = meson_s6_usb3_wait_pll(priv);
++	if (ret) {
++		dev_err(priv->dev, "USB3 PLL not locked (0x%08x)\n",
++			readl(priv->ctrl + U3_CTRL_PLL_STATUS));
++		goto err_power;
++	}
++
++	meson_s6_usb3_trim(priv);
++	meson_s6_usb3_txrx_cali(priv);
++
++	return 0;
++
++err_power:
++	meson_s6_usb3_power_down(priv);
++err_clk:
++	clk_bulk_disable_unprepare(ARRAY_SIZE(priv->clks), priv->clks);
++	return ret;
++}
++
++static int meson_s6_usb3_exit(struct phy *phy)
++{
++	struct meson_s6_usb3_phy *priv = phy_get_drvdata(phy);
++
++	meson_s6_usb3_power_down(priv);
++	clk_bulk_disable_unprepare(ARRAY_SIZE(priv->clks), priv->clks);
++
++	return 0;
++}
++
++static const struct phy_ops meson_s6_usb3_ops = {
++	.init	= meson_s6_usb3_init,
++	.exit	= meson_s6_usb3_exit,
++	.owner	= THIS_MODULE,
++};
++
++static int meson_s6_usb3_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct meson_s6_usb3_phy *priv;
++	struct phy_provider *provider;
++	struct phy *phy;
++	int ret;
++
++	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	priv->dev = dev;
++	priv->pll_sw_cfg = of_property_read_bool(dev->of_node,
++						 "amlogic,pll-sw-cfg");
++
++	priv->ctrl = devm_platform_ioremap_resource_byname(pdev, "ctrl");
++	if (IS_ERR(priv->ctrl))
++		return PTR_ERR(priv->ctrl);
++
++	priv->trim = devm_of_iomap(dev, dev->of_node, 1, NULL);
++	if (IS_ERR(priv->trim))
++		priv->trim = NULL;
++
++	priv->clks[0].id = "apb";
++	priv->clks[1].id = "pipe";
++	ret = devm_clk_bulk_get(dev, ARRAY_SIZE(priv->clks), priv->clks);
++	if (ret)
++		return dev_err_probe(dev, ret, "failed to get clocks\n");
++
++	priv->phy_rst = devm_reset_control_get_exclusive(dev, "phy");
++	if (IS_ERR(priv->phy_rst))
++		return dev_err_probe(dev, PTR_ERR(priv->phy_rst),
++				     "failed to get phy reset\n");
++
++	priv->apb_rst = devm_reset_control_get_exclusive(dev, "apb");
++	if (IS_ERR(priv->apb_rst))
++		return dev_err_probe(dev, PTR_ERR(priv->apb_rst),
++				     "failed to get apb reset\n");
++
++	/* Bring the PHY to its low power state until it is used */
++	ret = clk_bulk_prepare_enable(ARRAY_SIZE(priv->clks), priv->clks);
++	if (ret)
++		return ret;
++	meson_s6_usb3_power_down(priv);
++	clk_bulk_disable_unprepare(ARRAY_SIZE(priv->clks), priv->clks);
++
++	phy = devm_phy_create(dev, NULL, &meson_s6_usb3_ops);
++	if (IS_ERR(phy))
++		return dev_err_probe(dev, PTR_ERR(phy), "failed to create PHY\n");
++
++	phy_set_drvdata(phy, priv);
++
++	provider = devm_of_phy_provider_register(dev, of_phy_simple_xlate);
++
++	return PTR_ERR_OR_ZERO(provider);
++}
++
++static const struct of_device_id meson_s6_usb_phy_of_match[] = {
++	{ .compatible = "amlogic,s6-usb2-phy", .data = meson_s6_usb2_probe },
++	{ .compatible = "amlogic,s6-usb3-phy", .data = meson_s6_usb3_probe },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, meson_s6_usb_phy_of_match);
++
++static int meson_s6_usb_phy_probe(struct platform_device *pdev)
++{
++	int (*probe)(struct platform_device *pdev);
++
++	probe = device_get_match_data(&pdev->dev);
++	if (!probe)
++		return -EINVAL;
++
++	return probe(pdev);
++}
++
++static struct platform_driver meson_s6_usb_phy_driver = {
++	.probe	= meson_s6_usb_phy_probe,
++	.driver	= {
++		.name		= "meson-s6-usb-phy",
++		.of_match_table	= meson_s6_usb_phy_of_match,
++	},
++};
++module_platform_driver(meson_s6_usb_phy_driver);
++
++MODULE_DESCRIPTION("Amlogic S6 USB2 and USB3 PHY driver");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

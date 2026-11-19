@@ -1,0 +1,75 @@
+From 22db3c8d49458a71471f57cdf73713f423a83e4e Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 19 Nov 2026 16:15:38 +0100
+Subject: [PATCH] usb: xhci-plat: add Amlogic S6 CRG xHCI support
+
+The S6 has two CRG USB controllers whose host side is xHCI compatible.
+Only a vendor specific bit in the extended register space has to be set
+before the controller is started. The 64 bit DMA capability is working on
+this SoC, so XHCI_NO_64BIT_SUPPORT is not set.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ .../devicetree/bindings/usb/generic-xhci.yaml |  2 ++
+ drivers/usb/host/xhci-plat.c                  | 24 +++++++++++++++++++
+ 2 files changed, 26 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/usb/generic-xhci.yaml b/Documentation/devicetree/bindings/usb/generic-xhci.yaml
+index 9af6d01..6644883 100644
+--- a/Documentation/devicetree/bindings/usb/generic-xhci.yaml
++++ b/Documentation/devicetree/bindings/usb/generic-xhci.yaml
+@@ -25,6 +25,8 @@ properties:
+               - marvell,armada3700-xhci
+               - marvell,armada-8k-xhci
+           - const: generic-xhci
++      - description: Amlogic S6 CRG xHCI controller
++        const: amlogic,s6-xhci
+       - description: Broadcom SoCs with power domains
+         items:
+           - enum:
+diff --git a/drivers/usb/host/xhci-plat.c b/drivers/usb/host/xhci-plat.c
+index 80cbc51..f1c2ac6 100644
+--- a/drivers/usb/host/xhci-plat.c
++++ b/drivers/usb/host/xhci-plat.c
+@@ -128,6 +128,27 @@ static const struct xhci_plat_priv xhci_plat_amlogic_t7 = {
+ 	.quirks = XHCI_NO_64BIT_SUPPORT | XHCI_RESET_ON_RESUME,
+ };
+ 
++/*
++ * The CRG xHC found in the S6 needs this vendor specific bit in the
++ * extended register space set before the controller is started.
++ */
++#define XHCI_AMLOGIC_CRG_CFG		0x20b0
++#define XHCI_AMLOGIC_CRG_CFG_EN		BIT(26)
++
++static void xhci_plat_amlogic_s6_start(struct usb_hcd *hcd)
++{
++	u32 val;
++
++	val = readl(hcd->regs + XHCI_AMLOGIC_CRG_CFG);
++	val |= XHCI_AMLOGIC_CRG_CFG_EN;
++	writel(val, hcd->regs + XHCI_AMLOGIC_CRG_CFG);
++}
++
++static const struct xhci_plat_priv xhci_plat_amlogic_s6 = {
++	.quirks = XHCI_RESET_ON_RESUME,
++	.plat_start = xhci_plat_amlogic_s6_start,
++};
++
+ static const struct of_device_id usb_xhci_of_match[] = {
+ 	{
+ 		.compatible = "generic-xhci",
+@@ -154,6 +175,9 @@ static const struct of_device_id usb_xhci_of_match[] = {
+ 	}, {
+ 		.compatible = "amlogic,t7-xhci",
+ 		.data = &xhci_plat_amlogic_t7,
++	}, {
++		.compatible = "amlogic,s6-xhci",
++		.data = &xhci_plat_amlogic_s6,
+ 	},
+ 	{},
+ };
+-- 
+2.43.0
+

@@ -1,0 +1,107 @@
+From 05ae00827996a873527d2a49c969b9df28640021 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 19 Nov 2026 16:16:44 +0100
+Subject: [PATCH 17/17] arm64: dts: amlogic: s6: add USB support
+
+Add the USB2/USB3 PHYs and the two CRG xHCI controllers of the S6 and
+enable them on the BL201 board. VBUS of the second port, shared between the
+USB2 and the USB3 pins, is switched by GPIOH_8 (open drain).
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi   | 79 +++++++++++++++++++
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
+index 7999f49bc..47b003e15 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s6.dtsi
+@@ -1052,6 +1052,85 @@ clk_msr: clock-measure@48000 {
+ 				reg = <0x0 0x48000 0x0 0x1c>;
+ 			};
+ 
++			/*
++			 * USB. The two CRG controllers are xHCI compatible; the
++			 * second one comes with a USB3 PHY. PHY and controller
++			 * resets are separate lines of the reset controller.
++			 */
++			usb2_phy0: phy@348000 {
++				compatible = "amlogic,s6-usb2-phy";
++				reg = <0x0 0x348000 0x0 0x10>,
++				      <0x0 0x34c000 0x0 0x60>,
++				      <0x0 0x10330 0x0 0x4>;
++				reg-names = "ctrl", "cfg", "trim";
++				clocks = <&clkc_periphs CLKID_SYS_USB2DRD>;
++				clock-names = "general";
++				resets = <&reset RESET_U2DRD_USB2PHY>,
++					 <&reset RESET_U2DRD_COMB>;
++				reset-names = "phy", "comb";
++				#phy-cells = <0>;
++				status = "disabled";
++			};
++
++			usb2_phy1: phy@358000 {
++				compatible = "amlogic,s6-usb2-phy";
++				reg = <0x0 0x358000 0x0 0x10>,
++				      <0x0 0x35c000 0x0 0x60>,
++				      <0x0 0x10330 0x0 0x4>;
++				reg-names = "ctrl", "cfg", "trim";
++				clocks = <&clkc_periphs CLKID_SYS_USB3DRD>;
++				clock-names = "general";
++				resets = <&reset RESET_U3DRD_USB2PHY>,
++					 <&reset RESET_U3DRD_COMB>;
++				reset-names = "phy", "comb";
++				#phy-cells = <0>;
++				status = "disabled";
++			};
++
++			usb3_phy: phy@35a000 {
++				compatible = "amlogic,s6-usb3-phy";
++				reg = <0x0 0x35a000 0x0 0x184>,
++				      <0x0 0x1034c 0x0 0x4>;
++				reg-names = "ctrl", "trim";
++				clocks = <&clkc_periphs CLKID_SYS_USB3DRD>,
++					 <&clkc_periphs CLKID_USB_250M>;
++				clock-names = "apb", "pipe";
++				resets = <&reset RESET_U3DRD_USB3PHY>,
++					 <&reset RESET_U3DRD_USB3PHY_APB>;
++				reset-names = "phy", "apb";
++				amlogic,pll-sw-cfg;
++				#phy-cells = <0>;
++				status = "disabled";
++			};
++
++			usb2_drd: usb@340000 {
++				compatible = "amlogic,s6-xhci";
++				reg = <0x0 0x340000 0x0 0x8000>;
++				interrupts = <GIC_SPI 131 IRQ_TYPE_EDGE_RISING>;
++				clocks = <&clkc_periphs CLKID_SYS_USB2DRD>;
++				clock-names = "core";
++				resets = <&reset RESET_U2DRD>;
++				phys = <&usb2_phy0>;
++				phy-names = "usb2-phy";
++				dr_mode = "host";
++				usb2-lpm-disable;
++				status = "disabled";
++			};
++
++			usb3_drd: usb@350000 {
++				compatible = "amlogic,s6-xhci";
++				reg = <0x0 0x350000 0x0 0x8000>;
++				interrupts = <GIC_SPI 130 IRQ_TYPE_EDGE_RISING>;
++				clocks = <&clkc_periphs CLKID_SYS_USB3DRD>;
++				clock-names = "core";
++				resets = <&reset RESET_U3DRD>;
++				phys = <&usb2_phy1>, <&usb3_phy>;
++				phy-names = "usb2-phy", "usb3-phy";
++				dr_mode = "host";
++				usb2-lpm-disable;
++				status = "disabled";
++			};
++
+ 			/*
+ 			 * Audio block. The register layout of the audio clock
+ 			 * controller matches SM1; the mclk parent order
+-- 
+2.43.0
+

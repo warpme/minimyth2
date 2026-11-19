@@ -236,6 +236,8 @@ PATCHFILES += 1792-drm-meson-hdmitx21-add-Amlogic-S6-PHY-support.patch
 PATCHFILES += 1793-media-meson-amvdec-add-Amlogic-S6-support.patch
 PATCHFILES += 1794-thermal-amlogic-add-Amlogic-S6-support.patch
 PATCHFILES += 1795-cpufreq-amlogic-add-Amlogic-S6-support.patch
+PATCHFILES += 1796-phy-amlogic-add-Amlogic-S6-USB2-USB3-PHY-driver.patch
+PATCHFILES += 1797-usb-xhci-plat-add-Amlogic-S6-CRG-xHCI-support.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -262,6 +264,7 @@ PATCHFILES += 1874-arm64-dtsi-amlogic-s6-add-HDMI-CEC-AO-CEC-B.patch
 PATCHFILES += 1875-arm64-dtsi-amlogic-s6-add-audio-blocks-and-HDMI-audio.patch
 PATCHFILES += 1876-arm64-dtsi-amlogic-s6-add-temperature-sensors-thermal.patch
 PATCHFILES += 1877-arm64-dtsi-amlogic-s6-use-the-binned-CPU-OPP-driver.patch
+PATCHFILES += 1878-arm64-dtsi-amlogic-s6-add-USB-support.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -280,6 +283,7 @@ PATCHFILES += 1970-arm64-dts-t7-vim4-improvements.patch
 PATCHFILES += 1971-arm42-dts-vim4-enable-vdec.patch
 # s6 board additions
 PATCHFILES += 1980-arm64-dts-amlogic-add-s905x5-bl201-board.patch
+PATCHFILES += 1981-arm64-dts-amlogic-s6-add-USB-support-kopia.patch
 endif
 #------------------------------------------------------------
 
