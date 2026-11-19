@@ -1,0 +1,63 @@
+From 9f59424c47c1a1f6bbce5a76e8539cd2630c92f0 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 18 Nov 2026 18:21:05 +0100
+Subject: [PATCH] cpufreq: amlogic: add Amlogic S6 support
+
+S6 has a single cluster whose bin is read from the secure monitor like on
+S4, but the vendor OPP tables of the better bins add 2.2-2.4 GHz points
+that must not be offered on bin 0 parts. Add the S6 compatible and, for
+it, pass BIT(bin) as supported hardware so OPPs can be limited with
+opp-supported-hw.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ drivers/cpufreq/amlogic-cpufreq.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/drivers/cpufreq/amlogic-cpufreq.c b/drivers/cpufreq/amlogic-cpufreq.c
+index f26ba6d..cd6f851 100644
+--- a/drivers/cpufreq/amlogic-cpufreq.c
++++ b/drivers/cpufreq/amlogic-cpufreq.c
+@@ -21,6 +21,8 @@
+ 
+ /* T7 reports one bin per cluster: the firmware takes the cluster index */
+ #define AMLOGIC_CPUFREQ_BIN_PER_CLUSTER	BIT(0)
++/* S6: OPPs can be limited to some bins with opp-supported-hw (BIT(bin)) */
++#define AMLOGIC_CPUFREQ_SUPPORTED_HW	BIT(1)
+ 
+ #define AMLOGIC_CPUFREQ_MAX_CLUSTERS	2
+ 
+@@ -72,6 +74,7 @@ static int amlogic_cpufreq_probe(struct platform_device *pdev)
+ {
+ 	char name[] = "binXXXXXXXXXXX"; /* Integers can take 11 chars max */
+ 	int bins[AMLOGIC_CPUFREQ_MAX_CLUSTERS];
++	u32 supported_hw;
+ 	struct dev_pm_opp_config config = {};
+ 	struct amlogic_cpufreq_priv *priv;
+ 	unsigned long flags;
+@@ -112,6 +115,11 @@ static int amlogic_cpufreq_probe(struct platform_device *pdev)
+ 			goto err_clear_config;
+ 		}
+ 		snprintf(name, sizeof(name), "bin%d", bins[cluster]);
++		if (flags & AMLOGIC_CPUFREQ_SUPPORTED_HW) {
++			supported_hw = BIT(bins[cluster]);
++			config.supported_hw = &supported_hw;
++			config.supported_hw_count = 1;
++		}
+ 
+ 		ret = dev_pm_opp_set_config(cpu_dev, &config);
+ 		if (ret < 0)
+@@ -160,6 +168,10 @@ static const struct of_device_id amlogic_cpufreq_match_list[] = {
+ 		.compatible = "amlogic,t7-cpu-operating-points",
+ 		.data = (void *)AMLOGIC_CPUFREQ_BIN_PER_CLUSTER,
+ 	},
++	{
++		.compatible = "amlogic,s6-cpu-operating-points",
++		.data = (void *)AMLOGIC_CPUFREQ_SUPPORTED_HW,
++	},
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, amlogic_cpufreq_match_list);
+-- 
+2.43.0
+

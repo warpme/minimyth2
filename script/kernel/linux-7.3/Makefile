@@ -235,6 +235,7 @@ PATCHFILES += 1791-drm-meson-encoder_hdmi-convert-YCbCr-to-RGB-in-the-V.patch
 PATCHFILES += 1792-drm-meson-hdmitx21-add-Amlogic-S6-PHY-support.patch
 PATCHFILES += 1793-media-meson-amvdec-add-Amlogic-S6-support.patch
 PATCHFILES += 1794-thermal-amlogic-add-Amlogic-S6-support.patch
+PATCHFILES += 1795-cpufreq-amlogic-add-Amlogic-S6-support.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -252,6 +253,8 @@ PATCHFILES += 1830-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 1850-arm64-dtsi-amlogic-t7-add-eth-usb-hdmi-audio-ths-dvfs.patch
 PATCHFILES += 1851-arm64-dtsi-amlogic-t7-add-vdec-nodes.patch
 PATCHFILES += 1852-arm64-dtsi-meson-t7-add-gpu-dfs.patch
+# s6 dtsi additions
+PATCHFILES += 1870-arm64-dtsi-amlogic-s6-add-clocks-reset-pinmux-and-per.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
