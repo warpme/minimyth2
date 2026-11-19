@@ -1,0 +1,221 @@
+From 138ea9382f320a3a279368e03211192f9db7c4de Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 18 Nov 2026 16:02:51 +0100
+Subject: [PATCH 2/4] drm/meson: vclk: add Amlogic S6 HDMI PLL and analog clock
+ path
+
+The S6 HDMI PLL is not the S4/T7 one: the VCO runs at 3 - 6 GHz with
+M = VCO / 12 MHz and a 17 bit fraction, the lock bit is bit 31 and the
+output dividers (OD0 cascade, OD1, OD2) live in CTRL0/CTRL3. The vendor
+driver also does not use the digital vid_pll divider on S6: OD1 does the
+/5 and CLKCTRL_HDMI_CLK_CTRL[15] selects the "analog" path, with only the
+vid_pll output gate (CLKCTRL_VID_PLL_CLK_DIV[19]) enabled.
+
+Program the PLL directly from the TMDS bit clock (phy_freq) the way the
+vendor driver does: double the frequency until the VCO is in range and
+split the resulting factor into the OD0/OD2 stages. Everything after the
+vid_pll output (vclk, ENCP/ENCI, HDMI-TX pixel/FE clocks) follows the
+existing S4 style code, so the params table is still used to check the
+mode and to choose the vclk, venc and hdmi-tx dividers.
+
+8 bit colour only, no YUV420, no deep colour and no spread spectrum.
+Based on the Amlogic BSP; not tested on hardware.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ drivers/gpu/drm/meson/meson_vclk.c | 143 ++++++++++++++++++++++++++++-
+ 1 file changed, 141 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_vclk.c b/drivers/gpu/drm/meson/meson_vclk.c
+index 8d01149..fd1b8e2 100644
+--- a/drivers/gpu/drm/meson/meson_vclk.c
++++ b/drivers/gpu/drm/meson/meson_vclk.c
+@@ -5,7 +5,10 @@
+  * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
+  */
+ 
++#include <linux/delay.h>
+ #include <linux/export.h>
++#include <linux/math64.h>
++#include <linux/regmap.h>
+ 
+ #include <drm/drm_print.h>
+ 
+@@ -885,6 +888,124 @@ static void meson_hdmi_pll_set_params(struct meson_drm *priv, unsigned int m,
+ 	}
+ }
+ 
++/*
++ * S6: the HDMI PLL VCO runs at 3 - 6 GHz from the 24 MHz crystal with
++ * M = VCO / 12 MHz and a 17 bit fraction. OD0 and OD2 divide the VCO down
++ * to the TMDS bit clock, OD1 replaces the digital vid_pll divider (/5 for
++ * 8 bit colour) and its output is the vid_pll clock ("analog" path).
++ */
++#define S6_HDMI_PLL_MIN_VCO	3000000000ULL
++#define S6_HDMI_PLL_MAX_VCO	6000000000ULL
++#define S6_HDMI_PLL_REF		12000000ULL
++#define S6_HDMI_PLL_FRAC_BITS	17
++#define S6_HDMI_PLL_LOCK	BIT(31)
++#define S6_HDMI_PLL_RESET	BIT(30)
++#define S6_HDMI_PLL_EN		BIT(29)
++#define S6_HDMI_PLL_CTRL0_OD0	GENMASK(25, 20)
++#define S6_HDMI_PLL_CTRL3_OD1	GENMASK(23, 22)
++#define S6_HDMI_PLL_CTRL3_OD2	GENMASK(29, 24)
++#define S6_HDMI_PLL_CTRL3_CLKSEL BIT(19)
++#define S6_HDMI_CLK_ANALOG	BIT(15)	/* CLKCTRL_HDMI_CLK_CTRL */
++
++/* Take a /2, /4 or /8 stage out of div: OD register value 1, 2, 3 or 0 (/1) */
++static unsigned int s6_pll_od_split(unsigned int *div)
++{
++	unsigned int od = 0;
++
++	if (!(*div % 8)) {
++		od = 3;
++		*div /= 8;
++	} else if (!(*div % 4)) {
++		od = 2;
++		*div /= 4;
++	} else if (!(*div % 2)) {
++		od = 1;
++		*div /= 2;
++	}
++
++	return od;
++}
++
++static void s6_hdmi_pll_set(struct meson_drm *priv, unsigned long long phy_freq)
++{
++	unsigned long long vco = phy_freq;
++	unsigned int div = 1, od00, od01, od20, od21, m, frac;
++	unsigned int val, i;
++
++	/* Find the power of two that puts the VCO in range */
++	while (vco < S6_HDMI_PLL_MIN_VCO && div <= 32) {
++		vco *= 2;
++		div *= 2;
++	}
++
++	if (vco < S6_HDMI_PLL_MIN_VCO || vco >= S6_HDMI_PLL_MAX_VCO) {
++		drm_err(priv->drm, "HDMI PLL: %llu Hz out of range\n", phy_freq);
++		return;
++	}
++
++	m = div_u64_rem(vco, S6_HDMI_PLL_REF, &val);
++	frac = div_u64((u64)val << S6_HDMI_PLL_FRAC_BITS, S6_HDMI_PLL_REF);
++
++	/* Power down first, as the vendor driver does */
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL0, 0);
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL3, 0);
++
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL0, 0x00017000 | m);
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL1, 0x9040137d);
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL2, 0x04000000);
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL3, 0x01160000 | frac);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0, BIT(28), BIT(28));
++	usleep_range(10, 20);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0, BIT(18), BIT(18));
++	usleep_range(10, 20);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0,
++			   S6_HDMI_PLL_RESET, S6_HDMI_PLL_RESET);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0, BIT(18), 0);
++	usleep_range(80, 90);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0,
++			   S6_HDMI_PLL_EN, S6_HDMI_PLL_EN);
++	usleep_range(80, 90);
++
++	for (i = 0; i < 10; i++) {
++		usleep_range(50, 60);
++		regmap_read(priv->hhi, ANACTRL_HDMIPLL_CTRL0, &val);
++		if (val & S6_HDMI_PLL_LOCK)
++			break;
++		/* Not locked: pulse the PLL reset */
++		regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0,
++				   S6_HDMI_PLL_RESET, 0);
++		regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0,
++				   S6_HDMI_PLL_RESET, S6_HDMI_PLL_RESET);
++	}
++	if (i == 10)
++		drm_err(priv->drm, "HDMI PLL: not locked at %llu Hz\n", vco);
++
++	/*
++	 * Output dividers: OD0 is two cascaded /1,/2,/4,/8 stages, OD2 is a
++	 * /1,/2,/4 stage for the PHY clock and another one (one more /2 for
++	 * RGB/YUV444) for the second output. OD1 (/5 for 24 bit) is 0.
++	 */
++	od00 = s6_pll_od_split(&div);
++	od01 = s6_pll_od_split(&div);
++	od20 = 0;
++	if (!(div % 4)) {
++		od20 = 2;
++		div /= 4;
++	} else if (!(div % 2)) {
++		od20 = 1;
++		div /= 2;
++	}
++	od21 = od20 + 1;
++
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL3, S6_HDMI_PLL_CTRL3_CLKSEL,
++			   S6_HDMI_PLL_CTRL3_CLKSEL);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL3, S6_HDMI_PLL_CTRL3_OD1, 0);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL3, S6_HDMI_PLL_CTRL3_OD2,
++			   FIELD_PREP(S6_HDMI_PLL_CTRL3_OD2, (od20 << 3) | od21));
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0, S6_HDMI_PLL_CTRL0_OD0,
++			   FIELD_PREP(S6_HDMI_PLL_CTRL0_OD0, (od01 << 3) | od00));
++}
++
+ #define XTAL_FREQ (24 * 1000 * 1000)
+ 
+ static unsigned int meson_hdmi_pll_get_m(struct meson_drm *priv,
+@@ -1136,7 +1257,9 @@ static void meson_vclk_set(struct meson_drm *priv,
+ 	}
+ 
+ 	/* Set HDMI PLL rate */
+-	if (!od1 && !od2 && !od3) {
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6)) {
++		/* programmed by meson_vclk_setup(), the dividers are in the PLL */
++	} else if (!od1 && !od2 && !od3) {
+ 		meson_hdmi_pll_generic_set(priv, pll_base_freq);
+ 	} else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXBB)) {
+ 		switch (pll_base_freq) {
+@@ -1209,7 +1332,18 @@ static void meson_vclk_set(struct meson_drm *priv,
+ 	}
+ 
+ 	/* Setup vid_pll divider */
+-	meson_vid_pll_set(priv, vid_pll_div);
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6)) {
++		/*
++		 * Analog path: the PLL output dividers replace the digital
++		 * vid_pll divider, only its output gate is used.
++		 */
++		regmap_update_bits(priv->clkctrl, CLKCTRL_HDMI_CLK_CTRL,
++				   S6_HDMI_CLK_ANALOG, S6_HDMI_CLK_ANALOG);
++		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
++				   VID_PLL_EN, VID_PLL_EN);
++	} else {
++		meson_vid_pll_set(priv, vid_pll_div);
++	}
+ 
+ 	/* Set VCLK div */
+ 	if (meson_vpu_is_s4_like(priv)) {
+@@ -1550,6 +1684,8 @@ void meson_vclk_setup(struct meson_drm *priv, unsigned int target,
+ 		 * - venc_div = 1
+ 		 * - encp encoder
+ 		 */
++		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++			s6_hdmi_pll_set(priv, phy_freq);
+ 		meson_vclk_set(priv, phy_freq, 0, 0, 0,
+ 			       VID_PLL_DIV_5, 2, 1, 1, false, false);
+ 		return;
+@@ -1604,6 +1740,9 @@ void meson_vclk_setup(struct meson_drm *priv, unsigned int target,
+ 		return;
+ 	}
+ 
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++		s6_hdmi_pll_set(priv, phy_freq);
++
+ 	meson_vclk_set(priv, params[freq].pll_freq,
+ 		       params[freq].pll_od1, params[freq].pll_od2,
+ 		       params[freq].pll_od3, params[freq].vid_pll_div,
+-- 
+2.43.0
+

@@ -230,6 +230,7 @@ PATCHFILES += 1786-clk-amlogic-clk-measure-add-support-for-more-SoCs.patch
 PATCHFILES += 1787-reset-amlogic-add-support-for-S6-S7-S7D.patch
 PATCHFILES += 1788-pwm-amlogic-add-support-for-S7-S7D-S6.patch
 PATCHFILES += 1789-drm-meson-add-Amlogic-S6-VPU-compatible.patch
+PATCHFILES += 1790-drm-meson-vclk-add-Amlogic-S6-HDMI-PLL-and-analog-cl.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
