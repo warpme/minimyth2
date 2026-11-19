@@ -1,0 +1,127 @@
+From 266a21daaf2907334cf474c7b844cd3571b96008 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 18 Nov 2026 16:03:47 +0100
+Subject: [PATCH 3/4] drm/meson: encoder_hdmi: convert YCbCr to RGB in the VPU
+ on S6
+
+The S6 VPP is a G12A class one and sends limited range BT.601 YCbCr to
+the HDMI interface. The S6 HDMI 2.1 transmitter takes RGB and the
+vendor driver converts in the matrix of the VPU HDMI interface
+(VPU_HDMI_MATRIX_*, enabled with VPU_HDMI_FMT_CTRL[31] and [1:0]),
+not in the transmitter.
+
+Program that matrix, VPU_HDMI_FMT_CTRL (0x8080040b) and the dither
+control as the vendor driver does and select the CrYCb output map.
+
+Based on the Amlogic BSP; not tested on hardware.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ drivers/gpu/drm/meson/meson_encoder_hdmi.c | 44 ++++++++++++++++++++++
+ drivers/gpu/drm/meson/meson_registers.h    | 17 +++++++++
+ 2 files changed, 61 insertions(+)
+
+diff --git a/drivers/gpu/drm/meson/meson_encoder_hdmi.c b/drivers/gpu/drm/meson/meson_encoder_hdmi.c
+index da30d44..3d18d48 100644
+--- a/drivers/gpu/drm/meson/meson_encoder_hdmi.c
++++ b/drivers/gpu/drm/meson/meson_encoder_hdmi.c
+@@ -198,6 +198,44 @@ static enum drm_mode_status meson_encoder_hdmi_mode_valid(struct drm_bridge *bri
+ 	return meson_vclk_vic_supported_freq(priv, phy_freq, vclk_freq);
+ }
+ 
++/*
++ * S6: the VPP sends limited range BT.601 YCbCr like on G12A, but the HDMI 2.1
++ * transmitter takes RGB and has no colour space converter in use: convert
++ * to full range RGB in the matrix of the VPU HDMI interface (same values as
++ * the vendor driver).
++ */
++static void meson_encoder_hdmi_s6_csc(struct meson_drm *priv)
++{
++	/* 8 bit, YUV444 -> RGB matrix, chroma down-sampling is not used */
++	writel_relaxed(VPU_HDMI_FMT_MATRIX_EN | VPU_HDMI_FMT_DNSMP_V(2) |
++		       VPU_HDMI_FMT_ROUND_EN | VPU_HDMI_FMT_DNSMP_H(2) |
++		       VPU_HDMI_FMT_YCBCR2RGB_EN,
++		       priv->io_base + _REG(VPU_HDMI_FMT_CTRL));
++
++	/* Dither 12 bit down to 10 bit rounding, as the vendor driver does */
++	writel_relaxed(BIT(10) | BIT(4), priv->io_base + _REG(VPU_HDMI_DITH_CNTL));
++
++	writel_relaxed((0xfc0 << 16) | 0xe00,
++		       priv->io_base + _REG(VPU_HDMI_MATRIX_PRE_OFFSET0_1));
++	writel_relaxed(0xe00, priv->io_base + _REG(VPU_HDMI_MATRIX_PRE_OFFSET2));
++	/*
++	 * 1.164   0       1.596
++	 * 1.164  -0.392  -0.813
++	 * 1.164   2.017   0
++	 */
++	writel_relaxed((0x4a8 << 16) | 0,
++		       priv->io_base + _REG(VPU_HDMI_MATRIX_COEF00_01));
++	writel_relaxed((0x662 << 16) | 0x4a8,
++		       priv->io_base + _REG(VPU_HDMI_MATRIX_COEF02_10));
++	writel_relaxed((0x1e6f << 16) | 0x1cbf,
++		       priv->io_base + _REG(VPU_HDMI_MATRIX_COEF11_12));
++	writel_relaxed((0x4a8 << 16) | 0x811,
++		       priv->io_base + _REG(VPU_HDMI_MATRIX_COEF20_21));
++	writel_relaxed(0, priv->io_base + _REG(VPU_HDMI_MATRIX_COEF22));
++	writel_relaxed(0, priv->io_base + _REG(VPU_HDMI_MATRIX_OFFSET0_1));
++	writel_relaxed(0, priv->io_base + _REG(VPU_HDMI_MATRIX_OFFSET2));
++}
++
+ static void meson_encoder_hdmi_atomic_enable(struct drm_bridge *bridge,
+ 					     struct drm_atomic_commit *state)
+ {
+@@ -234,6 +272,9 @@ static void meson_encoder_hdmi_atomic_enable(struct drm_bridge *bridge,
+ 		yuv420_mode = true;
+ 	} else if (encoder_hdmi->output_bus_fmt == MEDIA_BUS_FMT_UYVY8_1X16)
+ 		ycrcb_map = VPU_HDMI_OUTPUT_CRYCB;
++	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++		/* the matrix output goes to the transmitter as {2, 1, 0} */
++		ycrcb_map = VPU_HDMI_OUTPUT_CRYCB;
+ 
+ 	/* VENC + VENC-DVI Mode setup */
+ 	meson_venc_hdmi_mode_set(priv, vic, ycrcb_map, yuv420_mode, mode);
+@@ -249,6 +290,9 @@ static void meson_encoder_hdmi_atomic_enable(struct drm_bridge *bridge,
+ 		/* Setup YUV422 to HDMI-TX, no 10bit diphering */
+ 		writel_relaxed(1 | (2 << 2),
+ 				priv->io_base + _REG(VPU_HDMI_FMT_CTRL));
++	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++		/* Setup YUV444 to RGB for HDMI-TX */
++		meson_encoder_hdmi_s6_csc(priv);
+ 	else
+ 		/* Setup YUV444 to HDMI-TX, no 10bit diphering */
+ 		writel_relaxed(0, priv->io_base + _REG(VPU_HDMI_FMT_CTRL));
+diff --git a/drivers/gpu/drm/meson/meson_registers.h b/drivers/gpu/drm/meson/meson_registers.h
+index b3561d6..43fcd29 100644
+--- a/drivers/gpu/drm/meson/meson_registers.h
++++ b/drivers/gpu/drm/meson/meson_registers.h
+@@ -1661,10 +1661,27 @@
+ #define VPU_ISP_GCLK_CTRL0 0x2741
+ #define VPU_ISP_GCLK_CTRL1 0x2742
+ #define VPU_HDMI_FMT_CTRL 0x2743
++#define		VPU_HDMI_FMT_YCBCR2RGB_EN	GENMASK(1, 0)	/* S6: 3 = matrix on */
++#define		VPU_HDMI_FMT_DNSMP_H(x)		((x) << 2)
++#define		VPU_HDMI_FMT_ROUND_EN		BIT(10)
++#define		VPU_HDMI_FMT_DNSMP_V(x)		((x) << 22)
++#define		VPU_HDMI_FMT_MATRIX_EN		BIT(31)	/* S6 */
+ #define VPU_VDIN_ASYNC_HOLD_CTRL 0x2743
+ #define VPU_VDISP_ASYNC_HOLD_CTRL 0x2744
+ #define VPU_VPUARB2_ASYNC_HOLD_CTRL 0x2745
+ 
++/* S6 YCbCr to RGB matrix in front of the HDMI transmitter */
++#define VPU_HDMI_MATRIX_COEF00_01 0x273a
++#define VPU_HDMI_MATRIX_COEF02_10 0x273b
++#define VPU_HDMI_MATRIX_COEF11_12 0x273c
++#define VPU_HDMI_MATRIX_COEF20_21 0x273d
++#define VPU_HDMI_MATRIX_COEF22 0x273e
++#define VPU_HDMI_MATRIX_OFFSET0_1 0x278b
++#define VPU_HDMI_MATRIX_OFFSET2 0x278c
++#define VPU_HDMI_MATRIX_PRE_OFFSET0_1 0x278d
++#define VPU_HDMI_MATRIX_PRE_OFFSET2 0x278e
++#define VPU_HDMI_DITH_CNTL 0x27fc
++
+ #define VPU_PROT1_CLK_GATE 0x2750
+ #define VPU_PROT1_GEN_CNTL 0x2751
+ #define VPU_PROT1_X_START_END 0x2752
+-- 
+2.43.0
+
