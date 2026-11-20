@@ -160,7 +160,7 @@ Amlogic s905w2(s4) | Tanix W2         | not works (cdtech 47W3155)             |
 Amlogic s905y4(s4) | Khadas VIM1S     | works  (ap6256@SDIO)                   | works     | n/a       | works     | works       | n/a         | not works (firmware issue)     | support in-progress           |
 Amlogic s905x4(sc2)| X96 MaxPlusUltra | not works  (FN-Link K255B-SR@SDIO)     | not tested| n/a       | works     | works       |AiP1628 works| not works (firmware issue)     | support in-progress           |
 Amlogic s905x4(sc2)| RBox HK1         | wip (HK6334Q)                          | not tested| n/a       | works     | works       | FD6551 works| not works (firmware issue)     | support in-progress           |
-Amlogic a311d2(t7) | Khadas VIM4      | wip (AP6275@SDIO)                      | not tested| n/a       | not works | works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic a311d2(t7) | Khadas VIM4      | wip (AP6275@SDIO)                      | not tested| n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
 Broadcom 2837      | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | n/a       | not tested| works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2711      | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2712      | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
@@ -231,5 +231,5 @@ Intel D2550      | ION2                                         | VDPAU,VAAPI   
 
 ## Playback HW video decode tests on various HW.
 
-This is summary of video samples tests conducted on current MiniMyth2 code: [Video test summary](https://github.com/warpme/minimyth2/blob/master/video-test-summary.txt)
+This is summary of video samples tests conducted on current MiniMyth2 code (wip, needs update)): [Video test summary](https://github.com/warpme/minimyth2/blob/master/video-test-summary.txt)
 
