@@ -1,0 +1,56 @@
+diff --speed-large-files --no-dereference --minimal -Naur poky-yocto-2.7.3/scripts/lib/wic/plugins/source/amlogic-sdboot.py poky-yocto-2.7.3/scripts/lib/wic/plugins/source/amlogic-sdboot.py
+--- poky-yocto-2.7.3/scripts/lib/wic/plugins/source/amlogic-sdboot.py	1970-01-01 01:00:00.000000000 +0100
++++ poky-yocto-2.7.3/scripts/lib/wic/plugins/source/amlogic-sdboot.py	2026-11-20 22:55:15.416705494 +0100
+@@ -0,0 +1,52 @@
++# SPDX-License-Identifier: MIT
++#
++# Amlogic SD boot layout for u-boot.bin.sd.bin:
++#   sector 1..  : placed by wic as this partition's content (use --offset 1s)
++#   bytes 0..441: written into the MBR boot code area after the partition
++#                 table exists, so the table (bytes 446..511) is kept
++
++import logging
++import os
++
++from wic import WicError
++from wic.pluginbase import SourcePlugin
++from wic.misc import exec_cmd, get_bitbake_var
++
++logger = logging.getLogger('wic')
++
++
++class AmlogicSdBootPlugin(SourcePlugin):
++    name = 'amlogic-sdboot'
++    sdbin = None
++
++    @classmethod
++    def do_prepare_partition(cls, part, source_params, creator, cr_workdir,
++                             oe_builddir, bootimg_dir, kernel_dir,
++                             rootfs_dir, native_sysroot):
++        if 'file' not in source_params:
++            raise WicError("amlogic-sdboot: missing file= in --sourceparams")
++
++        deploy = bootimg_dir or get_bitbake_var("DEPLOY_DIR_IMAGE")
++        path = os.path.join(deploy, source_params['file'])
++        if not os.path.exists(path):
++            raise WicError("amlogic-sdboot: %s not found" % path)
++        cls.sdbin = path
++
++        # Everything from sector 1 on is the partition content.
++        dst = os.path.join(cr_workdir, "amlogic-sdboot.%d" % part.lineno)
++        exec_cmd("dd if=%s of=%s bs=512 skip=1" % (path, dst))
++
++        size_kb = (os.path.getsize(dst) + 1023) // 1024
++        part.size = max(part.size or 0, size_kb)
++        part.source_file = dst
++
++    @classmethod
++    def do_install_disk(cls, disk, disk_name, creator, workdir, oe_builddir,
++                        bootimg_dir, kernel_dir, native_sysroot):
++        if not cls.sdbin:
++            return
++
++        full_path = creator._full_path(workdir, disk_name, "direct")
++        logger.debug("Writing MBR boot code of %s to %s", cls.sdbin, full_path)
++        exec_cmd("dd if=%s of=%s conv=fsync,notrunc bs=442 count=1"
++                 % (cls.sdbin, full_path), native_sysroot)

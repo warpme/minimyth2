@@ -137,10 +137,10 @@ SC2_VENDOR_BOARDS_LIST= \
 
 # Amlogic T7 boards
 T7_BOARDS_LIST= \
+	board-a311d2.vim4 \
 
 # Amlogic T7 boards with vendor u-boot
 T7_VENDOR_BOARDS_LIST= \
-	board-a311d2.vim4 \
 
 # Allwinner H6 boards
 H6_BOARDS_LIST= \
@@ -251,6 +251,7 @@ PATCHFILES += backport-003-wic-Fix-error-message-when-reporting-invalid-offset.p
 PATCHFILES += backport-004-wic-Add-512-Byte-alignment-to--offset.patch
 PATCHFILES += poky-yocto-2.7.3-allow-arbitral-part-start-sector.patch
 PATCHFILES += poky-yocto-2.7.3-fix-running-on-python3.11.patch
+PATCHFILES += 0005-amlogic-install-442-and-bootloader.patch
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
