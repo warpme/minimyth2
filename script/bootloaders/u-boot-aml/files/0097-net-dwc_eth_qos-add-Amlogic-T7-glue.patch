@@ -1,0 +1,336 @@
+From 05e2398cb59015323b7e6a105fb944c350f3be79 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 20 Nov 2026 10:48:12 +0000
+Subject: [PATCH 07/12] net: dwc_eth_qos: add Amlogic T7 glue
+
+The T7 (A311D2) Ethernet MAC is a dwmac 4.x (QoS) core on a 32-bit AXI
+port, unlike the 3.x GMAC of G12A/S4 handled by dwmac_meson8b. Add an
+Amlogic glue for the dwc_eth_qos driver, matched on amlogic,t7-dwmac:
+program PRG_ETH0/PRG_ETH1 for RGMII/RMII with the TX and RX delays from
+the device tree (as the Linux dwmac-meson8b G12A code does), enable the
+clocks and route the G12A-style MDIO multiplexer to the external PHY.
+
+Tested on the Khadas VIM4 (RTL8211F, 1 Gbit/s): DHCP and ping.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/net/Kconfig             |   7 +
+ drivers/net/Makefile            |   1 +
+ drivers/net/dwc_eth_qos.c       |   6 +
+ drivers/net/dwc_eth_qos.h       |   1 +
+ drivers/net/dwc_eth_qos_meson.c | 246 ++++++++++++++++++++++++++++++++
+ 5 files changed, 261 insertions(+)
+ create mode 100644 drivers/net/dwc_eth_qos_meson.c
+
+diff --git a/drivers/net/Kconfig b/drivers/net/Kconfig
+index af062f0..15d21a0 100644
+--- a/drivers/net/Kconfig
++++ b/drivers/net/Kconfig
+@@ -247,6 +247,13 @@ config DWC_ETH_QOS_INTEL
+ 	  The Synopsys Designware Ethernet QOS IP block with the specific
+ 	  configuration used in the Intel Elkhart-Lake soc.
+ 
++config DWC_ETH_QOS_MESON
++	bool "Synopsys DWC Ethernet QOS device support for Amlogic SoCs"
++	depends on DWC_ETH_QOS && ARCH_MESON
++	help
++	  The Synopsys Designware Ethernet QOS (dwmac 4.x) IP block with the
++	  Amlogic PRG_ETH glue, as used on the Amlogic T7 (A311D2) SoC.
++
+ config DWC_ETH_QOS_MTK
+ 	bool "Synopsys DWC Ethernet QOS device support for MediaTek SoCs"
+ 	depends on DWC_ETH_QOS && ARCH_MEDIATEK
+diff --git a/drivers/net/Makefile b/drivers/net/Makefile
+index 4c1f409..e3e0a70 100644
+--- a/drivers/net/Makefile
++++ b/drivers/net/Makefile
+@@ -21,6 +21,7 @@ obj-$(CONFIG_DWC_ETH_QOS) += dwc_eth_qos.o
+ obj-$(CONFIG_DWC_ETH_QOS_ADI) += dwc_eth_qos_adi.o
+ obj-$(CONFIG_DWC_ETH_QOS_IMX) += dwc_eth_qos_imx.o
+ obj-$(CONFIG_DWC_ETH_QOS_INTEL) += dwc_eth_qos_intel.o
++obj-$(CONFIG_DWC_ETH_QOS_MESON) += dwc_eth_qos_meson.o
+ obj-$(CONFIG_DWC_ETH_QOS_MTK) += dwc_eth_qos_mtk.o
+ obj-$(CONFIG_DWC_ETH_QOS_QCOM) += dwc_eth_qos_qcom.o
+ obj-$(CONFIG_DWC_ETH_QOS_ROCKCHIP) += dwc_eth_qos_rockchip.o
+diff --git a/drivers/net/dwc_eth_qos.c b/drivers/net/dwc_eth_qos.c
+index e7cf68d..6bbe836 100644
+--- a/drivers/net/dwc_eth_qos.c
++++ b/drivers/net/dwc_eth_qos.c
+@@ -1665,6 +1665,12 @@ static const struct udevice_id eqos_ids[] = {
+ 		.data = (ulong)&eqos_mtk_config
+ 	},
+ #endif
++#if IS_ENABLED(CONFIG_DWC_ETH_QOS_MESON)
++	{
++		.compatible = "amlogic,t7-dwmac",
++		.data = (ulong)&eqos_meson_config
++	},
++#endif
+ #if IS_ENABLED(CONFIG_DWC_ETH_QOS_SUNXI)
+ 	{
+ 		.compatible = "allwinner,sun55i-a523-gmac200",
+diff --git a/drivers/net/dwc_eth_qos.h b/drivers/net/dwc_eth_qos.h
+index ccb3c3a..9139c46 100644
+--- a/drivers/net/dwc_eth_qos.h
++++ b/drivers/net/dwc_eth_qos.h
+@@ -319,3 +319,4 @@ extern struct eqos_config eqos_jh7110_config;
+ extern struct eqos_config eqos_adi_config;
+ extern struct eqos_config eqos_mtk_config;
+ extern struct eqos_config eqos_sunxi_config;
++extern struct eqos_config eqos_meson_config;
+diff --git a/drivers/net/dwc_eth_qos_meson.c b/drivers/net/dwc_eth_qos_meson.c
+new file mode 100644
+index 0000000..104c62a
+--- /dev/null
++++ b/drivers/net/dwc_eth_qos_meson.c
+@@ -0,0 +1,246 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Amlogic glue for the Synopsys DWC Ethernet QoS (dwmac 4.x) controller,
++ * as found on the T7 (A311D2) SoC.
++ *
++ * The PRG_ETH0/PRG_ETH1 programming follows the Linux dwmac-meson8b
++ * driver (G12A variant: RX delay in PRG_ETH1).
++ */
++
++#include <clk.h>
++#include <dm.h>
++#include <dm/device_compat.h>
++#include <dm/ofnode.h>
++#include <malloc.h>
++#include <net.h>
++#include <phy.h>
++#include <asm/io.h>
++#include <linux/bitfield.h>
++#include <linux/bitops.h>
++#include <linux/delay.h>
++
++#include "dwc_eth_qos.h"
++
++#define PRG_ETH0			0x0
++#define PRG_ETH0_EXT_PHY_MODE_MASK	GENMASK(2, 0)
++#define PRG_ETH0_EXT_RGMII_MODE		1
++#define PRG_ETH0_EXT_RMII_MODE		4
++#define PRG_ETH0_TXDLY_MASK		GENMASK(6, 5)
++#define PRG_ETH0_CLK_M250_DIV_MASK	GENMASK(9, 7)
++#define PRG_ETH0_RGMII_TX_CLK_EN	BIT(10)
++#define PRG_ETH0_INVERTED_RMII_CLK	BIT(11)
++#define PRG_ETH0_TX_AND_PHY_REF_CLK	BIT(12)
++
++#define PRG_ETH1			0x4
++#define PRG_ETH1_CFG_RXCLK_DLY		GENMASK(19, 16)
++
++/* G12A style MDIO multiplexer, ETH_PHY_CNTL2: 0 selects external MDIO */
++#define ETH_PHY_CNTL2			0x88
++
++struct meson_eqos_priv {
++	void __iomem *prg_eth;
++	struct clk_bulk clks;
++};
++
++/*
++ * The MAC MDIO lines reach the external PHY through the G12A-style
++ * multiplexer the PHY node sits under. U-Boot talks to the PHY through
++ * the MAC's own MDIO bus, so route the multiplexer to the external pads.
++ */
++static void meson_eqos_select_ext_mdio(struct udevice *dev)
++{
++	struct ofnode_phandle_args args;
++	ofnode mux;
++	fdt_addr_t addr;
++
++	if (dev_read_phandle_with_args(dev, "phy-handle", NULL, 0, 0, &args))
++		return;
++
++	mux = ofnode_get_parent(ofnode_get_parent(args.node));
++	if (!ofnode_valid(mux) ||
++	    !ofnode_device_is_compatible(mux, "amlogic,g12a-mdio-mux"))
++		return;
++
++	addr = ofnode_get_addr(mux);
++	if (addr == FDT_ADDR_T_NONE)
++		return;
++
++	writel(0, (void __iomem *)addr + ETH_PHY_CNTL2);
++}
++
++static int meson_eqos_set_prg_eth(struct udevice *dev)
++{
++	struct eth_pdata *pdata = dev_get_plat(dev);
++	struct meson_eqos_priv *priv = pdata->priv_pdata;
++	u32 tx_delay_ns, rx_delay_ps, val;
++
++	switch (pdata->phy_interface) {
++	case PHY_INTERFACE_MODE_RGMII:
++	case PHY_INTERFACE_MODE_RGMII_ID:
++	case PHY_INTERFACE_MODE_RGMII_RXID:
++	case PHY_INTERFACE_MODE_RGMII_TXID:
++		tx_delay_ns = dev_read_u32_default(dev, "amlogic,tx-delay-ns", 2);
++		rx_delay_ps = dev_read_u32_default(dev, "rx-internal-delay-ps", 0);
++
++		/* The PHY adds the delays in these modes */
++		if (pdata->phy_interface == PHY_INTERFACE_MODE_RGMII_ID ||
++		    pdata->phy_interface == PHY_INTERFACE_MODE_RGMII_TXID)
++			tx_delay_ns = 0;
++		if (pdata->phy_interface == PHY_INTERFACE_MODE_RGMII_ID ||
++		    pdata->phy_interface == PHY_INTERFACE_MODE_RGMII_RXID)
++			rx_delay_ps = 0;
++
++		if (tx_delay_ns > 6 || tx_delay_ns % 2 ||
++		    rx_delay_ps > 3000 || rx_delay_ps % 200) {
++			dev_err(dev, "invalid RGMII delays\n");
++			return -EINVAL;
++		}
++
++		/* 1 GHz fdiv2 / 4 = 250 MHz, /2 = 125 MHz RGMII TX clock */
++		val = FIELD_PREP(PRG_ETH0_EXT_PHY_MODE_MASK,
++				 PRG_ETH0_EXT_RGMII_MODE) |
++		      FIELD_PREP(PRG_ETH0_TXDLY_MASK, tx_delay_ns / 2) |
++		      FIELD_PREP(PRG_ETH0_CLK_M250_DIV_MASK, 4) |
++		      PRG_ETH0_RGMII_TX_CLK_EN |
++		      PRG_ETH0_TX_AND_PHY_REF_CLK;
++		writel(val, priv->prg_eth + PRG_ETH0);
++
++		clrsetbits_le32(priv->prg_eth + PRG_ETH1,
++				PRG_ETH1_CFG_RXCLK_DLY,
++				FIELD_PREP(PRG_ETH1_CFG_RXCLK_DLY,
++					   rx_delay_ps / 200));
++		break;
++
++	case PHY_INTERFACE_MODE_RMII:
++		writel(FIELD_PREP(PRG_ETH0_EXT_PHY_MODE_MASK,
++				  PRG_ETH0_EXT_RMII_MODE) |
++		       PRG_ETH0_INVERTED_RMII_CLK |
++		       PRG_ETH0_TX_AND_PHY_REF_CLK,
++		       priv->prg_eth + PRG_ETH0);
++		break;
++
++	default:
++		dev_err(dev, "unsupported PHY mode %s\n",
++			phy_interface_strings[pdata->phy_interface]);
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
++static int eqos_probe_resources_meson(struct udevice *dev)
++{
++	struct eth_pdata *pdata = dev_get_plat(dev);
++	struct eqos_priv *eqos = dev_get_priv(dev);
++	struct meson_eqos_priv *priv;
++	int ret;
++
++	ret = eqos_get_base_addr_dt(dev);
++	if (ret)
++		return ret;
++
++	pdata->phy_interface = eqos->config->interface(dev);
++	if (pdata->phy_interface == PHY_INTERFACE_MODE_NA) {
++		dev_err(dev, "invalid PHY interface\n");
++		return -EINVAL;
++	}
++
++	priv = calloc(1, sizeof(*priv));
++	if (!priv)
++		return -ENOMEM;
++	pdata->priv_pdata = priv;
++
++	priv->prg_eth = dev_read_addr_index_ptr(dev, 1);
++	if (!priv->prg_eth) {
++		dev_err(dev, "missing PRG_ETH registers\n");
++		ret = -EINVAL;
++		goto err_free;
++	}
++
++	ret = clk_get_bulk(dev, &priv->clks);
++	if (ret) {
++		dev_err(dev, "failed to get clocks: %d\n", ret);
++		goto err_free;
++	}
++
++	return 0;
++
++err_free:
++	free(priv);
++	pdata->priv_pdata = NULL;
++	return ret;
++}
++
++static int eqos_remove_resources_meson(struct udevice *dev)
++{
++	struct eth_pdata *pdata = dev_get_plat(dev);
++	struct meson_eqos_priv *priv = pdata->priv_pdata;
++
++	if (priv) {
++		clk_release_bulk(&priv->clks);
++		free(priv);
++		pdata->priv_pdata = NULL;
++	}
++
++	return 0;
++}
++
++static int eqos_start_clks_meson(struct udevice *dev)
++{
++	struct eth_pdata *pdata = dev_get_plat(dev);
++	struct meson_eqos_priv *priv = pdata->priv_pdata;
++	int ret;
++
++	ret = clk_enable_bulk(&priv->clks);
++	if (ret)
++		return ret;
++
++	meson_eqos_select_ext_mdio(dev);
++
++	return 0;
++}
++
++static int eqos_stop_clks_meson(struct udevice *dev)
++{
++	struct eth_pdata *pdata = dev_get_plat(dev);
++	struct meson_eqos_priv *priv = pdata->priv_pdata;
++
++	return clk_disable_bulk(&priv->clks);
++}
++
++static int eqos_start_resets_meson(struct udevice *dev)
++{
++	return meson_eqos_set_prg_eth(dev);
++}
++
++static struct eqos_ops eqos_meson_ops = {
++	.eqos_inval_desc = eqos_inval_desc_generic,
++	.eqos_flush_desc = eqos_flush_desc_generic,
++	.eqos_inval_buffer = eqos_inval_buffer_generic,
++	.eqos_flush_buffer = eqos_flush_buffer_generic,
++	.eqos_probe_resources = eqos_probe_resources_meson,
++	.eqos_remove_resources = eqos_remove_resources_meson,
++	.eqos_stop_resets = eqos_null_ops,
++	.eqos_start_resets = eqos_start_resets_meson,
++	.eqos_stop_clks = eqos_stop_clks_meson,
++	.eqos_start_clks = eqos_start_clks_meson,
++	.eqos_calibrate_pads = eqos_null_ops,
++	.eqos_disable_calibration = eqos_null_ops,
++	.eqos_set_tx_clk_speed = eqos_null_ops,
++	.eqos_get_enetaddr = eqos_null_ops,
++};
++
++struct eqos_config __maybe_unused eqos_meson_config = {
++	.reg_access_always_ok = false,
++	.mdio_wait = 10,
++	.swr_wait = 50,
++	.config_mac = EQOS_MAC_RXQ_CTRL0_RXQ0EN_ENABLED_DCB,
++	.config_mac_mdio = EQOS_MAC_MDIO_ADDRESS_CR_150_250,
++	/*
++	 * The T7 MAC sits on a 32-bit AXI port: the descriptor skip length
++	 * is counted in 32-bit words (verified on the Khadas VIM4).
++	 */
++	.axi_bus_width = EQOS_AXI_WIDTH_32,
++	.interface = dev_read_phy_mode,
++	.ops = &eqos_meson_ops,
++};
+-- 
+2.34.1
+

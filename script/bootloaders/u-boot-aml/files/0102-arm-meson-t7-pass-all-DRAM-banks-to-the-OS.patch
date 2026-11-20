@@ -1,0 +1,95 @@
+From f620be848164255a87ea8b23095b855a17ee9108 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 20 Nov 2026 14:46:27 +0000
+Subject: [PATCH 12/12] arm: meson: t7: pass all DRAM banks to the OS
+
+The 8 GiB Khadas VIM4 has DRAM in three banks: 3.5 GiB below 4 GiB,
+3.5 GiB at 4 GiB and 1 GiB at 8 GiB, as described by the devicetree
+memory node. U-Boot only reported the first bank, so the OS saw 3.5 GiB.
+
+Populate all banks from the devicetree, keeping the first one clamped
+below the secure world protected top, map the two upper banks and raise
+NR_DRAM_BANKS to 3 for the VIM4.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm/mach-meson/board-t7.c | 34 ++++++++++++++++++++++++++++++++++
+ configs/khadas-vim4_defconfig  |  2 +-
+ 2 files changed, 35 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-meson/board-t7.c b/arch/arm/mach-meson/board-t7.c
+index 8d05c43..43df36c 100644
+--- a/arch/arm/mach-meson/board-t7.c
++++ b/arch/arm/mach-meson/board-t7.c
+@@ -3,6 +3,7 @@
+  * (C) Copyright 2026 Lucas Tanure <tanure@linux.com>
+  */
+ 
++#include <fdtdec.h>
+ #include <init.h>
+ #include <asm/arch/boot.h>
+ #include <asm/arch/mem.h>
+@@ -118,6 +119,25 @@ phys_size_t get_effective_memsize(void)
+ 	return min(gd->ram_size, (phys_size_t)0xdf800000);
+ }
+ 
++/*
++ * The first bank is followed by up to two more above 4 GiB (8 GiB boards),
++ * pass them all to the OS. Keep the first one clamped like the U-Boot
++ * memory size, as its top is protected by the secure world.
++ */
++int dram_init_banksize(void)
++{
++	int ret;
++
++	ret = fdtdec_setup_memory_banksize();
++	if (ret)
++		return ret;
++
++	gd->dram[0].size = min_t(phys_size_t, gd->dram[0].size,
++				 get_effective_memsize());
++
++	return 0;
++}
++
+ static struct mm_region t7_mem_map[] = {
+ 	{
+ 		/* DRAM below the secure monitor reserved zone */
+@@ -145,6 +165,20 @@ static struct mm_region t7_mem_map[] = {
+ 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+ 			 PTE_BLOCK_NON_SHARE |
+ 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
++	}, {
++		/* Second DRAM bank */
++		.virt = 0x100000000UL,
++		.phys = 0x100000000UL,
++		.size = 0xe0000000UL,
++		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
++			 PTE_BLOCK_INNER_SHARE
++	}, {
++		/* Third DRAM bank */
++		.virt = 0x200000000UL,
++		.phys = 0x200000000UL,
++		.size = 0x40000000UL,
++		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
++			 PTE_BLOCK_INNER_SHARE
+ 	}, {
+ 		/* List terminator */
+ 		0,
+diff --git a/configs/khadas-vim4_defconfig b/configs/khadas-vim4_defconfig
+index 3a69bb8..553c503 100644
+--- a/configs/khadas-vim4_defconfig
++++ b/configs/khadas-vim4_defconfig
+@@ -2,7 +2,7 @@ CONFIG_ARM=y
+ CONFIG_POSITION_INDEPENDENT=y
+ CONFIG_ARCH_MESON=y
+ CONFIG_TEXT_BASE=0x00000000
+-CONFIG_NR_DRAM_BANKS=1
++CONFIG_NR_DRAM_BANKS=3
+ CONFIG_ENV_SIZE=0x2000
+ CONFIG_DM_GPIO=y
+ CONFIG_DEFAULT_DEVICE_TREE="amlogic/amlogic-t7-a311d2-khadas-vim4"
+-- 
+2.34.1
+

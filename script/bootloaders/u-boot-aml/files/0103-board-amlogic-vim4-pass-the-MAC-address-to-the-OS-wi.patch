@@ -1,0 +1,72 @@
+From 1e1f9f3d5f995870a00b4cb6498f8f8445419c9c Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 20 Nov 2026 17:53:01 +0000
+Subject: [PATCH 13/13] board: amlogic: vim4: pass the MAC address to the OS
+ without an alias
+
+fdt_fixup_ethernet() only sets the MAC address in the OS device tree
+through an "ethernet0" alias. The Linux T7/VIM4 device tree has none, so
+the kernel falls back to a random MAC address on every boot.
+
+When the OS device tree has no ethernet alias, set local-mac-address and
+mac-address on the Ethernet MAC node from "ethaddr", which is derived
+from the SoC serial number.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ board/amlogic/vim4/vim4.c | 32 ++++++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/board/amlogic/vim4/vim4.c b/board/amlogic/vim4/vim4.c
+index 5db3dee..4e67b91 100644
+--- a/board/amlogic/vim4/vim4.c
++++ b/board/amlogic/vim4/vim4.c
+@@ -3,8 +3,14 @@
+  * (C) Copyright 2026 Lucas Tanure <tanure@linux.com>
+  */
+ 
++#include <env.h>
++#include <fdt_support.h>
+ #include <init.h>
++#include <net.h>
+ #include <asm/arch/eth.h>
++#include <linux/libfdt.h>
++
++#define VIM4_ETHMAC_PATH	"/soc/ethernet@fdc00000"
+ 
+ int misc_init_r(void)
+ {
+@@ -12,3 +18,29 @@ int misc_init_r(void)
+ 
+ 	return 0;
+ }
++
++/*
++ * fdt_fixup_ethernet() only passes the MAC address to the OS through an
++ * "ethernet0" alias. Device trees without it would leave the OS with a
++ * random MAC address, so set it on the MAC node directly in that case.
++ */
++int meson_ft_board_setup(void *blob, struct bd_info *bd)
++{
++	u8 mac[ARP_HLEN];
++	int node;
++
++	if (fdt_get_alias(blob, "ethernet0") || fdt_get_alias(blob, "ethernet"))
++		return 0;
++
++	if (!eth_env_get_enetaddr("ethaddr", mac))
++		return 0;
++
++	node = fdt_path_offset(blob, VIM4_ETHMAC_PATH);
++	if (node < 0)
++		return 0;
++
++	fdt_setprop(blob, node, "local-mac-address", mac, ARP_HLEN);
++	fdt_setprop(blob, node, "mac-address", mac, ARP_HLEN);
++
++	return 0;
++}
+-- 
+2.34.1
+

@@ -1,0 +1,117 @@
+From 134e0d01c0ee6dec8c2bbc1312d95dc6c03b756b Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 20 Nov 2026 14:15:18 +0000
+Subject: [PATCH 10/12] arm: meson: t7: leave the display path powered and
+ clocked for the OS
+
+The vendor bootloader powers on the VPU/HDMI, VI_CLK1/2 and HDMI RX
+domains and programs the VPU, VAPB and HDMI TX clocks before starting
+the OS. Linux drivers currently rely on this: without the VAPB clock in
+particular, the first access to the HDMI TX registers during probe
+stalls the bus and the kernel locks up.
+
+Do the same from meson_board_late_init() on T7, with the values the
+vendor bootloader uses:
+- power domains VPU_HDMI, VI_CLK1, VI_CLK2, HDMIRX
+- VPU clock = fclk_div3 (666 MHz), VAPB clock = 250 MHz
+- HDMI TX sys and prif clocks = 200 MHz, 200m clock
+- HDMI TX memories out of power down
+
+Tested on the Khadas VIM4: Linux with the HDMI TX node enabled boots.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm/include/asm/arch-meson/t7.h | 23 +++++++++++++++++++++++
+ arch/arm/mach-meson/board-t7.c       | 28 ++++++++++++++++++++++++++++
+ 2 files changed, 51 insertions(+)
+
+diff --git a/arch/arm/include/asm/arch-meson/t7.h b/arch/arm/include/asm/arch-meson/t7.h
+index e0a9032..a7a2c50 100644
+--- a/arch/arm/include/asm/arch-meson/t7.h
++++ b/arch/arm/include/asm/arch-meson/t7.h
+@@ -11,6 +11,29 @@
+ #define T7_WDT_CTRL		0xfe002100
+ #define T7_WDT_CTRL_EN		BIT(18)
+ 
++/*
++ * HDMI TX clocks and memories, programmed like the vendor bootloader
++ * (hdmitx21_set_default_clk): sys clock and prif (register interface)
++ * clock = fclk_div5 / 2 = 200 MHz, 200m clock = fclk_div5 / 2, HDMI TX
++ * memories out of power down.
++ */
++#define T7_CLKCTRL_HDMI_CLK_CTRL	0xfe0000e0
++#define T7_HDMI_CLK_CTRL_VAL		0x00000701
++#define T7_CLKCTRL_HTX_CLK_CTRL0	0xfe00011c
++#define T7_HTX_CLK_CTRL0_VAL		0x07010701
++#define T7_PWRCTRL_MEM_PD11		0xfe00c06c
++
++/*
++ * VPU and VAPB (VPU register bus) clocks, as the vendor bootloader sets
++ * them: VPU = fclk_div3 = 666 MHz, VAPB = fclk_div4 / 2 = 250 MHz.
++ */
++#define T7_CLKCTRL_VPU_CLK_CTRL		0xfe0000e8
++#define T7_CLKCTRL_VAPBCLK_CTRL		0xfe0000fc
++#define T7_CLK_GATE			BIT(8)
++#define T7_VPU_CLK_CTRL_VAL		0x000
++#define T7_VAPBCLK_CTRL_VAL		0x001
++#define T7_PWRCTRL_MEM_PD11_HDMITX	GENMASK(15, 8)
++
+ /*
+  * The secure world owns 0x05000000 - 0x09000000: it contains the BL31
+  * and BL32 runtime zones (also described as reserved-memory in the
+diff --git a/arch/arm/mach-meson/board-t7.c b/arch/arm/mach-meson/board-t7.c
+index c2725a4..2ced632 100644
+--- a/arch/arm/mach-meson/board-t7.c
++++ b/arch/arm/mach-meson/board-t7.c
+@@ -6,12 +6,14 @@
+ #include <init.h>
+ #include <asm/arch/boot.h>
+ #include <asm/arch/mem.h>
++#include <asm/arch/sm.h>
+ #include <asm/arch/t7.h>
+ #include <asm/armv8/mmu.h>
+ #include <asm/global_data.h>
+ #include <asm/io.h>
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
++#include <dt-bindings/power/amlogic,t7-pwrc.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -26,6 +28,32 @@ int board_init(void)
+ 	return 0;
+ }
+ 
++/*
++ * Leave the display path powered and clocked for the OS, as the vendor
++ * bootloader does: the VPU/HDMI and HDMI RX power domains, the VPU and
++ * VAPB clocks, the HDMI TX sys and
++ * register interface clocks and the HDMI TX memories. Without them the
++ * first access to the HDMI TX registers stalls the bus.
++ */
++int meson_board_late_init(void)
++{
++	meson_sm_pwrdm_on(PWRC_T7_VPU_HDMI_ID);
++	meson_sm_pwrdm_on(PWRC_T7_VI_CLK1_ID);
++	meson_sm_pwrdm_on(PWRC_T7_VI_CLK2_ID);
++	meson_sm_pwrdm_on(PWRC_T7_HDMIRX_ID);
++
++	writel(T7_VPU_CLK_CTRL_VAL, T7_CLKCTRL_VPU_CLK_CTRL);
++	setbits_le32(T7_CLKCTRL_VPU_CLK_CTRL, T7_CLK_GATE);
++	writel(T7_VAPBCLK_CTRL_VAL, T7_CLKCTRL_VAPBCLK_CTRL);
++	setbits_le32(T7_CLKCTRL_VAPBCLK_CTRL, T7_CLK_GATE);
++
++	writel(T7_HDMI_CLK_CTRL_VAL, T7_CLKCTRL_HDMI_CLK_CTRL);
++	writel(T7_HTX_CLK_CTRL0_VAL, T7_CLKCTRL_HTX_CLK_CTRL0);
++	clrbits_le32(T7_PWRCTRL_MEM_PD11, T7_PWRCTRL_MEM_PD11_HDMITX);
++
++	return 0;
++}
++
+ void meson_init_reserved_memory(void *fdt)
+ {
+ 	meson_board_add_reserved_memory(fdt, T7_SECMON_RSVMEM_START,
+-- 
+2.34.1
+

@@ -1,0 +1,140 @@
+From 66ebcdbe4397dd8b322e49201e3a36e28de86f48 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 20 Nov 2026 10:48:12 +0000
+Subject: [PATCH 06/12] power: domain: meson-secure-pwrc: add Amlogic T7
+ support
+
+Add the T7 secure power domains (amlogic,t7-pwrc), controlled through
+the same secure monitor call as on A1/S4. The table is only built for
+MESON_T7, so A1 and S4 images are unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/power/domain/Kconfig             |  4 +-
+ drivers/power/domain/meson-secure-pwrc.c | 71 ++++++++++++++++++++++++
+ 2 files changed, 73 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/power/domain/Kconfig b/drivers/power/domain/Kconfig
+index bb2f45c..e7b4bad 100644
+--- a/drivers/power/domain/Kconfig
++++ b/drivers/power/domain/Kconfig
+@@ -78,10 +78,10 @@ config MESON_GX_VPU_POWER_DOMAIN
+ 
+ config MESON_SECURE_POWER_DOMAIN
+ 	bool "Enable Amlogic Secure power domain driver"
+-	depends on POWER_DOMAIN && ARCH_MESON && (MESON_A1 || MESON_S4)
++	depends on POWER_DOMAIN && ARCH_MESON && (MESON_A1 || MESON_S4 || MESON_T7)
+ 	help
+ 	  Enable support for manipulating Amlogic Meson Secure power domains.
+-	  Support for Amlogic A1 and S4 series.
++	  Support for Amlogic A1, S4 and T7 series.
+ 
+ config MT2701_POWER_DOMAIN
+ 	bool "Enable the MediaTek power domain driver for MT2701 compatible SoC"
+diff --git a/drivers/power/domain/meson-secure-pwrc.c b/drivers/power/domain/meson-secure-pwrc.c
+index c259621..711aabd 100644
+--- a/drivers/power/domain/meson-secure-pwrc.c
++++ b/drivers/power/domain/meson-secure-pwrc.c
+@@ -10,6 +10,7 @@
+ #include <power-domain-uclass.h>
+ #include <dt-bindings/power/meson-a1-power.h>
+ #include <dt-bindings/power/meson-s4-power.h>
++#include <dt-bindings/power/amlogic,t7-pwrc.h>
+ 
+ struct meson_secure_pwrc_domain_desc {
+ 	char *name;
+@@ -132,6 +133,63 @@ static struct meson_secure_pwrc_domain_desc s4_pwrc_domains[] = {
+ 	SEC_PD(S4_AUDIO),
+ };
+ 
++#if IS_ENABLED(CONFIG_MESON_T7)
++static struct meson_secure_pwrc_domain_desc t7_pwrc_domains[] = {
++	SEC_PD(T7_DSPA),
++	SEC_PD(T7_DSPB),
++	SEC_PD(T7_DOS_HCODEC),
++	SEC_PD(T7_DOS_HEVC),
++	SEC_PD(T7_DOS_VDEC),
++	SEC_PD(T7_DOS_WAVE),
++	SEC_PD(T7_VPU_HDMI),
++	SEC_PD(T7_USB_COMB),
++	SEC_PD(T7_PCIE),
++	SEC_PD(T7_GE2D),
++	SEC_PD(T7_SRAMA),
++	SEC_PD(T7_SRAMB),
++	SEC_PD(T7_HDMIRX),
++	SEC_PD(T7_VI_CLK1),
++	SEC_PD(T7_VI_CLK2),
++	SEC_PD(T7_ETH),
++	SEC_PD(T7_ISP),
++	SEC_PD(T7_MIPI_ISP),
++	SEC_PD(T7_GDC),
++	SEC_PD(T7_DEWARP),
++	SEC_PD(T7_SDIO_A),
++	SEC_PD(T7_SDIO_B),
++	SEC_PD(T7_EMMC),
++	SEC_PD(T7_MALI_SC0),
++	SEC_PD(T7_MALI_SC1),
++	SEC_PD(T7_MALI_SC2),
++	SEC_PD(T7_MALI_SC3),
++	SEC_PD(T7_MALI_TOP),
++	SEC_PD(T7_NNA_CORE0),
++	SEC_PD(T7_NNA_CORE1),
++	SEC_PD(T7_NNA_CORE2),
++	SEC_PD(T7_NNA_CORE3),
++	SEC_PD(T7_NNA_TOP),
++	SEC_PD(T7_DDR0),
++	SEC_PD(T7_DDR1),
++	SEC_PD(T7_DMC0),
++	SEC_PD(T7_DMC1),
++	SEC_PD(T7_NOC),
++	SEC_PD(T7_NIC2),
++	SEC_PD(T7_NIC3),
++	SEC_PD(T7_CCI),
++	SEC_PD(T7_MIPI_DSI0),
++	SEC_PD(T7_SPICC0),
++	SEC_PD(T7_SPICC1),
++	SEC_PD(T7_SPICC2),
++	SEC_PD(T7_SPICC3),
++	SEC_PD(T7_SPICC4),
++	SEC_PD(T7_SPICC5),
++	SEC_PD(T7_EDP0),
++	SEC_PD(T7_EDP1),
++	SEC_PD(T7_MIPI_DSI1),
++	SEC_PD(T7_AUDIO),
++};
++#endif
++
+ static const struct power_domain_ops meson_secure_pwrc_ops = {
+ 	.on = meson_secure_pwrc_on,
+ 	.off = meson_secure_pwrc_off,
+@@ -148,6 +206,13 @@ static struct meson_secure_pwrc_domain_data meson_secure_s4_pwrc_data = {
+ 	.domains = s4_pwrc_domains,
+ };
+ 
++#if IS_ENABLED(CONFIG_MESON_T7)
++static struct meson_secure_pwrc_domain_data meson_secure_t7_pwrc_data = {
++	.count = ARRAY_SIZE(t7_pwrc_domains),
++	.domains = t7_pwrc_domains,
++};
++#endif
++
+ static const struct udevice_id meson_secure_pwrc_ids[] = {
+ 	{
+ 		.compatible = "amlogic,meson-a1-pwrc",
+@@ -157,6 +222,12 @@ static const struct udevice_id meson_secure_pwrc_ids[] = {
+ 		.compatible = "amlogic,meson-s4-pwrc",
+ 		.data = (unsigned long)&meson_secure_s4_pwrc_data,
+ 	},
++#if IS_ENABLED(CONFIG_MESON_T7)
++	{
++		.compatible = "amlogic,t7-pwrc",
++		.data = (unsigned long)&meson_secure_t7_pwrc_data,
++	},
++#endif
+ 	{ }
+ };
+ 
+-- 
+2.34.1
+

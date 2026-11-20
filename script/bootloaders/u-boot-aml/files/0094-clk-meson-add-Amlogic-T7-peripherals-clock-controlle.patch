@@ -1,0 +1,330 @@
+From c686821bea8038536f6c04d2b3e1baf09aaee0eb Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 20 Nov 2026 10:48:11 +0000
+Subject: [PATCH 04/12] clk: meson: add Amlogic T7 peripherals clock controller
+
+Add a driver for the T7 (A311D2) peripherals clock controller covering
+the system clock gates, the SD/eMMC composite clocks and the Ethernet
+RMII/125M clocks. Register offsets and bit positions follow the Linux
+t7-peripherals driver.
+
+The fixed PLL, the fdivX dividers and the sys clock are owned by the SCP
+firmware on T7 and are taken as external inputs from the device tree.
+The driver is only built for MESON_T7.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/clk/meson/Kconfig  |   8 ++
+ drivers/clk/meson/Makefile |   1 +
+ drivers/clk/meson/t7.c     | 269 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 278 insertions(+)
+ create mode 100644 drivers/clk/meson/t7.c
+
+diff --git a/drivers/clk/meson/Kconfig b/drivers/clk/meson/Kconfig
+index abdc6a7..32d2461 100644
+--- a/drivers/clk/meson/Kconfig
++++ b/drivers/clk/meson/Kconfig
+@@ -38,6 +38,14 @@ config CLK_MESON_S4
+ 	  Enable clock support for the Amlogic S4 SoC family, such as
+ 	  the S905Y4/S905W2
+ 
++config CLK_MESON_T7
++	bool "Enable clock support for Amlogic T7"
++	depends on CLK && ARCH_MESON
++	default MESON_T7
++	help
++	  Enable support for the peripherals clock controller of the
++	  Amlogic T7 SoC family, such as the A311D2
++
+ config CLK_MESON_MSR
+ 	bool "Enable clock measure driver for Amlogic SoCs"
+ 	depends on CLK && ARCH_MESON
+diff --git a/drivers/clk/meson/Makefile b/drivers/clk/meson/Makefile
+index 705591e..7dc5b75 100644
+--- a/drivers/clk/meson/Makefile
++++ b/drivers/clk/meson/Makefile
+@@ -11,4 +11,5 @@ obj-$(CONFIG_CLK_MESON_G12A) += g12a.o
+ obj-$(CONFIG_CLK_MESON_G12A) += g12a-ao.o
+ obj-$(CONFIG_CLK_MESON_A1) += a1.o
+ obj-$(CONFIG_CLK_MESON_S4) += s4.o
++obj-$(CONFIG_CLK_MESON_T7) += t7.o
+ obj-$(CONFIG_CLK_MESON_MSR) += clk-measure.o
+diff --git a/drivers/clk/meson/t7.c b/drivers/clk/meson/t7.c
+new file mode 100644
+index 0000000..656be92
+--- /dev/null
++++ b/drivers/clk/meson/t7.c
+@@ -0,0 +1,269 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Amlogic T7 (A311D2) peripherals clock controller
++ *
++ * Register layout and bit positions follow the Linux
++ * drivers/clk/meson/t7-peripherals.c driver.
++ *
++ * On T7 the fixed PLL, the fdivX dividers and the sys clock are owned
++ * by the SCP firmware and exposed through SCMI. U-Boot does not touch
++ * them: they are taken as external inputs ("fdiv2", "sys", ...) from
++ * the device tree, typically as fixed-rate clocks set up by BL2.
++ *
++ * Following operations are supported:
++ * - calculating clock frequency on a limited tree
++ * - reading muxes and dividers
++ * - enabling/disabling gates without propagation
++ * - reparenting without rate propagation, only on muxes
++ * - setting rates with limited reparenting, only on the SD/eMMC
++ *   dividers with mux parent
++ */
++
++#include <clk-uclass.h>
++#include <dm.h>
++#include <regmap.h>
++#include <dt-bindings/clock/amlogic,t7-peripherals-clkc.h>
++#include "clk_meson.h"
++
++#define SYS_CLK_EN0_REG0	0x044
++#define SYS_CLK_EN0_REG1	0x048
++#define SYS_CLK_EN0_REG2	0x04c
++#define SYS_CLK_EN0_REG3	0x050
++#define ETH_CLK_CTRL		0x164
++#define NAND_CLK_CTRL		0x168
++#define SD_EMMC_CLK_CTRL	0x16c
++
++/* External clock IDs. Those should not overlap with regular IDs */
++enum {
++	EXTERNAL_XTAL = CLKID_SYS_PWM_AO_GH + 1,
++	EXTERNAL_FDIV2,
++	EXTERNAL_FDIV2P5,
++	EXTERNAL_FDIV3,
++	EXTERNAL_FDIV4,
++	EXTERNAL_FDIV5,
++	EXTERNAL_FDIV7,
++	EXTERNAL_HIFI,
++	EXTERNAL_MPLL2,
++	EXTERNAL_MPLL3,
++	EXTERNAL_GP0,
++	EXTERNAL_GP1,
++	EXTERNAL_SYS,
++};
++
++#define T7_SD_EMMC_PARENTS {	\
++	EXTERNAL_XTAL,		\
++	EXTERNAL_FDIV2,		\
++	EXTERNAL_FDIV3,		\
++	EXTERNAL_HIFI,		\
++	EXTERNAL_FDIV2P5,	\
++	EXTERNAL_MPLL2,		\
++	EXTERNAL_MPLL3,		\
++	EXTERNAL_GP0,		\
++}
++
++#define T7_SYS_GATE(_id, _name, _reg, _bit) \
++	[_id] = CLK_GATE(_name, _reg, _bit, EXTERNAL_SYS)
++
++static const struct meson_clk_info *meson_clocks[] = {
++	/* SD/eMMC composite clocks (clkin0 of the MMC controllers) */
++	[CLKID_SD_EMMC_A_SEL] = CLK_MUX("sd_emmc_a_sel", SD_EMMC_CLK_CTRL, 9, 3,
++		T7_SD_EMMC_PARENTS),
++	[CLKID_SD_EMMC_A_DIV] = CLK_DIV("sd_emmc_a_div", SD_EMMC_CLK_CTRL, 0, 7,
++		CLKID_SD_EMMC_A_SEL),
++	[CLKID_SD_EMMC_A] = CLK_GATE("sd_emmc_a", SD_EMMC_CLK_CTRL, 7,
++		CLKID_SD_EMMC_A_DIV),
++
++	[CLKID_SD_EMMC_B_SEL] = CLK_MUX("sd_emmc_b_sel", SD_EMMC_CLK_CTRL, 25, 3,
++		T7_SD_EMMC_PARENTS),
++	[CLKID_SD_EMMC_B_DIV] = CLK_DIV("sd_emmc_b_div", SD_EMMC_CLK_CTRL, 16, 7,
++		CLKID_SD_EMMC_B_SEL),
++	[CLKID_SD_EMMC_B] = CLK_GATE("sd_emmc_b", SD_EMMC_CLK_CTRL, 23,
++		CLKID_SD_EMMC_B_DIV),
++
++	[CLKID_SD_EMMC_C_SEL] = CLK_MUX("sd_emmc_c_sel", NAND_CLK_CTRL, 9, 3,
++		T7_SD_EMMC_PARENTS),
++	[CLKID_SD_EMMC_C_DIV] = CLK_DIV("sd_emmc_c_div", NAND_CLK_CTRL, 0, 7,
++		CLKID_SD_EMMC_C_SEL),
++	[CLKID_SD_EMMC_C] = CLK_GATE("sd_emmc_c", NAND_CLK_CTRL, 7,
++		CLKID_SD_EMMC_C_DIV),
++
++	/* Ethernet: parent index 2..6 not connected, 7 is the external pad */
++	[CLKID_ETH_RMII_SEL] = CLK_MUX("eth_rmii_sel", ETH_CLK_CTRL, 9, 3, {
++		EXTERNAL_FDIV2,
++		EXTERNAL_GP1,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++	}),
++	[CLKID_ETH_RMII_DIV] = CLK_DIV("eth_rmii_div", ETH_CLK_CTRL, 0, 7,
++		CLKID_ETH_RMII_SEL),
++	[CLKID_ETH_RMII] = CLK_GATE("eth_rmii", ETH_CLK_CTRL, 8,
++		CLKID_ETH_RMII_DIV),
++	[CLKID_FCLK_DIV2_DIV8] = CLK_DIV_FIXED("fdiv2_div8", 8, EXTERNAL_FDIV2),
++	[CLKID_ETH_125M] = CLK_GATE("eth_125m", ETH_CLK_CTRL, 7,
++		CLKID_FCLK_DIV2_DIV8),
++
++	/* SYS_CLK_EN0_REG0 */
++	T7_SYS_GATE(CLKID_SYS_DDR,		"sys_ddr",		SYS_CLK_EN0_REG0, 0),
++	T7_SYS_GATE(CLKID_SYS_DOS,		"sys_dos",		SYS_CLK_EN0_REG0, 1),
++	T7_SYS_GATE(CLKID_SYS_MIPI_DSI_A,	"sys_mipi_dsi_a",	SYS_CLK_EN0_REG0, 2),
++	T7_SYS_GATE(CLKID_SYS_MIPI_DSI_B,	"sys_mipi_dsi_b",	SYS_CLK_EN0_REG0, 3),
++	T7_SYS_GATE(CLKID_SYS_ETHPHY,		"sys_ethphy",		SYS_CLK_EN0_REG0, 4),
++	T7_SYS_GATE(CLKID_SYS_MALI,		"sys_mali",		SYS_CLK_EN0_REG0, 6),
++	T7_SYS_GATE(CLKID_SYS_AOCPU,		"sys_aocpu",		SYS_CLK_EN0_REG0, 13),
++	T7_SYS_GATE(CLKID_SYS_AUCPU,		"sys_aucpu",		SYS_CLK_EN0_REG0, 14),
++	T7_SYS_GATE(CLKID_SYS_CEC,		"sys_cec",		SYS_CLK_EN0_REG0, 16),
++	T7_SYS_GATE(CLKID_SYS_GDC,		"sys_gdc",		SYS_CLK_EN0_REG0, 17),
++	T7_SYS_GATE(CLKID_SYS_DESWARP,		"sys_deswarp",		SYS_CLK_EN0_REG0, 18),
++	T7_SYS_GATE(CLKID_SYS_AMPIPE_NAND,	"sys_ampipe_nand",	SYS_CLK_EN0_REG0, 19),
++	T7_SYS_GATE(CLKID_SYS_AMPIPE_ETH,	"sys_ampipe_eth",	SYS_CLK_EN0_REG0, 20),
++	T7_SYS_GATE(CLKID_SYS_AM2AXI0,		"sys_am2axi0",		SYS_CLK_EN0_REG0, 21),
++	T7_SYS_GATE(CLKID_SYS_AM2AXI1,		"sys_am2axi1",		SYS_CLK_EN0_REG0, 22),
++	T7_SYS_GATE(CLKID_SYS_AM2AXI2,		"sys_am2axi2",		SYS_CLK_EN0_REG0, 23),
++	T7_SYS_GATE(CLKID_SYS_SD_EMMC_A,	"sys_sd_emmc_a",	SYS_CLK_EN0_REG0, 24),
++	T7_SYS_GATE(CLKID_SYS_SD_EMMC_B,	"sys_sd_emmc_b",	SYS_CLK_EN0_REG0, 25),
++	T7_SYS_GATE(CLKID_SYS_SD_EMMC_C,	"sys_sd_emmc_c",	SYS_CLK_EN0_REG0, 26),
++	T7_SYS_GATE(CLKID_SYS_SMARTCARD,	"sys_smartcard",	SYS_CLK_EN0_REG0, 27),
++	T7_SYS_GATE(CLKID_SYS_ACODEC,		"sys_acodec",		SYS_CLK_EN0_REG0, 28),
++	T7_SYS_GATE(CLKID_SYS_SPIFC,		"sys_spifc",		SYS_CLK_EN0_REG0, 29),
++	T7_SYS_GATE(CLKID_SYS_MSR_CLK,		"sys_msr_clk",		SYS_CLK_EN0_REG0, 30),
++	T7_SYS_GATE(CLKID_SYS_IR_CTRL,		"sys_ir_ctrl",		SYS_CLK_EN0_REG0, 31),
++
++	/* SYS_CLK_EN0_REG1 */
++	T7_SYS_GATE(CLKID_SYS_AUDIO,		"sys_audio",		SYS_CLK_EN0_REG1, 0),
++	T7_SYS_GATE(CLKID_SYS_ETH,		"sys_eth",		SYS_CLK_EN0_REG1, 3),
++	T7_SYS_GATE(CLKID_SYS_UART_A,		"sys_uart_a",		SYS_CLK_EN0_REG1, 5),
++	T7_SYS_GATE(CLKID_SYS_UART_B,		"sys_uart_b",		SYS_CLK_EN0_REG1, 6),
++	T7_SYS_GATE(CLKID_SYS_UART_C,		"sys_uart_c",		SYS_CLK_EN0_REG1, 7),
++	T7_SYS_GATE(CLKID_SYS_UART_D,		"sys_uart_d",		SYS_CLK_EN0_REG1, 8),
++	T7_SYS_GATE(CLKID_SYS_UART_E,		"sys_uart_e",		SYS_CLK_EN0_REG1, 9),
++	T7_SYS_GATE(CLKID_SYS_UART_F,		"sys_uart_f",		SYS_CLK_EN0_REG1, 10),
++	T7_SYS_GATE(CLKID_SYS_AIFIFO,		"sys_aififo",		SYS_CLK_EN0_REG1, 11),
++	T7_SYS_GATE(CLKID_SYS_SPICC2,		"sys_spicc2",		SYS_CLK_EN0_REG1, 12),
++	T7_SYS_GATE(CLKID_SYS_SPICC3,		"sys_spicc3",		SYS_CLK_EN0_REG1, 13),
++	T7_SYS_GATE(CLKID_SYS_SPICC4,		"sys_spicc4",		SYS_CLK_EN0_REG1, 14),
++	T7_SYS_GATE(CLKID_SYS_TS_A73,		"sys_ts_a73",		SYS_CLK_EN0_REG1, 15),
++	T7_SYS_GATE(CLKID_SYS_TS_A53,		"sys_ts_a53",		SYS_CLK_EN0_REG1, 16),
++	T7_SYS_GATE(CLKID_SYS_SPICC5,		"sys_spicc5",		SYS_CLK_EN0_REG1, 17),
++	T7_SYS_GATE(CLKID_SYS_G2D,		"sys_g2d",		SYS_CLK_EN0_REG1, 20),
++	T7_SYS_GATE(CLKID_SYS_SPICC0,		"sys_spicc0",		SYS_CLK_EN0_REG1, 21),
++	T7_SYS_GATE(CLKID_SYS_SPICC1,		"sys_spicc1",		SYS_CLK_EN0_REG1, 22),
++	T7_SYS_GATE(CLKID_SYS_PCIE,		"sys_pcie",		SYS_CLK_EN0_REG1, 24),
++	T7_SYS_GATE(CLKID_SYS_USB,		"sys_usb",		SYS_CLK_EN0_REG1, 26),
++	T7_SYS_GATE(CLKID_SYS_PCIE_PHY,		"sys_pcie_phy",		SYS_CLK_EN0_REG1, 27),
++	T7_SYS_GATE(CLKID_SYS_I2C_AO_A,		"sys_i2c_ao_a",		SYS_CLK_EN0_REG1, 28),
++	T7_SYS_GATE(CLKID_SYS_I2C_AO_B,		"sys_i2c_ao_b",		SYS_CLK_EN0_REG1, 29),
++	T7_SYS_GATE(CLKID_SYS_I2C_M_A,		"sys_i2c_m_a",		SYS_CLK_EN0_REG1, 30),
++	T7_SYS_GATE(CLKID_SYS_I2C_M_B,		"sys_i2c_m_b",		SYS_CLK_EN0_REG1, 31),
++
++	/* SYS_CLK_EN0_REG2 */
++	T7_SYS_GATE(CLKID_SYS_I2C_M_C,		"sys_i2c_m_c",		SYS_CLK_EN0_REG2, 0),
++	T7_SYS_GATE(CLKID_SYS_I2C_M_D,		"sys_i2c_m_d",		SYS_CLK_EN0_REG2, 1),
++	T7_SYS_GATE(CLKID_SYS_I2C_M_E,		"sys_i2c_m_e",		SYS_CLK_EN0_REG2, 2),
++	T7_SYS_GATE(CLKID_SYS_I2C_M_F,		"sys_i2c_m_f",		SYS_CLK_EN0_REG2, 3),
++	T7_SYS_GATE(CLKID_SYS_HDMITX_APB,	"sys_hdmitx_apb",	SYS_CLK_EN0_REG2, 4),
++	T7_SYS_GATE(CLKID_SYS_I2C_S_A,		"sys_i2c_s_a",		SYS_CLK_EN0_REG2, 5),
++	T7_SYS_GATE(CLKID_SYS_HDMIRX_PCLK,	"sys_hdmirx_pclk",	SYS_CLK_EN0_REG2, 8),
++	T7_SYS_GATE(CLKID_SYS_MMC_APB,		"sys_mmc_apb",		SYS_CLK_EN0_REG2, 11),
++	T7_SYS_GATE(CLKID_SYS_MIPI_ISP_PCLK,	"sys_mipi_isp_pclk",	SYS_CLK_EN0_REG2, 17),
++	T7_SYS_GATE(CLKID_SYS_RSA,		"sys_rsa",		SYS_CLK_EN0_REG2, 18),
++	T7_SYS_GATE(CLKID_SYS_PCLK_SYS_APB,	"sys_pclk_sys_apb",	SYS_CLK_EN0_REG2, 19),
++	T7_SYS_GATE(CLKID_SYS_A73PCLK_APB,	"sys_a73pclk_apb",	SYS_CLK_EN0_REG2, 20),
++	T7_SYS_GATE(CLKID_SYS_DSPA,		"sys_dspa",		SYS_CLK_EN0_REG2, 21),
++	T7_SYS_GATE(CLKID_SYS_DSPB,		"sys_dspb",		SYS_CLK_EN0_REG2, 22),
++	T7_SYS_GATE(CLKID_SYS_VPU_INTR,		"sys_vpu_intr",		SYS_CLK_EN0_REG2, 25),
++	T7_SYS_GATE(CLKID_SYS_SAR_ADC,		"sys_sar_adc",		SYS_CLK_EN0_REG2, 28),
++	T7_SYS_GATE(CLKID_SYS_GIC,		"sys_gic",		SYS_CLK_EN0_REG2, 30),
++	T7_SYS_GATE(CLKID_SYS_TS_GPU,		"sys_ts_gpu",		SYS_CLK_EN0_REG2, 31),
++
++	/* SYS_CLK_EN0_REG3 */
++	T7_SYS_GATE(CLKID_SYS_TS_NNA,		"sys_ts_nna",		SYS_CLK_EN0_REG3, 0),
++	T7_SYS_GATE(CLKID_SYS_TS_VPU,		"sys_ts_vpu",		SYS_CLK_EN0_REG3, 1),
++	T7_SYS_GATE(CLKID_SYS_TS_HEVC,		"sys_ts_hevc",		SYS_CLK_EN0_REG3, 2),
++	T7_SYS_GATE(CLKID_SYS_PWM_AO_AB,	"sys_pwm_ao_ab",	SYS_CLK_EN0_REG3, 3),
++	T7_SYS_GATE(CLKID_SYS_PWM_AO_CD,	"sys_pwm_ao_cd",	SYS_CLK_EN0_REG3, 4),
++	T7_SYS_GATE(CLKID_SYS_PWM_AO_EF,	"sys_pwm_ao_ef",	SYS_CLK_EN0_REG3, 5),
++	T7_SYS_GATE(CLKID_SYS_PWM_AO_GH,	"sys_pwm_ao_gh",	SYS_CLK_EN0_REG3, 6),
++	T7_SYS_GATE(CLKID_SYS_PWM_AB,		"sys_pwm_ab",		SYS_CLK_EN0_REG3, 7),
++	T7_SYS_GATE(CLKID_SYS_PWM_CD,		"sys_pwm_cd",		SYS_CLK_EN0_REG3, 8),
++	T7_SYS_GATE(CLKID_SYS_PWM_EF,		"sys_pwm_ef",		SYS_CLK_EN0_REG3, 9),
++
++	[EXTERNAL_XTAL] = CLK_EXTERNAL("xtal"),
++	[EXTERNAL_FDIV2] = CLK_EXTERNAL("fdiv2"),
++	[EXTERNAL_FDIV2P5] = CLK_EXTERNAL("fdiv2p5"),
++	[EXTERNAL_FDIV3] = CLK_EXTERNAL("fdiv3"),
++	[EXTERNAL_FDIV4] = CLK_EXTERNAL("fdiv4"),
++	[EXTERNAL_FDIV5] = CLK_EXTERNAL("fdiv5"),
++	[EXTERNAL_FDIV7] = CLK_EXTERNAL("fdiv7"),
++	[EXTERNAL_HIFI] = CLK_EXTERNAL("hifi"),
++	[EXTERNAL_MPLL2] = CLK_EXTERNAL("mpll2"),
++	[EXTERNAL_MPLL3] = CLK_EXTERNAL("mpll3"),
++	[EXTERNAL_GP0] = CLK_EXTERNAL("gp0"),
++	[EXTERNAL_GP1] = CLK_EXTERNAL("gp1"),
++	[EXTERNAL_SYS] = CLK_EXTERNAL("sys"),
++};
++
++static ulong meson_clk_set_rate(struct clk *clk, ulong rate)
++{
++	switch (clk->id) {
++	case CLKID_SD_EMMC_A_DIV:
++	case CLKID_SD_EMMC_B_DIV:
++	case CLKID_SD_EMMC_C_DIV:
++		return meson_composite_set_rate(clk, rate);
++	case CLKID_SD_EMMC_A:
++	case CLKID_SD_EMMC_B:
++	case CLKID_SD_EMMC_C: {
++		struct clk parent = {
++			.dev = clk->dev,
++			.id = meson_clk_get_parent(clk),
++		};
++
++		return meson_clk_set_rate(&parent, rate);
++	}
++	}
++
++	return -EINVAL;
++}
++
++static int meson_clk_probe(struct udevice *dev)
++{
++	struct meson_clk *priv = dev_get_priv(dev);
++
++	return regmap_init_mem(dev_ofnode(dev), &priv->map);
++}
++
++static struct meson_clk_data meson_t7_peripherals_info = {
++	.clocks = meson_clocks,
++	.num_clocks = ARRAY_SIZE(meson_clocks),
++};
++
++static const struct udevice_id meson_clk_ids[] = {
++	{
++		.compatible = "amlogic,t7-peripherals-clkc",
++		.data = (ulong)&meson_t7_peripherals_info,
++	},
++	{ }
++};
++
++static struct clk_ops meson_clk_ops = {
++	.disable	= meson_clk_disable,
++	.enable		= meson_clk_enable,
++	.get_rate	= meson_clk_get_rate,
++	.set_rate	= meson_clk_set_rate,
++	.set_parent	= meson_clk_set_parent,
++#if IS_ENABLED(CONFIG_CMD_CLK)
++	.dump		= meson_clk_dump,
++#endif
++};
++
++U_BOOT_DRIVER(meson_clk_t7) = {
++	.name		= "meson-clk-t7",
++	.id		= UCLASS_CLK,
++	.of_match	= meson_clk_ids,
++	.priv_auto	= sizeof(struct meson_clk),
++	.ops		= &meson_clk_ops,
++	.probe		= meson_clk_probe,
++};
+-- 
+2.34.1
+

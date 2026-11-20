@@ -1,0 +1,140 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 6627cf8896cd6712bab8bf0c9c23f51f7a75ec41 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 14:25:02 +0000
+Subject: [PATCH] arm: meson: t7: initialise the HDMI TX controller for the OS
+
+The T7 HDMI TX controller registers are owned by the secure world. Until
+HDMITX_TOP_SEC_SCRATCH is set through the secure monitor and the
+controller is taken out of reset, non-secure accesses are dropped and the
+OS cannot use the DDC bus, so no EDID can be read.
+
+Do the same minimal initialisation as the vendor bootloader: enable the
+HDMI TX APB clock, the video clock dividers and the PHY decoupling FIFO,
+release the controller reset, grant non-secure access, and set up the
+interrupt masks, the clocks and the E-DDC input filter.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01EwquNaha6d5hcPWoLjCMVc
+---
+ arch/arm/include/asm/arch-meson/t7.h | 24 +++++++++++++++
+ arch/arm/mach-meson/board-t7.c       | 44 ++++++++++++++++++++++++++++
+ 2 files changed, 68 insertions(+)
+
+diff --git a/arch/arm/include/asm/arch-meson/t7.h b/arch/arm/include/asm/arch-meson/t7.h
+index e5dfb29..6f0d703 100644
+--- a/arch/arm/include/asm/arch-meson/t7.h
++++ b/arch/arm/include/asm/arch-meson/t7.h
+@@ -38,6 +38,30 @@
+  * SCMI shared memory used by the OS to talk to the SCP through BL31
+  * (arm,scmi-smc, "sram@f7042000" in the Linux device tree).
+  */
++/* HDMI TX controller, only reachable through the secure monitor */
++#define T7_SM_HDMITX_RD			0x82000018
++#define T7_SM_HDMITX_WR			0x82000019
++#define T7_HDMITX_TOP			0xfe300000
++#define T7_HDMITX_COR			0xfe380000
++#define T7_HDMITX_TOP_SW_RESET		(T7_HDMITX_TOP + 0x000)
++#define T7_HDMITX_TOP_CLK_CNTL		(T7_HDMITX_TOP + 0x004)
++#define T7_HDMITX_TOP_CLK_CNTL_VAL	0x0000200f
++#define T7_HDMITX_TOP_INTR_MASKN	(T7_HDMITX_TOP + 0x00c)
++#define T7_HDMITX_TOP_INTR_HPD		(BIT(2) | BIT(1))
++#define T7_HDMITX_TOP_INTR_STAT_CLR	(T7_HDMITX_TOP + 0x014)
++#define T7_HDMITX_TOP_INTR_ALL		0x000001ff
++#define T7_HDMITX_TOP_INFILTER		(T7_HDMITX_TOP + 0x074)
++#define T7_HDMITX_TOP_INFILTER_VAL	0x01000000
++#define T7_HDMITX_TOP_SEC_SCRATCH	(T7_HDMITX_TOP + 0x07c)
++#define T7_HDMITX_INTR3_MASK		(T7_HDMITX_COR + 0x0001)
++#define T7_HDMITX_AON_CYP_CTL		(T7_HDMITX_COR + 0x0018)
++#define T7_CLKCTRL_SYS_CLK_EN0_REG2	0xfe00004c
++#define T7_SYS_CLK_EN0_REG2_HDMITX	BIT(4)
++#define T7_CLKCTRL_VID_CLK0_CTRL	0xfe0000c0
++#define T7_VID_CLK0_CTRL_DIV_EN		GENMASK(2, 0)
++#define T7_ANACTRL_HDMIPHY_CTRL1	0xfe008204
++#define T7_HDMIPHY_CTRL1_FIFO_EN	GENMASK(3, 1)
++
+ #define T7_SCMI_SHMEM			0xf7042000
+ #define T7_SCMI_SHMEM_CHAN_STAT		(T7_SCMI_SHMEM + 0x4)
+ #define T7_SCMI_SHMEM_CHAN_STAT_FREE	BIT(0)
+diff --git a/arch/arm/mach-meson/board-t7.c b/arch/arm/mach-meson/board-t7.c
+index f72b29f..2b2122a 100644
+--- a/arch/arm/mach-meson/board-t7.c
++++ b/arch/arm/mach-meson/board-t7.c
+@@ -11,6 +11,7 @@
+ #include <asm/armv8/mmu.h>
+ #include <asm/global_data.h>
+ #include <asm/io.h>
++#include <linux/arm-smccc.h>
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
+ #include <dt-bindings/power/amlogic,t7-pwrc.h>
+@@ -36,6 +37,47 @@ int board_init(void)
+ 	return 0;
+ }
+ 
++static u32 t7_hdmitx_rd(unsigned long addr, unsigned int width)
++{
++	struct arm_smccc_res res;
++
++	arm_smccc_smc(T7_SM_HDMITX_RD, addr, width, 0, 0, 0, 0, 0, &res);
++
++	return res.a0;
++}
++
++static void t7_hdmitx_wr(unsigned long addr, u32 val, unsigned int width)
++{
++	struct arm_smccc_res res;
++
++	arm_smccc_smc(T7_SM_HDMITX_WR, addr, val, width, 0, 0, 0, 0, &res);
++}
++
++/*
++ * Take the HDMI TX controller out of reset and open its registers to the
++ * non-secure world, as the vendor bootloader does. Until HDMITX_TOP_SEC_SCRATCH
++ * is set by the secure monitor, non-secure writes to the controller are
++ * dropped and the OS cannot use the DDC bus (no EDID).
++ */
++static void t7_hdmitx_init(void)
++{
++	setbits_le32(T7_CLKCTRL_SYS_CLK_EN0_REG2, T7_SYS_CLK_EN0_REG2_HDMITX);
++	setbits_le32(T7_CLKCTRL_VID_CLK0_CTRL, T7_VID_CLK0_CTRL_DIV_EN);
++	setbits_le32(T7_ANACTRL_HDMIPHY_CTRL1, T7_HDMIPHY_CTRL1_FIFO_EN);
++
++	t7_hdmitx_wr(T7_HDMITX_TOP_SW_RESET, 0, 32);
++	t7_hdmitx_wr(T7_HDMITX_INTR3_MASK, 0xff, 8);
++	t7_hdmitx_wr(T7_HDMITX_TOP_SEC_SCRATCH, 1, 32);
++
++	t7_hdmitx_wr(T7_HDMITX_TOP_INTR_STAT_CLR, T7_HDMITX_TOP_INTR_ALL, 32);
++	t7_hdmitx_wr(T7_HDMITX_TOP_CLK_CNTL, T7_HDMITX_TOP_CLK_CNTL_VAL, 32);
++	t7_hdmitx_wr(T7_HDMITX_TOP_INTR_MASKN,
++		     t7_hdmitx_rd(T7_HDMITX_TOP_INTR_MASKN, 32) |
++		     T7_HDMITX_TOP_INTR_HPD, 32);
++	t7_hdmitx_wr(T7_HDMITX_TOP_INFILTER, T7_HDMITX_TOP_INFILTER_VAL, 32);
++	t7_hdmitx_wr(T7_HDMITX_AON_CYP_CTL, 2, 8);
++}
++
+ /*
+  * Leave the display path powered and clocked for the OS, as the vendor
+  * bootloader does: the VPU/HDMI and HDMI RX power domains, the VPU and
+@@ -59,6 +101,8 @@ int meson_board_late_init(void)
+ 	writel(T7_HTX_CLK_CTRL0_VAL, T7_CLKCTRL_HTX_CLK_CTRL0);
+ 	clrbits_le32(T7_PWRCTRL_MEM_PD11, T7_PWRCTRL_MEM_PD11_HDMITX);
+ 
++	t7_hdmitx_init();
++
+ 	return 0;
+ }
+ 
+-- 
+2.34.1
+
+--
+
+MiniMyth2
+

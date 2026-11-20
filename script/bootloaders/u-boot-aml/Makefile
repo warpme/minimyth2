@@ -110,8 +110,8 @@ ifeq (0,1)
 # a311d2 based khadas vim4
 SOC_TYPE                  = a311d2
 mm_U-BOOT_BOARD_TYPE      = board-a311d2.vim4
-mm_U-BOOT_BOARD_DEFCONFIG = t.b.d
-FIP_BOARD                 = t.b.d
+mm_U-BOOT_BOARD_DEFCONFIG = khadas-vim4_defconfig
+FIP_BOARD                 = khadas-vim4
 endif
 
 # Mainline U-boot
@@ -183,11 +183,26 @@ PATCHFILES  += 0081-s4-add-tv98_defconfig.patch
 # sc2 dts additions
 PATCHFILES  += 0083-sc2-add-x96-max-plus-ultra_defconfig.patch
 PATCHFILES  += 0084-sc2-add-rbox-hk1_defconfig.patch
+# t7 support
+PATCHFILES  += 0091-serial-meson-add-Amlogic-T7-UART-support.patch
+PATCHFILES  += 0092-arm-meson-add-Amlogic-T7-SoC-family-support.patch
+PATCHFILES  += 0093-board-amlogic-add-Khadas-VIM4-support.patch
+PATCHFILES  += 0094-clk-meson-add-Amlogic-T7-peripherals-clock-controlle.patch
+PATCHFILES  += 0095-pinctrl-meson-add-Amlogic-T7-pinctrl-driver.patch
+PATCHFILES  += 0096-power-domain-meson-secure-pwrc-add-Amlogic-T7-suppor.patch
+PATCHFILES  += 0097-net-dwc_eth_qos-add-Amlogic-T7-glue.patch
+PATCHFILES  += 0098-arm-dts-amlogic-t7-add-clock-MMC-Ethernet-and-RNG-no.patch
+PATCHFILES  += 0099-configs-khadas-vim4-enable-MMC-Ethernet-pinctrl-and-.patch
+PATCHFILES  += 0100-arm-meson-t7-leave-the-display-path-powered-and-cloc.patch
+PATCHFILES  += 0101-arm-meson-t7-initialise-the-HDMI-TX-controller-for-t.patch
+PATCHFILES  += 0102-arm-meson-t7-pass-all-DRAM-banks-to-the-OS.patch
+PATCHFILES  += 0103-board-amlogic-vim4-pass-the-MAC-address-to-the-OS-wi.patch
 # fip additions
-PATCHFILES  += 0100-amlogic-boot-fip-add-enc-bins-support.patch
-PATCHFILES  += 0101-amlogic-boot-fip-add-x96-air-support.patch
-PATCHFILES  += 0102-amlogic-boot-fip-add-tanix-tx5plus-support.patch
-PATCHFILES  += 0103-amlogic-boot-fip-add-tanix-tx3mini-support.patch
+PATCHFILES  += 0200-amlogic-boot-fip-add-enc-bins-support.patch
+PATCHFILES  += 0201-amlogic-boot-fip-add-x96-air-support.patch
+PATCHFILES  += 0202-amlogic-boot-fip-add-tanix-tx5plus-support.patch
+PATCHFILES  += 0203-amlogic-boot-fip-add-tanix-tx3mini-support.patch
+PATCHFILES  += 0204-amlogic-boot-fip-vim4-update-bl31-to-1.3.2-g2dd964006.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKSRC)/amlogic-boot-fip

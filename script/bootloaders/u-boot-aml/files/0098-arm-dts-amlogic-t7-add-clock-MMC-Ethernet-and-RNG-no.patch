@@ -1,0 +1,498 @@
+From 33b4eb5f69bc35345c64f8d2a98d256def55bdd7 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 20 Nov 2026 10:48:12 +0000
+Subject: [PATCH 08/12] arm: dts: amlogic: t7: add clock, MMC, Ethernet and RNG
+ nodes for VIM4
+
+The upstream T7 device tree only describes the console UART. Add the
+nodes U-Boot needs to the U-Boot dtsi files, following the Linux T7
+bindings and the T7/VIM4 device tree:
+
+- peripherals clock controller, with the SCP owned fdivX/sys clocks
+  described as fixed clocks
+- the three MMC controllers (SD on sd_emmc_b, eMMC on sd_emmc_c) with
+  their pipeline clock and power domains
+- the dwmac 4.x Ethernet MAC and the MDIO multiplexer, RTL8211F on RGMII
+  with 2 ns TX / 800 ps RX MAC delays
+- pin groups for eMMC, SD card and Ethernet
+- the VIM4 power rails feeding the SD card and eMMC, and the VCC5V rail
+  (GPIOH_4) feeding the HDMI connector 5 V pin, switched on at boot
+
+Also describe the hardware RNG, which has the same register layout as
+the S4 one, so wget over HTTPS has an entropy source.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ .../amlogic-t7-a311d2-khadas-vim4-u-boot.dtsi | 155 +++++++++
+ arch/arm/dts/amlogic-t7-u-boot.dtsi           | 296 ++++++++++++++++++
+ 2 files changed, 451 insertions(+)
+ create mode 100644 arch/arm/dts/amlogic-t7-a311d2-khadas-vim4-u-boot.dtsi
+ create mode 100644 arch/arm/dts/amlogic-t7-u-boot.dtsi
+
+diff --git a/arch/arm/dts/amlogic-t7-a311d2-khadas-vim4-u-boot.dtsi b/arch/arm/dts/amlogic-t7-a311d2-khadas-vim4-u-boot.dtsi
+new file mode 100644
+index 0000000..6bc3771
+--- /dev/null
++++ b/arch/arm/dts/amlogic-t7-a311d2-khadas-vim4-u-boot.dtsi
+@@ -0,0 +1,155 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright (c) 2026 Lucas Tanure <tanure@linux.com>
++ */
++
++#include "amlogic-t7-u-boot.dtsi"
++
++/ {
++	aliases {
++		mmc0 = &sd_emmc_b;
++		mmc1 = &sd_emmc_c;
++		ethernet0 = &ethmac;
++	};
++
++	chosen {
++		stdout-path = "serial0:921600n8";
++	};
++
++	/* Power tree, as in the Linux VIM4 device tree */
++	dc_in: regulator-dc-in {
++		compatible = "regulator-fixed";
++		regulator-name = "DC_IN";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++
++	/* 5 V rail feeding the HDMI connector (HDMI_5V) and the USB ports */
++	vcc5v: regulator-vcc-5v {
++		compatible = "regulator-fixed";
++		regulator-name = "VCC5V";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&dc_in>;
++		gpio = <&gpio GPIOH_4 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vddao_3v3: regulator-vddao-3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "VDDAO_3V3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&dc_in>;
++		regulator-always-on;
++	};
++
++	vddio_3v3: regulator-vddio-3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "VDDIO_3V3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vddao_3v3>;
++		regulator-always-on;
++	};
++
++	vddio_1v8: regulator-vddio-1v8 {
++		compatible = "regulator-fixed";
++		regulator-name = "VDDIO_1V8";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		vin-supply = <&vddio_3v3>;
++		regulator-always-on;
++	};
++
++	sd_3v3: regulator-sdcard-3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "SD_3V3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vddao_3v3>;
++		gpio = <&gpio GPIOD_11 GPIO_ACTIVE_LOW>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vddio_c: regulator-gpio-c {
++		compatible = "regulator-gpio";
++		regulator-name = "VDDIO_C";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vddio_3v3>;
++		gpios = <&gpio GPIOD_9 GPIO_ACTIVE_HIGH>;
++		gpios-states = <0>;
++		states = <1800000 1
++			  3300000 0>;
++	};
++};
++
++&xtal {
++	bootph-all;
++};
++
++/* SD card */
++&sd_emmc_b {
++	status = "okay";
++	pinctrl-0 = <&sdcard_pins>;
++	pinctrl-1 = <&sdcard_clk_gate_pins>;
++	pinctrl-names = "default", "clk-gate";
++
++	bus-width = <4>;
++	cap-sd-highspeed;
++	max-frequency = <50000000>;
++	disable-wp;
++
++	power-domains = <&pwrc PWRC_T7_SDIO_B_ID>;
++
++	vmmc-supply = <&sd_3v3>;
++	vqmmc-supply = <&vddio_c>;
++};
++
++/* eMMC */
++&sd_emmc_c {
++	status = "okay";
++	pinctrl-0 = <&emmc_ctrl_pins>, <&emmc_data_8b_pins>, <&emmc_ds_pins>;
++	pinctrl-1 = <&emmc_clk_gate_pins>;
++	pinctrl-names = "default", "clk-gate";
++
++	bus-width = <8>;
++	cap-mmc-highspeed;
++	max-frequency = <52000000>;
++	disable-wp;
++	non-removable;
++
++	power-domains = <&pwrc PWRC_T7_EMMC_ID>;
++
++	vmmc-supply = <&vddio_3v3>;
++	vqmmc-supply = <&vddio_1v8>;
++};
++
++/* Ethernet: RTL8211F on RGMII */
++&ethmac {
++	status = "okay";
++	pinctrl-0 = <&eth_pins>, <&eth_rgmii_pins>;
++	pinctrl-names = "default";
++	/*
++	 * No delay on the PCB and none in the PHY: the MAC adds both the
++	 * TX (amlogic,tx-delay-ns) and the RX (rx-internal-delay-ps)
++	 * delays, as in the Linux VIM4 device tree.
++	 */
++	phy-mode = "rgmii";
++	phy-handle = <&external_phy>;
++	amlogic,tx-delay-ns = <2>;
++	rx-internal-delay-ps = <800>;
++};
++
++&ext_mdio {
++	external_phy: ethernet-phy@0 {
++		/* Realtek RTL8211F (0x001cc916) */
++		reg = <0>;
++		max-speed = <1000>;
++	};
++};
+diff --git a/arch/arm/dts/amlogic-t7-u-boot.dtsi b/arch/arm/dts/amlogic-t7-u-boot.dtsi
+new file mode 100644
+index 0000000..621dfae
+--- /dev/null
++++ b/arch/arm/dts/amlogic-t7-u-boot.dtsi
+@@ -0,0 +1,296 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright (c) 2026 Lucas Tanure <tanure@linux.com>
++ *
++ * U-Boot additions for the Amlogic T7 SoC family.
++ *
++ * The upstream amlogic-t7.dtsi only describes the console UART. Until
++ * the clock controller, MMC and Ethernet nodes land upstream, describe
++ * them here. Clock IDs, register ranges and pin groups follow the Linux
++ * T7 drivers and bindings.
++ */
++
++#include <dt-bindings/clock/amlogic,t7-peripherals-clkc.h>
++#include <dt-bindings/gpio/amlogic,t7-periphs-pinctrl.h>
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/power/amlogic,t7-pwrc.h>
++
++/ {
++	soc {
++		bootph-all;
++	};
++
++	/*
++	 * The fixed PLL dividers and the sys clock are owned by the SCP
++	 * firmware (SCMI on Linux) and left running by BL2 at these
++	 * rates. U-Boot only needs them as clock tree inputs.
++	 */
++	fdiv2: clock-fdiv2 {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <1000000000>;
++		clock-output-names = "fdiv2";
++	};
++
++	fdiv2p5: clock-fdiv2p5 {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <800000000>;
++		clock-output-names = "fdiv2p5";
++	};
++
++	fdiv3: clock-fdiv3 {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <666666666>;
++		clock-output-names = "fdiv3";
++	};
++
++	fdiv4: clock-fdiv4 {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <500000000>;
++		clock-output-names = "fdiv4";
++	};
++
++	fdiv5: clock-fdiv5 {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <400000000>;
++		clock-output-names = "fdiv5";
++	};
++
++	fdiv7: clock-fdiv7 {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <285714285>;
++		clock-output-names = "fdiv7";
++	};
++
++	sys_clk: clock-sys {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <166666666>;
++		clock-output-names = "sys";
++	};
++};
++
++&apb4 {
++	clkc_periphs: clock-controller@0 {
++		compatible = "amlogic,t7-peripherals-clkc";
++		reg = <0x0 0x0 0x0 0x49c>;
++		#clock-cells = <1>;
++		clocks = <&xtal>, <&fdiv2>, <&fdiv2p5>, <&fdiv3>,
++			 <&fdiv4>, <&fdiv5>, <&fdiv7>, <&sys_clk>;
++		clock-names = "xtal", "fdiv2", "fdiv2p5", "fdiv3",
++			      "fdiv4", "fdiv5", "fdiv7", "sys";
++	};
++
++	eth_phy: mdio-multiplexer@28000 {
++		compatible = "amlogic,g12a-mdio-mux";
++		reg = <0x0 0x28000 0x0 0xa4>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		clocks = <&clkc_periphs CLKID_SYS_ETHPHY>, <&xtal>;
++		clock-names = "pclk", "clkin0";
++		mdio-parent-bus = <&mdio0>;
++
++		ext_mdio: mdio@0 {
++			reg = <0>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		int_mdio: mdio@1 {
++			reg = <1>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++	};
++
++	sd_emmc_a: mmc@88000 {
++		compatible = "amlogic,t7-mmc", "amlogic,meson-axg-mmc";
++		reg = <0x0 0x88000 0x0 0x800>;
++		interrupts = <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&clkc_periphs CLKID_SYS_SD_EMMC_A>,
++			 <&clkc_periphs CLKID_SD_EMMC_A>,
++			 <&fdiv2>,
++			 <&clkc_periphs CLKID_SYS_AMPIPE_NAND>;
++		clock-names = "core", "clkin0", "clkin1", "pipeline";
++		assigned-clocks = <&clkc_periphs CLKID_SD_EMMC_A>;
++		assigned-clock-rates = <24000000>;
++		status = "disabled";
++	};
++
++	sd_emmc_b: mmc@8a000 {
++		compatible = "amlogic,t7-mmc", "amlogic,meson-axg-mmc";
++		reg = <0x0 0x8a000 0x0 0x800>;
++		interrupts = <GIC_SPI 177 IRQ_TYPE_EDGE_RISING>;
++		clocks = <&clkc_periphs CLKID_SYS_SD_EMMC_B>,
++			 <&clkc_periphs CLKID_SD_EMMC_B>,
++			 <&fdiv2>,
++			 <&clkc_periphs CLKID_SYS_AMPIPE_NAND>;
++		clock-names = "core", "clkin0", "clkin1", "pipeline";
++		assigned-clocks = <&clkc_periphs CLKID_SD_EMMC_B>;
++		assigned-clock-rates = <24000000>;
++		status = "disabled";
++	};
++
++	sd_emmc_c: mmc@8c000 {
++		compatible = "amlogic,t7-mmc", "amlogic,meson-axg-mmc";
++		reg = <0x0 0x8c000 0x0 0x800>;
++		interrupts = <GIC_SPI 178 IRQ_TYPE_EDGE_RISING>;
++		clocks = <&clkc_periphs CLKID_SYS_SD_EMMC_C>,
++			 <&clkc_periphs CLKID_SD_EMMC_C>,
++			 <&fdiv2>,
++			 <&clkc_periphs CLKID_SYS_AMPIPE_NAND>;
++		clock-names = "core", "clkin0", "clkin1", "pipeline";
++		assigned-clocks = <&clkc_periphs CLKID_SD_EMMC_C>;
++		assigned-clock-rates = <24000000>;
++		status = "disabled";
++	};
++
++	/* Same non-secure RNG block and layout as on S4 */
++	hwrng: rng@440788 {
++		compatible = "amlogic,meson-s4-rng";
++		reg = <0x0 0x440788 0x0 0x0c>;
++	};
++};
++
++&periphs_pinctrl {
++	emmc_ctrl_pins: emmc-ctrl-pins {
++		mux-0 {
++			groups = "emmc_cmd";
++			function = "emmc";
++			bias-pull-up;
++			drive-strength-microamp = <4000>;
++		};
++
++		mux-1 {
++			groups = "emmc_clk";
++			function = "emmc";
++			bias-disable;
++			drive-strength-microamp = <4000>;
++		};
++	};
++
++	emmc_data_8b_pins: emmc-data-8b-pins {
++		mux {
++			groups = "emmc_nand_d0", "emmc_nand_d1",
++				 "emmc_nand_d2", "emmc_nand_d3",
++				 "emmc_nand_d4", "emmc_nand_d5",
++				 "emmc_nand_d6", "emmc_nand_d7";
++			function = "emmc";
++			bias-pull-up;
++			drive-strength-microamp = <4000>;
++		};
++	};
++
++	emmc_ds_pins: emmc-ds-pins {
++		mux {
++			groups = "emmc_nand_ds";
++			function = "emmc";
++			bias-pull-down;
++			drive-strength-microamp = <4000>;
++		};
++	};
++
++	emmc_clk_gate_pins: emmc-clk-gate-pins {
++		mux {
++			groups = "GPIOB_8";
++			function = "gpio_periphs";
++			bias-pull-down;
++			drive-strength-microamp = <4000>;
++		};
++	};
++
++	sdcard_pins: sdcard-pins {
++		mux-0 {
++			groups = "sdcard_d0", "sdcard_d1",
++				 "sdcard_d2", "sdcard_d3",
++				 "sdcard_cmd";
++			function = "sdcard";
++			bias-pull-up;
++			drive-strength-microamp = <4000>;
++		};
++
++		mux-1 {
++			groups = "sdcard_clk";
++			function = "sdcard";
++			bias-disable;
++			drive-strength-microamp = <4000>;
++		};
++	};
++
++	sdcard_clk_gate_pins: sdcard-clk-gate-pins {
++		mux {
++			groups = "GPIOC_4";
++			function = "gpio_periphs";
++			bias-pull-down;
++			drive-strength-microamp = <4000>;
++		};
++	};
++
++	eth_pins: eth-pins {
++		mux {
++			groups = "eth_mdio", "eth_mdc",
++				 "eth_rgmii_rx_clk", "eth_rx_dv",
++				 "eth_rxd0", "eth_rxd1",
++				 "eth_txen", "eth_txd0", "eth_txd1";
++			function = "eth";
++			bias-disable;
++			drive-strength-microamp = <4000>;
++		};
++	};
++
++	eth_rgmii_pins: eth-rgmii-pins {
++		mux {
++			groups = "eth_rxd2_rgmii", "eth_rxd3_rgmii",
++				 "eth_rgmii_tx_clk",
++				 "eth_txd2_rgmii", "eth_txd3_rgmii";
++			function = "eth";
++			bias-disable;
++			drive-strength-microamp = <4000>;
++		};
++	};
++};
++
++&{/soc} {
++	ethmac: ethernet@fdc00000 {
++		/* T7 has a dwmac 4.x (QoS) core, not the 3.x GMAC of G12A/S4 */
++		compatible = "amlogic,t7-dwmac",
++			     "amlogic,meson-g12a-dwmac",
++			     "snps,dwmac-4.00",
++			     "snps,dwmac";
++		reg = <0x0 0xfdc00000 0x0 0x10000>,
++		      <0x0 0xfe024000 0x0 0x8>;
++		interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-names = "macirq";
++		power-domains = <&pwrc PWRC_T7_ETH_ID>;
++		/*
++		 * The MDIO multiplexer registers sit behind the ethphy
++		 * gate: the MAC glue routes the mux to the external PHY,
++		 * so enable it together with the MAC clocks.
++		 */
++		clocks = <&clkc_periphs CLKID_SYS_ETH>,
++			 <&fdiv2>,
++			 <&clkc_periphs CLKID_ETH_125M>,
++			 <&clkc_periphs CLKID_SYS_ETHPHY>,
++			 <&clkc_periphs CLKID_SYS_AMPIPE_ETH>;
++		clock-names = "stmmaceth", "clkin0", "clkin1", "ethphy",
++			      "pipeline";
++		rx-fifo-depth = <4096>;
++		tx-fifo-depth = <2048>;
++		status = "disabled";
++
++		mdio0: mdio {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			compatible = "snps,dwmac-mdio";
++		};
++	};
++};
++
++&uart_a {
++	bootph-all;
++};
+-- 
+2.34.1
+

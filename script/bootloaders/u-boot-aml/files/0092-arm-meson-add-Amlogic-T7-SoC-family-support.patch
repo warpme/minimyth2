@@ -1,0 +1,234 @@
+From 355a4a72cbfbe6b0dbe4c20024706fbccfe00a33 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 20 Nov 2026 10:48:11 +0000
+Subject: [PATCH 02/12] arm: meson: add Amlogic T7 SoC family support
+
+Add the MESON_T7 platform (A311D2): watchdog disable, secure monitor
+reserved memory, memory map and effective memory size, and keep the
+default load addresses out of the unmapped secure-world range
+0x05000000-0x09000000. The existing
+arch-meson boot0.h (4 KiB key area after the reset branch) is reused.
+
+Ported from "[PATCH v2 2/4] arm: meson: add Amlogic T7 SoC family
+support" (u-boot mailing list).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm/include/asm/arch-meson/t7.h | 25 +++++++++
+ arch/arm/mach-meson/Kconfig          |  9 +++
+ arch/arm/mach-meson/Makefile         |  1 +
+ arch/arm/mach-meson/board-t7.c       | 82 ++++++++++++++++++++++++++++
+ include/configs/meson64.h            | 23 +++++++-
+ 5 files changed, 139 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm/include/asm/arch-meson/t7.h
+ create mode 100644 arch/arm/mach-meson/board-t7.c
+
+diff --git a/arch/arm/include/asm/arch-meson/t7.h b/arch/arm/include/asm/arch-meson/t7.h
+new file mode 100644
+index 0000000..e0a9032
+--- /dev/null
++++ b/arch/arm/include/asm/arch-meson/t7.h
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * (C) Copyright 2026 Lucas Tanure <tanure@linux.com>
++ */
++
++#ifndef __T7_H__
++#define __T7_H__
++
++#include <linux/bitops.h>
++
++#define T7_WDT_CTRL		0xfe002100
++#define T7_WDT_CTRL_EN		BIT(18)
++
++/*
++ * The secure world owns 0x05000000 - 0x09000000: it contains the BL31
++ * and BL32 runtime zones (also described as reserved-memory in the
++ * upstream devicetree) and further firmware-protected pages, and is
++ * left unmapped in the T7 memory map. Reserve the whole span so nothing
++ * (EFI allocations, boot-time relocations) is ever placed in memory
++ * U-Boot cannot access.
++ */
++#define T7_SECMON_RSVMEM_START	0x05000000UL
++#define T7_SECMON_RSVMEM_SIZE	0x04000000UL
++
++#endif /* __T7_H__ */
+diff --git a/arch/arm/mach-meson/Kconfig b/arch/arm/mach-meson/Kconfig
+index 91d1e83..bd261a6 100644
+--- a/arch/arm/mach-meson/Kconfig
++++ b/arch/arm/mach-meson/Kconfig
+@@ -74,6 +74,14 @@ config MESON_S4
+ 	help
+ 	  Select this if your SoC is an S905Y4/S905W2/S805X2
+ 
++config MESON_T7
++	bool "T7"
++	select MESON64_COMMON
++	select ENABLE_ARM_SOC_BOOT0_HOOK
++	imply OF_UPSTREAM
++	help
++	  Select this if your SoC is an A311D2
++
+ endchoice
+ 
+ config SYS_SOC
+@@ -98,6 +106,7 @@ config SYS_BOARD
+ 	default "q200" if MESON_GXM
+ 	default "s400" if MESON_AXG
+ 	default "u200" if MESON_G12A
++	default "vim4" if MESON_T7
+ 	default ""
+ 	help
+ 	  This option contains information about board name.
+diff --git a/arch/arm/mach-meson/Makefile b/arch/arm/mach-meson/Makefile
+index 2157c35..ef8e8dd 100644
+--- a/arch/arm/mach-meson/Makefile
++++ b/arch/arm/mach-meson/Makefile
+@@ -18,3 +18,4 @@ obj-$(CONFIG_MESON_AXG) += board-axg.o
+ obj-$(CONFIG_MESON_G12A) += board-g12a.o
+ obj-$(CONFIG_MESON_A1) += board-a1.o
+ obj-$(CONFIG_MESON_S4) += board-s4.o
++obj-$(CONFIG_MESON_T7) += board-t7.o
+diff --git a/arch/arm/mach-meson/board-t7.c b/arch/arm/mach-meson/board-t7.c
+new file mode 100644
+index 0000000..c2725a4
+--- /dev/null
++++ b/arch/arm/mach-meson/board-t7.c
+@@ -0,0 +1,82 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2026 Lucas Tanure <tanure@linux.com>
++ */
++
++#include <init.h>
++#include <asm/arch/boot.h>
++#include <asm/arch/mem.h>
++#include <asm/arch/t7.h>
++#include <asm/armv8/mmu.h>
++#include <asm/global_data.h>
++#include <asm/io.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++int board_init(void)
++{
++	/*
++	 * The secure firmware boots BL33 with the watchdog running,
++	 * disable it.
++	 */
++	writel(readl(T7_WDT_CTRL) & ~T7_WDT_CTRL_EN, T7_WDT_CTRL);
++
++	return 0;
++}
++
++void meson_init_reserved_memory(void *fdt)
++{
++	meson_board_add_reserved_memory(fdt, T7_SECMON_RSVMEM_START,
++					T7_SECMON_RSVMEM_SIZE);
++}
++
++int meson_get_boot_device(void)
++{
++	return -ENOSYS;
++}
++
++phys_size_t get_effective_memsize(void)
++{
++	/*
++	 * The top 8 MiB of the first DRAM bank contain pages the secure
++	 * world protects at runtime, keep U-Boot below them.
++	 */
++	return min(gd->ram_size, (phys_size_t)0xdf800000);
++}
++
++static struct mm_region t7_mem_map[] = {
++	{
++		/* DRAM below the secure monitor reserved zone */
++		.virt = 0x00000000UL,
++		.phys = 0x00000000UL,
++		.size = 0x05100000UL,
++		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
++			 PTE_BLOCK_INNER_SHARE
++	}, {
++		/*
++		 * DRAM between the secure monitor reserved zone and the
++		 * end of the first bank. 0x05100000 - 0x09000000 is
++		 * protected by the secure world and must not be mapped.
++		 */
++		.virt = 0x09000000UL,
++		.phys = 0x09000000UL,
++		.size = 0xd7000000UL,
++		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
++			 PTE_BLOCK_INNER_SHARE
++	}, {
++		/* Peripherals, GIC, ... */
++		.virt = 0xe0000000UL,
++		.phys = 0xe0000000UL,
++		.size = 0x20000000UL,
++		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
++			 PTE_BLOCK_NON_SHARE |
++			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
++	}, {
++		/* List terminator */
++		0,
++	}
++};
++
++struct mm_region *mem_map = t7_mem_map;
+diff --git a/include/configs/meson64.h b/include/configs/meson64.h
+index d956e6a..83c216b 100644
+--- a/include/configs/meson64.h
++++ b/include/configs/meson64.h
+@@ -134,6 +134,20 @@
+ #define SCRIPT_ADDR_R		__stringify(0x01000000)
+ #define PXEFILE_ADDR_R		__stringify(0x00e00000)
+ #define FDTOVERLAY_ADDR_R	__stringify(0x00f00000)
++#elif defined(CONFIG_MESON_T7)
++/*
++ * 0x05000000 - 0x09000000 belongs to the secure world and is not mapped,
++ * keep all load addresses above it.
++ */
++#define PXEFILE_ADDR_R		__stringify(0x09100000)
++#define FDTOVERLAY_ADDR_R	__stringify(0x09200000)
++#define SCRIPT_ADDR_R		__stringify(0x09300000)
++#define FDT_ADDR_R		__stringify(0x09400000)
++/* 128 MiB for the kernel image, then the decompression buffer and initrd */
++#define KERNEL_ADDR_R		__stringify(0x0a000000)
++#define KERNEL_COMP_ADDR_R	__stringify(0x12000000)
++#define KERNEL_COMP_SIZE	"0x4000000"
++#define RAMDISK_ADDR_R		__stringify(0x16000000)
+ #else
+ #define KERNEL_ADDR_R		__stringify(0x08080000)
+ #define FDT_ADDR_R		__stringify(0x08008000)
+@@ -141,8 +155,15 @@
+ #define PXEFILE_ADDR_R		__stringify(0x01080000)
+ #define FDTOVERLAY_ADDR_R	__stringify(0x01000000)
+ #endif
++#ifndef KERNEL_COMP_ADDR_R
+ #define KERNEL_COMP_ADDR_R	__stringify(0x0d080000)
++#endif
++#ifndef KERNEL_COMP_SIZE
++#define KERNEL_COMP_SIZE	"0x2000000"
++#endif
++#ifndef RAMDISK_ADDR_R
+ #define RAMDISK_ADDR_R		__stringify(0x13000000)
++#endif
+ 
+ #include <config_distro_bootcmd.h>
+ 
+@@ -158,7 +179,7 @@
+ 	"stdout=" STDOUT_CFG "\0" \
+ 	"stderr=" STDOUT_CFG "\0" \
+ 	"kernel_comp_addr_r=" KERNEL_COMP_ADDR_R "\0" \
+-	"kernel_comp_size=0x2000000\0" \
++	"kernel_comp_size=" KERNEL_COMP_SIZE "\0" \
+ 	"fdt_addr_r=" FDT_ADDR_R "\0" \
+ 	"scriptaddr=" SCRIPT_ADDR_R "\0" \
+ 	"kernel_addr_r=" KERNEL_ADDR_R "\0" \
+-- 
+2.34.1
+
