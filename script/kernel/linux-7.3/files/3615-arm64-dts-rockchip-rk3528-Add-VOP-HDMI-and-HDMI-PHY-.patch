@@ -1,0 +1,192 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 18c110b4cd37c47f9f4073ed69898ccc3700f53c Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sun, 22 Nov 2026 13:10:42 +0100
+Subject: [PATCH] arm64: dts: rockchip: rk3528: Add VOP, HDMI and HDMI PHY
+ nodes
+
+Add the device tree nodes for the RK3528 display path:
+- the display-subsystem node,
+- the VOP (VOP2) with two video ports and its IOMMU; the IOMMU is not
+  used by the VOP for now, as resuming it during the VOP probe hangs the
+  system, so the VOP uses CMA buffers,
+- the Synopsys DesignWare HDMI TX controller,
+- the Innosilicon HDMI PHY, which also provides the HDMI pixel clock
+  (clk_hdmiphy_pixel_io) back to the CRU for DCLK_VOP0. The PHY is in
+  the VO power domain, accessing it with the domain off results in an
+  external abort.
+
+The HDMI isfr clock is derived from dclk_vop_src1 / 4, set it to
+99 MHz to get an isfr of ~24.75 MHz, close to the 24 MHz the dw-hdmi
+DDC master defaults are designed for.
+
+Also add the clocks of the VO power domain masters to its power-domain
+node. They have to be enabled for the idle/QoS handling when the domain
+is powered up again; without them the system hangs as soon as the
+domain is power cycled (e.g. by runtime PM of the VOP IOMMU).
+
+Based on the Rockchip vendor kernel (develop-6.1).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3528.dtsi | 113 +++++++++++++++++++++++
+ 1 file changed, 113 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3528.dtsi b/arch/arm64/boot/dts/rockchip/rk3528.dtsi
+index 03cd00f..53f5320 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3528.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3528.dtsi
+@@ -86,6 +86,11 @@
+ 		};
+ 	};
+ 
++	display_subsystem: display-subsystem {
++		compatible = "rockchip,display-subsystem";
++		ports = <&vop_out>;
++	};
++
+ 	firmware {
+ 		scmi: scmi {
+ 			compatible = "arm,scmi-smc";
+@@ -657,6 +662,15 @@
+ 				};
+ 				power-domain@RK3528_PD_VO {
+ 					reg = <RK3528_PD_VO>;
++					clocks = <&cru ACLK_MAC_VO>,
++						 <&cru ACLK_HDCP>,
++						 <&cru ACLK_JPEG_DECODER>,
++						 <&cru ACLK_RGA2E>,
++						 <&cru ACLK_VDPP>,
++						 <&cru ACLK_VOP>,
++						 <&cru HCLK_SDMMC0>,
++						 <&cru HCLK_USBHOST>,
++						 <&cru HCLK_VOP>;
+ 					pm_qos = <&qos_gmac0>,
+ 						 <&qos_hdcp>,
+ 						 <&qos_jpegdec>,
+@@ -712,6 +726,92 @@
+ 			status = "disabled";
+ 		};
+ 
++		vop: vop@ff840000 {
++			compatible = "rockchip,rk3528-vop";
++			reg = <0x0 0xff840000 0x0 0x3000>;
++			reg-names = "vop";
++			interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru ACLK_VOP>,
++				 <&cru HCLK_VOP>,
++				 <&cru DCLK_VOP0>,
++				 <&cru DCLK_VOP1>;
++			clock-names = "aclk",
++				      "hclk",
++				      "dclk_vp0",
++				      "dclk_vp1";
++			/*
++			 * Enabling the VOP IOMMU (iommus = <&vop_mmu>) currently
++			 * hangs the system when it is resumed via its device link
++			 * during the VOP probe, so the VOP uses CMA buffers for now.
++			 */
++			power-domains = <&power RK3528_PD_VO>;
++			status = "disabled";
++
++			vop_out: ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				vp0: port@0 {
++					reg = <0>;
++					#address-cells = <1>;
++					#size-cells = <0>;
++				};
++
++				vp1: port@1 {
++					reg = <1>;
++					#address-cells = <1>;
++					#size-cells = <0>;
++				};
++			};
++		};
++
++		vop_mmu: iommu@ff847e00 {
++			compatible = "rockchip,rk3528-iommu", "rockchip,rk3568-iommu";
++			reg = <0x0 0xff847e00 0x0 0x100>;
++			interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru ACLK_VOP>, <&cru HCLK_VOP>;
++			clock-names = "aclk", "iface";
++			#iommu-cells = <0>;
++			power-domains = <&power RK3528_PD_VO>;
++			status = "disabled";
++		};
++
++		hdmi: hdmi@ff8d0000 {
++			compatible = "rockchip,rk3528-dw-hdmi";
++			reg = <0x0 0xff8d0000 0x0 0x20000>;
++			interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
++			/* isfr = dclk_vop_src1 / 4 = 24.75 MHz */
++			assigned-clocks = <&cru DCLK_VOP_SRC1>;
++			assigned-clock-rates = <99000000>;
++			clocks = <&cru PCLK_HDMI>,
++				 <&cru CLK_SFR_HDMI>,
++				 <&cru CLK_CEC_HDMI>;
++			clock-names = "iahb", "isfr", "cec";
++			hpd-gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
++			phys = <&hdmiphy>;
++			phy-names = "hdmi";
++			pinctrl-names = "default";
++			pinctrl-0 = <&hdmi_pins>;
++			power-domains = <&power RK3528_PD_VO>;
++			reg-io-width = <4>;
++			rockchip,grf = <&vo_grf>;
++			#sound-dai-cells = <0>;
++			status = "disabled";
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				hdmi_in: port@0 {
++					reg = <0>;
++				};
++
++				hdmi_out: port@1 {
++					reg = <1>;
++				};
++			};
++		};
++
+ 		spi0: spi@ff9c0000 {
+ 			compatible = "rockchip,rk3528-spi",
+ 				     "rockchip,rk3066-spi";
+@@ -1361,6 +1461,19 @@
+ 				status = "disabled";
+ 			};
+ 		};
++
++		hdmiphy: phy@ffe00000 {
++			compatible = "rockchip,rk3528-hdmi-phy";
++			reg = <0x0 0xffe00000 0x0 0x10000>;
++			interrupts = <GIC_SPI 101 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_HDMIPHY>, <&xin24m>;
++			clock-names = "sysclk", "refoclk";
++			#clock-cells = <0>;
++			clock-output-names = "clk_hdmiphy_pixel_io";
++			#phy-cells = <0>;
++			power-domains = <&power RK3528_PD_VO>;
++			status = "disabled";
++		};
+ 	};
+ };
+ 
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+

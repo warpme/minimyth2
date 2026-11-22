@@ -599,6 +599,14 @@ PATCHFILES += 3575-media-rkvdec-add-rk3576-vdpu383-vp9.patch
 # av1 for 3576 based on https://github.com/SympleNZ/rkvdec-vdpu383-av1
 PATCHFILES += 3576-media-rkvdec-add-vdpu383-av1-backend.patch
 PATCHFILES += 3577-media-rkvdec-enable-av1-on-rk3576.patch
+# rk3528 additions
+PATCHFILES += 3580-dt-bindings-display-rockchip-vop2-Add-RK3528-compati.patch
+PATCHFILES += 3581-dt-bindings-iommu-rockchip-Add-RK3528-IOMMU-compatib.patch
+PATCHFILES += 3582-drm-rockchip-vop2-Add-support-for-RK3528.patch
+PATCHFILES += 3583-dt-bindings-phy-rockchip-rk3228-hdmi-phy-Add-RK3528-.patch
+PATCHFILES += 3584-phy-rockchip-inno-hdmi-Add-support-for-RK3528.patch
+PATCHFILES += 3585-dt-bindings-display-rockchip-dw-hdmi-Add-RK3528-comp.patch
+PATCHFILES += 3586-drm-rockchip-dw_hdmi-Add-support-for-RK3528.patch
 # rk35xx dtsi additions
 PATCHFILES += 3600-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 3601-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
@@ -610,6 +618,7 @@ PATCHFILES += 3607-arm64-dtsi-rk3588s-increas-vop-clk.patch
 PATCHFILES += 3608-arm64-dtsi-rk3588-enable-dp0-dp1-audio-support.patch
 PATCHFILES += 3610-arm64-dtsi-rockchip-rk3576-enable-dwc3simple-for-usb-boot.patch
 PATCHFILES += 3612-arm64-dtsi-rk3576-add-DP-sound-nodes.patch
+PATCHFILES += 3615-arm64-dts-rockchip-rk3528-Add-VOP-HDMI-and-HDMI-PHY-.patch
 # rk3588 overlays
 PATCHFILES += 3650-arm64-dts-rockchip-rk3588-add-useful-overlays.patch
 # rk35xx board dts additions
@@ -645,6 +654,7 @@ PATCHFILES += 3732-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-Radxa-RO
 PATCHFILES += 3733-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-Radxa-ROCK-5-itx.patch
 PATCHFILES += 3738-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-orangepi-5-plus.patch
 PATCHFILES += 3739-arm64-dts-rockchip-fix-M.2-E-key-reset-pinctrl-on-rk3588-rock-5-itx.patch
+PATCHFILES += 3740-arm64-dts-rockchip-rk3528-rock-2a-Enable-HDMI-output.patch
 endif
 #------------------------------------------------------------
 
