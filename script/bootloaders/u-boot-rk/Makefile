@@ -15,7 +15,7 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4se-rk3399_defconfig
 
 # mm_U-BOOT_BOARD_TYPE      = board-rk3528.rock2-a
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3528_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-2-rk3528_defconfig
 
 # mm_U-BOOT_BOARD_TYPE      = board-rk3566.orangepi_3b
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-3b-rk3566_defconfig
@@ -130,6 +130,7 @@ PATCHFILES  += 69-rk3399-add-orangepi-4-lts_defconfig.patch
 PATCHFILES  += 70-rk3399-add-rock-pi-4b-rk3399_defconfig.patch
 PATCHFILES  += 71-rk3399-add-rock-pi-4se-rk3399_defconfig.patch
 PATCHFILES  += 74-add-nanopi-m6-rk3588s_defconfig.patch
+PATCHFILES  += 75-rk3528-rock-2a-defconfig-enable-netbooting.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
