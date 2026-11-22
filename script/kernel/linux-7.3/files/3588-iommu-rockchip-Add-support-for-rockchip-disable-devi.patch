@@ -1,0 +1,85 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From a1166b4a414db528cab32e847c79c410e73db937 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sun, 22 Nov 2026 16:31:16 +0100
+Subject: [PATCH 3588/3589] iommu/rockchip: Add support for
+ rockchip,disable-device-link-resume
+
+On RK3528 the VOP IOMMU registers are only accessible once the VOP has
+disabled its aclk pre auto gating. The IOMMU is resumed through the
+runtime PM device link before the VOP driver gets a chance to do that,
+and the first register access in rk_iommu_enable() then hangs the bus.
+
+With rockchip,disable-device-link-resume don't add the DL_FLAG_PM_RUNTIME
+flag to the device link of the master, so the IOMMU is no longer resumed
+together with the master. The master driver then has to resume the IOMMU
+explicitly, as done by the Rockchip vendor kernel.
+
+Also add a debug message on resume.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/iommu/rockchip-iommu.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/drivers/iommu/rockchip-iommu.c b/drivers/iommu/rockchip-iommu.c
+index 21af2f6..9252d66 100644
+--- a/drivers/iommu/rockchip-iommu.c
++++ b/drivers/iommu/rockchip-iommu.c
+@@ -112,6 +112,8 @@ struct rk_iommu {
+ 	struct clk_bulk_data *clocks;
+ 	int num_clocks;
+ 	bool reset_disabled;
++	/* don't resume through the runtime PM device link of the master */
++	bool dlr_disabled;
+ 	struct iommu_device iommu;
+ 	struct list_head node; /* entry in rk_iommu_domain.iommus */
+ 	struct iommu_domain *domain; /* domain to which iommu is attached */
+@@ -1165,7 +1167,14 @@ static struct iommu_device *rk_iommu_probe_device(struct device *dev)
+ 
+ 	iommu = rk_iommu_from_dev(dev);
+ 
++	/*
++	 * With rockchip,disable-device-link-resume the master driver resumes
++	 * the IOMMU itself (pm_runtime_get on the IOMMU device), once it is
++	 * fully powered and clocked, so only keep the device link for the
++	 * probe/remove ordering.
++	 */
+ 	data->link = device_link_add(dev, iommu->dev,
++				     iommu->dlr_disabled ? DL_FLAG_STATELESS :
+ 				     DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME);
+ 
+ 	return &iommu->iommu;
+@@ -1260,6 +1269,9 @@ static int rk_iommu_probe(struct platform_device *pdev)
+ 	iommu->reset_disabled = device_property_read_bool(dev,
+ 					"rockchip,disable-mmu-reset");
+ 
++	iommu->dlr_disabled = device_property_read_bool(dev,
++					"rockchip,disable-device-link-resume");
++
+ 	/*
+ 	 * Take every clock the devicetree provides.  Most IOMMU instances
+ 	 * need exactly "aclk" + "iface", but e.g. the RK3576 NPU IOMMUs sit
+@@ -1343,6 +1355,9 @@ static int __maybe_unused rk_iommu_resume(struct device *dev)
+ {
+ 	struct rk_iommu *iommu = dev_get_drvdata(dev);
+ 
++	dev_dbg(dev, "resume, %s domain\n",
++		iommu->domain == &rk_identity_domain ? "identity" : "paging");
++
+ 	if (iommu->domain == &rk_identity_domain)
+ 		return 0;
+ 
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+

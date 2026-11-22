@@ -1,0 +1,97 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 84821918b8867b41de8d7055d385615219016880 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sun, 22 Nov 2026 17:37:37 +0100
+Subject: [PATCH] arm64: dts: rockchip: rk3528: Add video decoder nodes
+
+Add the nodes for the VDPU382 video decoder (H.264/HEVC) and the Hantro
+VDPU2 video decoder (MPEG-2/VP8/H.264), together with their IOMMUs.
+
+The VDPU382 is part of PD_RKVDEC, which is shared with the DDR PHY CRU
+and kept disabled, so it doesn't reference a power domain.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3528.dtsi | 56 ++++++++++++++++++++++++
+ 1 file changed, 56 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3528.dtsi b/arch/arm64/boot/dts/rockchip/rk3528.dtsi
+index bf2c0d394..630d7fb95 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3528.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3528.dtsi
+@@ -742,6 +742,62 @@ gpu: gpu@ff700000 {
+ 			status = "disabled";
+ 		};
+ 
++		vdec: video-codec@ff740000 {
++			compatible = "rockchip,rk3528-vdec";
++			reg = <0x0 0xff740000 0x0 0x100>,
++			      <0x0 0xff740100 0x0 0x400>,
++			      <0x0 0xff740610 0x0 0x90>;
++			reg-names = "link", "function", "cache";
++			interrupts = <GIC_SPI 94 IRQ_TYPE_LEVEL_HIGH>;
++			assigned-clocks = <&cru ACLK_RKVDEC>, <&cru CLK_HEVC_CA_RKVDEC>;
++			assigned-clock-rates = <340000000>, <600000000>;
++			clocks = <&cru ACLK_RKVDEC>, <&cru HCLK_RKVDEC>,
++				 <&cru CLK_HEVC_CA_RKVDEC>;
++			clock-names = "axi", "ahb", "hevc_cabac";
++			iommus = <&vdec_mmu>;
++			/*
++			 * PD_RKVDEC is shared with the DDR PHY CRU and is kept
++			 * disabled, so it is not referenced here.
++			 */
++			resets = <&cru SRST_A_RKVDEC>, <&cru SRST_H_RKVDEC>,
++				 <&cru SRST_HEVC_CA_RKVDEC>;
++			reset-names = "axi", "ahb", "hevc_cabac";
++			status = "disabled";
++		};
++
++		vdec_mmu: iommu@ff740800 {
++			compatible = "rockchip,rk3528-iommu", "rockchip,rk3568-iommu";
++			reg = <0x0 0xff740800 0x0 0x40>, <0x0 0xff740900 0x0 0x40>;
++			interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru ACLK_RKVDEC>, <&cru HCLK_RKVDEC>;
++			clock-names = "aclk", "iface";
++			#iommu-cells = <0>;
++			status = "disabled";
++		};
++
++		vpu: video-codec@ff7c0400 {
++			compatible = "rockchip,rk3528-vpu", "rockchip,rk3568-vpu";
++			reg = <0x0 0xff7c0400 0x0 0x400>;
++			interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "vdpu";
++			clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
++			clock-names = "aclk", "hclk";
++			iommus = <&vpu_mmu>;
++			power-domains = <&power RK3528_PD_VPU>;
++			status = "disabled";
++		};
++
++		vpu_mmu: iommu@ff7c0800 {
++			compatible = "rockchip,rk3528-iommu", "rockchip,rk3568-iommu";
++			reg = <0x0 0xff7c0800 0x0 0x40>;
++			interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
++			clock-names = "aclk", "iface";
++			power-domains = <&power RK3528_PD_VPU>;
++			#iommu-cells = <0>;
++			status = "disabled";
++		};
++
+ 		vop: vop@ff840000 {
+ 			compatible = "rockchip,rk3528-vop";
+ 			reg = <0x0 0xff840000 0x0 0x3000>;
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+

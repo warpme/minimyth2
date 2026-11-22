@@ -1,0 +1,444 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 71816c82f6e8d0482e9f1027f1a17b4d6e821215 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sun, 22 Nov 2026 18:00:29 +0100
+Subject: [PATCH] media: rkvdec: Add support for the VDPU382 variant (RK3528)
+
+The RK3528 has a VDPU382 decoder, which is register compatible with
+the VDPU381 found on the RK3588 for the H.264, HEVC and VP9 codecs, so
+reuse the VDPU381 backends for it, with the following differences:
+
+- the three decoder caches must be configured and cleared before each
+  job, through a separate "cache" register region,
+- the hardware only removes the H.264 emulation prevention bytes when
+  asked to (strmd_zero_rm_en),
+- the error auto reset is disabled and errors are recovered from the
+  IRQ handler, by resetting the decoder together with its IOMMU (which
+  also resets the decoder on RK3528) while an empty IOMMU domain is
+  attached, optionally pulsing the CRU resets too,
+- the watchdog resets the decoder the same way, instead of writing to a
+  register that only exists on older variants,
+- H.264 is limited to 8-bit 4:2:0 (High profile, level 5.1), HEVC to
+  4:2:0 8/10-bit (Main and Main 10, level 5.1) and VP9 to profiles 0
+  and 2, all up to 4096x2304.
+
+VP9 is only available on the RK3528A.
+
+This follows the approach of the VDPU382 support for the RK3562 by
+retro98boy in the Armbian kernel, and the vendor MPP sources.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../rockchip/rkvdec/rkvdec-vdpu381-h264.c     |  14 ++
+ .../rockchip/rkvdec/rkvdec-vdpu381-hevc.c     |   9 +
+ .../rockchip/rkvdec/rkvdec-vdpu381-regs.h     |   4 +-
+ .../media/platform/rockchip/rkvdec/rkvdec.c   | 209 +++++++++++++++++-
+ .../media/platform/rockchip/rkvdec/rkvdec.h   |   8 +
+ 5 files changed, 240 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
+index b961fddc8..0a8aefd73 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
+@@ -247,6 +247,10 @@ static void config_registers(struct rkvdec_ctx *ctx,
+ 	regs->common.reg013_en_mode_set.cur_pic_is_idr =
+ 		!!(dec_params->flags & V4L2_H264_DECODE_PARAM_FLAG_IDR_PIC);
+ 
++	/* VDPU382 only removes the emulation prevention bytes on request */
++	if (ctx->dev->variant->is_vdpu382)
++		regs->common.reg013_en_mode_set.strmd_zero_rm_en = 1;
++
+ 	/* Set input stream length */
+ 	regs->common.reg016_stream_len = vb2_get_plane_payload(&src_buf->vb2_buf, 0);
+ 
+@@ -453,6 +457,16 @@ static int rkvdec_h264_run(struct rkvdec_ctx *ctx)
+ 
+ static int rkvdec_h264_try_ctrl(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl)
+ {
++	if (ctx->dev->variant->is_vdpu382 &&
++	    ctrl->id == V4L2_CID_STATELESS_H264_SPS) {
++		const struct v4l2_ctrl_h264_sps *sps = ctrl->p_new.p_h264_sps;
++
++		/* VDPU382 only supports 8-bit 4:2:0 H.264 */
++		if (sps->chroma_format_idc > 1 || sps->bit_depth_luma_minus8 ||
++		    sps->bit_depth_chroma_minus8)
++			return -EINVAL;
++	}
++
+ 	if (ctrl->id == V4L2_CID_STATELESS_H264_SPS)
+ 		return rkvdec_h264_validate_sps(ctx, ctrl->p_new.p_h264_sps);
+ 
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c
+index e1936e87f..ddacb4cff 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c
+@@ -625,6 +625,15 @@ static int rkvdec_hevc_run(struct rkvdec_ctx *ctx)
+ 
+ static int rkvdec_hevc_try_ctrl(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl)
+ {
++	if (ctx->dev->variant->is_vdpu382 &&
++	    ctrl->id == V4L2_CID_STATELESS_HEVC_SPS) {
++		const struct v4l2_ctrl_hevc_sps *sps = ctrl->p_new.p_hevc_sps;
++
++		/* VDPU382 only supports 8-bit and 10-bit 4:2:0 HEVC */
++		if (sps->chroma_format_idc != 1)
++			return -EINVAL;
++	}
++
+ 	if (ctrl->id == V4L2_CID_STATELESS_HEVC_SPS)
+ 		return rkvdec_hevc_validate_sps(ctx, ctrl->p_new.p_hevc_sps);
+ 
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
+index 31bb42b6f..eae78de4e 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
+@@ -111,7 +111,9 @@ struct rkvdec_vdpu381_regs_common {
+ 		u32 dec_commonirq_mode		: 1;
+ 		u32 reserved2			: 2;
+ 		u32 stmerror_waitdecfifo_empty	: 1;
+-		u32 reserved3			: 5;
++		u32 reserved3			: 1;
++		u32 strmd_zero_rm_en		: 1; /* VDPU382 only */
++		u32 reserved3b			: 3;
+ 		u32 allow_not_wr_unref_bframe	: 1;
+ 		u32 fbc_output_wr_disable	: 1;
+ 		u32 reserved4			: 4;
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+index 69c420044..ddc8d43e9 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+@@ -11,6 +11,7 @@
+ 
+ #include <linux/hw_bitfield.h>
+ #include <linux/clk.h>
++#include <linux/delay.h>
+ #include <linux/genalloc.h>
+ #include <linux/interrupt.h>
+ #include <linux/iommu.h>
+@@ -20,6 +21,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/pm.h>
+ #include <linux/pm_runtime.h>
++#include <linux/reset.h>
+ #include <linux/slab.h>
+ #include <linux/videodev2.h>
+ #include <linux/workqueue.h>
+@@ -792,6 +794,63 @@ static const struct rkvdec_coded_fmt_desc vdpu381_coded_fmts[] = {
+ 	},
+ };
+ 
++static const struct rkvdec_decoded_fmt_desc vdpu382_h264_decoded_fmts[] = {
++	{
++		.fourcc = V4L2_PIX_FMT_NV12,
++		.image_fmt = RKVDEC_IMG_FMT_420_8BIT,
++	},
++};
++
++static const struct rkvdec_coded_fmt_desc vdpu382_coded_fmts[] = {
++	{
++		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
++		.frmsize = {
++			.min_width = 64,
++			.max_width = 4096,
++			.step_width = 64,
++			.min_height = 64,
++			.max_height = 2304,
++			.step_height = 16,
++		},
++		.ctrls = &vdpu38x_hevc_ctrls,
++		.ops = &rkvdec_vdpu381_hevc_fmt_ops,
++		.num_decoded_fmts = ARRAY_SIZE(rkvdec_hevc_decoded_fmts),
++		.decoded_fmts = rkvdec_hevc_decoded_fmts,
++		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
++	},
++	{
++		.fourcc = V4L2_PIX_FMT_H264_SLICE,
++		.frmsize = {
++			.min_width = 64,
++			.max_width = 4096,
++			.step_width = 64,
++			.min_height = 64,
++			.max_height = 2304,
++			.step_height = 16,
++		},
++		.ctrls = &vdpu38x_h264_ctrls,
++		.ops = &rkvdec_vdpu381_h264_fmt_ops,
++		.num_decoded_fmts = ARRAY_SIZE(vdpu382_h264_decoded_fmts),
++		.decoded_fmts = vdpu382_h264_decoded_fmts,
++		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
++	},
++	{
++		.fourcc = V4L2_PIX_FMT_VP9_FRAME,
++		.frmsize = {
++			.min_width = 64,
++			.max_width = 4096,
++			.step_width = 64,
++			.min_height = 64,
++			.max_height = 2304,
++			.step_height = 64,
++		},
++		.ctrls = &vdpu346_vp9_ctrls,
++		.ops = &rkvdec_vdpu381_vp9_fmt_ops,
++		.num_decoded_fmts = ARRAY_SIZE(vdpu346_vp9_decoded_fmts),
++		.decoded_fmts = vdpu346_vp9_decoded_fmts,
++	},
++};
++
+ static const struct rkvdec_coded_fmt_desc vdpu383_coded_fmts[] = {
+ 	{
+ 		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
+@@ -1468,6 +1527,14 @@ static void rkvdec_device_run(void *priv)
+ 		return;
+ 	}
+ 
++	if (rkvdec->variant->ops->prepare) {
++		ret = rkvdec->variant->ops->prepare(rkvdec);
++		if (ret) {
++			rkvdec_job_finish(ctx, VB2_BUF_STATE_ERROR);
++			return;
++		}
++	}
++
+ 	ret = desc->ops->run(ctx);
+ 	if (ret)
+ 		rkvdec_job_finish(ctx, VB2_BUF_STATE_ERROR);
+@@ -1531,9 +1598,24 @@ static int rkvdec_add_ctrls(struct rkvdec_ctx *ctx,
+ 	unsigned int i;
+ 
+ 	for (i = 0; i < ctrls->num_ctrls; i++) {
+-		const struct v4l2_ctrl_config *cfg = &ctrls->ctrls[i].cfg;
++		struct v4l2_ctrl_config cfg = ctrls->ctrls[i].cfg;
++
++		/* Limit the advertised capabilities of the VDPU382 */
++		if (ctx->dev->variant->is_vdpu382) {
++			switch (cfg.id) {
++			case V4L2_CID_MPEG_VIDEO_HEVC_LEVEL:
++				cfg.max = V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1;
++				break;
++			case V4L2_CID_MPEG_VIDEO_H264_PROFILE:
++				cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH;
++				break;
++			case V4L2_CID_MPEG_VIDEO_H264_LEVEL:
++				cfg.max = V4L2_MPEG_VIDEO_H264_LEVEL_5_1;
++				break;
++			}
++		}
+ 
+-		v4l2_ctrl_new_custom(&ctx->ctrl_hdl, cfg, ctx);
++		v4l2_ctrl_new_custom(&ctx->ctrl_hdl, &cfg, ctx);
+ 		if (ctx->ctrl_hdl.error)
+ 			return ctx->ctrl_hdl.error;
+ 	}
+@@ -1780,6 +1862,87 @@ static irqreturn_t vdpu381_irq_handler(struct rkvdec_ctx *ctx)
+ 	return IRQ_HANDLED;
+ }
+ 
++#define VDPU382_CACHE_NUM		3
++#define VDPU382_CACHE_STRIDE		0x40
++#define VDPU382_CACHE_CLEAR		0x00
++#define VDPU382_CACHE_CONFIG		0x0c
++#define VDPU382_CACHE_PERMIT_CACHEABLE	BIT(0)
++#define VDPU382_CACHE_PERMIT_READ_ALLOC	BIT(1)
++#define VDPU382_CACHE_LINE_SIZE_64B	BIT(4)
++#define VDPU382_REG_RESET_CTRL		0x334
++#define VDPU382_ERROR_AUTO_RST_DISABLE	BIT(4)
++#define VDPU382_STA_INT_ERR_MASK	GENMASK(7, 3)
++
++/*
++ * On VDPU382 the decoder is reset together with its IOMMU. Reprogram the
++ * IOMMU through an empty domain, as done by rkvdec_iommu_restore(), and
++ * also pulse the CRU resets, if any, while the empty domain is attached.
++ */
++static void vdpu382_reset(struct rkvdec_dev *rkvdec)
++{
++	if (rkvdec->empty_domain)
++		iommu_attach_device(rkvdec->empty_domain, rkvdec->dev);
++
++	if (rkvdec->resets) {
++		reset_control_assert(rkvdec->resets);
++		udelay(5);
++		reset_control_deassert(rkvdec->resets);
++	}
++
++	if (rkvdec->empty_domain)
++		iommu_detach_device(rkvdec->empty_domain, rkvdec->dev);
++
++	writel(0, rkvdec->regs + VDPU381_REG_STA_INT);
++	rkvdec->needs_reset = false;
++}
++
++static int vdpu382_prepare(struct rkvdec_dev *rkvdec)
++{
++	u32 val = VDPU382_CACHE_PERMIT_CACHEABLE |
++		  VDPU382_CACHE_PERMIT_READ_ALLOC |
++		  VDPU382_CACHE_LINE_SIZE_64B;
++	unsigned int i;
++
++	if (rkvdec->needs_reset)
++		vdpu382_reset(rkvdec);
++
++	for (i = 0; i < VDPU382_CACHE_NUM; i++) {
++		void __iomem *cache = rkvdec->cache + i * VDPU382_CACHE_STRIDE;
++
++		writel(val, cache + VDPU382_CACHE_CONFIG);
++		writel(1, cache + VDPU382_CACHE_CLEAR);
++	}
++
++	/* Recover from errors in the IRQ handler, with the IOMMU attached */
++	writel(VDPU382_ERROR_AUTO_RST_DISABLE,
++	       rkvdec->regs + VDPU382_REG_RESET_CTRL);
++
++	return 0;
++}
++
++static irqreturn_t vdpu382_irq_handler(struct rkvdec_ctx *ctx)
++{
++	struct rkvdec_dev *rkvdec = ctx->dev;
++	enum vb2_buffer_state state;
++	u32 status;
++
++	status = readl(rkvdec->regs + VDPU381_REG_STA_INT);
++	writel(0, rkvdec->regs + VDPU381_REG_STA_INT);
++
++	if ((status & VDPU381_STA_INT_DEC_RDY_STA) &&
++	    !(status & VDPU382_STA_INT_ERR_MASK)) {
++		state = VB2_BUF_STATE_DONE;
++	} else {
++		state = VB2_BUF_STATE_ERROR;
++		vdpu382_reset(rkvdec);
++	}
++
++	if (cancel_delayed_work(&rkvdec->watchdog_work))
++		rkvdec_job_finish(ctx, state);
++
++	return IRQ_HANDLED;
++}
++
+ static irqreturn_t vdpu383_irq_handler(struct rkvdec_ctx *ctx)
+ {
+ 	struct rkvdec_dev *rkvdec = ctx->dev;
+@@ -1900,7 +2063,10 @@ static void rkvdec_watchdog_func(struct work_struct *work)
+ 	ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
+ 	if (ctx) {
+ 		dev_err(rkvdec->dev, "Frame processing timed out!\n");
+-		writel(RKVDEC_IRQ_DIS, rkvdec->regs + RKVDEC_REG_INTERRUPT);
++		if (rkvdec->variant->ops->reset)
++			rkvdec->variant->ops->reset(rkvdec);
++		else
++			writel(RKVDEC_IRQ_DIS, rkvdec->regs + RKVDEC_REG_INTERRUPT);
+ 		rkvdec_job_finish(ctx, VB2_BUF_STATE_ERROR);
+ 	}
+ }
+@@ -2027,6 +2193,23 @@ static const struct rcb_size_info vdpu383_rcb_sizes[] = {
+ 	{180,	PIC_HEIGHT},	// filterd_tile_col
+ };
+ 
++static const struct rkvdec_variant_ops vdpu382_variant_ops = {
++	.irq_handler = vdpu382_irq_handler,
++	.prepare = vdpu382_prepare,
++	.reset = vdpu382_reset,
++	.colmv_size = rkvdec_colmv_size,
++	.flatten_matrices = transpose_and_flatten_matrices,
++};
++
++static const struct rkvdec_variant vdpu382_variant = {
++	.coded_fmts = vdpu382_coded_fmts,
++	.num_coded_fmts = ARRAY_SIZE(vdpu382_coded_fmts),
++	.rcb_sizes = vdpu381_rcb_sizes,
++	.num_rcb_sizes = ARRAY_SIZE(vdpu381_rcb_sizes),
++	.ops = &vdpu382_variant_ops,
++	.is_vdpu382 = true,
++};
++
+ static const struct rkvdec_variant_ops vdpu383_variant_ops = {
+ 	.irq_handler = vdpu383_irq_handler,
+ 	.colmv_size = vdpu383_colmv_size,
+@@ -2058,6 +2241,10 @@ static const struct of_device_id of_rkvdec_match[] = {
+ 		.compatible = "rockchip,rk3568-vdec",
+ 		.data = &vdpu346_variant,
+ 	},
++	{
++		.compatible = "rockchip,rk3528-vdec",
++		.data = &vdpu382_variant,
++	},
+ 	{
+ 		.compatible = "rockchip,rk3588-vdec",
+ 		.data = &vdpu381_variant,
+@@ -2115,6 +2302,19 @@ static int rkvdec_probe(struct platform_device *pdev)
+ 			return PTR_ERR(rkvdec->link);
+ 	}
+ 
++	if (rkvdec->variant->is_vdpu382) {
++		rkvdec->cache = devm_platform_ioremap_resource_byname(pdev, "cache");
++		if (IS_ERR(rkvdec->cache))
++			return PTR_ERR(rkvdec->cache);
++
++		rkvdec->resets = devm_reset_control_array_get_optional_exclusive(&pdev->dev);
++		if (IS_ERR(rkvdec->resets))
++			return dev_err_probe(&pdev->dev, PTR_ERR(rkvdec->resets),
++					     "failed to get resets\n");
++
++		rkvdec->needs_reset = true;
++	}
++
+ 	ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "Could not set DMA coherent mask.\n");
+@@ -2230,6 +2430,9 @@ static int rkvdec_runtime_suspend(struct device *dev)
+ {
+ 	struct rkvdec_dev *rkvdec = dev_get_drvdata(dev);
+ 
++	if (rkvdec->variant->is_vdpu382)
++		rkvdec->needs_reset = true;
++
+ 	clk_bulk_disable_unprepare(rkvdec->num_clocks, rkvdec->clocks);
+ 	return 0;
+ }
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
+index 29025b03e..b227064e5 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
+@@ -71,8 +71,12 @@ vb2_to_rkvdec_decoded_buf(struct vb2_buffer *buf)
+ 			    base.vb.vb2_buf);
+ }
+ 
++struct rkvdec_dev;
++
+ struct rkvdec_variant_ops {
+ 	irqreturn_t (*irq_handler)(struct rkvdec_ctx *ctx);
++	int (*prepare)(struct rkvdec_dev *rkvdec);
++	void (*reset)(struct rkvdec_dev *rkvdec);
+ 	u32 (*colmv_size)(u16 width, u16 height);
+ 	void (*flatten_matrices)(u8 *output, const u8 *input, int matrices, int row_length);
+ };
+@@ -85,6 +89,7 @@ struct rkvdec_variant {
+ 	size_t num_rcb_sizes;
+ 	const struct rkvdec_variant_ops *ops;
+ 	bool has_single_reg_region;
++	bool is_vdpu382;
+ 	unsigned int quirks;
+ };
+ 
+@@ -141,6 +146,9 @@ struct rkvdec_dev {
+ 	 */
+ 	void *rk3576_warmup_cpu;
+ 	dma_addr_t rk3576_warmup_dma;
++	void __iomem *cache;
++	struct reset_control *resets;
++	bool needs_reset;
+ 	struct mutex vdev_lock; /* serializes ioctls */
+ 	struct delayed_work watchdog_work;
+ 	struct gen_pool *sram_pool;
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+

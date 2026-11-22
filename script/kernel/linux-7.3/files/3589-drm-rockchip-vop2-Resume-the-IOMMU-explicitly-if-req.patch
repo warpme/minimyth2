@@ -1,0 +1,167 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 0ec944641f73dec181d8942f3db00fe5a5549db1 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sun, 22 Nov 2026 16:31:52 +0100
+Subject: [PATCH 3589/3589] drm/rockchip: vop2: Resume the IOMMU explicitly if
+ requested
+
+If the VOP IOMMU is marked with rockchip,disable-device-link-resume, it
+is not resumed through the runtime PM device link anymore. Resume it
+explicitly in vop2_enable() and put it again in vop2_disable() after
+detaching.
+
+On RK3528 any access to the VOP IOMMU registers hangs the bus right
+after the VOP comes out of reset, while its aclk pre auto gating is
+still enabled. The Rockchip vendor kernel only attaches the IOMMU after
+the initial VOP setup, so do the same and resume/attach the IOMMU after
+the auto gating has been disabled.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.c | 59 ++++++++++++++++++--
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.h |  7 +++
+ 2 files changed, 60 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+index 2d8f0c3..ada24ad 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+@@ -14,6 +14,7 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/of_graph.h>
++#include <linux/of_platform.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/regmap.h>
+@@ -913,12 +914,6 @@ static void vop2_enable(struct vop2 *vop2)
+ 		return;
+ 	}
+ 
+-	ret = rockchip_drm_dma_attach_device(vop2->drm, vop2->dev);
+-	if (ret) {
+-		drm_err(vop2->drm, "failed to attach dma mapping, %d\n", ret);
+-		return;
+-	}
+-
+ 	version = vop2_readl(vop2, RK3568_VERSION_INFO);
+ 	/*
+ 	 * The build number (bits 15:0) differs between RK3528 chip revisions
+@@ -976,6 +971,25 @@ static void vop2_enable(struct vop2 *vop2)
+ 					      RK3528_ESMART_LB_MODE_4K_2K_2K));
+ 	}
+ 
++	/*
++	 * On RK3528 the VOP IOMMU registers are only accessible once the
++	 * VOP aclk pre auto gating has been disabled above, so the IOMMU
++	 * must be resumed and attached after the basic VOP setup.
++	 */
++	if (vop2->iommu_dev) {
++		ret = pm_runtime_resume_and_get(vop2->iommu_dev);
++		if (ret < 0) {
++			drm_err(vop2->drm, "failed to resume iommu: %d\n", ret);
++			return;
++		}
++	}
++
++	ret = rockchip_drm_dma_attach_device(vop2->drm, vop2->dev);
++	if (ret) {
++		drm_err(vop2->drm, "failed to attach dma mapping, %d\n", ret);
++		return;
++	}
++
+ 	vop2_writel(vop2, RK3568_SYS0_INT_CLR,
+ 		    VOP2_INT_BUS_ERRPR << 16 | VOP2_INT_BUS_ERRPR);
+ 	vop2_writel(vop2, RK3568_SYS0_INT_EN,
+@@ -990,6 +1004,9 @@ static void vop2_disable(struct vop2 *vop2)
+ {
+ 	rockchip_drm_dma_detach_device(vop2->drm, vop2->dev);
+ 
++	if (vop2->iommu_dev)
++		pm_runtime_put_sync(vop2->iommu_dev);
++
+ 	pm_runtime_put_sync(vop2->dev);
+ 
+ 	regcache_drop_region(vop2->map, 0, vop2_regmap_config.max_register);
+@@ -2842,6 +2859,29 @@ static const struct regmap_config vop2_regmap_config = {
+ 	.cache_type	= REGCACHE_MAPLE,
+ };
+ 
++/*
++ * If the IOMMU must not be resumed through its device link (rk3528, as in
++ * the vendor kernel), the VOP has to resume it itself in vop2_enable().
++ */
++static void vop2_get_iommu_dev(struct vop2 *vop2)
++{
++	struct platform_device *iommu_pdev;
++	struct device_node *np;
++
++	np = of_parse_phandle(vop2->dev->of_node, "iommus", 0);
++	if (!np)
++		return;
++
++	if (of_device_is_available(np) &&
++	    of_property_read_bool(np, "rockchip,disable-device-link-resume")) {
++		iommu_pdev = of_find_device_by_node(np);
++		if (iommu_pdev)
++			vop2->iommu_dev = &iommu_pdev->dev;
++	}
++
++	of_node_put(np);
++}
++
+ static int vop2_bind(struct device *dev, struct device *master, void *data)
+ {
+ 	struct platform_device *pdev = to_platform_device(dev);
+@@ -3006,6 +3046,8 @@ static int vop2_bind(struct device *dev, struct device *master, void *data)
+ 		}
+ 	}
+ 
++	vop2_get_iommu_dev(vop2);
++
+ 	rockchip_drm_dma_init_device(vop2->drm, vop2->dev);
+ 
+ 	pm_runtime_enable(&pdev->dev);
+@@ -3028,6 +3070,11 @@ static void vop2_unbind(struct device *dev, struct device *master, void *data)
+ 		rockchip_rgb_fini(vop2->rgb);
+ 
+ 	vop2_destroy_crtcs(vop2);
++
++	if (vop2->iommu_dev) {
++		put_device(vop2->iommu_dev);
++		vop2->iommu_dev = NULL;
++	}
+ }
+ 
+ const struct component_ops vop2_component_ops = {
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
+index d4a346c..a84a5b7 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
+@@ -312,6 +312,13 @@ struct vop2 {
+ 	void __iomem *regs;
+ 	struct regmap *map;
+ 
++	/*
++	 * IOMMU which is not resumed through the device link (see
++	 * rockchip,disable-device-link-resume), it is resumed explicitly
++	 * in vop2_enable() once the VOP is powered and clocked.
++	 */
++	struct device *iommu_dev;
++
+ 	struct regmap *sys_grf;
+ 	struct regmap *vop_grf;
+ 	struct regmap *vo1_grf;
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+
