@@ -214,6 +214,8 @@ PATCHFILES  += 0201-amlogic-boot-fip-add-x96-air-support.patch
 PATCHFILES  += 0202-amlogic-boot-fip-add-tanix-tx5plus-support.patch
 PATCHFILES  += 0203-amlogic-boot-fip-add-tanix-tx3mini-support.patch
 PATCHFILES  += 0204-amlogic-boot-fip-vim4-update-bl31-to-1.3.2-g2dd964006.patch
+PATCHFILES  += 0205-add-amlogic-s6-fip-packaging.patch
+PATCHFILES  += 0206-add-amlogic-s905x5-bl201-reference-board.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 FIPSRC       = $(WORKSRC)/amlogic-boot-fip

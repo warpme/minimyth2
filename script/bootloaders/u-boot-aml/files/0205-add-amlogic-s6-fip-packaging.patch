@@ -1,0 +1,173 @@
+From 3f06a26d537e7a313bd8e2ad40c4843df179a43e Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sat, 21 Nov 2026 21:12:04 +0100
+Subject: [PATCH 1/2] Add Amlogic S6 FIP packaging
+
+Add s6.inc to build bootable images for the Amlogic S6 SoC family
+(S905X5), following the vendor fip/s6/build.sh:
+
+- the boot blobs are created with the S7D secure boot family
+  (--scs-family=s7d), dual RSA + ML-DSA authentication, the device
+  init parameters (acs.bin) are inserted into bb1st,
+- the device FIP uses the "mini" header layout with a 88 KiB BL30
+  payload and a zstd compressed BL33 ("ZSTD" header + frame),
+- the final image is packed by pack-s6.sh: bb1st padded to 266 KiB
+  behind a 4 KiB secure boot header, BL2E/BL2X padded to their
+  maximum size, the @AMLBOOT payload table in sector 540, like
+  mk_uboot() does.
+
+This mostly matches the S7D packaging of the odroid-c5, without the
+hdr_revA block that the S6 vendor script does not write.
+
+The packing output was checked against the vendor mk_uboot() run on the
+same inputs: the images are byte identical.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Claude-Session: https://claude.ai/code/session_01EwquNamieYhKoq7r4HLLHU
+---
+ README.md |   2 +-
+ s6.inc    | 119 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 120 insertions(+), 1 deletion(-)
+ create mode 100644 s6.inc
+
+diff --git a/README.md b/README.md
+index 638790f..d89320e 100644
+--- a/README.md
++++ b/README.md
+@@ -47,7 +47,7 @@ u-boot.bin  u-boot.bin.sd.bin  u-boot.bin.usb.bl2  u-boot.bin.usb.tpl
+ System Requirements:
+  - x86-64 Linux system
+  - Python 3 (for GXBB, GXL & GXM boards only)
+- - openssl, stat and xxd (for S4 and T7 boards only)
++ - openssl, stat and xxd (for S4, S6 and T7 boards only)
+  - sh
+  - make
+  - readlink
+diff --git a/s6.inc b/s6.inc
+new file mode 100644
+index 0000000..402dd0a
+--- /dev/null
++++ b/s6.inc
+@@ -0,0 +1,119 @@
++O ?= .
++TMP ?= .
++BL33 ?=
++COMPRESS_ZSTD ?= 1
++QEMU_LD_PREFIX ?= /usr/x86_64-linux-gnu/
++
++UNAME_M := $(shell uname -m)
++ifneq ($(UNAME_M),x86_64)
++	QEMU =  qemu-x86_64 -L $(QEMU_LD_PREFIX)
++endif
++
++# Signing schemes of the prebuilt blobs: <device>.<chipset>, as named by
++# the vendor fip/s6 (DV_SIGNING_SCHEME / CS_SIGNING_SCHEME)
++AUTHEN_ALGO ?= rsa,mldsa-draft1
++
++DVINIT_SIZE := 7168
++BL30_MAX := 90112
++BL33_MAX := 1572864
++DDR_FIP_SIZE := 262144
++# CONFIG_BL2E_96K
++BL2E_SIZE ?= 116912
++BL2X_SIZE := 108720
++
++.PHONY: clean distclean
++.NOTPARALLEL: ${TMP}/bl33.bin.zst ${TMP}/bl33.bin ${TMP}/dvinit-params.bin ${TMP}/bb1st-dv.sto.bin ${TMP}/bb1st-dv.usb.bin ${TMP}/bl2e.sto.bin ${TMP}/bl2e.usb.bin ${TMP}/bl2x.bin ${TMP}/bl30-payload.bin ${TMP}/bl33-payload.bin ${TMP}/device-fip.bin ${TMP}/ddr-fip.bin ${O}/u-boot.bin
++
++all: ${O}/u-boot.bin
++
++clean:
++	rm -f ${TMP}/dvinit-params.bin ${TMP}/bb1st-dv.sto.bin ${TMP}/bb1st-dv.usb.bin
++	rm -f ${TMP}/bl2e.sto.bin ${TMP}/bl2e.usb.bin ${TMP}/bl2x.bin
++	rm -f ${TMP}/bl33.bin.zst ${TMP}/bl33.bin
++	rm -f ${TMP}/bl30-payload.bin ${TMP}/bl33-payload.bin
++	rm -f ${TMP}/device-fip.bin ${TMP}/ddr-fip.bin
++
++distclean: clean
++	rm -f ${O}/u-boot.bin ${O}/u-boot.bin.sd.bin ${O}/u-boot.bin.usb
++
++${TMP}/dvinit-params.bin: acs.bin
++	@if [ $$(stat -c %s acs.bin) -gt ${DVINIT_SIZE} ] ; then \
++		echo "acs.bin exceeds ${DVINIT_SIZE} bytes" ; exit 1 ; fi
++	dd if=/dev/zero of=$@ bs=${DVINIT_SIZE} count=1 status=none
++	dd if=acs.bin of=$@ conv=notrunc status=none
++
++${TMP}/bb1st-dv.%.bin: bb1st.%.bin.signed blob-bl2e.%.bin.signed ${TMP}/dvinit-params.bin
++	${QEMU} ./acpu-imagetool create-boot-blobs \
++		--chipset-authen-algorithm=${AUTHEN_ALGO} \
++		--device-authen-algorithm=${AUTHEN_ALGO} \
++		--infile-template-bb1st=bb1st.$*.bin.signed \
++		--infile-blob-bl2e=blob-bl2e.$*.bin.signed \
++		--infile-dvinit-params=${TMP}/dvinit-params.bin \
++		--scs-family=s7d \
++		--outfile-bb1st=$@
++
++${TMP}/bl2e.%.bin: blob-bl2e.%.bin.signed
++	@if [ $$(stat -c %s $<) -gt ${BL2E_SIZE} ] ; then \
++		echo "$< exceeds ${BL2E_SIZE} bytes" ; exit 1 ; fi
++	dd if=/dev/zero of=$@ bs=${BL2E_SIZE} count=1 status=none
++	dd if=$< of=$@ conv=notrunc status=none
++
++${TMP}/bl2x.bin: blob-bl2x.bin.signed
++	@if [ $$(stat -c %s $<) -gt ${BL2X_SIZE} ] ; then \
++		echo "$< exceeds ${BL2X_SIZE} bytes" ; exit 1 ; fi
++	dd if=/dev/zero of=$@ bs=${BL2X_SIZE} count=1 status=none
++	dd if=$< of=$@ conv=notrunc status=none
++
++${TMP}/bl30-payload.bin: bl30.bin
++	@if [ $$(stat -c %s bl30.bin) -gt ${BL30_MAX} ] ; then \
++		echo "bl30.bin exceeds ${BL30_MAX} bytes" ; exit 1 ; fi
++	dd if=/dev/zero of=$@ bs=${BL30_MAX} count=1 status=none
++	dd if=bl30.bin of=$@ conv=notrunc status=none
++
++le32 = printf "%08x" $(1) | sed 's/\(..\)\(..\)\(..\)\(..\)/\4\3\2\1/' | xxd -r -p
++
++ifeq ($(COMPRESS_ZSTD),0)
++${TMP}/bl33.bin: ${BL33}
++	cp ${BL33} $@
++else
++${TMP}/bl33.bin.zst: ${BL33}
++	${QEMU} ./zstd -q -f -9 ${BL33} -o $@
++
++# "ZSTD", original size, compressed size, zstd frame
++${TMP}/bl33.bin: ${TMP}/bl33.bin.zst
++	printf "ZSTD" > $@
++	$(call le32,$$(stat -c %s ${BL33})) >> $@
++	$(call le32,$$(stat -c %s $<)) >> $@
++	cat $< >> $@
++endif
++
++${TMP}/bl33-payload.bin: ${TMP}/bl33.bin
++	@if [ $$(stat -c %s ${TMP}/bl33.bin) -gt ${BL33_MAX} ] ; then \
++		echo "bl33 exceeds ${BL33_MAX} bytes" ; exit 1 ; fi
++	dd if=/dev/zero of=$@ bs=${BL33_MAX} count=1 status=none
++	dd if=${TMP}/bl33.bin of=$@ conv=notrunc status=none
++
++${TMP}/device-fip.bin: device-fip-header.bin ${TMP}/bl30-payload.bin ${TMP}/bl33-payload.bin blob-bl31.bin.signed blob-bl32.bin.signed blob-bl40.bin.signed
++	${QEMU} ./acpu-imagetool create-device-fip \
++		--infile-template-chipset-fip-header=device-fip-header.bin \
++		--infile-bl30-payload=${TMP}/bl30-payload.bin \
++		--infile-bl33-payload=${TMP}/bl33-payload.bin \
++		--infile-blob-bl40=blob-bl40.bin.signed \
++		--infile-blob-bl31=blob-bl31.bin.signed \
++		--infile-blob-bl32=blob-bl32.bin.signed \
++		--header-layout=mini \
++		--size-payload-bl30=${BL30_MAX} \
++		--chipset-authen-algorithm=${AUTHEN_ALGO} \
++		--device-authen-algorithm=${AUTHEN_ALGO} \
++		--outfile-device-fip=$@
++
++${TMP}/ddr-fip.bin:
++	dd if=/dev/zero of=$@ bs=${DDR_FIP_SIZE} count=1 status=none
++
++${O}/u-boot.bin: ${TMP}/bb1st-dv.sto.bin ${TMP}/bb1st-dv.usb.bin ${TMP}/bl2e.sto.bin ${TMP}/bl2e.usb.bin ${TMP}/bl2x.bin ${TMP}/device-fip.bin ${TMP}/ddr-fip.bin
++	./pack-s6.sh ${O}/u-boot.bin \
++		${TMP}/bb1st-dv.sto.bin ${TMP}/bl2e.sto.bin ${TMP}/bl2x.bin \
++		${TMP}/ddr-fip.bin ${TMP}/device-fip.bin ${O}/u-boot.bin.sd.bin
++	./pack-s6.sh ${O}/u-boot.bin.usb \
++		${TMP}/bb1st-dv.usb.bin ${TMP}/bl2e.usb.bin ${TMP}/bl2x.bin \
++		${TMP}/ddr-fip.bin ${TMP}/device-fip.bin
+-- 
+2.43.0
+
