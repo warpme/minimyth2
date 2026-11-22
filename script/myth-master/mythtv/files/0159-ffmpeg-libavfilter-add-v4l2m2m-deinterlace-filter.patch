@@ -1,25 +1,21 @@
-Patch from MiniMyth2 project
+From 2b4d044526c14e0f19453172037a07537dfdebbb Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@siol.net>
+Date: Tue, 3 Dec 2019 21:01:18 +0100
+Subject: [PATCH 14/39] Add V4L2 m2m deinterlace filter
 
-Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Alex Bee <knaerzche@gmail.com>
+---
+ libavfilter/Makefile                 |    1 +
+ libavfilter/allfilters.c             |    1 +
+ libavfilter/vf_deinterlace_v4l2m2m.c | 1011 ++++++++++++++++++++++++++
+ 3 files changed, 1013 insertions(+)
+ create mode 100644 libavfilter/vf_deinterlace_v4l2m2m.c
 
-
-
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/allfilters.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/allfilters.c
---- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/allfilters.c	2026-03-29 18:49:26.723689518 +0200
-+++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/allfilters.c	2026-03-29 18:49:10.915991498 +0200
-@@ -253,6 +253,7 @@
- extern const FFFilter ff_vf_deflicker;
- extern const FFFilter ff_vf_deinterlace_qsv;
- extern const FFFilter ff_vf_deinterlace_d3d12;
-+extern const FFFilter ff_vf_deinterlace_v4l2m2m;
- extern const FFFilter ff_vf_deinterlace_vaapi;
- extern const FFFilter ff_vf_dejudder;
- extern const FFFilter ff_vf_delogo;
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/Makefile mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/Makefile
---- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/Makefile	2026-03-29 18:49:26.720160447 +0200
-+++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/Makefile	2026-03-29 18:49:10.915903618 +0200
-@@ -279,6 +279,7 @@
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/Makefile mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/Makefile
+index ce40cf3..3be8d94 100644
+--- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/Makefile
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/Makefile
+@@ -279,6 +279,7 @@ OBJS-$(CONFIG_DEFLICKER_FILTER)              += vf_deflicker.o
  OBJS-$(CONFIG_DEINTERLACE_D3D12_FILTER)      += vf_deinterlace_d3d12.o
  OBJS-$(CONFIG_DEINTERLACE_QSV_FILTER)        += vf_vpp_qsv.o
  OBJS-$(CONFIG_DEINTERLACE_VAAPI_FILTER)      += vf_deinterlace_vaapi.o vaapi_vpp.o
@@ -27,10 +23,24 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-b8717c5d0bf7d9d
  OBJS-$(CONFIG_DEJUDDER_FILTER)               += vf_dejudder.o
  OBJS-$(CONFIG_DELOGO_FILTER)                 += vf_delogo.o
  OBJS-$(CONFIG_DENOISE_VAAPI_FILTER)          += vf_misc_vaapi.o vaapi_vpp.o
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
---- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c	1970-01-01 01:00:00.000000000 +0100
-+++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c	2026-03-29 18:49:10.916177748 +0200
-@@ -0,0 +1,1015 @@
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/allfilters.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/allfilters.c
+index 402b843..e5ea1dd 100644
+--- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/allfilters.c
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/allfilters.c
+@@ -254,6 +254,7 @@ extern const FFFilter ff_vf_deflicker;
+ extern const FFFilter ff_vf_deinterlace_qsv;
+ extern const FFFilter ff_vf_deinterlace_d3d12;
+ extern const FFFilter ff_vf_deinterlace_vaapi;
++extern const FFFilter ff_vf_deinterlace_v4l2m2m;
+ extern const FFFilter ff_vf_dejudder;
+ extern const FFFilter ff_vf_delogo;
+ extern const FFFilter ff_vf_denoise_vaapi;
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+new file mode 100644
+index 0000000..a498397
+--- /dev/null
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+@@ -0,0 +1,1011 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -654,15 +664,11 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-b8717c5d0bf7d9d
 +    if (!buf)
 +        return AVERROR(ENOMEM);
 +
-+    if (V4L2_TYPE_IS_MULTIPLANAR(buf->buffer.type)) {
-+        for (i = 0; i < drm_desc->nb_objects; i++) {
++    if (V4L2_TYPE_IS_MULTIPLANAR(buf->buffer.type))
++        for (i = 0; i < drm_desc->nb_objects; i++)
 +            buf->buffer.m.planes[i].m.fd = drm_desc->objects[i].fd;
-+            buf->buffer.m.planes[i].bytesused = buf->plane_info[i].length;
-+        }
-+    } else {
++    else
 +        buf->buffer.m.fd = drm_desc->objects[0].fd;
-+        buf->buffer.bytesused = buf->plane_info[0].length;
-+    }
 +
 +    return deint_v4l2m2m_enqueue_buffer(buf);
 +}
@@ -1046,7 +1052,351 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-b8717c5d0bf7d9d
 +    FILTER_INPUTS(deint_v4l2m2m_inputs),
 +    FILTER_OUTPUTS(deint_v4l2m2m_outputs),
 +};
---
+-- 
+2.53.0
 
-MiniMyth2
+From 680ff7a5c6d1b72ab57a0a023334665614b63ecb Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Fri, 20 Feb 2026 01:29:00 +0000
+Subject: [PATCH 15/39] avfilter/deinterlace_v4l2m2m: Set bytesused when
+ enqueuing output buffers
+
+Set bytesused to the buffer length when enqueuing output buffers to
+avoid the kernel deprecation warning "use of bytesused == 0 is
+deprecated and will be removed in the future".
+
+Assited-by: Claude Opus 4.6 <noreply@anthropic.com>
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ libavfilter/vf_deinterlace_v4l2m2m.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+index a498397..ef015bb 100644
+--- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+@@ -621,11 +621,15 @@ static int deint_v4l2m2m_enqueue(V4L2Queue *queue, const AVFrame* frame)
+     if (!buf)
+         return AVERROR(ENOMEM);
+ 
+-    if (V4L2_TYPE_IS_MULTIPLANAR(buf->buffer.type))
+-        for (i = 0; i < drm_desc->nb_objects; i++)
++    if (V4L2_TYPE_IS_MULTIPLANAR(buf->buffer.type)) {
++        for (i = 0; i < drm_desc->nb_objects; i++) {
+             buf->buffer.m.planes[i].m.fd = drm_desc->objects[i].fd;
+-    else
++            buf->buffer.m.planes[i].bytesused = buf->plane_info[i].length;
++        }
++    } else {
+         buf->buffer.m.fd = drm_desc->objects[0].fd;
++        buf->buffer.bytesused = buf->plane_info[0].length;
++    }
+ 
+     return deint_v4l2m2m_enqueue_buffer(buf);
+ }
+-- 
+2.53.0
+
+From 140982feaf19769f7591221d385a98a63b38be43 Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Fri, 13 Mar 2026 17:40:38 +0000
+Subject: [PATCH 16/39] avfilter/deinterlace_v4l2m2m: Fix input frame leak on
+ filter_frame error
+
+When deint_v4l2m2m_filter_frame() fails (e.g. due to a dequeue timeout),
+the input frame is stored in ctx->cur_in_frame. On the next call,
+cur_in_frame is overwritten with the new input frame without freeing the
+old one, leaking the failed frame's memory.
+
+Fix by freeing any orphaned cur_in_frame at the start of filter_frame
+before storing the new input frame.
+
+Assiste-by: Claude Opus 4.6 <noreply@anthropic.com>
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ libavfilter/vf_deinterlace_v4l2m2m.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+index ef015bb..5626337 100644
+--- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+@@ -885,6 +885,9 @@ static int deint_v4l2m2m_filter_frame(AVFilterLink *link, AVFrame *in)
+     av_log(priv, AV_LOG_DEBUG, "input pts: %"PRId64" field :%d interlaced: %d\n",
+           in->pts, !!(in->flags & AV_FRAME_FLAG_TOP_FIELD_FIRST), !!(in->flags & AV_FRAME_FLAG_INTERLACED));
+ 
++    if (ctx->cur_in_frame)
++        av_frame_free(&ctx->cur_in_frame);
++
+     ctx->cur_in_frame = in;
+ 
+     if (ctx->field_order == V4L2_FIELD_ANY) {
+-- 
+2.53.0
+
+From 3e386c9ce87491ed1447410fff4d41cb63f5ff4c Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Sun, 27 Sep 2026 12:27:50 +0000
+Subject: [PATCH 21/39] avfilter/deinterlace_v4l2m2m: support NV12M input
+ frames
+
+The filter assumes a single DRM object and derives the height from the
+chroma plane offset, so frames with the luma and chroma planes in two
+objects get a zero height and a single-plane OUTPUT format that cannot
+hold them.
+
+Use V4L2_PIX_FMT_NV12M on the OUTPUT queue when the input frame has two
+objects, take the height from the link, and set the stride of each plane
+from the input pitch.
+
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ libavfilter/vf_deinterlace_v4l2m2m.c | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+index 5626337..a25bd55 100644
+--- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+@@ -85,6 +85,7 @@ typedef struct DeintV4L2M2MContextShared {
+     int height;
+     int orig_width;
+     int orig_height;
++    int in_objects;
+     uint64_t drm_in_format;
+     uint64_t drm_out_format;
+ 
+@@ -269,11 +270,23 @@ static int deint_v4l2m2m_set_format(V4L2Queue *queue, uint32_t field, int width,
+     uint32_t v4l2_pix_fmt = v4l2_pix_fmt_from_drm_format(drm_format);
+ 
+     if (V4L2_TYPE_IS_MULTIPLANAR(fmt->type)) {
++        int planes = 1;
++
++        if (V4L2_TYPE_IS_OUTPUT(fmt->type) && ctx->in_objects == 2 &&
++            v4l2_pix_fmt == V4L2_PIX_FMT_NV12) {
++            v4l2_pix_fmt = V4L2_PIX_FMT_NV12M;
++            planes = 2;
++        }
++
+         fmt->fmt.pix_mp.pixelformat = v4l2_pix_fmt;
+         fmt->fmt.pix_mp.field = field;
+         fmt->fmt.pix_mp.width = width;
+         fmt->fmt.pix_mp.height = height;
+-        /* TODO: bytesperline and imagesize */
++        fmt->fmt.pix_mp.num_planes = planes;
++        for (int i = 0; i < planes; i++) {
++            fmt->fmt.pix_mp.plane_fmt[i].bytesperline = width;
++            fmt->fmt.pix_mp.plane_fmt[i].sizeimage = 0;
++        }
+     } else {
+         fmt->fmt.pix.pixelformat = v4l2_pix_fmt;
+         fmt->fmt.pix.field = field;
+@@ -892,8 +905,12 @@ static int deint_v4l2m2m_filter_frame(AVFilterLink *link, AVFrame *in)
+ 
+     if (ctx->field_order == V4L2_FIELD_ANY) {
+         AVDRMFrameDescriptor *drm_desc = (AVDRMFrameDescriptor *)in->data[0];
++        ctx->in_objects = drm_desc->nb_objects;
+         ctx->orig_width = drm_desc->layers[0].planes[0].pitch;
+-        ctx->orig_height = drm_desc->layers[0].planes[1].offset / ctx->orig_width;
++        if (ctx->in_objects == 2)
++            ctx->orig_height = FFALIGN(ctx->height, 4);
++        else
++            ctx->orig_height = drm_desc->layers[0].planes[1].offset / ctx->orig_width;
+         ctx->drm_in_format = drm_desc->layers->format;
+         ctx->drm_out_format = drm_desc->layers->format;
+ 
+-- 
+2.53.0
+
+From 1809d6ba084802f06452adbb9399da3eb10fe6bd Mon Sep 17 00:00:00 2001
+From: John Cox <jc@kynesim.co.uk>
+Date: Tue, 21 May 2024 17:06:29 +0100
+Subject: [PATCH 25/39] vf_bwdif: Add ability to deinterlace NV12
+
+(cherry picked from commit 76c0e60faaa6e7fa9dad392bd7e425a7d275e78c)
+---
+ libavfilter/vf_bwdif.c | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_bwdif.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_bwdif.c
+index 5fba0e7..848c3b2 100644
+--- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_bwdif.c
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_bwdif.c
+@@ -115,19 +115,28 @@ static void filter(AVFilterContext *ctx, AVFrame *dstpic,
+     YADIFContext *yadif = &bwdif->yadif;
+     ThreadData td = { .frame = dstpic, .parity = parity, .tff = tff };
+     int i;
++    int last_plane = -1;
+ 
+     for (i = 0; i < yadif->csp->nb_components; i++) {
+         int w = dstpic->width;
+         int h = dstpic->height;
++        const AVComponentDescriptor * const comp = yadif->csp->comp + i;
++
++        // If the last plane was the same as this plane assume we've dealt
++        // with all the pels already
++        if (last_plane == comp->plane)
++            continue;
++        last_plane = comp->plane;
+ 
+         if (i == 1 || i == 2) {
+             w = AV_CEIL_RSHIFT(w, yadif->csp->log2_chroma_w);
+             h = AV_CEIL_RSHIFT(h, yadif->csp->log2_chroma_h);
+         }
+ 
+-        td.w     = w;
+-        td.h     = h;
+-        td.plane = i;
++        // comp step is in bytes but td.w is in pels
++        td.w       = w * comp->step / ((comp->depth + 7) / 8);
++        td.h       = h;
++        td.plane   = comp->plane;
+ 
+         ff_filter_execute(ctx, filter_slice, &td, NULL,
+                           FFMIN((h+3)/4, ff_filter_get_nb_threads(ctx)));
+@@ -151,6 +160,7 @@ static const enum AVPixelFormat pix_fmts[] = {
+     AV_PIX_FMT_YUVA420P9, AV_PIX_FMT_YUVA422P9, AV_PIX_FMT_YUVA444P9,
+     AV_PIX_FMT_YUVA420P10, AV_PIX_FMT_YUVA422P10, AV_PIX_FMT_YUVA444P10,
+     AV_PIX_FMT_YUVA420P16, AV_PIX_FMT_YUVA422P16, AV_PIX_FMT_YUVA444P16,
++    AV_PIX_FMT_NV12,
+     AV_PIX_FMT_GBRP, AV_PIX_FMT_GBRP9, AV_PIX_FMT_GBRP10,
+     AV_PIX_FMT_GBRP12, AV_PIX_FMT_GBRP14, AV_PIX_FMT_GBRP16,
+     AV_PIX_FMT_GBRAP, AV_PIX_FMT_GBRAP16,
+-- 
+2.53.0
+
+From ff79261cab6aa0753b4ea3a4ab61301d3b8fea2c Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Wed, 7 Oct 2026 13:55:43 +0000
+Subject: [PATCH 26/39] avfilter/deinterlace_v4l2m2m: scale output timestamps
+ to the field rate
+
+config_props halves the output time base to carry the doubled frame rate,
+but the output frames kept the input timestamps. Every timestamp was
+read at half its value, so 25 fps interlaced input played out as 100 fps
+instead of 50 fps.
+
+Give the second field twice the input timestamp and the first field the
+sum of the previous and current timestamps, the midpoint in the output
+time base, and set the frame time base to match.
+
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ libavfilter/vf_deinterlace_v4l2m2m.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+index a25bd55..192d6f9 100644
+--- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+@@ -814,11 +814,15 @@ static int deint_v4l2m2m_dequeue(AVFilterContext *avctx, AVFrame *input_frame)
+ 
+     if (ctx->prev_in_frame && ctx->prev_in_frame->pts != AV_NOPTS_VALUE
+        && input_frame->pts != AV_NOPTS_VALUE) {
+-      first_pts = (ctx->prev_in_frame->pts + input_frame->pts) / 2;
++      first_pts = ctx->prev_in_frame->pts + input_frame->pts;
+       av_log(priv, AV_LOG_DEBUG, "calculated first pts %"PRId64"\n", first_pts);
+     }
+ 
+     output_frame_1->pts = first_pts;
++    output_frame_1->time_base = outlink->time_base;
++    if (input_frame->pts != AV_NOPTS_VALUE)
++        output_frame_2->pts = input_frame->pts * 2;
++    output_frame_2->time_base = outlink->time_base;
+ 
+     err = ff_filter_frame(outlink, output_frame_1);
+     if (err < 0) {
+-- 
+2.53.0
+
+From afcf39410b1c21b636fb51181a14f6d5dc7b02c4 Mon Sep 17 00:00:00 2001
+From: Christian Hewitt <christianshewitt@gmail.com>
+Date: Tue, 27 Oct 2026 14:11:05 +0000
+Subject: [PATCH 34/39] avfilter/deinterlace_v4l2m2m: pass the input stride as
+ bytesperline
+
+The filter sets the V4L2 width to the input pitch and leaves the stride
+to the driver. A driver that clamps the width or derives the stride from
+it then reads padded input frames with the wrong stride and plane
+offsets, which shears the picture. The Rockchip IEP2 clamps the width to
+1920 while RK3576 rkvdec pads 1920-wide frames to a 1984-byte stride.
+
+Set the frame width and pass the pitch as bytesperline, and fail if the
+driver does not accept the input height and stride.
+
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ libavfilter/vf_deinterlace_v4l2m2m.c | 22 +++++++++++++++++-----
+ 1 file changed, 17 insertions(+), 5 deletions(-)
+
+diff --git mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+index 192d6f9..6f9f63f 100644
+--- mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
++++ mythtv-b8717c5d0bf7d9dca206a7df735c8fbd6074ead1/mythtv/external/FFmpeg/libavfilter/vf_deinterlace_v4l2m2m.c
+@@ -262,7 +262,7 @@ static int deint_v4l2m2m_try_format(V4L2Queue *queue, uint64_t drm_format)
+ 
+     return 0;
+ }
+-static int deint_v4l2m2m_set_format(V4L2Queue *queue, uint32_t field, int width, int height, uint64_t drm_format)
++static int deint_v4l2m2m_set_format(V4L2Queue *queue, uint32_t field, int width, int height, int bytesperline, uint64_t drm_format)
+ {
+     struct v4l2_format *fmt        = &queue->format;
+     DeintV4L2M2MContextShared *ctx = queue->ctx;
+@@ -284,7 +284,7 @@ static int deint_v4l2m2m_set_format(V4L2Queue *queue, uint32_t field, int width,
+         fmt->fmt.pix_mp.height = height;
+         fmt->fmt.pix_mp.num_planes = planes;
+         for (int i = 0; i < planes; i++) {
+-            fmt->fmt.pix_mp.plane_fmt[i].bytesperline = width;
++            fmt->fmt.pix_mp.plane_fmt[i].bytesperline = bytesperline;
+             fmt->fmt.pix_mp.plane_fmt[i].sizeimage = 0;
+         }
+     } else {
+@@ -293,13 +293,24 @@ static int deint_v4l2m2m_set_format(V4L2Queue *queue, uint32_t field, int width,
+         fmt->fmt.pix.width = width;
+         fmt->fmt.pix.height = height;
+         fmt->fmt.pix.sizeimage = 0;
+-        fmt->fmt.pix.bytesperline = 0;
++        fmt->fmt.pix.bytesperline = bytesperline;
+     }
+ 
+     ret = ioctl(ctx->fd, VIDIOC_S_FMT, fmt);
+     if (ret)
+         av_log(NULL, AV_LOG_ERROR, "VIDIOC_S_FMT failed: %d\n", ret);
+ 
++    else if (V4L2_TYPE_IS_OUTPUT(fmt->type) &&
++             (V4L2_TYPE_IS_MULTIPLANAR(fmt->type) ?
++              (fmt->fmt.pix_mp.height != height ||
++               fmt->fmt.pix_mp.plane_fmt[0].bytesperline != bytesperline) :
++              (fmt->fmt.pix.height != height ||
++               fmt->fmt.pix.bytesperline != bytesperline))) {
++        av_log(NULL, AV_LOG_ERROR, "driver does not support input height %d stride %d\n",
++               height, bytesperline);
++        ret = AVERROR(EINVAL);
++    }
++
+     else if (!V4L2_TYPE_IS_OUTPUT(queue->format.type)) {
+         if (V4L2_TYPE_IS_MULTIPLANAR(fmt->type) && fmt->fmt.pix_mp.pixelformat != v4l2_pix_fmt) {
+             ctx->drm_out_format = drm_format_from_v4l2_pix_fmt(fmt->fmt.pix_mp.pixelformat);
+@@ -924,13 +935,14 @@ static int deint_v4l2m2m_filter_frame(AVFilterLink *link, AVFrame *in)
+             ctx->field_order = V4L2_FIELD_INTERLACED_BT;
+ 
+         ret = deint_v4l2m2m_set_format(output, ctx->field_order,
+-                                       ctx->orig_width, ctx->orig_height,
++                                       ctx->width, ctx->orig_height,
++                                       ctx->orig_width,
+                                        ctx->drm_in_format);
+         if (ret)
+             return ret;
+ 
+ 	ret = deint_v4l2m2m_set_format(capture, V4L2_FIELD_NONE,
+-	                               ctx->orig_width, ctx->orig_height,
++	                               ctx->width, ctx->orig_height, 0,
+ 	                               ctx->drm_out_format);
+         if (ret)
+             return ret;
+-- 
+2.53.0
 
