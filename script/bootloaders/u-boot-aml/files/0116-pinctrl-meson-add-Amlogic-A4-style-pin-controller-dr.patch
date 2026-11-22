@@ -1,0 +1,912 @@
+From cff02d5abecd0e454b8685aef1b9b14b24ee91ec Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sat, 21 Nov 2026 18:48:21 +0100
+Subject: [PATCH 04/10] pinctrl: meson: add Amlogic A4 style pin controller
+ driver
+
+The Amlogic A4, A9, S6 and S7 SoCs use a new pin controller binding
+("amlogic,pinctrl-a4" and friends): the pin groups are not described by
+the driver anymore but by "pinmux" properties in the device tree, each
+entry holding the pin number (bank << 8 | offset) and its mux value, and
+every GPIO bank is a sub-node with its own "gpio", "mux" and optional
+"ds" register regions.
+
+Add a pin controller and GPIO driver for this binding, following the
+Linux pinctrl-amlogic-a4 driver, including the tables of the pins whose
+mux lives in the registers of another bank (A9, S6, S7).
+
+The pin controller handles the pin group nodes referenced by pinctrl-N
+properties: mux, bias, drive strength and the input/output properties.
+Each GPIO bank sub-node is bound as a GPIO controller, named after the
+bank (GPIOX_, GPIOH_, ...), requesting a GPIO switches the pin back to
+its GPIO function.
+
+The pinctrl-meson core is now only built for the drivers selecting
+PINCTRL_MESON, it is not needed by this driver.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/pinctrl/Makefile                   |   1 +
+ drivers/pinctrl/meson/Kconfig              |   9 +
+ drivers/pinctrl/meson/Makefile             |   3 +-
+ drivers/pinctrl/meson/pinctrl-amlogic-a4.c | 820 +++++++++++++++++++++
+ 4 files changed, 832 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/pinctrl/meson/pinctrl-amlogic-a4.c
+
+diff --git a/drivers/pinctrl/Makefile b/drivers/pinctrl/Makefile
+index 91149796..e7d2ebb1 100644
+--- a/drivers/pinctrl/Makefile
++++ b/drivers/pinctrl/Makefile
+@@ -23,6 +23,7 @@ obj-$(CONFIG_PINCTRL_EXYNOS)		+= exynos/
+ obj-$(CONFIG_PINCTRL_INTEL)		+= intel/
+ obj-$(CONFIG_PINCTRL_K210)		+= pinctrl-k210.o
+ obj-$(CONFIG_PINCTRL_MESON)		+= meson/
++obj-$(CONFIG_PINCTRL_AMLOGIC_A4)	+= meson/
+ obj-$(CONFIG_PINCTRL_MSCC)		+= mscc/
+ obj-$(CONFIG_PINCTRL_MTK)		+= mediatek/
+ obj-$(CONFIG_PINCTRL_PIC32)		+= pinctrl_pic32.o
+diff --git a/drivers/pinctrl/meson/Kconfig b/drivers/pinctrl/meson/Kconfig
+index 6e22173c..d97e99d2 100644
+--- a/drivers/pinctrl/meson/Kconfig
++++ b/drivers/pinctrl/meson/Kconfig
+@@ -44,4 +44,13 @@ config PINCTRL_MESON_T7
+ 	  Enable the pin controller and GPIO driver of the Amlogic T7 SoC
+ 	  family, such as the A311D2 found on the Khadas VIM4.
+ 
++config PINCTRL_AMLOGIC_A4
++	bool "Amlogic A4 style pin controller and GPIO driver"
++	depends on PINCTRL_FULL && DM_GPIO
++	help
++	  Enable the pin controller and GPIO driver of the Amlogic SoCs
++	  using the A4 style pin controller binding, where the pin groups
++	  are described by "pinmux" properties in the device tree, such as
++	  the S6 (S905X5).
++
+ endif
+diff --git a/drivers/pinctrl/meson/Makefile b/drivers/pinctrl/meson/Makefile
+index 1865118e..754e4aba 100644
+--- a/drivers/pinctrl/meson/Makefile
++++ b/drivers/pinctrl/meson/Makefile
+@@ -1,6 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0+
+ 
+-obj-y					+= pinctrl-meson.o
++obj-$(CONFIG_PINCTRL_MESON)		+= pinctrl-meson.o
+ obj-$(CONFIG_PINCTRL_MESON_GX_PMX)	+= pinctrl-meson-gx-pmx.o
+ obj-$(CONFIG_PINCTRL_MESON_AXG_PMX)	+= pinctrl-meson-axg-pmx.o
+ obj-$(CONFIG_PINCTRL_MESON_GXBB)	+= pinctrl-meson-gxbb.o
+@@ -10,3 +10,4 @@ obj-$(CONFIG_PINCTRL_MESON_G12A)	+= pinctrl-meson-g12a.o
+ obj-$(CONFIG_PINCTRL_MESON_A1)		+= pinctrl-meson-a1.o
+ obj-$(CONFIG_PINCTRL_MESON_S4)		+= pinctrl-meson-s4.o
+ obj-$(CONFIG_PINCTRL_MESON_T7)		+= pinctrl-meson-t7.o
++obj-$(CONFIG_PINCTRL_AMLOGIC_A4)	+= pinctrl-amlogic-a4.o
+diff --git a/drivers/pinctrl/meson/pinctrl-amlogic-a4.c b/drivers/pinctrl/meson/pinctrl-amlogic-a4.c
+new file mode 100644
+index 00000000..937750a5
+--- /dev/null
++++ b/drivers/pinctrl/meson/pinctrl-amlogic-a4.c
+@@ -0,0 +1,820 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Pin controller and GPIO driver for the Amlogic A4 style pin controller,
++ * as found on the A4, A9, S6 (S905X5) and S7 SoCs.
++ *
++ * Unlike the older Meson pin controllers, the pin groups and functions
++ * are not described by the driver: each pin group node of the device tree
++ * carries a "pinmux" property, whose entries hold the pin number (bank << 8
++ * | offset, see AML_PINMUX()) and the mux value of the pin. The GPIO banks
++ * are described by sub-nodes with their own "gpio", "mux" and optional "ds"
++ * register regions.
++ *
++ * Register layout and the shared mux registers follow the Linux
++ * drivers/pinctrl/meson/pinctrl-amlogic-a4.c driver.
++ */
++
++#include <dm.h>
++#include <dm/device-internal.h>
++#include <dm/device_compat.h>
++#include <dm/lists.h>
++#include <dm/pinctrl.h>
++#include <asm/global_data.h>
++#include <asm/gpio.h>
++#include <asm/io.h>
++#include <linux/bitops.h>
++#include <linux/kernel.h>
++#include <malloc.h>
++#include <dt-bindings/pinctrl/amlogic,pinctrl.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++/* Register index */
++enum {
++	AML_REG_PULLEN,
++	AML_REG_PULL,
++	AML_REG_DIR,
++	AML_REG_OUT,
++	AML_REG_IN,
++	AML_REG_DS,
++	AML_NUM_REG,
++};
++
++/* Bits per pin and word offset of each register in the "gpio" region */
++static const unsigned int aml_bit_strides[AML_NUM_REG] = {
++	1, 1, 1, 1, 1, 2
++};
++
++static const unsigned int aml_def_regoffs[AML_NUM_REG] = {
++	3, 4, 2, 1, 0, 7
++};
++
++enum aml_pinconf_drv {
++	PINCONF_DRV_500UA,
++	PINCONF_DRV_2500UA,
++	PINCONF_DRV_3000UA,
++	PINCONF_DRV_4000UA,
++};
++
++#define AML_PIN_BANK(pin)	((pin) >> 8)
++#define AML_PIN_OFFSET(pin)	((pin) & 0xff)
++#define AML_NUM_BANKS		(AMLOGIC_GPIO_ANALOG + 1)
++
++/*
++ * Some pins of a (subordinate) bank are muxed through the mux registers of
++ * another (main) bank.
++ * @m_bank_id:	the main bank, whose own pins do not start at bit 0
++ * @m_bit_offs:	bit offset of the pins of the main bank in its mux registers
++ * @s_bit_offs:	first bit used by the subordinate pins in the main bank mux
++ *		registers
++ * @sid:	first subordinate pin
++ * @eid:	last subordinate pin
++ * @next:	next group of subordinate pins of the same bank
++ */
++struct aml_multi_mux {
++	unsigned int m_bank_id;
++	unsigned int m_bit_offs;
++	unsigned int s_bit_offs;
++	unsigned int sid;
++	unsigned int eid;
++	const struct aml_multi_mux *next;
++};
++
++struct aml_pctl_data {
++	unsigned int number;
++	const struct aml_multi_mux *p_mux;
++};
++
++struct aml_gpio_bank {
++	ofnode node;
++	unsigned int bank_id;
++	unsigned int npins;
++	unsigned int mux_bit_offs;
++	void __iomem *reg_mux;
++	void __iomem *reg_gpio;
++	void __iomem *reg_ds;
++	const struct aml_multi_mux *p_mux;
++};
++
++struct aml_pinctrl_priv {
++	struct aml_gpio_bank *banks;
++	unsigned int nbanks;
++	unsigned int npins;
++	const struct aml_pctl_data *data;
++};
++
++static const char * const aml_bank_name[AML_NUM_BANKS] = {
++	"GPIOA", "GPIOB", "GPIOC", "GPIOD", "GPIOE", "GPIOF", "GPIOG",
++	"GPIOH", "GPIOI", "GPIOJ", "GPIOK", "GPIOL", "GPIOM", "GPION",
++	"GPIOO", "GPIOP", "GPIOQ", "GPIOR", "GPIOS", "GPIOT", "GPIOU",
++	"GPIOV", "GPIOW", "GPIOX", "GPIOY", "GPIOZ", "GPIODV", "GPIOAO",
++	"GPIOCC", "TEST_N", "ANALOG"
++};
++
++static const struct aml_multi_mux multi_mux_a9[] = {
++	{
++		.m_bank_id = AMLOGIC_GPIO_C,
++		.m_bit_offs = 4,
++		.s_bit_offs = 0,
++		.sid = (AMLOGIC_GPIO_D << 8) + 16,
++		.eid = (AMLOGIC_GPIO_D << 8) + 16,
++		.next = &multi_mux_a9[1],
++	}, {
++		.m_bank_id = AMLOGIC_GPIO_AO,
++		.m_bit_offs = 0,
++		.s_bit_offs = 52,
++		.sid = (AMLOGIC_GPIO_D << 8) + 17,
++		.eid = (AMLOGIC_GPIO_D << 8) + 17,
++		.next = NULL,
++	}, {
++		.m_bank_id = AMLOGIC_GPIO_A,
++		.m_bit_offs = 0,
++		.s_bit_offs = 80,
++		.sid = (AMLOGIC_GPIO_Y << 8) + 8,
++		.eid = (AMLOGIC_GPIO_Y << 8) + 9,
++		.next = NULL,
++	}, {
++		.m_bank_id = AMLOGIC_GPIO_CC,
++		.m_bit_offs = 24,
++		.s_bit_offs = 0,
++		.sid = (AMLOGIC_GPIO_X << 8) + 16,
++		.eid = (AMLOGIC_GPIO_X << 8) + 17,
++		.next = NULL,
++	},
++};
++
++static const struct aml_pctl_data a9_priv_data = {
++	.number = ARRAY_SIZE(multi_mux_a9),
++	.p_mux = multi_mux_a9,
++};
++
++static const struct aml_multi_mux multi_mux_s7[] = {
++	{
++		.m_bank_id = AMLOGIC_GPIO_CC,
++		.m_bit_offs = 24,
++		.s_bit_offs = 0,
++		.sid = (AMLOGIC_GPIO_X << 8) + 16,
++		.eid = (AMLOGIC_GPIO_X << 8) + 19,
++		.next = NULL,
++	},
++};
++
++static const struct aml_pctl_data s7_priv_data = {
++	.number = ARRAY_SIZE(multi_mux_s7),
++	.p_mux = multi_mux_s7,
++};
++
++static const struct aml_multi_mux multi_mux_s6[] = {
++	{
++		.m_bank_id = AMLOGIC_GPIO_CC,
++		.m_bit_offs = 24,
++		.s_bit_offs = 0,
++		.sid = (AMLOGIC_GPIO_X << 8) + 16,
++		.eid = (AMLOGIC_GPIO_X << 8) + 19,
++		.next = NULL,
++	}, {
++		.m_bank_id = AMLOGIC_GPIO_F,
++		.m_bit_offs = 4,
++		.s_bit_offs = 0,
++		.sid = (AMLOGIC_GPIO_D << 8) + 6,
++		.eid = (AMLOGIC_GPIO_D << 8) + 6,
++		.next = NULL,
++	},
++};
++
++static const struct aml_pctl_data s6_priv_data = {
++	.number = ARRAY_SIZE(multi_mux_s6),
++	.p_mux = multi_mux_s6,
++};
++
++static struct aml_gpio_bank *aml_find_bank(struct aml_pinctrl_priv *priv,
++					   unsigned int bank_id)
++{
++	unsigned int i;
++
++	for (i = 0; i < priv->nbanks; i++)
++		if (priv->banks[i].bank_id == bank_id)
++			return &priv->banks[i];
++
++	return NULL;
++}
++
++static struct aml_gpio_bank *aml_pin_to_bank(struct aml_pinctrl_priv *priv,
++					     unsigned int pin)
++{
++	struct aml_gpio_bank *bank = aml_find_bank(priv, AML_PIN_BANK(pin));
++
++	if (!bank || AML_PIN_OFFSET(pin) >= bank->npins)
++		return NULL;
++
++	return bank;
++}
++
++static void aml_calc_reg_and_bit(unsigned int offset, unsigned int reg_type,
++				 unsigned int *reg, unsigned int *bit)
++{
++	*bit = offset * aml_bit_strides[reg_type];
++	*reg = (aml_def_regoffs[reg_type] + (*bit / 32)) * 4;
++	*bit &= 0x1f;
++}
++
++static void aml_gpio_update_bits(struct aml_gpio_bank *bank,
++				 unsigned int offset, unsigned int reg_type,
++				 bool set)
++{
++	void __iomem *base = reg_type == AML_REG_DS ? bank->reg_ds :
++						     bank->reg_gpio;
++	unsigned int reg, bit;
++
++	aml_calc_reg_and_bit(offset, reg_type, &reg, &bit);
++	clrsetbits_le32(base + reg, BIT(bit), set ? BIT(bit) : 0);
++}
++
++static int aml_gpio_read_bit(struct aml_gpio_bank *bank, unsigned int offset,
++			     unsigned int reg_type)
++{
++	unsigned int reg, bit;
++
++	aml_calc_reg_and_bit(offset, reg_type, &reg, &bit);
++
++	return !!(readl(bank->reg_gpio + reg) & BIT(bit));
++}
++
++/*
++ * Find the mux register and bit offset of a pin. Returns NULL if the pin
++ * has no mux register (e.g. TEST_N).
++ */
++static void __iomem *aml_mux_reg(struct aml_pinctrl_priv *priv,
++				 struct aml_gpio_bank *bank, unsigned int pin,
++				 unsigned int *bit)
++{
++	const struct aml_multi_mux *p_mux;
++	struct aml_gpio_bank *mbank;
++	unsigned int shift;
++	int loop_count = 10;
++
++	/* Pins muxed through the registers of another bank */
++	for (p_mux = bank->p_mux; p_mux && loop_count;
++	     p_mux = p_mux->next, loop_count--) {
++		if (pin < p_mux->sid || pin > p_mux->eid)
++			continue;
++
++		mbank = aml_find_bank(priv, p_mux->m_bank_id);
++		if (!mbank || !mbank->reg_mux)
++			return NULL;
++
++		shift = ((pin - p_mux->sid) << 2) + p_mux->s_bit_offs;
++		*bit = shift % 32;
++
++		return mbank->reg_mux + (shift / 32) * 4;
++	}
++
++	if (!bank->reg_mux)
++		return NULL;
++
++	shift = (AML_PIN_OFFSET(pin) << 2) + bank->mux_bit_offs;
++	*bit = shift % 32;
++
++	return bank->reg_mux + (shift / 32) * 4;
++}
++
++static int aml_set_mux(struct udevice *dev, unsigned int pin,
++		       unsigned int func)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++	struct aml_gpio_bank *bank = aml_pin_to_bank(priv, pin);
++	void __iomem *reg;
++	unsigned int bit;
++
++	if (!bank) {
++		dev_err(dev, "invalid pin 0x%x\n", pin);
++		return -EINVAL;
++	}
++
++	reg = aml_mux_reg(priv, bank, pin, &bit);
++	if (!reg)
++		return 0;
++
++	clrsetbits_le32(reg, 0xf << bit, (func & 0xf) << bit);
++
++	return 0;
++}
++
++static int aml_get_mux(struct udevice *dev, unsigned int pin)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++	struct aml_gpio_bank *bank = aml_pin_to_bank(priv, pin);
++	void __iomem *reg;
++	unsigned int bit;
++
++	if (!bank)
++		return -EINVAL;
++
++	reg = aml_mux_reg(priv, bank, pin, &bit);
++	if (!reg)
++		return 0;
++
++	return (readl(reg) >> bit) & 0xf;
++}
++
++static int aml_set_drive_strength(struct udevice *dev, unsigned int pin,
++				  u32 drive_strength_ua)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++	struct aml_gpio_bank *bank = aml_pin_to_bank(priv, pin);
++	unsigned int reg, bit, ds_val;
++
++	if (!bank)
++		return -EINVAL;
++
++	if (drive_strength_ua <= 500) {
++		ds_val = PINCONF_DRV_500UA;
++	} else if (drive_strength_ua <= 2500) {
++		ds_val = PINCONF_DRV_2500UA;
++	} else if (drive_strength_ua <= 3000) {
++		ds_val = PINCONF_DRV_3000UA;
++	} else if (drive_strength_ua <= 4000) {
++		ds_val = PINCONF_DRV_4000UA;
++	} else {
++		dev_warn(dev, "pin 0x%x: invalid drive-strength %u, using 4mA\n",
++			 pin, drive_strength_ua);
++		ds_val = PINCONF_DRV_4000UA;
++	}
++
++	aml_calc_reg_and_bit(AML_PIN_OFFSET(pin), AML_REG_DS, &reg, &bit);
++	clrsetbits_le32(bank->reg_ds + reg, 0x3 << bit, ds_val << bit);
++
++	return 0;
++}
++
++static int aml_set_bias(struct udevice *dev, unsigned int pin, bool enable,
++			bool pull_up)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++	struct aml_gpio_bank *bank = aml_pin_to_bank(priv, pin);
++	unsigned int offset = AML_PIN_OFFSET(pin);
++
++	if (!bank)
++		return -EINVAL;
++
++	if (enable)
++		aml_gpio_update_bits(bank, offset, AML_REG_PULL, pull_up);
++	aml_gpio_update_bits(bank, offset, AML_REG_PULLEN, enable);
++
++	return 0;
++}
++
++static int aml_set_output(struct udevice *dev, unsigned int pin, bool out,
++			  int value)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++	struct aml_gpio_bank *bank = aml_pin_to_bank(priv, pin);
++	unsigned int offset = AML_PIN_OFFSET(pin);
++
++	if (!bank)
++		return -EINVAL;
++
++	if (out && value >= 0)
++		aml_gpio_update_bits(bank, offset, AML_REG_OUT, value);
++	/* The direction bit is set for an input */
++	aml_gpio_update_bits(bank, offset, AML_REG_DIR, !out);
++
++	return 0;
++}
++
++/* Apply the generic pin configuration properties of @node to @pin */
++static int aml_pinconf_apply(struct udevice *dev, ofnode node,
++			     unsigned int pin)
++{
++	u32 val;
++	int ret = 0;
++
++	if (ofnode_read_bool(node, "bias-disable"))
++		ret = aml_set_bias(dev, pin, false, false);
++	else if (ofnode_read_bool(node, "bias-pull-up"))
++		ret = aml_set_bias(dev, pin, true, true);
++	else if (ofnode_read_bool(node, "bias-pull-down"))
++		ret = aml_set_bias(dev, pin, true, false);
++	if (ret)
++		return ret;
++
++	if (!ofnode_read_u32(node, "drive-strength-microamp", &val)) {
++		ret = aml_set_drive_strength(dev, pin, val);
++		if (ret)
++			return ret;
++	}
++
++	if (ofnode_read_bool(node, "output-high"))
++		ret = aml_set_output(dev, pin, true, 1);
++	else if (ofnode_read_bool(node, "output-low"))
++		ret = aml_set_output(dev, pin, true, 0);
++	else if (ofnode_read_bool(node, "output-enable"))
++		ret = aml_set_output(dev, pin, true, -1);
++	else if (ofnode_read_bool(node, "input-enable") ||
++		 ofnode_read_bool(node, "output-disable"))
++		ret = aml_set_output(dev, pin, false, -1);
++
++	return ret;
++}
++
++static int aml_pinctrl_set_state(struct udevice *dev, struct udevice *config)
++{
++	ofnode node = dev_ofnode(config);
++	const fdt32_t *pinmux;
++	int len, i, ret;
++
++	pinmux = ofnode_get_property(node, "pinmux", &len);
++	/* Function nodes only group the pin group nodes */
++	if (!pinmux)
++		return 0;
++
++	for (i = 0; i < len / (int)sizeof(*pinmux); i++) {
++		u32 val = fdt32_to_cpu(pinmux[i]);
++		unsigned int pin = val >> 8;
++
++		ret = aml_set_mux(dev, pin, val & 0xff);
++		if (ret)
++			return ret;
++
++		ret = aml_pinconf_apply(dev, node, pin);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++
++static int aml_pinctrl_gpio_request_enable(struct udevice *dev,
++					   unsigned int selector)
++{
++	return aml_set_mux(dev, selector, 0);
++}
++
++/*
++ * The pin selectors used by the pinmux command are linear indexes over all
++ * the banks, in device tree order.
++ */
++static int aml_selector_to_pin(struct udevice *dev, unsigned int selector)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++	unsigned int i;
++
++	for (i = 0; i < priv->nbanks; i++) {
++		if (selector < priv->banks[i].npins)
++			return (priv->banks[i].bank_id << 8) | selector;
++		selector -= priv->banks[i].npins;
++	}
++
++	return -EINVAL;
++}
++
++static int aml_pinctrl_get_pins_count(struct udevice *dev)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++
++	return priv->npins;
++}
++
++static const char *aml_pinctrl_get_pin_name(struct udevice *dev,
++					    unsigned int selector)
++{
++	static char name[16];
++	int pin = aml_selector_to_pin(dev, selector);
++
++	if (pin < 0)
++		return NULL;
++
++	snprintf(name, sizeof(name), "%s_%u", aml_bank_name[AML_PIN_BANK(pin)],
++		 AML_PIN_OFFSET(pin));
++
++	return name;
++}
++
++static int aml_pinctrl_get_pin_muxing(struct udevice *dev,
++				      unsigned int selector, char *buf,
++				      int size)
++{
++	int pin = aml_selector_to_pin(dev, selector);
++	int func;
++
++	if (pin < 0)
++		return pin;
++
++	func = aml_get_mux(dev, pin);
++	if (func < 0)
++		return func;
++
++	if (func)
++		snprintf(buf, size, "function %d", func);
++	else
++		snprintf(buf, size, "gpio");
++
++	return 0;
++}
++
++static const struct pinctrl_ops aml_pinctrl_ops = {
++	.set_state		= aml_pinctrl_set_state,
++	.gpio_request_enable	= aml_pinctrl_gpio_request_enable,
++	.get_pins_count		= aml_pinctrl_get_pins_count,
++	.get_pin_name		= aml_pinctrl_get_pin_name,
++	.get_pin_muxing		= aml_pinctrl_get_pin_muxing,
++};
++
++static void __iomem *aml_map_resource(ofnode node, const char *name)
++{
++	fdt_addr_t addr;
++	int index;
++
++	index = ofnode_stringlist_search(node, "reg-names", name);
++	if (index < 0)
++		return NULL;
++
++	addr = ofnode_get_addr_index(node, index);
++	if (addr == FDT_ADDR_T_NONE)
++		return NULL;
++
++	return (void __iomem *)addr;
++}
++
++static void aml_init_bank_mux(struct aml_pinctrl_priv *priv,
++			      struct aml_gpio_bank *bank)
++{
++	const struct aml_pctl_data *data = priv->data;
++	const struct aml_multi_mux *p_mux;
++	unsigned int i;
++
++	bank->mux_bit_offs = 0;
++	if (!data)
++		return;
++
++	for (i = 0; i < data->number; i++) {
++		p_mux = &data->p_mux[i];
++		if (bank->bank_id == p_mux->m_bank_id) {
++			bank->mux_bit_offs = p_mux->m_bit_offs;
++			break;
++		}
++		if (AML_PIN_BANK(p_mux->sid) == bank->bank_id) {
++			bank->p_mux = p_mux;
++			break;
++		}
++	}
++}
++
++static int aml_parse_bank(struct udevice *dev, struct aml_gpio_bank *bank,
++			  ofnode node)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++	struct ofnode_phandle_args args;
++	int ret;
++
++	ret = ofnode_parse_phandle_with_args(node, "gpio-ranges", NULL, 3, 0,
++					     &args);
++	if (ret) {
++		dev_err(dev, "%s: missing gpio-ranges\n", ofnode_get_name(node));
++		return ret;
++	}
++
++	bank->node = node;
++	bank->bank_id = args.args[1] >> 8;
++	bank->npins = args.args[2];
++	if (bank->bank_id >= AML_NUM_BANKS) {
++		dev_err(dev, "%s: invalid bank %u\n", ofnode_get_name(node),
++			bank->bank_id);
++		return -EINVAL;
++	}
++
++	bank->reg_mux = aml_map_resource(node, "mux");
++	if (!bank->reg_mux && bank->bank_id != AMLOGIC_GPIO_TEST_N &&
++	    bank->bank_id != AMLOGIC_GPIO_ANALOG) {
++		dev_err(dev, "%s: mux registers not found\n",
++			aml_bank_name[bank->bank_id]);
++		return -ENOENT;
++	}
++
++	bank->reg_gpio = aml_map_resource(node, "gpio");
++	if (!bank->reg_gpio) {
++		dev_err(dev, "%s: gpio registers not found\n",
++			aml_bank_name[bank->bank_id]);
++		return -ENOENT;
++	}
++
++	bank->reg_ds = aml_map_resource(node, "ds");
++	if (!bank->reg_ds)
++		bank->reg_ds = bank->reg_gpio;
++
++	aml_init_bank_mux(priv, bank);
++
++	return 0;
++}
++
++static int aml_pinctrl_probe(struct udevice *dev)
++{
++	struct aml_pinctrl_priv *priv = dev_get_priv(dev);
++	unsigned int i = 0;
++	ofnode node;
++	int ret;
++
++	priv->data = (const struct aml_pctl_data *)dev_get_driver_data(dev);
++
++	dev_for_each_subnode(node, dev)
++		if (ofnode_read_bool(node, "gpio-controller"))
++			priv->nbanks++;
++
++	if (!priv->nbanks) {
++		dev_err(dev, "no gpio bank found\n");
++		return -EINVAL;
++	}
++
++	priv->banks = calloc(priv->nbanks, sizeof(*priv->banks));
++	if (!priv->banks)
++		return -ENOMEM;
++
++	dev_for_each_subnode(node, dev) {
++		if (!ofnode_read_bool(node, "gpio-controller"))
++			continue;
++
++		ret = aml_parse_bank(dev, &priv->banks[i], node);
++		if (ret)
++			return ret;
++
++		priv->npins += priv->banks[i].npins;
++		i++;
++	}
++
++	return 0;
++}
++
++static int aml_pinctrl_bind(struct udevice *dev)
++{
++	bool pre_reloc_only = !(gd->flags & GD_FLG_RELOC);
++	ofnode node;
++	int ret;
++
++	dev_for_each_subnode(node, dev) {
++		if (!ofnode_read_bool(node, "gpio-controller"))
++			continue;
++
++		/* Keep the pre-relocation heap for the banks that need it */
++		if (pre_reloc_only && !ofnode_pre_reloc(node))
++			continue;
++
++		ret = device_bind_driver_to_node(dev, "amlogic_a4_gpio",
++						 ofnode_get_name(node), node,
++						 NULL);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++
++static const struct udevice_id aml_pinctrl_match[] = {
++	{ .compatible = "amlogic,pinctrl-a4" },
++	{ .compatible = "amlogic,pinctrl-a9", .data = (ulong)&a9_priv_data },
++	{ .compatible = "amlogic,pinctrl-s7", .data = (ulong)&s7_priv_data },
++	{ .compatible = "amlogic,pinctrl-s6", .data = (ulong)&s6_priv_data },
++	{ }
++};
++
++U_BOOT_DRIVER(amlogic_a4_pinctrl) = {
++	.name		= "amlogic_a4_pinctrl",
++	.id		= UCLASS_PINCTRL,
++	.of_match	= aml_pinctrl_match,
++	.bind		= aml_pinctrl_bind,
++	.probe		= aml_pinctrl_probe,
++	.priv_auto	= sizeof(struct aml_pinctrl_priv),
++	.ops		= &aml_pinctrl_ops,
++};
++
++/*
++ * GPIO banks
++ */
++
++struct aml_gpio_priv {
++	struct aml_gpio_bank *bank;
++	char name[16];
++};
++
++static struct aml_gpio_bank *aml_gpio_bank(struct udevice *dev)
++{
++	struct aml_gpio_priv *priv = dev_get_priv(dev);
++
++	return priv->bank;
++}
++
++static int aml_gpio_get_value(struct udevice *dev, unsigned int offset)
++{
++	return aml_gpio_read_bit(aml_gpio_bank(dev), offset, AML_REG_IN);
++}
++
++static int aml_gpio_set_value(struct udevice *dev, unsigned int offset,
++			      int value)
++{
++	aml_gpio_update_bits(aml_gpio_bank(dev), offset, AML_REG_OUT, value);
++
++	return 0;
++}
++
++static int aml_gpio_direction_input(struct udevice *dev, unsigned int offset)
++{
++	aml_gpio_update_bits(aml_gpio_bank(dev), offset, AML_REG_DIR, true);
++
++	return 0;
++}
++
++static int aml_gpio_direction_output(struct udevice *dev, unsigned int offset,
++				     int value)
++{
++	struct aml_gpio_bank *bank = aml_gpio_bank(dev);
++
++	aml_gpio_update_bits(bank, offset, AML_REG_OUT, value);
++	aml_gpio_update_bits(bank, offset, AML_REG_DIR, false);
++
++	return 0;
++}
++
++static int aml_gpio_get_function(struct udevice *dev, unsigned int offset)
++{
++	struct aml_gpio_bank *bank = aml_gpio_bank(dev);
++	int func;
++
++	func = aml_get_mux(dev_get_parent(dev), (bank->bank_id << 8) | offset);
++	if (func > 0)
++		return GPIOF_FUNC;
++
++	if (aml_gpio_read_bit(bank, offset, AML_REG_DIR))
++		return GPIOF_INPUT;
++
++	return GPIOF_OUTPUT;
++}
++
++static int aml_gpio_set_flags(struct udevice *dev, unsigned int offset,
++			      ulong flags)
++{
++	struct aml_gpio_bank *bank = aml_gpio_bank(dev);
++
++	/* There is no open drain / open source mode in the pad registers */
++	if (flags & (GPIOD_OPEN_DRAIN | GPIOD_OPEN_SOURCE))
++		return -EOPNOTSUPP;
++
++	if (flags & GPIOD_IS_OUT) {
++		aml_gpio_update_bits(bank, offset, AML_REG_OUT,
++				     !!(flags & GPIOD_IS_OUT_ACTIVE));
++		aml_gpio_update_bits(bank, offset, AML_REG_DIR, false);
++	} else if (flags & GPIOD_IS_IN) {
++		aml_gpio_update_bits(bank, offset, AML_REG_DIR, true);
++		if (flags & GPIOD_PULL_UP) {
++			aml_gpio_update_bits(bank, offset, AML_REG_PULL, true);
++			aml_gpio_update_bits(bank, offset, AML_REG_PULLEN, true);
++		} else if (flags & GPIOD_PULL_DOWN) {
++			aml_gpio_update_bits(bank, offset, AML_REG_PULL, false);
++			aml_gpio_update_bits(bank, offset, AML_REG_PULLEN, true);
++		}
++	}
++
++	return 0;
++}
++
++static const struct dm_gpio_ops aml_gpio_ops = {
++	.request		= pinctrl_gpio_request,
++	.rfree			= pinctrl_gpio_free,
++	.get_value		= aml_gpio_get_value,
++	.set_value		= aml_gpio_set_value,
++	.direction_input	= aml_gpio_direction_input,
++	.direction_output	= aml_gpio_direction_output,
++	.get_function		= aml_gpio_get_function,
++	.set_flags		= aml_gpio_set_flags,
++};
++
++static int aml_gpio_probe(struct udevice *dev)
++{
++	struct aml_pinctrl_priv *pctl = dev_get_priv(dev_get_parent(dev));
++	struct gpio_dev_priv *uc_priv = dev_get_uclass_priv(dev);
++	struct aml_gpio_priv *priv = dev_get_priv(dev);
++	unsigned int i;
++
++	for (i = 0; i < pctl->nbanks; i++) {
++		if (ofnode_equal(pctl->banks[i].node, dev_ofnode(dev))) {
++			priv->bank = &pctl->banks[i];
++			break;
++		}
++	}
++
++	if (!priv->bank)
++		return -ENODEV;
++
++	snprintf(priv->name, sizeof(priv->name), "%s_",
++		 aml_bank_name[priv->bank->bank_id]);
++	uc_priv->bank_name = priv->name;
++	uc_priv->gpio_count = priv->bank->npins;
++
++	return 0;
++}
++
++U_BOOT_DRIVER(amlogic_a4_gpio) = {
++	.name		= "amlogic_a4_gpio",
++	.id		= UCLASS_GPIO,
++	.probe		= aml_gpio_probe,
++	.priv_auto	= sizeof(struct aml_gpio_priv),
++	.ops		= &aml_gpio_ops,
++};
+-- 
+2.43.0
+

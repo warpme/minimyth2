@@ -1,0 +1,499 @@
+From c9e1a54ebbb372a9b5e116887178e6c3e8514d09 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sat, 21 Nov 2026 18:45:54 +0100
+Subject: [PATCH 03/10] clk: meson: add Amlogic S6 clock driver
+
+Add a driver for the PLL and peripherals clock controllers of the
+Amlogic S6 SoC (S905X5), based on the Linux S6 clock drivers.
+
+The fixed PLL, the GP1/GP2 PLLs and the sys/axi clocks are owned by the
+secure firmware (SCMI on Linux) and are taken as external inputs. The
+PLL controller only describes the fixed PLL dividers, whose gates are
+handled as read-only since they also belong to the firmware: they are
+never turned off, even when a consumer releases them.
+
+The peripherals controller describes the SD/eMMC and Ethernet clocks and
+all the bus gates. The I2C and PWM bus gates are chained behind the
+I2C_M_A and PWM_A gates, as in Linux, so the parent gate is enabled
+together with them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/clk/meson/Kconfig  |   8 +
+ drivers/clk/meson/Makefile |   1 +
+ drivers/clk/meson/s6.c     | 433 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 442 insertions(+)
+ create mode 100644 drivers/clk/meson/s6.c
+
+diff --git a/drivers/clk/meson/Kconfig b/drivers/clk/meson/Kconfig
+index 32d24614..ffec3176 100644
+--- a/drivers/clk/meson/Kconfig
++++ b/drivers/clk/meson/Kconfig
+@@ -46,6 +46,14 @@ config CLK_MESON_T7
+ 	  Enable support for the peripherals clock controller of the
+ 	  Amlogic T7 SoC family, such as the A311D2
+ 
++config CLK_MESON_S6
++	bool "Enable clock support for Amlogic S6"
++	depends on CLK && ARCH_MESON
++	default MESON_S6
++	help
++	  Enable support for the PLL and peripherals clock controllers of
++	  the Amlogic S6 SoC family, such as the S905X5
++
+ config CLK_MESON_MSR
+ 	bool "Enable clock measure driver for Amlogic SoCs"
+ 	depends on CLK && ARCH_MESON
+diff --git a/drivers/clk/meson/Makefile b/drivers/clk/meson/Makefile
+index 7dc5b752..edf1c372 100644
+--- a/drivers/clk/meson/Makefile
++++ b/drivers/clk/meson/Makefile
+@@ -12,4 +12,5 @@ obj-$(CONFIG_CLK_MESON_G12A) += g12a-ao.o
+ obj-$(CONFIG_CLK_MESON_A1) += a1.o
+ obj-$(CONFIG_CLK_MESON_S4) += s4.o
+ obj-$(CONFIG_CLK_MESON_T7) += t7.o
++obj-$(CONFIG_CLK_MESON_S6) += s6.o
+ obj-$(CONFIG_CLK_MESON_MSR) += clk-measure.o
+diff --git a/drivers/clk/meson/s6.c b/drivers/clk/meson/s6.c
+new file mode 100644
+index 00000000..23d44f1a
+--- /dev/null
++++ b/drivers/clk/meson/s6.c
+@@ -0,0 +1,433 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Amlogic S6 (S905X5) PLL and peripherals clock controllers
++ *
++ * Register layout and bit positions follow the Linux S6 clock drivers
++ * (drivers/clk/meson/s6-pll.c and s6-peripherals.c).
++ *
++ * On S6 the fixed PLL, the GP1/GP2 PLLs, the sys and axi clocks are owned
++ * by the secure firmware and exposed through SCMI. U-Boot does not touch
++ * them: they are taken as external inputs ("fixed_pll", "sys_clk", ...)
++ * from the device tree, typically as fixed-rate clocks matching the rates
++ * set up by BL2.
++ *
++ * PLL controller: only the fixed PLL dividers (fclk_div*) are described.
++ * Their gates are owned by the firmware too, so they are read-only.
++ *
++ * Peripherals controller, following operations are supported:
++ * - calculating clock frequency on a limited tree
++ * - reading muxes and dividers
++ * - enabling/disabling gates without propagation, except for the I2C
++ *   and PWM bus gates which are chained behind the I2C_M_A and PWM_A
++ *   gates
++ * - reparenting without rate propagation, only on muxes
++ * - setting rates with limited reparenting, only on the SD/eMMC
++ *   dividers with mux parent
++ */
++
++#include <clk-uclass.h>
++#include <dm.h>
++#include <log.h>
++#include <regmap.h>
++#include <dt-bindings/clock/amlogic,s6-peripherals-clkc.h>
++#include <dt-bindings/clock/amlogic,s6-pll-clkc.h>
++#include "clk_meson.h"
++
++/* PLL controller registers */
++#define ANACTRL_FIXPLL_CTRL1		0x044
++
++/* Peripherals controller registers */
++#define CLKCTRL_SYS_CLK_EN0_REG0	0x044
++#define CLKCTRL_SYS_CLK_EN0_REG1	0x048
++#define CLKCTRL_SYS_CLK_EN0_REG2	0x04c
++#define CLKCTRL_SYS_CLK_EN0_REG3	0x050
++#define CLKCTRL_AXI_CLK_EN0		0x0ac
++#define CLKCTRL_ETH_CLK_CTRL		0x164
++#define CLKCTRL_NAND_CLK_CTRL		0x168
++#define CLKCTRL_SD_EMMC_CLK_CTRL	0x16c
++
++/*
++ * PLL controller
++ */
++
++/* External clock IDs. Those should not overlap with regular IDs */
++enum {
++	PLL_EXTERNAL_FIXED_PLL = CLKID_FCLK_DIV7 + 1,
++};
++
++#define S6_FCLK(_id, _name, _mult, _div, _bit)				\
++	[_id##_DIV] = CLK_DIV_FIXED_FULL(_name "_div", _mult, _div,	\
++					 PLL_EXTERNAL_FIXED_PLL),	\
++	[_id] = CLK_GATE(_name, ANACTRL_FIXPLL_CTRL1, _bit, _id##_DIV)
++
++static const struct meson_clk_info *meson_pll_clocks[] = {
++	S6_FCLK(CLKID_FCLK50M,		"fclk50m",	1, 40, 4),
++	S6_FCLK(CLKID_FCLK_DIV2,	"fclk_div2",	1, 2, 20),
++	S6_FCLK(CLKID_FCLK_DIV2P5,	"fclk_div2p5",	2, 5, 8),
++	S6_FCLK(CLKID_FCLK_DIV3,	"fclk_div3",	1, 3, 16),
++	S6_FCLK(CLKID_FCLK_DIV4,	"fclk_div4",	1, 4, 17),
++	S6_FCLK(CLKID_FCLK_DIV5,	"fclk_div5",	1, 5, 18),
++	S6_FCLK(CLKID_FCLK_DIV7,	"fclk_div7",	1, 7, 19),
++
++	[PLL_EXTERNAL_FIXED_PLL] = CLK_EXTERNAL("fixed_pll"),
++};
++
++/*
++ * Peripherals controller
++ */
++
++/* External clock IDs. Those should not overlap with regular IDs */
++enum {
++	EXTERNAL_XTAL = CLKID_AXI_CPU_SRAM + 1,
++	EXTERNAL_FCLK_DIV2,
++	EXTERNAL_FCLK_DIV2P5,
++	EXTERNAL_FCLK_DIV3,
++	EXTERNAL_FCLK_DIV4,
++	EXTERNAL_FCLK_DIV5,
++	EXTERNAL_FCLK_DIV7,
++	EXTERNAL_GP0_PLL,
++	EXTERNAL_GP1_PLL,
++	EXTERNAL_HIFI_PLL,
++	EXTERNAL_SYS_CLK,
++	EXTERNAL_AXI_CLK,
++};
++
++/* Mux index 5 is not connected */
++#define S6_SD_EMMC_PARENTS {	\
++	EXTERNAL_XTAL,		\
++	EXTERNAL_FCLK_DIV2,	\
++	EXTERNAL_FCLK_DIV3,	\
++	EXTERNAL_HIFI_PLL,	\
++	EXTERNAL_FCLK_DIV2P5,	\
++	-ENOENT,		\
++	EXTERNAL_GP1_PLL,	\
++	EXTERNAL_GP0_PLL,	\
++}
++
++#define S6_SYS_GATE(_id, _name, _reg, _bit) \
++	[_id] = CLK_GATE(_name, _reg, _bit, EXTERNAL_SYS_CLK)
++
++#define S6_SYS_GATE_CHAINED(_id, _name, _reg, _bit, _parent) \
++	[_id] = CLK_GATE(_name, _reg, _bit, _parent)
++
++#define S6_AXI_GATE(_id, _name, _bit) \
++	[_id] = CLK_GATE(_name, CLKCTRL_AXI_CLK_EN0, _bit, EXTERNAL_AXI_CLK)
++
++static const struct meson_clk_info *meson_clocks[] = {
++	/* SD/eMMC composite clocks (clkin0 of the MMC controllers) */
++	[CLKID_SD_EMMC_A_MUX] = CLK_MUX("sd_emmc_a_mux",
++		CLKCTRL_SD_EMMC_CLK_CTRL, 9, 3, S6_SD_EMMC_PARENTS),
++	[CLKID_SD_EMMC_A_DIV] = CLK_DIV("sd_emmc_a_div",
++		CLKCTRL_SD_EMMC_CLK_CTRL, 0, 7, CLKID_SD_EMMC_A_MUX),
++	[CLKID_SD_EMMC_A] = CLK_GATE("sd_emmc_a",
++		CLKCTRL_SD_EMMC_CLK_CTRL, 7, CLKID_SD_EMMC_A_DIV),
++
++	[CLKID_SD_EMMC_B_MUX] = CLK_MUX("sd_emmc_b_mux",
++		CLKCTRL_SD_EMMC_CLK_CTRL, 25, 3, S6_SD_EMMC_PARENTS),
++	[CLKID_SD_EMMC_B_DIV] = CLK_DIV("sd_emmc_b_div",
++		CLKCTRL_SD_EMMC_CLK_CTRL, 16, 7, CLKID_SD_EMMC_B_MUX),
++	[CLKID_SD_EMMC_B] = CLK_GATE("sd_emmc_b",
++		CLKCTRL_SD_EMMC_CLK_CTRL, 23, CLKID_SD_EMMC_B_DIV),
++
++	[CLKID_SD_EMMC_C_MUX] = CLK_MUX("sd_emmc_c_mux",
++		CLKCTRL_NAND_CLK_CTRL, 9, 3, S6_SD_EMMC_PARENTS),
++	[CLKID_SD_EMMC_C_DIV] = CLK_DIV("sd_emmc_c_div",
++		CLKCTRL_NAND_CLK_CTRL, 0, 7, CLKID_SD_EMMC_C_MUX),
++	[CLKID_SD_EMMC_C] = CLK_GATE("sd_emmc_c",
++		CLKCTRL_NAND_CLK_CTRL, 7, CLKID_SD_EMMC_C_DIV),
++
++	/* Ethernet: only fclk_div2 is connected to the RMII mux */
++	[CLKID_ETH_CLK_RMII_MUX] = CLK_MUX("eth_clk_rmii_mux",
++		CLKCTRL_ETH_CLK_CTRL, 9, 3, {
++		EXTERNAL_FCLK_DIV2,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++		-ENOENT,
++	}),
++	[CLKID_ETH_CLK_RMII_DIV] = CLK_DIV("eth_clk_rmii_div",
++		CLKCTRL_ETH_CLK_CTRL, 0, 7, CLKID_ETH_CLK_RMII_MUX),
++	[CLKID_ETH_CLK_RMII] = CLK_GATE("eth_clk_rmii",
++		CLKCTRL_ETH_CLK_CTRL, 8, CLKID_ETH_CLK_RMII_DIV),
++	[CLKID_ETH_CLK125M_DIV] = CLK_DIV_FIXED("eth_clk125m_div", 8,
++		EXTERNAL_FCLK_DIV2),
++	[CLKID_ETH_CLK125M] = CLK_GATE("eth_clk125m",
++		CLKCTRL_ETH_CLK_CTRL, 7, CLKID_ETH_CLK125M_DIV),
++
++	/* SYS_CLK_EN0_REG0 */
++	S6_SYS_GATE(CLKID_SYS_AM_AXI,	"sys_am_axi",	CLKCTRL_SYS_CLK_EN0_REG0, 0),
++	S6_SYS_GATE(CLKID_SYS_DOS,	"sys_dos",	CLKCTRL_SYS_CLK_EN0_REG0, 1),
++	S6_SYS_GATE(CLKID_SYS_VC9000E,	"sys_vc9000e",	CLKCTRL_SYS_CLK_EN0_REG0, 2),
++	S6_SYS_GATE(CLKID_SYS_MIPI_DSI,	"sys_mipi_dsi",	CLKCTRL_SYS_CLK_EN0_REG0, 3),
++	S6_SYS_GATE(CLKID_SYS_ETH_PHY,	"sys_eth_phy",	CLKCTRL_SYS_CLK_EN0_REG0, 4),
++	S6_SYS_GATE(CLKID_SYS_AMFC,	"sys_amfc",	CLKCTRL_SYS_CLK_EN0_REG0, 5),
++	S6_SYS_GATE(CLKID_SYS_MALI,	"sys_mali",	CLKCTRL_SYS_CLK_EN0_REG0, 6),
++	S6_SYS_GATE(CLKID_SYS_NNA,	"sys_nna",	CLKCTRL_SYS_CLK_EN0_REG0, 7),
++	S6_SYS_GATE(CLKID_SYS_ETH_MAC,	"sys_eth_mac",	CLKCTRL_SYS_CLK_EN0_REG0, 8),
++	S6_SYS_GATE(CLKID_SYS_AOCPU,	"sys_aocpu",	CLKCTRL_SYS_CLK_EN0_REG0, 13),
++	S6_SYS_GATE(CLKID_SYS_AUCPU,	"sys_aucpu",	CLKCTRL_SYS_CLK_EN0_REG0, 14),
++	S6_SYS_GATE(CLKID_SYS_CEC,	"sys_cec",	CLKCTRL_SYS_CLK_EN0_REG0, 16),
++	S6_SYS_GATE(CLKID_SYS_MIPI_DSI_PHY, "sys_mipi_dsi_phy", CLKCTRL_SYS_CLK_EN0_REG0, 20),
++	S6_SYS_GATE(CLKID_SYS_SD_EMMC_A, "sys_sd_emmc_a", CLKCTRL_SYS_CLK_EN0_REG0, 24),
++	S6_SYS_GATE(CLKID_SYS_SD_EMMC_B, "sys_sd_emmc_b", CLKCTRL_SYS_CLK_EN0_REG0, 25),
++	S6_SYS_GATE(CLKID_SYS_SD_EMMC_C, "sys_sd_emmc_c", CLKCTRL_SYS_CLK_EN0_REG0, 26),
++	S6_SYS_GATE(CLKID_SYS_SMARTCARD, "sys_smartcard", CLKCTRL_SYS_CLK_EN0_REG0, 27),
++	S6_SYS_GATE(CLKID_SYS_ACODEC,	"sys_acodec",	CLKCTRL_SYS_CLK_EN0_REG0, 28),
++	S6_SYS_GATE(CLKID_SYS_MSR_CLK,	"sys_msr_clk",	CLKCTRL_SYS_CLK_EN0_REG0, 30),
++	S6_SYS_GATE(CLKID_SYS_IR_CTRL,	"sys_ir_ctrl",	CLKCTRL_SYS_CLK_EN0_REG0, 31),
++
++	/* SYS_CLK_EN0_REG1 */
++	S6_SYS_GATE(CLKID_SYS_AUDIO,	"sys_audio",	CLKCTRL_SYS_CLK_EN0_REG1, 0),
++	S6_SYS_GATE(CLKID_SYS_ETH,	"sys_eth",	CLKCTRL_SYS_CLK_EN0_REG1, 3),
++	S6_SYS_GATE(CLKID_SYS_UART_A,	"sys_uart_a",	CLKCTRL_SYS_CLK_EN0_REG1, 5),
++	S6_SYS_GATE(CLKID_SYS_UART_B,	"sys_uart_b",	CLKCTRL_SYS_CLK_EN0_REG1, 6),
++	S6_SYS_GATE(CLKID_SYS_UART_C,	"sys_uart_c",	CLKCTRL_SYS_CLK_EN0_REG1, 7),
++	S6_SYS_GATE(CLKID_SYS_UART_D,	"sys_uart_d",	CLKCTRL_SYS_CLK_EN0_REG1, 8),
++	S6_SYS_GATE(CLKID_SYS_UART_E,	"sys_uart_e",	CLKCTRL_SYS_CLK_EN0_REG1, 9),
++	S6_SYS_GATE(CLKID_SYS_TS_CORE,	"sys_ts_core",	CLKCTRL_SYS_CLK_EN0_REG1, 15),
++	S6_SYS_GATE(CLKID_SYS_TS_PLL,	"sys_ts_pll",	CLKCTRL_SYS_CLK_EN0_REG1, 16),
++	S6_SYS_GATE(CLKID_SYS_CSI_DIG_CLKIN, "sys_csi_dig_clkin", CLKCTRL_SYS_CLK_EN0_REG1, 18),
++	S6_SYS_GATE(CLKID_SYS_GE2D,	"sys_ge2d",	CLKCTRL_SYS_CLK_EN0_REG1, 20),
++	S6_SYS_GATE(CLKID_SYS_SPICC0,	"sys_spicc0",	CLKCTRL_SYS_CLK_EN0_REG1, 21),
++	S6_SYS_GATE(CLKID_SYS_USB3DRD,	"sys_usb3drd",	CLKCTRL_SYS_CLK_EN0_REG1, 25),
++	S6_SYS_GATE(CLKID_SYS_USB2DRD,	"sys_usb2drd",	CLKCTRL_SYS_CLK_EN0_REG1, 26),
++	S6_SYS_GATE(CLKID_SYS_PCIE_PHY,	"sys_pcie_phy",	CLKCTRL_SYS_CLK_EN0_REG1, 27),
++	S6_SYS_GATE(CLKID_SYS_PCIE_MAC,	"sys_pcie_mac",	CLKCTRL_SYS_CLK_EN0_REG1, 28),
++	S6_SYS_GATE(CLKID_SYS_I2C_M_A,	"sys_i2c_m_a",	CLKCTRL_SYS_CLK_EN0_REG1, 30),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_I2C_M_B, "sys_i2c_m_b",
++			    CLKCTRL_SYS_CLK_EN0_REG1, 31, CLKID_SYS_I2C_M_A),
++
++	/* SYS_CLK_EN0_REG2 */
++	S6_SYS_GATE_CHAINED(CLKID_SYS_I2C_M_C, "sys_i2c_m_c",
++			    CLKCTRL_SYS_CLK_EN0_REG2, 0, CLKID_SYS_I2C_M_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_I2C_M_D, "sys_i2c_m_d",
++			    CLKCTRL_SYS_CLK_EN0_REG2, 1, CLKID_SYS_I2C_M_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_I2C_M_E, "sys_i2c_m_e",
++			    CLKCTRL_SYS_CLK_EN0_REG2, 2, CLKID_SYS_I2C_M_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_I2C_M_F, "sys_i2c_m_f",
++			    CLKCTRL_SYS_CLK_EN0_REG2, 3, CLKID_SYS_I2C_M_A),
++	S6_SYS_GATE(CLKID_SYS_HDMITX_APB, "sys_hdmitx_apb", CLKCTRL_SYS_CLK_EN0_REG2, 4),
++	S6_SYS_GATE(CLKID_SYS_I2C_S_A,	"sys_i2c_s_a",	CLKCTRL_SYS_CLK_EN0_REG2, 5),
++	S6_SYS_GATE(CLKID_SYS_HDMI20_AES, "sys_hdmi20_aes", CLKCTRL_SYS_CLK_EN0_REG2, 9),
++	S6_SYS_GATE(CLKID_SYS_MMC_APB,	"sys_mmc_apb",	CLKCTRL_SYS_CLK_EN0_REG2, 11),
++	S6_SYS_GATE(CLKID_SYS_CSI2_HOST, "sys_csi2_host", CLKCTRL_SYS_CLK_EN0_REG2, 16),
++	S6_SYS_GATE(CLKID_SYS_CSI2_ADAPT, "sys_csi2_adapt", CLKCTRL_SYS_CLK_EN0_REG2, 17),
++	S6_SYS_GATE(CLKID_SYS_CPU_APB,	"sys_cpu_apb",	CLKCTRL_SYS_CLK_EN0_REG2, 19),
++	S6_SYS_GATE(CLKID_SYS_DSPA,	"sys_dspa",	CLKCTRL_SYS_CLK_EN0_REG2, 21),
++	S6_SYS_GATE(CLKID_SYS_VPU_INTR,	"sys_vpu_intr",	CLKCTRL_SYS_CLK_EN0_REG2, 25),
++	S6_SYS_GATE(CLKID_SYS_CSI2_PHY0, "sys_csi2_phy0", CLKCTRL_SYS_CLK_EN0_REG2, 27),
++	S6_SYS_GATE(CLKID_SYS_SAR_ADC,	"sys_sar_adc",	CLKCTRL_SYS_CLK_EN0_REG2, 28),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_J, "sys_pwm_j",
++			    CLKCTRL_SYS_CLK_EN0_REG2, 29, CLKID_SYS_PWM_A),
++	S6_SYS_GATE(CLKID_SYS_GIC,	"sys_gic",	CLKCTRL_SYS_CLK_EN0_REG2, 30),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_I, "sys_pwm_i",
++			    CLKCTRL_SYS_CLK_EN0_REG2, 31, CLKID_SYS_PWM_A),
++
++	/* SYS_CLK_EN0_REG3 */
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_H, "sys_pwm_h",
++			    CLKCTRL_SYS_CLK_EN0_REG3, 0, CLKID_SYS_PWM_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_G, "sys_pwm_g",
++			    CLKCTRL_SYS_CLK_EN0_REG3, 1, CLKID_SYS_PWM_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_F, "sys_pwm_f",
++			    CLKCTRL_SYS_CLK_EN0_REG3, 2, CLKID_SYS_PWM_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_E, "sys_pwm_e",
++			    CLKCTRL_SYS_CLK_EN0_REG3, 3, CLKID_SYS_PWM_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_D, "sys_pwm_d",
++			    CLKCTRL_SYS_CLK_EN0_REG3, 4, CLKID_SYS_PWM_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_C, "sys_pwm_c",
++			    CLKCTRL_SYS_CLK_EN0_REG3, 5, CLKID_SYS_PWM_A),
++	S6_SYS_GATE_CHAINED(CLKID_SYS_PWM_B, "sys_pwm_b",
++			    CLKCTRL_SYS_CLK_EN0_REG3, 6, CLKID_SYS_PWM_A),
++	S6_SYS_GATE(CLKID_SYS_PWM_A,	"sys_pwm_a",	CLKCTRL_SYS_CLK_EN0_REG3, 7),
++
++	/* AXI_CLK_EN0 */
++	S6_AXI_GATE(CLKID_AXI_AO_NIC,	"axi_ao_nic",	0),
++	S6_AXI_GATE(CLKID_AXI_SRAM,	"axi_sram",	1),
++	S6_AXI_GATE(CLKID_AXI_DEV0_MMC,	"axi_dev0_mmc",	2),
++	S6_AXI_GATE(CLKID_AXI_CPU_SRAM,	"axi_cpu_sram",	4),
++
++	[EXTERNAL_XTAL] = CLK_EXTERNAL("xtal"),
++	[EXTERNAL_FCLK_DIV2] = CLK_EXTERNAL("fclk_div2"),
++	[EXTERNAL_FCLK_DIV2P5] = CLK_EXTERNAL("fclk_div2p5"),
++	[EXTERNAL_FCLK_DIV3] = CLK_EXTERNAL("fclk_div3"),
++	[EXTERNAL_FCLK_DIV4] = CLK_EXTERNAL("fclk_div4"),
++	[EXTERNAL_FCLK_DIV5] = CLK_EXTERNAL("fclk_div5"),
++	[EXTERNAL_FCLK_DIV7] = CLK_EXTERNAL("fclk_div7"),
++	[EXTERNAL_GP0_PLL] = CLK_EXTERNAL("gp0_pll"),
++	[EXTERNAL_GP1_PLL] = CLK_EXTERNAL("gp1_pll"),
++	[EXTERNAL_HIFI_PLL] = CLK_EXTERNAL("hifi_pll"),
++	[EXTERNAL_SYS_CLK] = CLK_EXTERNAL("sys_clk"),
++	[EXTERNAL_AXI_CLK] = CLK_EXTERNAL("axi_clk"),
++};
++
++static struct meson_clk_data meson_s6_peripherals_info = {
++	.clocks = meson_clocks,
++	.num_clocks = ARRAY_SIZE(meson_clocks),
++};
++
++static struct meson_clk_data meson_s6_pll_info = {
++	.clocks = meson_pll_clocks,
++	.num_clocks = ARRAY_SIZE(meson_pll_clocks),
++};
++
++static bool meson_s6_is_pll(struct udevice *dev)
++{
++	return (void *)dev_get_driver_data(dev) == &meson_s6_pll_info;
++}
++
++/*
++ * The I2C and PWM bus gates are chained in the Linux driver: I2C_M_B..F
++ * are children of I2C_M_A and PWM_B..J are children of PWM_A. Enable the
++ * parent gate as well so that a single controller works on its own.
++ */
++static int meson_s6_chained_parent(ulong id)
++{
++	switch (id) {
++	case CLKID_SYS_I2C_M_B:
++	case CLKID_SYS_I2C_M_C:
++	case CLKID_SYS_I2C_M_D:
++	case CLKID_SYS_I2C_M_E:
++	case CLKID_SYS_I2C_M_F:
++		return CLKID_SYS_I2C_M_A;
++	case CLKID_SYS_PWM_B:
++	case CLKID_SYS_PWM_C:
++	case CLKID_SYS_PWM_D:
++	case CLKID_SYS_PWM_E:
++	case CLKID_SYS_PWM_F:
++	case CLKID_SYS_PWM_G:
++	case CLKID_SYS_PWM_H:
++	case CLKID_SYS_PWM_I:
++	case CLKID_SYS_PWM_J:
++		return CLKID_SYS_PWM_A;
++	default:
++		return -ENOENT;
++	}
++}
++
++/*
++ * The fixed PLL divider gates belong to the secure firmware: never touch
++ * them, only check that the requested divider is running.
++ */
++static int meson_s6_pll_enable(struct clk *clk)
++{
++	struct meson_clk_data *data = (void *)dev_get_driver_data(clk->dev);
++	struct meson_clk *priv = dev_get_priv(clk->dev);
++	const struct meson_clk_info *info;
++
++	if (clk->id >= data->num_clocks || !data->clocks[clk->id])
++		return -ENOENT;
++
++	info = data->clocks[clk->id];
++	if (info->type != MESON_CLK_GATE)
++		return 0;
++
++	if (!GET_PARM_VALUE(priv, info->parm)) {
++		log_warning("%s is disabled by the firmware\n", info->name);
++		return -EACCES;
++	}
++
++	return 0;
++}
++
++static int meson_s6_clk_enable(struct clk *clk)
++{
++	struct clk parent = { .dev = clk->dev };
++	int ret;
++
++	if (meson_s6_is_pll(clk->dev))
++		return meson_s6_pll_enable(clk);
++
++	ret = meson_s6_chained_parent(clk->id);
++	if (ret >= 0) {
++		parent.id = ret;
++		ret = meson_clk_enable(&parent);
++		if (ret)
++			return ret;
++	}
++
++	return meson_clk_enable(clk);
++}
++
++static int meson_s6_clk_disable(struct clk *clk)
++{
++	/* Leave the firmware owned fixed PLL dividers alone */
++	if (meson_s6_is_pll(clk->dev))
++		return 0;
++
++	return meson_clk_disable(clk);
++}
++
++static ulong meson_s6_clk_set_rate(struct clk *clk, ulong rate)
++{
++	if (meson_s6_is_pll(clk->dev))
++		return -EINVAL;
++
++	switch (clk->id) {
++	case CLKID_SD_EMMC_A_DIV:
++	case CLKID_SD_EMMC_B_DIV:
++	case CLKID_SD_EMMC_C_DIV:
++		return meson_composite_set_rate(clk, rate);
++	case CLKID_SD_EMMC_A:
++	case CLKID_SD_EMMC_B:
++	case CLKID_SD_EMMC_C: {
++		struct clk parent = {
++			.dev = clk->dev,
++			.id = meson_clk_get_parent(clk),
++		};
++
++		return meson_s6_clk_set_rate(&parent, rate);
++	}
++	}
++
++	return -EINVAL;
++}
++
++static int meson_s6_clk_set_parent(struct clk *clk, struct clk *parent)
++{
++	if (meson_s6_is_pll(clk->dev))
++		return -EINVAL;
++
++	return meson_clk_set_parent(clk, parent);
++}
++
++static int meson_s6_clk_probe(struct udevice *dev)
++{
++	struct meson_clk *priv = dev_get_priv(dev);
++
++	return regmap_init_mem(dev_ofnode(dev), &priv->map);
++}
++
++static const struct udevice_id meson_s6_clk_ids[] = {
++	{
++		.compatible = "amlogic,s6-peripherals-clkc",
++		.data = (ulong)&meson_s6_peripherals_info,
++	},
++	{
++		.compatible = "amlogic,s6-pll-clkc",
++		.data = (ulong)&meson_s6_pll_info,
++	},
++	{ }
++};
++
++static struct clk_ops meson_s6_clk_ops = {
++	.disable	= meson_s6_clk_disable,
++	.enable		= meson_s6_clk_enable,
++	.get_rate	= meson_clk_get_rate,
++	.set_rate	= meson_s6_clk_set_rate,
++	.set_parent	= meson_s6_clk_set_parent,
++#if IS_ENABLED(CONFIG_CMD_CLK)
++	.dump		= meson_clk_dump,
++#endif
++};
++
++U_BOOT_DRIVER(meson_clk_s6) = {
++	.name		= "meson-clk-s6",
++	.id		= UCLASS_CLK,
++	.of_match	= meson_s6_clk_ids,
++	.priv_auto	= sizeof(struct meson_clk),
++	.ops		= &meson_s6_clk_ops,
++	.probe		= meson_s6_clk_probe,
++};
+-- 
+2.43.0
+

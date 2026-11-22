@@ -1,0 +1,108 @@
+From 339e2f4a4b9828e7b820abc8fb911c206c9ece46 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sat, 21 Nov 2026 18:48:44 +0100
+Subject: [PATCH 05/10] power: domain: meson-secure-pwrc: add Amlogic S6
+ support
+
+Add the power domains of the Amlogic S6 SoC, controlled by the secure
+firmware like on the other recent Amlogic SoCs. The list follows the
+upstream amlogic,s6-pwrc binding.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/power/domain/Kconfig             |  4 +--
+ drivers/power/domain/meson-secure-pwrc.c | 39 ++++++++++++++++++++++++
+ 2 files changed, 41 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/power/domain/Kconfig b/drivers/power/domain/Kconfig
+index e7b4badb..eabc5160 100644
+--- a/drivers/power/domain/Kconfig
++++ b/drivers/power/domain/Kconfig
+@@ -78,10 +78,10 @@ config MESON_GX_VPU_POWER_DOMAIN
+ 
+ config MESON_SECURE_POWER_DOMAIN
+ 	bool "Enable Amlogic Secure power domain driver"
+-	depends on POWER_DOMAIN && ARCH_MESON && (MESON_A1 || MESON_S4 || MESON_T7)
++	depends on POWER_DOMAIN && ARCH_MESON && (MESON_A1 || MESON_S4 || MESON_T7 || MESON_S6)
+ 	help
+ 	  Enable support for manipulating Amlogic Meson Secure power domains.
+-	  Support for Amlogic A1, S4 and T7 series.
++	  Support for Amlogic A1, S4, S6 and T7 series.
+ 
+ config MT2701_POWER_DOMAIN
+ 	bool "Enable the MediaTek power domain driver for MT2701 compatible SoC"
+diff --git a/drivers/power/domain/meson-secure-pwrc.c b/drivers/power/domain/meson-secure-pwrc.c
+index 711aabde..b8d26b51 100644
+--- a/drivers/power/domain/meson-secure-pwrc.c
++++ b/drivers/power/domain/meson-secure-pwrc.c
+@@ -11,6 +11,7 @@
+ #include <dt-bindings/power/meson-a1-power.h>
+ #include <dt-bindings/power/meson-s4-power.h>
+ #include <dt-bindings/power/amlogic,t7-pwrc.h>
++#include <dt-bindings/power/amlogic,s6-pwrc.h>
+ 
+ struct meson_secure_pwrc_domain_desc {
+ 	char *name;
+@@ -190,6 +191,31 @@ static struct meson_secure_pwrc_domain_desc t7_pwrc_domains[] = {
+ };
+ #endif
+ 
++#if IS_ENABLED(CONFIG_MESON_S6)
++static struct meson_secure_pwrc_domain_desc s6_pwrc_domains[] = {
++	SEC_PD(S6_DSPA),
++	SEC_PD(S6_DOS_HEVC),
++	SEC_PD(S6_DOS_VDEC),
++	SEC_PD(S6_VPU_HDMI),
++	SEC_PD(S6_U2DRD),
++	SEC_PD(S6_U3DRD),
++	SEC_PD(S6_SD_EMMC_C),
++	SEC_PD(S6_GE2D),
++	SEC_PD(S6_AMFC),
++	SEC_PD(S6_VC9000E),
++	SEC_PD(S6_DEWARP),
++	SEC_PD(S6_VICP),
++	SEC_PD(S6_SD_EMMC_A),
++	SEC_PD(S6_SD_EMMC_B),
++	SEC_PD(S6_ETH),
++	SEC_PD(S6_PCIE),
++	SEC_PD(S6_NNA_4T),
++	SEC_PD(S6_AUDIO),
++	SEC_PD(S6_AUCPU),
++	SEC_PD(S6_ADAPT),
++};
++#endif
++
+ static const struct power_domain_ops meson_secure_pwrc_ops = {
+ 	.on = meson_secure_pwrc_on,
+ 	.off = meson_secure_pwrc_off,
+@@ -213,6 +239,13 @@ static struct meson_secure_pwrc_domain_data meson_secure_t7_pwrc_data = {
+ };
+ #endif
+ 
++#if IS_ENABLED(CONFIG_MESON_S6)
++static struct meson_secure_pwrc_domain_data meson_secure_s6_pwrc_data = {
++	.count = ARRAY_SIZE(s6_pwrc_domains),
++	.domains = s6_pwrc_domains,
++};
++#endif
++
+ static const struct udevice_id meson_secure_pwrc_ids[] = {
+ 	{
+ 		.compatible = "amlogic,meson-a1-pwrc",
+@@ -227,6 +260,12 @@ static const struct udevice_id meson_secure_pwrc_ids[] = {
+ 		.compatible = "amlogic,t7-pwrc",
+ 		.data = (unsigned long)&meson_secure_t7_pwrc_data,
+ 	},
++#endif
++#if IS_ENABLED(CONFIG_MESON_S6)
++	{
++		.compatible = "amlogic,s6-pwrc",
++		.data = (unsigned long)&meson_secure_s6_pwrc_data,
++	},
+ #endif
+ 	{ }
+ };
+-- 
+2.43.0
+

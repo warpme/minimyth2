@@ -1,0 +1,611 @@
+From 12fbea16f2655f6cd54510bb5f10856160eb5ee4 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sat, 21 Nov 2026 18:53:41 +0100
+Subject: [PATCH 10/10] board: amlogic: add the S905X5 BL201 reference board
+
+Add support for the Amlogic S905X5 (S6) BL201 reference board, with the
+board device tree from the Linux tree used with it.
+
+Supported: console on UART B (921600 baud), SD card, eMMC (high speed
+SDR, the MMC driver has no HS200/HS400 tuning), Gigabit Ethernet on
+RGMII, I2C, GPIOs and the fixed regulators.
+
+As on the Khadas VIM4, the Ethernet MAC address is derived from the SoC
+serial number and also set on the OS MAC node when the OS device tree
+has no "ethernet0" alias.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm/dts/Makefile                         |   3 +
+ .../dts/amlogic-s6-s905x5-bl201-u-boot.dtsi   |  22 +
+ arch/arm/dts/amlogic-s6-s905x5-bl201.dts      | 382 ++++++++++++++++++
+ board/amlogic/bl201/MAINTAINERS               |  16 +
+ board/amlogic/bl201/Makefile                  |   4 +
+ board/amlogic/bl201/bl201.c                   |  48 +++
+ configs/bl201_defconfig                       |  52 +++
+ 7 files changed, 527 insertions(+)
+ create mode 100644 arch/arm/dts/amlogic-s6-s905x5-bl201-u-boot.dtsi
+ create mode 100644 arch/arm/dts/amlogic-s6-s905x5-bl201.dts
+ create mode 100644 board/amlogic/bl201/MAINTAINERS
+ create mode 100644 board/amlogic/bl201/Makefile
+ create mode 100644 board/amlogic/bl201/bl201.c
+ create mode 100644 configs/bl201_defconfig
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 37d3b6fd..e4419d76 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -57,6 +57,9 @@ dtb-$(CONFIG_ARCH_S5P4418) += \
+ dtb-$(CONFIG_ARCH_MESON) += \
+ 	meson-a1-ad401.dtb
+ 
++dtb-$(CONFIG_MESON_S6) += \
++	amlogic-s6-s905x5-bl201.dtb
++
+ dtb-$(CONFIG_ARCH_TEGRA) += \
+ 	tegra20-acer-a500-picasso.dtb \
+ 	tegra20-asus-sl101.dtb \
+diff --git a/arch/arm/dts/amlogic-s6-s905x5-bl201-u-boot.dtsi b/arch/arm/dts/amlogic-s6-s905x5-bl201-u-boot.dtsi
+new file mode 100644
+index 00000000..a35c9357
+--- /dev/null
++++ b/arch/arm/dts/amlogic-s6-s905x5-bl201-u-boot.dtsi
+@@ -0,0 +1,22 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright (c) 2026 Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++ */
++
++#include "amlogic-s6-u-boot.dtsi"
++
++/ {
++	aliases {
++		ethernet0 = &ethmac;
++	};
++};
++
++/*
++ * The U-Boot MMC driver has no HS200/HS400 tuning, run the eMMC in high
++ * speed SDR mode.
++ */
++&emmc {
++	max-frequency = <52000000>;
++	/delete-property/ mmc-hs200-1_8v;
++	/delete-property/ mmc-hs400-1_8v;
++};
+diff --git a/arch/arm/dts/amlogic-s6-s905x5-bl201.dts b/arch/arm/dts/amlogic-s6-s905x5-bl201.dts
+new file mode 100644
+index 00000000..c4a5a5d7
+--- /dev/null
++++ b/arch/arm/dts/amlogic-s6-s905x5-bl201.dts
+@@ -0,0 +1,382 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright (c) Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++ */
++
++/dts-v1/;
++
++#include "amlogic-s6.dtsi"
++
++/ {
++	model = "Amlogic S905X5 BL201 Development Board";
++	compatible = "amlogic,bl201", "amlogic,s6";
++	interrupt-parent = <&gic>;
++	#address-cells = <2>;
++	#size-cells = <2>;
++
++	aliases {
++		serial0 = &uart_b;
++		serial1 = &uart_a;
++		serial2 = &uart_c;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c2 = &i2c2;
++		i2c3 = &i2c3;
++		i2c4 = &i2c4;
++		i2c5 = &i2c5;
++		spi1 = &spicc0;
++		mmc0 = &sd;
++		mmc1 = &emmc;
++	};
++
++	chosen {
++		stdout-path = "serial0:921600n8";
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x000000 0x0 0xe0000000>,
++		      <0x1 0x000000 0x0 0x20000000>;
++	};
++
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		/* 128 MiB MTE tag area */
++		mte_reserved: mte@c000000 {
++			compatible = "shared-dma-pool";
++			reg = <0x0 0x0c000000 0x0 0x8000000>;
++			no-map;
++		};
++
++		/* secure monitor / TEE */
++		secmon_reserved: secmon@5000000 {
++			compatible = "shared-dma-pool";
++			reg = <0x0 0x05000000 0x0 0x1b00000>;
++			no-map;
++		};
++
++		eth_reserved: eth@14000000 {
++			compatible = "shared-dma-pool";
++			reg = <0x0 0x14000000 0x0 0x2400>;
++			no-map;
++		};
++
++		/* global autoconfigured region for contiguous allocations */
++		linux,cma {
++			compatible = "shared-dma-pool";
++			reusable;
++			size = <0x0 0x800000>;
++			alignment = <0x0 0x400000>;
++			linux,cma-default;
++			alloc-ranges = <0x0 0x0 0x0 0xe0000000>;
++		};
++	};
++
++	hdmi-connector {
++		compatible = "hdmi-connector";
++		type = "a";
++
++		port {
++			hdmi_connector_in: endpoint {
++				remote-endpoint = <&hdmi_tx_tmds_out>;
++			};
++		};
++	};
++
++	vin_12v_reg: regulator-vin-12v {
++		compatible = "regulator-fixed";
++		regulator-name = "DC_IN";
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vddao_5v_reg: regulator-vddao-5v {
++		compatible = "regulator-fixed";
++		regulator-name = "VDDAO_5V";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vin_12v_reg>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vdd3v3_ao_reg: regulator-vdd3v3-ao {
++		compatible = "regulator-fixed";
++		regulator-name = "VDDAO_3.3V";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vin_12v_reg>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vdd1v8_dcdc_reg: regulator-vdd1v8-dcdc {
++		compatible = "regulator-fixed";
++		regulator-name = "VDD1V8_DCDC";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		vin-supply = <&vin_12v_reg>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	usb_pwr: regulator-usb-pwr {
++		compatible = "regulator-fixed";
++		regulator-name = "USB_PWR";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vddao_5v_reg>;
++		gpio = <&gpioh 8 GPIO_OPEN_DRAIN>;
++		enable-active-high;
++	};
++
++	vdd2h_reg: regulator-vdd2h {
++		compatible = "regulator-fixed";
++		regulator-name = "VDD2H";
++		regulator-min-microvolt = <1100000>;
++		regulator-max-microvolt = <1100000>;
++		vin-supply = <&vin_12v_reg>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vddq_lpddr4x_reg: regulator-vddq-lpddr4x {
++		compatible = "regulator-fixed";
++		regulator-name = "VDDQ_LPDDR4X";
++		regulator-min-microvolt = <600000>;
++		regulator-max-microvolt = <600000>;
++		vin-supply = <&vin_12v_reg>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vcc5v_reg: regulator-vcc5v {
++		compatible = "regulator-fixed";
++		regulator-name = "VCC5V";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vddao_5v_reg>;
++		gpios = <&gpioh 7 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		startup-delay-us = <7000>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vcc3v3_reg: regulator-vcc3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "VCC3V3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vdd3v3_ao_reg>;
++		/* BSP: GPIOF_2 low/high = enable/disable, no enable-active-high */
++		gpios = <&gpiof 2 GPIO_ACTIVE_HIGH>;
++		startup-delay-us = <7000>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vdd3v3_soc_reg: regulator-vdd3v3-soc {
++		compatible = "regulator-fixed";
++		regulator-name = "VDDIO_SOC";
++		regulator-min-microvolt = <3100000>;
++		regulator-max-microvolt = <3100000>;
++		vin-supply = <&vdd3v3_ao_reg>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vdd1v8_ldo_reg: regulator-vdd1v8-ldo {
++		compatible = "regulator-fixed";
++		regulator-name = "VDD1V8_LDO";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		vin-supply = <&vdd3v3_ao_reg>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	sound {
++		compatible = "amlogic,axg-sound-card";
++		model = "S905X5-BL201";
++		audio-aux-devs = <&tdmout_a>, <&tdmout_b>, <&tdmout_c>;
++		audio-routing = "TDMOUT_A IN 0", "FRDDR_A OUT 0",
++				"TDMOUT_A IN 1", "FRDDR_B OUT 0",
++				"TDMOUT_A IN 2", "FRDDR_C OUT 0",
++				"TDM_A Playback", "TDMOUT_A OUT",
++				"TDMOUT_B IN 0", "FRDDR_A OUT 1",
++				"TDMOUT_B IN 1", "FRDDR_B OUT 1",
++				"TDMOUT_B IN 2", "FRDDR_C OUT 1",
++				"TDM_B Playback", "TDMOUT_B OUT",
++				"TDMOUT_C IN 0", "FRDDR_A OUT 2",
++				"TDMOUT_C IN 1", "FRDDR_B OUT 2",
++				"TDMOUT_C IN 2", "FRDDR_C OUT 2",
++				"TDM_C Playback", "TDMOUT_C OUT";
++		clocks = <&clkc_pll CLKID_HIFI_PLL>;
++		assigned-clocks = <&clkc_pll CLKID_HIFI_PLL>;
++		assigned-clock-rates = <1179648000>;
++
++		dai-link-0 {
++			sound-dai = <&frddr_a>;
++		};
++
++		dai-link-1 {
++			sound-dai = <&frddr_b>;
++		};
++
++		dai-link-2 {
++			sound-dai = <&frddr_c>;
++		};
++
++		/* HDMI audio: TDM_A -> tohdmitx -> HDMI TX */
++		dai-link-3 {
++			sound-dai = <&tdmif_a>;
++			dai-format = "i2s";
++			dai-tdm-slot-tx-mask-0 = <1 1>;
++			mclk-fs = <256>;
++
++			codec {
++				sound-dai = <&tohdmitx TOHDMITX_I2S_IN_A>;
++			};
++		};
++
++		dai-link-4 {
++			sound-dai = <&tohdmitx TOHDMITX_I2S_OUT>;
++
++			codec {
++				sound-dai = <&hdmi_tx>;
++			};
++		};
++	};
++};
++
++&ext_mdio {
++	external_phy: ethernet-phy@0 {
++		/* PHY address is not given in the BSP dts, 0 is a guess */
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <0>;
++		max-speed = <1000>;
++	};
++};
++
++&ethmac {
++	pinctrl-0 = <&eth_pins>, <&eth_rgmii_pins>;
++	pinctrl-names = "default";
++	phy-mode = "rgmii";
++	phy-handle = <&external_phy>;
++	amlogic,tx-delay-ns = <2>;
++	status = "okay";
++};
++
++&i2c0 {
++	pinctrl-0 = <&i2c0_pins4>;
++	pinctrl-names = "default";
++	clock-frequency = <300000>;
++	status = "okay";
++
++	/*
++	 * BSP: silergy,sy602x audio amplifier @0x2a and aw9523b LED
++	 * driver @0x5b - no mainline bindings/drivers for the S6 setup.
++	 */
++};
++
++&i2c5 {
++	pinctrl-0 = <&i2c5_pins3>;
++	pinctrl-names = "default";
++	clock-frequency = <100000>;
++	status = "okay";
++
++	/* BSP: camera sensor @0x1a (no mainline driver binding used) */
++};
++
++/* SD card */
++&sd {
++	pinctrl-0 = <&sdcard_pins>;
++	pinctrl-1 = <&sdcard_clk_gate_pins>;
++	pinctrl-names = "default", "clk-gate";
++	bus-width = <4>;
++	cap-sd-highspeed;
++	max-frequency = <50000000>;
++	disable-wp;
++	cd-gpios = <&gpioc 6 GPIO_ACTIVE_HIGH>;
++	vmmc-supply = <&vcc3v3_reg>;
++	status = "okay";
++};
++
++/* eMMC */
++&emmc {
++	pinctrl-0 = <&emmc_pins>, <&emmc_ds_pins>;
++	pinctrl-1 = <&emmc_clk_gate_pins>;
++	pinctrl-names = "default", "clk-gate";
++	bus-width = <8>;
++	cap-mmc-highspeed;
++	mmc-hs200-1_8v;
++	mmc-hs400-1_8v;
++	max-frequency = <200000000>;
++	non-removable;
++	disable-wp;
++	vmmc-supply = <&vcc3v3_reg>;
++	vqmmc-supply = <&vdd1v8_ldo_reg>;
++	status = "okay";
++};
++
++&uart_a {
++	pinctrl-0 = <&uart_a_pins>;
++	pinctrl-names = "default";
++	uart-has-rtscts;
++	status = "okay";
++};
++
++&uart_b {
++	pinctrl-0 = <&uart_b_pins>;
++	pinctrl-names = "default";
++	status = "okay";
++};
++
++&hdmi_tx {
++	status = "okay";
++};
++
++&hdmi_tx_tmds_out {
++	remote-endpoint = <&hdmi_connector_in>;
++};
++
++&vpu {
++	status = "okay";
++};
++
++&vdec {
++	status = "okay";
++};
++
++&cecb {
++	pinctrl-names = "default";
++	pinctrl-0 = <&hdmitx_cec_pins>;
++	status = "okay";
++};
++
++&usb2_phy0 {
++	status = "okay";
++};
++
++&usb2_phy1 {
++	phy-supply = <&usb_pwr>;
++	status = "okay";
++};
++
++&usb3_phy {
++	status = "okay";
++};
++
++&usb2_drd {
++	status = "okay";
++};
++
++&usb3_drd {
++	status = "okay";
++};
+diff --git a/board/amlogic/bl201/MAINTAINERS b/board/amlogic/bl201/MAINTAINERS
+new file mode 100644
+index 00000000..7172356d
+--- /dev/null
++++ b/board/amlogic/bl201/MAINTAINERS
+@@ -0,0 +1,16 @@
++BL201
++M:	Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++S:	Maintained
++L:	u-boot-amlogic@groups.io
++F:	board/amlogic/bl201/
++F:	configs/bl201_defconfig
++F:	arch/arm/dts/amlogic-s6.dtsi
++F:	arch/arm/dts/amlogic-s6-reset.h
++F:	arch/arm/dts/amlogic-s6-u-boot.dtsi
++F:	arch/arm/dts/amlogic-s6-s905x5-bl201.dts
++F:	arch/arm/dts/amlogic-s6-s905x5-bl201-u-boot.dtsi
++F:	arch/arm/include/asm/arch-meson/s6.h
++F:	arch/arm/mach-meson/board-s6.c
++F:	drivers/clk/meson/s6.c
++F:	drivers/pinctrl/meson/pinctrl-amlogic-a4.c
++F:	include/dt-bindings/clock/amlogic,s6-*.h
+diff --git a/board/amlogic/bl201/Makefile b/board/amlogic/bl201/Makefile
+new file mode 100644
+index 00000000..ff499c76
+--- /dev/null
++++ b/board/amlogic/bl201/Makefile
+@@ -0,0 +1,4 @@
++# SPDX-License-Identifier: GPL-2.0+
++# Copyright (c) 2026 Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++
++obj-y	:= bl201.o
+diff --git a/board/amlogic/bl201/bl201.c b/board/amlogic/bl201/bl201.c
+new file mode 100644
+index 00000000..7b0e065f
+--- /dev/null
++++ b/board/amlogic/bl201/bl201.c
+@@ -0,0 +1,48 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (c) 2026 Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++ *
++ * Amlogic S905X5 (S6) BL201 reference board
++ */
++
++#include <env.h>
++#include <fdt_support.h>
++#include <init.h>
++#include <net.h>
++#include <asm/arch/eth.h>
++#include <linux/libfdt.h>
++
++#define BL201_ETHMAC_PATH	"/soc/ethernet@fe368000"
++
++int misc_init_r(void)
++{
++	meson_generate_serial_ethaddr();
++
++	return 0;
++}
++
++/*
++ * fdt_fixup_ethernet() only passes the MAC address to the OS through an
++ * "ethernet0" alias. Device trees without it would leave the OS with a
++ * random MAC address, so set it on the MAC node directly in that case.
++ */
++int meson_ft_board_setup(void *blob, struct bd_info *bd)
++{
++	u8 mac[ARP_HLEN];
++	int node;
++
++	if (fdt_get_alias(blob, "ethernet0") || fdt_get_alias(blob, "ethernet"))
++		return 0;
++
++	if (!eth_env_get_enetaddr("ethaddr", mac))
++		return 0;
++
++	node = fdt_path_offset(blob, BL201_ETHMAC_PATH);
++	if (node < 0)
++		return 0;
++
++	fdt_setprop(blob, node, "local-mac-address", mac, ARP_HLEN);
++	fdt_setprop(blob, node, "mac-address", mac, ARP_HLEN);
++
++	return 0;
++}
+diff --git a/configs/bl201_defconfig b/configs/bl201_defconfig
+new file mode 100644
+index 00000000..5586ba05
+--- /dev/null
++++ b/configs/bl201_defconfig
+@@ -0,0 +1,52 @@
++CONFIG_ARM=y
++CONFIG_POSITION_INDEPENDENT=y
++CONFIG_ARCH_MESON=y
++CONFIG_TEXT_BASE=0x00000000
++CONFIG_NR_DRAM_BANKS=2
++CONFIG_ENV_SIZE=0x2000
++CONFIG_DM_GPIO=y
++CONFIG_DEFAULT_DEVICE_TREE="amlogic-s6-s905x5-bl201"
++CONFIG_OF_LIBFDT_OVERLAY=y
++CONFIG_MESON_S6=y
++CONFIG_SYS_LOAD_ADDR=0x15000000
++CONFIG_DEBUG_UART_BASE=0xfe07a000
++CONFIG_DEBUG_UART_CLOCK=24000000
++CONFIG_IDENT_STRING=" bl201"
++CONFIG_DEBUG_UART=y
++# CONFIG_EFI_LOADER is not set
++CONFIG_BOOTMETH_SCRIPT=y
++CONFIG_OF_BOARD_SETUP=y
++CONFIG_BOOTCOMMAND="if dhcp ${scriptaddr} /PXEclient/pxelinux.cfg/amlogic-s6-s905x5-bl201.scr; then source ${scriptaddr}; fi; run distro_bootcmd"
++# CONFIG_DISPLAY_CPUINFO is not set
++# CONFIG_DISPLAY_BOARDINFO is not set
++CONFIG_MISC_INIT_R=y
++# CONFIG_CMD_BDI is not set
++# CONFIG_CMD_IMI is not set
++CONFIG_CMD_CLK=y
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_WGET=y
++CONFIG_WGET_HTTPS=y
++CONFIG_CMD_CACHE=y
++CONFIG_CMD_RNG=y
++CONFIG_OF_CONTROL=y
++CONFIG_NET_LWIP=y
++CONFIG_DM_I2C=y
++CONFIG_SYS_I2C_MESON=y
++CONFIG_MMC_MESON_GX=y
++CONFIG_DWC_ETH_QOS=y
++CONFIG_DWC_ETH_QOS_MESON=y
++CONFIG_PHY_REALTEK=y
++CONFIG_PINCTRL=y
++CONFIG_PINCTRL_AMLOGIC_A4=y
++CONFIG_POWER_DOMAIN=y
++CONFIG_MESON_SECURE_POWER_DOMAIN=y
++CONFIG_DM_REGULATOR=y
++CONFIG_DM_REGULATOR_FIXED=y
++CONFIG_DM_REGULATOR_GPIO=y
++CONFIG_BAUDRATE=921600
++CONFIG_DEBUG_UART_ANNOUNCE=y
++CONFIG_DEBUG_UART_SKIP_INIT=y
++CONFIG_MESON_SERIAL=y
++CONFIG_MBEDTLS_LIB=y
+-- 
+2.43.0
+

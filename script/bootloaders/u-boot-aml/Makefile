@@ -197,6 +197,17 @@ PATCHFILES  += 0100-arm-meson-t7-leave-the-display-path-powered-and-cloc.patch
 PATCHFILES  += 0101-arm-meson-t7-initialise-the-HDMI-TX-controller-for-t.patch
 PATCHFILES  += 0102-arm-meson-t7-pass-all-DRAM-banks-to-the-OS.patch
 PATCHFILES  += 0103-board-amlogic-vim4-pass-the-MAC-address-to-the-OS-wi.patch
+# s6 support
+PATCHFILES  += 0113-clk-meson-allow-more-than-255-clocks-per-controller.patch
+PATCHFILES  += 0114-dt-bindings-clock-add-Amlogic-S6-clock-controller-ID.patch
+PATCHFILES  += 0115-clk-meson-add-Amlogic-S6-clock-driver.patch
+PATCHFILES  += 0116-pinctrl-meson-add-Amlogic-A4-style-pin-controller-dr.patch
+PATCHFILES  += 0117-power-domain-meson-secure-pwrc-add-Amlogic-S6-suppor.patch
+PATCHFILES  += 0118-serial-meson-use-the-crystal-divided-by-2-on-S6.patch
+PATCHFILES  += 0119-net-dwc_eth_qos-meson-add-Amlogic-S6-support.patch
+PATCHFILES  += 0120-arm-meson-add-Amlogic-S6-SoC-support.patch
+PATCHFILES  += 0121-arm-dts-add-Amlogic-S6-SoC-device-tree.patch
+PATCHFILES  += 0122-board-amlogic-add-the-S905X5-BL201-reference-board.patch
 # fip additions
 PATCHFILES  += 0200-amlogic-boot-fip-add-enc-bins-support.patch
 PATCHFILES  += 0201-amlogic-boot-fip-add-x96-air-support.patch

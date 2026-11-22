@@ -1,0 +1,50 @@
+From c78e3d8747a38375f5a7484c8a333740b6b009b8 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sat, 21 Nov 2026 18:48:44 +0100
+Subject: [PATCH 06/10] serial: meson: use the crystal divided by 2 on S6
+
+As on T7, the vendor firmware of the Amlogic S6 sets the UARTs up with
+the crystal divided by 2 (REG5 XTAL_DIV2), which gives an accurate
+921600 baud console (12 MHz / 13). With the crystal divided by 3 the
+closest rate is 888888 baud.
+
+Match the "amlogic,s6-uart" compatible, listed before the S4 fallback in
+the S6 device tree, and use the halved crystal for it. Only built in
+for S6, other SoCs are unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/serial/serial_meson.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/serial/serial_meson.c b/drivers/serial/serial_meson.c
+index e00c7496..ad496fa5 100644
+--- a/drivers/serial/serial_meson.c
++++ b/drivers/serial/serial_meson.c
+@@ -69,10 +69,10 @@ struct meson_serial_plat {
+ static u32 meson_uart_xtal_div(struct udevice *dev)
+ {
+ 	/*
+-	 * T7 UARTs are clocked from the crystal divided by 2 (REG5
++	 * T7 and S6 UARTs are clocked from the crystal divided by 2 (REG5
+ 	 * XTAL_DIV2), all other SoCs keep using the crystal divided by 3.
+ 	 */
+-	if (IS_ENABLED(CONFIG_MESON_T7) &&
++	if ((IS_ENABLED(CONFIG_MESON_T7) || IS_ENABLED(CONFIG_MESON_S6)) &&
+ 	    (dev_get_driver_data(dev) & MESON_UART_XTAL_DIV2))
+ 		return 2;
+ 
+@@ -276,6 +276,9 @@ static const struct udevice_id meson_serial_ids[] = {
+ 	{ .compatible = "amlogic,meson-a1-uart" },
+ #if IS_ENABLED(CONFIG_MESON_T7)
+ 	{ .compatible = "amlogic,t7-uart", .data = MESON_UART_XTAL_DIV2 },
++#endif
++#if IS_ENABLED(CONFIG_MESON_S6)
++	{ .compatible = "amlogic,s6-uart", .data = MESON_UART_XTAL_DIV2 },
+ #endif
+ 	{ .compatible = "amlogic,meson-s4-uart" },
+ 	{ }
+-- 
+2.43.0
+
