@@ -1,4 +1,4 @@
-From 53d6742ae27cbeae4c7b991556875ec4e6e2c207 Mon Sep 17 00:00:00 2001
+From df998028e83acc6aa976641fd3e11176f3a538f6 Mon Sep 17 00:00:00 2001
 From: Xilin Wu <sophon@radxa.com>
 Date: Mon, 27 Apr 2026 09:49:09 +0800
 Subject: [PATCH 073/309] platform_profile: Move core out of ACPI
@@ -18,21 +18,22 @@ Signed-off-by: Xilin Wu <sophon@radxa.com>
 ---
  drivers/acpi/Kconfig                          |  3 --
  drivers/acpi/Makefile                         |  1 -
+ drivers/cpufreq/Kconfig.x86                   |  2 +-
  drivers/platform/Kconfig                      |  4 ++
  drivers/platform/Makefile                     |  2 +
- drivers/{acpi => platform}/platform_profile.c | 51 ++++++++++++++++---
+ drivers/{acpi => platform}/platform_profile.c | 53 +++++++++++++++----
  drivers/platform/surface/Kconfig              |  2 +-
- drivers/platform/x86/Kconfig                  |  8 +--
+ drivers/platform/x86/Kconfig                  | 10 ++--
  drivers/platform/x86/amd/pmf/Kconfig          |  2 +-
  drivers/platform/x86/dell/Kconfig             |  4 +-
  drivers/platform/x86/hp/Kconfig               |  2 +-
  drivers/platform/x86/lenovo/Kconfig           |  6 +--
  drivers/thermal/intel/int340x_thermal/Kconfig |  2 +-
- 12 files changed, 62 insertions(+), 25 deletions(-)
+ 13 files changed, 65 insertions(+), 28 deletions(-)
  rename drivers/{acpi => platform}/platform_profile.c (96%)
 
 diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
-index 6f4b545f7..627b8f412 100644
+index f165d14..dd00312 100644
 --- a/drivers/acpi/Kconfig
 +++ b/drivers/acpi/Kconfig
 @@ -351,9 +351,6 @@ config ACPI_THERMAL
@@ -46,7 +47,7 @@ index 6f4b545f7..627b8f412 100644
  	string "Custom DSDT Table file to include"
  	default ""
 diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
-index d1b0affb8..f8af27341 100644
+index d1b0aff..f8af273 100644
 --- a/drivers/acpi/Makefile
 +++ b/drivers/acpi/Makefile
 @@ -91,7 +91,6 @@ obj-$(CONFIG_ACPI_PROCESSOR)	+= processor.o
@@ -57,8 +58,21 @@ index d1b0affb8..f8af27341 100644
  obj-$(CONFIG_ACPI_NFIT)		+= nfit/
  obj-$(CONFIG_ACPI_NHLT)		+= nhlt.o
  obj-$(CONFIG_ACPI_NUMA)		+= numa/
+diff --git a/drivers/cpufreq/Kconfig.x86 b/drivers/cpufreq/Kconfig.x86
+index d6190b8..9e1e339 100644
+--- a/drivers/cpufreq/Kconfig.x86
++++ b/drivers/cpufreq/Kconfig.x86
+@@ -39,7 +39,7 @@ config X86_AMD_PSTATE
+ 	select ACPI_PROCESSOR
+ 	select ACPI_CPPC_LIB if X86_64
+ 	select CPU_FREQ_GOV_SCHEDUTIL if SMP
+-	select ACPI_PLATFORM_PROFILE
++	select PLATFORM_PROFILE
+ 	select POWER_SUPPLY
+ 	help
+ 	  This driver adds a CPUFreq driver which utilizes a fine grain
 diff --git a/drivers/platform/Kconfig b/drivers/platform/Kconfig
-index 312788f24..2d4195fd4 100644
+index 312788f..2d4195f 100644
 --- a/drivers/platform/Kconfig
 +++ b/drivers/platform/Kconfig
 @@ -1,4 +1,8 @@
@@ -71,7 +85,7 @@ index 312788f24..2d4195fd4 100644
  
  source "drivers/platform/loongarch/Kconfig"
 diff --git a/drivers/platform/Makefile b/drivers/platform/Makefile
-index fa322e7f8..ca4705abb 100644
+index fa322e7..ca4705a 100644
 --- a/drivers/platform/Makefile
 +++ b/drivers/platform/Makefile
 @@ -3,6 +3,8 @@
@@ -87,7 +101,7 @@ diff --git a/drivers/acpi/platform_profile.c b/drivers/platform/platform_profile
 similarity index 96%
 rename from drivers/acpi/platform_profile.c
 rename to drivers/platform/platform_profile.c
-index b9e4a14ca..121acc5ae 100644
+index 65adcfc..bbadf94 100644
 --- a/drivers/acpi/platform_profile.c
 +++ b/drivers/platform/platform_profile.c
 @@ -4,7 +4,6 @@
@@ -98,7 +112,7 @@ index b9e4a14ca..121acc5ae 100644
  #include <linux/bits.h>
  #include <linux/cleanup.h>
  #include <linux/init.h>
-@@ -12,6 +11,10 @@
+@@ -13,6 +12,10 @@
  #include <linux/platform_profile.h>
  #include <linux/sysfs.h>
  
@@ -108,8 +122,8 @@ index b9e4a14ca..121acc5ae 100644
 +
  #define to_pprof_handler(d)	(container_of(d, struct platform_profile_handler, dev))
  
- static DEFINE_MUTEX(profile_lock);
-@@ -45,11 +48,17 @@ static_assert(ARRAY_SIZE(profile_names) == PLATFORM_PROFILE_LAST);
+ /*
+@@ -54,11 +57,17 @@ static_assert(ARRAY_SIZE(profile_names) == PLATFORM_PROFILE_LAST);
  
  static DEFINE_IDA(platform_profile_ida);
  
@@ -125,9 +139,15 @@ index b9e4a14ca..121acc5ae 100644
 +}
 +#endif
  
- /**
-  * _commmon_choices_show - Show the available profile choices
-@@ -480,6 +489,15 @@ static const struct attribute_group platform_profile_group = {
+ static int profile_for_each_handler(void *data,
+ 				    int (*fn)(struct device *dev, void *data))
+@@ -485,11 +494,20 @@ static umode_t profile_class_is_visible(struct kobject *kobj, struct attribute *
+ 	return list_empty(&profile_handlers) ? 0 : attr->mode;
+ }
+ 
+-static const struct attribute_group platform_profile_group = {
++static const struct attribute_group platform_profile_group __maybe_unused = {
+ 	.attrs = platform_profile_attrs,
  	.is_visible = profile_class_is_visible,
  };
  
@@ -143,7 +163,7 @@ index b9e4a14ca..121acc5ae 100644
  static int platform_profile_legacy_update_group(void)
  {
  	if (!acpi_kobj)
-@@ -488,6 +506,27 @@ static int platform_profile_legacy_update_group(void)
+@@ -498,6 +516,27 @@ static int platform_profile_legacy_update_group(void)
  	return sysfs_update_group(acpi_kobj, &platform_profile_group);
  }
  
@@ -171,7 +191,7 @@ index b9e4a14ca..121acc5ae 100644
  /**
   * platform_profile_notify - Notify class device and legacy sysfs interface
   * @dev: The class device
-@@ -709,10 +748,7 @@ static int __init platform_profile_init(void)
+@@ -724,10 +763,7 @@ static int __init platform_profile_init(void)
  	if (err)
  		return err;
  
@@ -183,7 +203,7 @@ index b9e4a14ca..121acc5ae 100644
  	if (err)
  		class_unregister(&platform_profile_class);
  
-@@ -721,13 +757,12 @@ static int __init platform_profile_init(void)
+@@ -736,13 +772,12 @@ static int __init platform_profile_init(void)
  
  static void __exit platform_profile_exit(void)
  {
@@ -200,7 +220,7 @@ index b9e4a14ca..121acc5ae 100644
 +MODULE_DESCRIPTION("Platform profile sysfs interface");
  MODULE_LICENSE("GPL");
 diff --git a/drivers/platform/surface/Kconfig b/drivers/platform/surface/Kconfig
-index f775c6ca1..3215399b7 100644
+index f775c6c..3215399 100644
 --- a/drivers/platform/surface/Kconfig
 +++ b/drivers/platform/surface/Kconfig
 @@ -203,7 +203,7 @@ config SURFACE_PLATFORM_PROFILE
@@ -213,10 +233,19 @@ index f775c6ca1..3215399b7 100644
  	  Provides support for the ACPI platform profile on 5th- and later
  	  generation Microsoft Surface devices.
 diff --git a/drivers/platform/x86/Kconfig b/drivers/platform/x86/Kconfig
-index 4cb7d97a9..e9ae7e53f 100644
+index 957034f..eae75eb 100644
 --- a/drivers/platform/x86/Kconfig
 +++ b/drivers/platform/x86/Kconfig
-@@ -161,7 +161,7 @@ config ACER_WMI
+@@ -120,7 +120,7 @@ config BITLAND_MIFS_WMI
+ 	depends on INPUT
+ 	depends on LEDS_CLASS
+ 	depends on POWER_SUPPLY
+-	select ACPI_PLATFORM_PROFILE
++	select PLATFORM_PROFILE
+ 	select INPUT_SPARSEKMAP
+ 	help
+ 	  This is a driver for Bitland MiInterface based laptops.
+@@ -180,7 +180,7 @@ config ACER_WMI
  	select INPUT_SPARSEKMAP
  	select LEDS_CLASS
  	select NEW_LEDS
@@ -225,7 +254,7 @@ index 4cb7d97a9..e9ae7e53f 100644
  	help
  	  This is a driver for newer Acer (and Wistron) laptops. It adds
  	  wireless radio and bluetooth control, and on some laptops,
-@@ -260,7 +260,7 @@ config ASUS_WMI
+@@ -279,7 +279,7 @@ config ASUS_WMI
  	select INPUT_SPARSEKMAP
  	select LEDS_CLASS
  	select NEW_LEDS
@@ -234,7 +263,7 @@ index 4cb7d97a9..e9ae7e53f 100644
  	help
  	  Say Y here if you have a WMI aware Asus laptop (like Eee PCs or new
  	  Asus Notebooks).
-@@ -626,7 +626,7 @@ config SAMSUNG_GALAXYBOOK
+@@ -646,7 +646,7 @@ config SAMSUNG_GALAXYBOOK
  	depends on INPUT
  	depends on LEDS_CLASS
  	depends on SERIO_I8042
@@ -243,7 +272,7 @@ index 4cb7d97a9..e9ae7e53f 100644
  	select FW_ATTR_CLASS
  	help
  	  This is a driver for Samsung Galaxy Book series notebooks. It adds
-@@ -886,7 +886,7 @@ config TOUCHSCREEN_DMI
+@@ -905,7 +905,7 @@ config TOUCHSCREEN_DMI
  config INSPUR_PLATFORM_PROFILE
  	tristate "Inspur WMI platform profile driver"
  	depends on ACPI_WMI
@@ -253,7 +282,7 @@ index 4cb7d97a9..e9ae7e53f 100644
  	This will allow users to determine and control the platform modes
  	between low-power, balanced and performance modes.
 diff --git a/drivers/platform/x86/amd/pmf/Kconfig b/drivers/platform/x86/amd/pmf/Kconfig
-index 25b8f7ae3..a0bdd85db 100644
+index ad4faf1..31e13d6 100644
 --- a/drivers/platform/x86/amd/pmf/Kconfig
 +++ b/drivers/platform/x86/amd/pmf/Kconfig
 @@ -8,7 +8,7 @@ config AMD_PMF
@@ -266,7 +295,7 @@ index 25b8f7ae3..a0bdd85db 100644
  	depends on AMD_SFH_HID
  	depends on HAS_IOMEM
 diff --git a/drivers/platform/x86/dell/Kconfig b/drivers/platform/x86/dell/Kconfig
-index 738c108c2..660b5cb4b 100644
+index 9f00160..f6acf1c 100644
 --- a/drivers/platform/x86/dell/Kconfig
 +++ b/drivers/platform/x86/dell/Kconfig
 @@ -44,7 +44,7 @@ config ALIENWARE_WMI_WMAX
@@ -288,7 +317,7 @@ index 738c108c2..660b5cb4b 100644
  	This driver adds support for controlling the fan modes via platform_profile
  	on supported Dell systems regardless of formfactor.
 diff --git a/drivers/platform/x86/hp/Kconfig b/drivers/platform/x86/hp/Kconfig
-index dd51491b9..81a52194f 100644
+index dd51491..81a5219 100644
 --- a/drivers/platform/x86/hp/Kconfig
 +++ b/drivers/platform/x86/hp/Kconfig
 @@ -43,7 +43,7 @@ config HP_WMI
@@ -301,7 +330,7 @@ index dd51491b9..81a52194f 100644
  	help
  	  Say Y here if you want to support WMI-based hotkeys on HP laptops and
 diff --git a/drivers/platform/x86/lenovo/Kconfig b/drivers/platform/x86/lenovo/Kconfig
-index f885127b0..11c453274 100644
+index 5165949..2291e1d 100644
 --- a/drivers/platform/x86/lenovo/Kconfig
 +++ b/drivers/platform/x86/lenovo/Kconfig
 @@ -12,7 +12,7 @@ config IDEAPAD_LAPTOP
@@ -313,7 +342,7 @@ index f885127b0..11c453274 100644
  	select INPUT_SPARSEKMAP
  	select NEW_LEDS
  	select LEDS_CLASS
-@@ -63,7 +63,7 @@ config THINKPAD_ACPI
+@@ -77,7 +77,7 @@ config THINKPAD_ACPI
  	depends on BACKLIGHT_CLASS_DEVICE
  	depends on I2C
  	depends on DRM
@@ -322,7 +351,7 @@ index f885127b0..11c453274 100644
  	select DRM_PRIVACY_SCREEN
  	select HWMON
  	select NVRAM
-@@ -249,7 +249,7 @@ config LENOVO_WMI_GAMEZONE
+@@ -264,7 +264,7 @@ config LENOVO_WMI_GAMEZONE
  	tristate "Lenovo GameZone WMI Driver"
  	depends on ACPI_WMI
  	depends on DMI
@@ -330,9 +359,9 @@ index f885127b0..11c453274 100644
 +	select PLATFORM_PROFILE
  	select LENOVO_WMI_EVENTS
  	select LENOVO_WMI_HELPERS
- 	select LENOVO_WMI_TUNING
+ 	help
 diff --git a/drivers/thermal/intel/int340x_thermal/Kconfig b/drivers/thermal/intel/int340x_thermal/Kconfig
-index 4ced7bdcd..3026a0a8d 100644
+index 4ced7bd..3026a0a 100644
 --- a/drivers/thermal/intel/int340x_thermal/Kconfig
 +++ b/drivers/thermal/intel/int340x_thermal/Kconfig
 @@ -12,7 +12,7 @@ config INT340X_THERMAL
@@ -345,29 +374,5 @@ index 4ced7bdcd..3026a0a8d 100644
  	help
  	  Newer laptops and tablets that use ACPI may have thermal sensors and
 -- 
-2.53.0
+2.43.0
 
-diff --speed-large-files --no-dereference --minimal -Naur linux-7.1.3/drivers/cpufreq/Kconfig.x86 linux-7.1.3/drivers/cpufreq/Kconfig.x86
---- linux-7.1.3/drivers/cpufreq/Kconfig.x86	2026-07-04 13:45:09.000000000 +0200
-+++ linux-7.1.3/drivers/cpufreq/Kconfig.x86	2026-07-14 17:12:18.725405272 +0200
-@@ -40,7 +40,7 @@
- 	select ACPI_PROCESSOR
- 	select ACPI_CPPC_LIB if X86_64
- 	select CPU_FREQ_GOV_SCHEDUTIL if SMP
--	select ACPI_PLATFORM_PROFILE
-+	select PLATFORM_PROFILE
- 	select POWER_SUPPLY
- 	help
- 	  This driver adds a CPUFreq driver which utilizes a fine grain
-diff --speed-large-files --no-dereference --minimal -Naur linux-7.1.3/drivers/platform/x86/Kconfig linux-7.1.3/drivers/platform/x86/Kconfig
---- linux-7.1.3/drivers/platform/x86/Kconfig	2026-07-14 17:13:19.608123394 +0200
-+++ linux-7.1.3/drivers/platform/x86/Kconfig	2026-07-14 17:12:42.285355484 +0200
-@@ -120,7 +120,7 @@
- 	depends on INPUT
- 	depends on LEDS_CLASS
- 	depends on POWER_SUPPLY
--	select ACPI_PLATFORM_PROFILE
-+	select PLATFORM_PROFILE
- 	select INPUT_SPARSEKMAP
- 	help
- 	  This is a driver for Bitland MiInterface based laptops.

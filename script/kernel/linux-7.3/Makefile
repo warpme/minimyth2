@@ -55,7 +55,6 @@ PATCHFILES += 0110-drivers-net-wireless-brcmfmac-add-ap6330-firmware.patch
 endif
 
 PATCHFILES += 0111-fs-ovelays-move-xino-msg-to-debug.patch
-PATCHFILES += 0112-net-r8169-enable-the-RxOverflow-interrupt-again.patch
 
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
@@ -204,11 +203,9 @@ PATCHFILES += 1754-drm-meson-add-T7-VPU-support-v2.patch
 PATCHFILES += 1755-drm-meson-add-the-T7-HDMI-2.1-transmitter-bridge.patch
 PATCHFILES += 1756-ASoC-meson-g12a-tohdmitx-add-T7-with-the-master-cloc.patch
 PATCHFILES += 1757-pwm-meson-Add-optional-bus-clock-for-S4-.patch
-PATCHFILES += 1758-thermal-drivers-amlogic-switch-to-clk_bulk-API-to-su.patch
 PATCHFILES += 1759-cpufreq-amlogic-add-T7-support.patch
 PATCHFILES += 1760-dt-bindings-clock-add-the-Amlogic-T7-CPU-clock-contr.patch
 PATCHFILES += 1761-clk-meson-add-the-T7-CPU-clock-controller.patch
-PATCHFILES += 1762-clk-meson-t7-keep-the-memory-fabric-clocks-running.patch
 PATCHFILES += 1763-clk-meson-t7-don-t-mark-sys_ampipe_nand-as-critical.patch
 PATCHFILES += 1764-clk-meson-t7-keep-the-Ethernet-pipeline-clock-on.patch
 PATCHFILES += 1765-clk-meson-t7-keep-the-MMC-APB-clock-on.patch
@@ -225,7 +222,6 @@ PATCHFILES += 1775-media-amvdec-t7-byte-swap-MPEG-2-output.patch
 PATCHFILES += 1776-amvdec-av1-t7-program-parser-front-end-from-host.patch
 PATCHFILES += 1777-amvdec-av1-t7-rpm-word-order.patch
 # s6 drivers additions
-# PATCHFILES += 1785-clk-amlogic-add-s7-clock-controllers.patch
 PATCHFILES += 1785-clk-amlogic-add-s6-clock-controllers.patch
 PATCHFILES += 1786-clk-amlogic-clk-measure-add-support-for-more-SoCs.patch
 PATCHFILES += 1787-reset-amlogic-add-support-for-S6-S7-S7D.patch
@@ -336,8 +332,6 @@ endif
 PATCHFILES += 2300-arm64-dtsi-allwinner-h6-Protect-SCP-clock.patch
 PATCHFILES += 2301-arm64-dtsi-allwinner-h6-Add-SCPI-protocol.patch
 PATCHFILES += 2302-arm64-dtsi-allwinner-h6-dtsi-add-sound-node.patch
-PATCHFILES += 2303-arm64-dtsi-allwinner-sun50i-h6-Add-missing-SRAM-regio.patch
-PATCHFILES += 2304-arm64-dtsi-allwinner-sun50i-h6-Add-missing-IOMMU-for-.patch
 PATCHFILES += 2304-arm64-dtsi-allwinner-h6-add-ac200-nodes.patch
 # h6 board dts additions
 PATCHFILES += 2305-arm64-dts-allwinner-gs1-fixes.patch
@@ -484,39 +478,23 @@ PATCHFILES += 3402-net-wireless-backport-aic8800-usb-v2026_0123_5f7be68d-mm2.pat
 PATCHFILES += 3403-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
 PATCHFILES += 3404-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
 PATCHFILES += 3405-clk-composite-replace-open-coded-abs_diff.patch
-PATCHFILES += 3406-mfd-rk8xx-Fix-shutdown-handler.patch
 PATCHFILES += 3407-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 3408-net-phy-realtek-Reset-after-clock-enable.patch
 PATCHFILES += 3409-net-phy-realtek-re-init-after-reset.patch
 # drm enhacements from collabora rockchip-devel tree 14.09.2026
 # phy
 PATCHFILES += 3420-phy-rockchip-inno-usb2-add-soft-vbusvalid-control.patch
-PATCHFILES += 3422-phy-rockchip-usbdp-Update-mode_change-after-error-ha.patch
-PATCHFILES += 3423-phy-rockchip-usbdp-Do-not-lose-USB3-PHY-status.patch
-PATCHFILES += 3424-phy-rockchip-usbdp-Fix-devm_clk_bulk_get_all-check.patch
-PATCHFILES += 3425-phy-rockchip-usbdp-Handle-missing-clock-names-DT-pro.patch
-PATCHFILES += 3426-phy-rockchip-usbdp-Drop-seamless-DP-takeover.patch
 PATCHFILES += 3427-phy-rockchip-usbdp-Keep-clocks-running-on-PHY-re-ini.patch
 PATCHFILES += 3428-phy-rockchip-usbdp-Amend-SSC-modulation-deviation.patch
 PATCHFILES += 3429-phy-rockchip-usbdp-Fix-LFPS-detect-threshold-control.patch
-PATCHFILES += 3430-phy-rockchip-usbdp-Add-missing-mode_change-update.patch
-PATCHFILES += 3431-phy-rockchip-usbdp-Support-single-lane-DP.patch
-PATCHFILES += 3432-phy-rockchip-usbdp-Limit-DP-lane-count-to-muxed-lane.patch
 PATCHFILES += 3433-phy-rockchip-usbdp-Rename-DP-lane-functions.patch
 PATCHFILES += 3434-phy-rockchip-usbdp-Use-FIELD_PREP_WM16_CONST.patch
 PATCHFILES += 3435-phy-rockchip-usbdp-Cleanup-DP-lane-selection-functio.patch
 PATCHFILES += 3436-phy-rockchip-usbdp-Register-DP-aux-bridge.patch
-PATCHFILES += 3437-phy-rockchip-usbdp-Drop-DP-HPD-handling.patch
-PATCHFILES += 3438-phy-rockchip-usbdp-Rename-mode_change-to-phy_needs_r.patch
 PATCHFILES += 3439-phy-rockchip-usbdp-Re-init-the-PHY-on-orientation-ch.patch
 PATCHFILES += 3440-phy-rockchip-usbdp-Factor-out-lane_mux_sel-setup.patch
-PATCHFILES += 3441-phy-rockchip-usbdp-Properly-handle-TYPEC_STATE_SAFE-.patch
 PATCHFILES += 3442-phy-rockchip-usbdp-Use-guard-functions-for-mutex.patch
-PATCHFILES += 3443-phy-rockchip-usbdp-Hold-mutex-in-DP-PHY-configure.patch
 PATCHFILES += 3444-phy-rockchip-usbdp-Add-some-extra-debug-messages.patch
-PATCHFILES += 3445-phy-rockchip-usbdp-Avoid-xHCI-SErrors.patch
-PATCHFILES += 3446-phy-rockchip-usbdp-Handle-rk_udphy_reset_deassert-er.patch
-PATCHFILES += 3447-phy-rockchip-usbdp-Only-enable-USB3-when-not-in-high.patch
 PATCHFILES += 3448-phy-core-add-notifier-infrastructure.patch
 PATCHFILES += 3449-phy-rockchip-usbdp-Add-phy-reset-notification-suppor.patch
 PATCHFILES += 3450-phy-rockchip-usbdp-Drop-EPROBE_DEFER-hack.patch
@@ -560,7 +538,6 @@ PATCHFILES += 3491-drm-display-Add-soft-depend-for-aux-hpd-typec-dp-bri.patch
 PATCHFILES += 3492-drm-rockchip-Select-SND_SOC_HDMI_CODEC-for-ROCKCHIP_.patch
 PATCHFILES += 3493-drm-rockchip-Select-SND_SOC_HDMI_CODEC-for-ROCKCHIP_.patch
 PATCHFILES += 3494-drm-connector-Cache-out-of-band-hotplug-events.patch
-PATCHFILES += 3495-drm-connector-hdmi-Handle-reset-state-allocation-fai.patch
 # usbdp
 PATCHFILES += 3540-usb-dwc3-rockchip-introduce-glue-driver.patch
 PATCHFILES += 3541-usb-dwc3-core-add-post-PHY-registration-hook-for-pla.patch
@@ -608,6 +585,8 @@ PATCHFILES += 3589-drm-rockchip-vop2-Resume-the-IOMMU-explicitly-if-req.patch
 PATCHFILES += 3590-ASoC-dt-bindings-rockchip-rk3576-sai-Add-RK3528-comp.patch
 PATCHFILES += 3593-media-rkvdec-Add-support-for-the-VDPU382-variant-RK3.patch
 PATCHFILES += 3595-thermal-drivers-rockchip-Add-support-for-RK3528.patch
+PATCHFILES += 3596-PM-devfreq-Keep-the-resume-frequency-across-suspend.patch
+PATCHFILES += 3597-pmdomain-rockchip-Don-t-put-an-error-pointer-on-cloc.patch
 # rk35xx dtsi additions
 PATCHFILES += 3600-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 3601-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
@@ -624,6 +603,7 @@ PATCHFILES += 3616-arm64-dts-rockchip-rk3528-Use-the-IOMMU-for-the-VOP.patch
 PATCHFILES += 3617-arm64-dts-rockchip-rk3528-Add-SAI3-and-HDMI-sound-no.patch
 PATCHFILES += 3618-arm64-dts-rockchip-rk3528-Add-video-decoder-nodes.patch
 PATCHFILES += 3619-arm64-dts-rockchip-rk3528-Add-TSADC-and-thermal-zone.patch
+PATCHFILES += 3620-arm64-dts-rockchip-rk3528-Add-the-HEVC-CABAC-clock-t.patch
 # rk3588 overlays
 PATCHFILES += 3650-arm64-dts-rockchip-rk3588-add-useful-overlays.patch
 # rk35xx board dts additions

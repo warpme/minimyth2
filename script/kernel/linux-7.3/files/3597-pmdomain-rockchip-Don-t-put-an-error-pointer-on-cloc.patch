@@ -1,0 +1,77 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 59eb89c10008f3c49568ecb9b5ea3ad07f117b00 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Mon, 23 Nov 2026 11:41:34 +0100
+Subject: [PATCH] pmdomain: rockchip: Don't put an error pointer on clock
+ lookup failure
+
+When a clock of a power domain cannot be looked up yet, e.g. because
+the CRU is a platform driver that has not probed yet, the error path
+calls clk_bulk_put() on all the clocks of the domain, including the
+error pointer returned by of_clk_get(). This triggers the
+WARN_ON_ONCE(IS_ERR(clk)) in __clk_put() on every boot of the RK3528,
+for a perfectly normal probe deferral.
+
+Clear the failed entry before putting the clocks, so that only the
+clocks that were actually obtained are put, and use dev_err_probe() so
+that the probe deferral is no longer reported as an error.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/pmdomain/rockchip/pm-domains.c | 16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/pmdomain/rockchip/pm-domains.c b/drivers/pmdomain/rockchip/pm-domains.c
+index e193f97..7351eb4 100644
+--- a/drivers/pmdomain/rockchip/pm-domains.c
++++ b/drivers/pmdomain/rockchip/pm-domains.c
+@@ -851,9 +851,11 @@ static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
+ 		pd->clks[i].clk = of_clk_get(node, i);
+ 		if (IS_ERR(pd->clks[i].clk)) {
+ 			error = PTR_ERR(pd->clks[i].clk);
+-			dev_err(pmu->dev,
+-				"%pOFn: failed to get clk at index %d: %d\n",
+-				node, i, error);
++			/* Don't let clk_bulk_put() put the error pointer */
++			pd->clks[i].clk = NULL;
++			dev_err_probe(pmu->dev, error,
++				      "%pOFn: failed to get clk at index %d\n",
++				      node, i);
+ 			goto err_put_clocks;
+ 		}
+ 	}
+@@ -1006,8 +1008,8 @@ static int rockchip_pm_add_subdomain(struct rockchip_pmu *pmu,
+ 
+ 		error = rockchip_pm_add_one_domain(pmu, np);
+ 		if (error) {
+-			dev_err(pmu->dev, "failed to handle node %pOFn: %d\n",
+-				np, error);
++			dev_err_probe(pmu->dev, error,
++				      "failed to handle node %pOFn\n", np);
+ 			return error;
+ 		}
+ 
+@@ -1102,8 +1104,8 @@ static int rockchip_pm_domain_probe(struct platform_device *pdev)
+ 	for_each_available_child_of_node_scoped(np, node) {
+ 		error = rockchip_pm_add_one_domain(pmu, node);
+ 		if (error) {
+-			dev_err(dev, "failed to handle node %pOFn: %d\n",
+-				node, error);
++			dev_err_probe(dev, error, "failed to handle node %pOFn\n",
++				      node);
+ 			goto err_out;
+ 		}
+ 
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+

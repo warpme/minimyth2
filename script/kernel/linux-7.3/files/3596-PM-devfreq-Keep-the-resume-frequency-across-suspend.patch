@@ -1,0 +1,82 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From cce5a4d0b1ea623ff3c06df8dd3949200d567a27 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Mon, 23 Nov 2026 09:12:16 +0100
+Subject: [PATCH] PM / devfreq: Keep the resume frequency across suspend
+
+A device with an opp-suspend frequency, like the RK3528 GPU handled by
+lima, which calls devfreq_suspend_device() and devfreq_resume_device()
+from its runtime PM callbacks, gets stuck at its suspend frequency when
+using the performance (or userspace) governor:
+
+- devfreq_suspend_device() switches to the suspend frequency through
+  devfreq_set_target(), which also stores it as the resume frequency,
+  overwriting the frequency used before the suspend,
+- devfreq_resume_device() then "restores" the suspend frequency, and
+  the performance and userspace governors don't reevaluate the target
+  frequency on DEVFREQ_GOV_RESUME, unlike the polling governors.
+
+So after the first runtime suspend of the GPU, it stays at 300 MHz
+forever.
+
+Don't update the resume frequency while the device is suspended, so
+the switch to the suspend frequency no longer overwrites it.
+
+Also, while the device is suspended, don't program a new target
+frequency, e.g. when switching governors or changing min_freq, as the
+hardware may not be accessible (on RK3528 setting a GPU rate above
+300 MHz with the GPU power domain off can hang the system). Only record
+it as the frequency to restore on resume instead.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/devfreq/devfreq.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/devfreq/devfreq.c b/drivers/devfreq/devfreq.c
+index 82dd9a43d..e057fcdb1 100644
+--- a/drivers/devfreq/devfreq.c
++++ b/drivers/devfreq/devfreq.c
+@@ -381,7 +381,11 @@ static int devfreq_set_target(struct devfreq *devfreq, unsigned long new_freq,
+ 
+ 	devfreq->previous_freq = new_freq;
+ 
+-	if (devfreq->suspend_freq)
++	/*
++	 * Don't let the switch to the suspend frequency overwrite the
++	 * frequency to restore on resume.
++	 */
++	if (devfreq->suspend_freq && !atomic_read(&devfreq->suspend_count))
+ 		devfreq->resume_freq = new_freq;
+ 
+ 	return err;
+@@ -423,6 +427,16 @@ int devfreq_update_target(struct devfreq *devfreq, unsigned long freq)
+ 		flags |= DEVFREQ_FLAG_LEAST_UPPER_BOUND; /* Use LUB */
+ 	}
+ 
++	/*
++	 * While the device is suspended it stays at its suspend frequency,
++	 * and its clocks may not even be accessible, so only update the
++	 * frequency to restore on resume.
++	 */
++	if (devfreq->suspend_freq && atomic_read(&devfreq->suspend_count)) {
++		devfreq->resume_freq = freq;
++		return 0;
++	}
++
+ 	return devfreq_set_target(devfreq, freq, flags);
+ }
+ EXPORT_SYMBOL(devfreq_update_target);
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+
