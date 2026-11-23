@@ -17,6 +17,9 @@
 # mm_U-BOOT_BOARD_TYPE      = board-rk3528.rock2-a
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-2-rk3528_defconfig
 
+# mm_U-BOOT_BOARD_TYPE      = board-rk3528.vontar_r3
+# mm_U-BOOT_BOARD_DEFCONFIG = vontar-r3_defconfig
+
 # mm_U-BOOT_BOARD_TYPE      = board-rk3566.orangepi_3b
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-3b-rk3566_defconfig
 
@@ -131,6 +134,9 @@ PATCHFILES  += 70-rk3399-add-rock-pi-4b-rk3399_defconfig.patch
 PATCHFILES  += 71-rk3399-add-rock-pi-4se-rk3399_defconfig.patch
 PATCHFILES  += 74-add-nanopi-m6-rk3588s_defconfig.patch
 PATCHFILES  += 75-rk3528-rock-2a-defconfig-enable-netbooting.patch
+PATCHFILES  += 76-net-dwc_eth_qos_rockchip-Power-up-the-RK3528-integra.patch
+PATCHFILES  += 77-rockchip-rk3528-Add-generic-target-with-Ethernet-on-.patch
+PATCHFILES  += 78-rk3528-add-vontar-r3_defconfig.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2

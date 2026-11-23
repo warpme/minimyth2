@@ -1,0 +1,139 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From d020fbb7c9be5a937ee5ccf6309985fdffbc2940 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Mon, 23 Nov 2026 15:24:29 +0100
+Subject: [PATCH 1/2] net: dwc_eth_qos_rockchip: Power up the RK3528 integrated
+ PHY
+
+GMAC0 of the RK3528 is connected over RMII to an integrated 10/100 PHY,
+which is shut down after reset and has to be powered up through the
+VO GRF before it can be detected on MDIO.
+
+Port the integrated PHY power up from dwmac-rk in Linux: when the PHY
+referenced by phy-handle is marked with phy-is-integrated, assert its
+reset, power it up and select the internal RMII and 24 MHz clock in
+VO_GRF_MACPHY_CON0, then release the reset.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/net/dwc_eth_qos_rockchip.c | 52 ++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/drivers/net/dwc_eth_qos_rockchip.c b/drivers/net/dwc_eth_qos_rockchip.c
+index 4ccefda0..a64021cf 100644
+--- a/drivers/net/dwc_eth_qos_rockchip.c
++++ b/drivers/net/dwc_eth_qos_rockchip.c
+@@ -28,6 +28,7 @@ struct rk_gmac_ops {
+ 	int (*set_to_rmii)(struct udevice *dev);
+ 	int (*set_gmac_speed)(struct udevice *dev);
+ 	void (*set_clock_selection)(struct udevice *dev, bool enable);
++	void (*integrated_phy_powerup)(struct udevice *dev);
+ 	u32 regs[3];
+ };
+ 
+@@ -38,6 +39,8 @@ struct rockchip_platform_data {
+ 	bool clock_input;
+ 	struct regmap *grf;
+ 	struct regmap *php_grf;
++	struct reset_ctl phy_reset;
++	bool integrated_phy;
+ };
+ 
+ #define HIWORD_UPDATE(val, mask, shift) \
+@@ -157,6 +160,38 @@ static void rk3506_set_clock_selection(struct udevice *dev, bool enable)
+ #define RK3528_GMAC1_CLK_RMII_GATE	GRF_BIT(9)
+ #define RK3528_GMAC1_CLK_RMII_NOGATE	GRF_CLR_BIT(9)
+ 
++#define RK3528_VO_GRF_MACPHY_CON0	0x001c
++
++/* RK3528_VO_GRF_MACPHY_CON0 */
++#define RK_FEPHY_SHUTDOWN		GRF_BIT(1)
++#define RK_FEPHY_POWERUP		GRF_CLR_BIT(1)
++#define RK_FEPHY_INTERNAL_RMII_SEL	GRF_BIT(6)
++#define RK_FEPHY_24M_CLK_SEL		(HIWORD_UPDATE(3, 0x3, 8))
++#define RK_FEPHY_PHY_ID			GRF_BIT(11)
++
++static void rk3528_integrated_phy_powerup(struct udevice *dev)
++{
++	struct eth_pdata *pdata = dev_get_plat(dev);
++	struct rockchip_platform_data *data = pdata->priv_pdata;
++
++	/* Only gmac0 has the integrated 10/100 PHY */
++	if (data->id != 0)
++		return;
++
++	if (reset_valid(&data->phy_reset))
++		reset_assert(&data->phy_reset);
++	udelay(30);
++
++	regmap_write(data->grf, RK3528_VO_GRF_MACPHY_CON0,
++		     RK_FEPHY_POWERUP | RK_FEPHY_INTERNAL_RMII_SEL |
++		     RK_FEPHY_24M_CLK_SEL | RK_FEPHY_PHY_ID);
++	mdelay(12);
++
++	if (reset_valid(&data->phy_reset))
++		reset_deassert(&data->phy_reset);
++	mdelay(60);
++}
++
+ static int rk3528_set_to_rgmii(struct udevice *dev,
+ 			       int tx_delay, int rx_delay)
+ {
+@@ -626,6 +661,7 @@ static const struct rk_gmac_ops rk_gmac_ops[] = {
+ 		.set_to_rmii = rk3528_set_to_rmii,
+ 		.set_gmac_speed = rk3528_set_gmac_speed,
+ 		.set_clock_selection = rk3528_set_clock_selection,
++		.integrated_phy_powerup = rk3528_integrated_phy_powerup,
+ 		.regs = {
+ 			0xffbd0000, /* gmac0 */
+ 			0xffbe0000, /* gmac1 */
+@@ -689,6 +725,7 @@ static int eqos_probe_resources_rk(struct udevice *dev)
+ 	struct eth_pdata *pdata = dev_get_plat(dev);
+ 	struct rockchip_platform_data *data;
+ 	const char *clock_in_out;
++	ofnode phy_node;
+ 	int reset_flags = GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE;
+ 	int ret;
+ 
+@@ -778,6 +815,18 @@ static int eqos_probe_resources_rk(struct udevice *dev)
+ 	gpio_request_by_name(dev, "snps,reset-gpio", 0,
+ 			     &eqos->phy_reset_gpio, reset_flags);
+ 
++	/* Power up the integrated PHY, as done by dwmac-rk in Linux */
++	phy_node = ofnode_parse_phandle(dev_ofnode(dev), "phy-handle", 0);
++	if (data->ops->integrated_phy_powerup && ofnode_valid(phy_node) &&
++	    ofnode_read_bool(phy_node, "phy-is-integrated")) {
++		data->integrated_phy = true;
++		ret = reset_get_by_index_nodev(phy_node, 0, &data->phy_reset);
++		if (ret)
++			dev_dbg(dev, "no reset for the integrated PHY: %d\n",
++				ret);
++		data->ops->integrated_phy_powerup(dev);
++	}
++
+ 	return 0;
+ 
+ err_release_resets:
+@@ -797,6 +846,9 @@ static int eqos_remove_resources_rk(struct udevice *dev)
+ 	if (dm_gpio_is_valid(&eqos->phy_reset_gpio))
+ 		dm_gpio_free(dev, &eqos->phy_reset_gpio);
+ 
++	if (data->integrated_phy && reset_valid(&data->phy_reset))
++		reset_free(&data->phy_reset);
++
+ 	reset_release_bulk(&data->resets);
+ 	free(data);
+ 
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+
