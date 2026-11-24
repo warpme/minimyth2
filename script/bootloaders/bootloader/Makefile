@@ -92,6 +92,10 @@ ifneq (,$(filter board-s905y4.vim1s,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905y4.vim1s
 endif
 
+ifneq (,$(filter board-s905y5.tanix_tx5,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-s905y5.tanix_tx5
+endif
+
 ifneq (,$(filter board-s912.beelink_gt1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s912.beelink_gt1
 endif
