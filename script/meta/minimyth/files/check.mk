@@ -492,6 +492,7 @@ mm-all:
 		   [ ! "$${board}" = "board-s905x4.x96_max_ultra" ] && \
 		   [ ! "$${board}" = "board-s905x4.rbox_hk1"      ] && \
 		   [ ! "$${board}" = "board-s905y4.vim1s"         ] && \
+		   [ ! "$${board}" = "board-s905y5.tanix_tx5"     ] && \
 		   [ ! "$${board}" = "board-s912.beelink_gt1"     ] && \
 		   [ ! "$${board}" = "board-s912.beelink_gt1_ultimate" ] && \
 		   [ ! "$${board}" = "board-sm1.x96_air2g"        ] && \
