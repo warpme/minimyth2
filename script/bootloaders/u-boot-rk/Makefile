@@ -20,6 +20,12 @@
 # mm_U-BOOT_BOARD_TYPE      = board-rk3528.vontar_r3
 # mm_U-BOOT_BOARD_DEFCONFIG = vontar-r3_defconfig
 
+# mm_U-BOOT_BOARD_TYPE      = board-rk3528.generic
+# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3528_defconfig
+
+# mm_U-BOOT_BOARD_TYPE      = board-rk3528.generic-gmac0
+# mm_U-BOOT_BOARD_DEFCONFIG = generic-gmac0-rk3528_defconfig
+
 # mm_U-BOOT_BOARD_TYPE      = board-rk3566.orangepi_3b
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-3b-rk3566_defconfig
 

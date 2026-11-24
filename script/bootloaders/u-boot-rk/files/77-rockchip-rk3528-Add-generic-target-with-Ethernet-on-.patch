@@ -5,40 +5,59 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 
-From dce5ab6c344db86d8f4d01380ee0386394c8eaaa Mon Sep 17 00:00:00 2001
+From 99dc3d33d3d33c53a406dd1da8f0d36e55647ec7 Mon Sep 17 00:00:00 2001
 From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
-Date: Mon, 23 Nov 2026 15:24:29 +0100
+Date: Tue, 24 Nov 2026 11:55:49 +0100
 Subject: [PATCH 2/2] rockchip: rk3528: Add generic target with Ethernet on
  GMAC0
 
-Add a variant of the generic RK3528 target for TV boxes with eMMC,
-SD-card and Ethernet on GMAC0, using the integrated 10/100 PHY.
+Add a variant of the generic RK3528 target for TV boxes following the
+Rockchip reference design, with eMMC, SD-card and Ethernet on GMAC0
+using the integrated 10/100 PHY.
+
+These boards power the logic and CPU rails from PWM regulators
+(vdd_logic on PWM2, vdd_arm on PWM1). Describe both and let the
+regulator uclass apply the init voltages at probe: 900 mV for vdd_logic
+and 953 mV for vdd_arm, as on the Radxa ROCK 2 boards and in the vendor
+BSP. Linux does not honour regulator-init-microvolt and only reads the
+PWM state back, so without this vdd_logic stays too low until the first
+consumer (the Mali GPU through devfreq) sets it, and the integrated
+FEPHY links up intermittently and passes no traffic until then. That
+breaks NFS root with ip=dhcp.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---
- arch/arm/dts/rk3528-generic-gmac0-u-boot.dtsi |  3 ++
- arch/arm/dts/rk3528-generic-gmac0.dts         | 53 +++++++++++++++++++
- configs/generic-gmac0-rk3528_defconfig        | 41 ++++++++++++++
- 3 files changed, 97 insertions(+)
+ arch/arm/dts/rk3528-generic-gmac0-u-boot.dtsi | 11 +++
+ arch/arm/dts/rk3528-generic-gmac0.dts         | 99 +++++++++++++++++++
+ configs/generic-gmac0-rk3528_defconfig        | 44 +++++++++
+ 3 files changed, 154 insertions(+)
  create mode 100644 arch/arm/dts/rk3528-generic-gmac0-u-boot.dtsi
  create mode 100644 arch/arm/dts/rk3528-generic-gmac0.dts
  create mode 100644 configs/generic-gmac0-rk3528_defconfig
 
 diff --git a/arch/arm/dts/rk3528-generic-gmac0-u-boot.dtsi b/arch/arm/dts/rk3528-generic-gmac0-u-boot.dtsi
 new file mode 100644
-index 00000000..9e1fb2a7
+index 00000000..3e2fbd81
 --- /dev/null
 +++ b/arch/arm/dts/rk3528-generic-gmac0-u-boot.dtsi
-@@ -0,0 +1,3 @@
+@@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +
 +#include "rk3528-u-boot.dtsi"
++
++&vdd_arm {
++	regulator-init-microvolt = <953000>;
++};
++
++&vdd_logic {
++	regulator-init-microvolt = <900000>;
++};
 diff --git a/arch/arm/dts/rk3528-generic-gmac0.dts b/arch/arm/dts/rk3528-generic-gmac0.dts
 new file mode 100644
-index 00000000..947c4bfa
+index 00000000..e32a266f
 --- /dev/null
 +++ b/arch/arm/dts/rk3528-generic-gmac0.dts
-@@ -0,0 +1,53 @@
+@@ -0,0 +1,99 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Minimal generic DT for RK3528 TV boxes with eMMC, SD-card and
@@ -46,6 +65,7 @@ index 00000000..947c4bfa
 + */
 +
 +/dts-v1/;
++#include <dt-bindings/pwm/pwm.h>
 +#include "rk3528.dtsi"
 +
 +/ {
@@ -54,17 +74,62 @@ index 00000000..947c4bfa
 +
 +	aliases {
 +		ethernet0 = &gmac0;
-+		mmc1 = &sdhci;
-+		mmc0 = &sdmmc;
++		mmc0 = &sdhci;
++		mmc1 = &sdmmc;
 +		serial0 = &uart0;
 +	};
 +
 +	chosen {
 +		stdout-path = "serial0:1500000n8";
 +	};
++
++	vcc5v0_sys: regulator-5v0-vcc-sys {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc5v0_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++	};
++
++	vdd_arm: regulator-vdd-arm {
++		compatible = "pwm-regulator";
++		pwms = <&pwm1 0 5000 PWM_POLARITY_INVERTED>;
++		pwm-supply = <&vcc5v0_sys>;
++		regulator-name = "vdd_arm";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <746000>;
++		regulator-max-microvolt = <1201000>;
++		regulator-settling-time-up-us = <250>;
++	};
++
++	vdd_logic: regulator-vdd-logic {
++		compatible = "pwm-regulator";
++		pwms = <&pwm2 0 5000 PWM_POLARITY_INVERTED>;
++		pwm-supply = <&vcc5v0_sys>;
++		regulator-name = "vdd_logic";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <705000>;
++		regulator-max-microvolt = <1006000>;
++		regulator-settling-time-up-us = <250>;
++	};
 +};
 +
 +&gmac0 {
++	status = "okay";
++};
++
++&pwm1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pwm1m0_pins>;
++	status = "okay";
++};
++
++&pwm2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pwm2m0_pins>;
 +	status = "okay";
 +};
 +
@@ -94,10 +159,10 @@ index 00000000..947c4bfa
 +};
 diff --git a/configs/generic-gmac0-rk3528_defconfig b/configs/generic-gmac0-rk3528_defconfig
 new file mode 100644
-index 00000000..b25833f6
+index 00000000..3dd94cfc
 --- /dev/null
 +++ b/configs/generic-gmac0-rk3528_defconfig
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,57 @@
 +CONFIG_ARM=y
 +CONFIG_SKIP_LOWLEVEL_INIT=y
 +CONFIG_COUNTER_FREQUENCY=24000000
@@ -121,6 +186,7 @@ index 00000000..b25833f6
 +CONFIG_CMD_MMC=y
 +# CONFIG_CMD_SETEXPR is not set
 +CONFIG_CMD_RNG=y
++CONFIG_CMD_REGULATOR=y
 +# CONFIG_SPL_DOS_PARTITION is not set
 +# CONFIG_OF_UPSTREAM is not set
 +CONFIG_OF_SPL_REMOVE_PROPS="clock-names interrupt-parent assigned-clocks assigned-clock-rates assigned-clock-parents"
@@ -135,6 +201,8 @@ index 00000000..b25833f6
 +CONFIG_DM_MDIO=y
 +CONFIG_DWC_ETH_QOS=y
 +CONFIG_DWC_ETH_QOS_ROCKCHIP=y
++CONFIG_REGULATOR_PWM=y
++CONFIG_PWM_ROCKCHIP=y
 +CONFIG_BAUDRATE=1500000
 +CONFIG_DEBUG_UART_SHIFT=2
 +CONFIG_SYS_NS16550_MEM32=y
