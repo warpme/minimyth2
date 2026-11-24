@@ -10,7 +10,7 @@ DESCRIPTION  =
 define BLURB
 endef
 
-WORKSRC = $(WORKDIR)/aic8800-$(GARVERSION)/src/SDIO/driver_fw/fw/aic8800D80
+WORKSRC = $(WORKDIR)/aic8800-$(GARVERSION)/src/SDIO/driver_fw/fw
 DEPENDS = 
 
 INSTALL_SCRIPTS = custom
@@ -19,7 +19,8 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/aic8800_sdio
-	@cp -Rdf $(WORKSRC)/* $(DESTDIR)$(elibdir)/firmware/aic8800_sdio/
+	@cp -Rdf $(WORKSRC)/aic8800D80/* $(DESTDIR)$(elibdir)/firmware/aic8800_sdio/
+	@cp -Rdf $(WORKSRC)/aic8800/*    $(DESTDIR)$(elibdir)/firmware/aic8800_sdio/
 	@$(MAKECOOKIE)
 
 clean-all: clean
