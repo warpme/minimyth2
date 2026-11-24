@@ -578,15 +578,18 @@ PATCHFILES += 3576-media-rkvdec-add-vdpu383-av1-backend.patch
 PATCHFILES += 3577-media-rkvdec-enable-av1-on-rk3576.patch
 # rk3528 additions
 PATCHFILES += 3582-drm-rockchip-vop2-Add-support-for-RK3528.patch
-PATCHFILES += 3584-phy-rockchip-inno-hdmi-Add-support-for-RK3528.patch
-PATCHFILES += 3586-drm-rockchip-dw_hdmi-Add-support-for-RK3528.patch
-PATCHFILES += 3588-iommu-rockchip-Add-support-for-rockchip-disable-devi.patch
-PATCHFILES += 3589-drm-rockchip-vop2-Resume-the-IOMMU-explicitly-if-req.patch
-PATCHFILES += 3590-ASoC-dt-bindings-rockchip-rk3576-sai-Add-RK3528-comp.patch
-PATCHFILES += 3593-media-rkvdec-Add-support-for-the-VDPU382-variant-RK3.patch
-PATCHFILES += 3595-thermal-drivers-rockchip-Add-support-for-RK3528.patch
-PATCHFILES += 3596-PM-devfreq-Keep-the-resume-frequency-across-suspend.patch
-PATCHFILES += 3597-pmdomain-rockchip-Don-t-put-an-error-pointer-on-cloc.patch
+PATCHFILES += 3583-phy-rockchip-inno-hdmi-Add-support-for-RK3528.patch
+PATCHFILES += 3584-drm-rockchip-dw_hdmi-Add-support-for-RK3528.patch
+PATCHFILES += 3585-iommu-rockchip-Add-support-for-rockchip-disable-devi.patch
+PATCHFILES += 3586-drm-rockchip-vop2-Resume-the-IOMMU-explicitly-if-req.patch
+PATCHFILES += 3587-ASoC-dt-bindings-rockchip-rk3576-sai-Add-RK3528-comp.patch
+PATCHFILES += 3588-media-rkvdec-Add-support-for-the-VDPU382-variant-RK3.patch
+PATCHFILES += 3589-thermal-drivers-rockchip-Add-support-for-RK3528.patch
+PATCHFILES += 3590-PM-devfreq-Keep-the-resume-frequency-across-suspend.patch
+PATCHFILES += 3591-pmdomain-rockchip-Don-t-put-an-error-pointer-on-cloc.patch
+PATCHFILES += 3592-net-phy-rockchip-Add-support-for-the-RK3528-integrat.patch
+PATCHFILES += 3593-net-phy-ac200-Don-t-claim-the-RK3528-integrated-FEPH.patch
+PATCHFILES += 3594-net-stmmac-dwmac-rk-Apply-the-RK3528-FEPHY-bandgap-t.patch
 # rk35xx dtsi additions
 PATCHFILES += 3600-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 3601-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
@@ -604,6 +607,7 @@ PATCHFILES += 3617-arm64-dts-rockchip-rk3528-Add-SAI3-and-HDMI-sound-no.patch
 PATCHFILES += 3618-arm64-dts-rockchip-rk3528-Add-video-decoder-nodes.patch
 PATCHFILES += 3619-arm64-dts-rockchip-rk3528-Add-TSADC-and-thermal-zone.patch
 PATCHFILES += 3620-arm64-dts-rockchip-rk3528-Add-the-HEVC-CABAC-clock-t.patch
+PATCHFILES += 3621-arm64-dts-rockchip-rk3528-Add-the-FEPHY-trim-cells.patch
 # rk3588 overlays
 PATCHFILES += 3650-arm64-dts-rockchip-rk3588-add-useful-overlays.patch
 # rk35xx board dts additions
@@ -640,6 +644,7 @@ PATCHFILES += 3733-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-Radxa-RO
 PATCHFILES += 3738-arm64-dts-rockchip-describe-PCIe-RTL8125-Ethernet-on-orangepi-5-plus.patch
 PATCHFILES += 3739-arm64-dts-rockchip-fix-M.2-E-key-reset-pinctrl-on-rk3588-rock-5-itx.patch
 PATCHFILES += 3740-arm64-dts-rockchip-rk3528-add-VOP-HDMI-AUDIO-VDEC-THS.patch
+PATCHFILES += 3741-arm64-dts-rockchip-Add-Vontar-R3.patch
 endif
 #------------------------------------------------------------
 

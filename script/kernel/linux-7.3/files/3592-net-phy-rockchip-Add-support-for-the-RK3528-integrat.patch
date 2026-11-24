@@ -1,0 +1,345 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 9ef99e1320739dba502883ef2e7d3c93d729aeb2 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Tue, 24 Nov 2026 11:55:23 +0100
+Subject: [PATCH 1/3] net: phy: rockchip: Add support for the RK3528 integrated
+ FEPHY
+
+The RK3528 has an integrated 10/100 PHY behind GMAC0, at MDIO address 2.
+It reports the ID 0x00441400, shared with the RK630 and the Allwinner
+AC200 EPHY. Without its analog setup it falls back to the generic driver
+or to the AC200 one: the link works, but it is sensitive to power noise
+and drops under load, e.g. while the GPU and video decoder are busy.
+
+Add a driver that applies the vendor AFE configuration for this PHY:
+offset clock and calibration, ADC, gain, charge pump and Rx detector
+settings, a stronger Tx MOS drive against power noise, the factory Tx
+amplitude from the "txlevel" OTP cell (with the vendor defaults as
+fallback), and APS, UAPS and EEE disabled.
+
+The driver only claims the PHY when it is marked integrated and sits
+below a "rockchip,rk3528-gmac", so the other users of the ID are left
+alone.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/net/phy/rockchip.c | 270 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 270 insertions(+)
+
+diff --git a/drivers/net/phy/rockchip.c b/drivers/net/phy/rockchip.c
+index b338f385e..a97c897e3 100644
+--- a/drivers/net/phy/rockchip.c
++++ b/drivers/net/phy/rockchip.c
+@@ -14,9 +14,13 @@
+ #include <linux/module.h>
+ #include <linux/mii.h>
+ #include <linux/netdevice.h>
++#include <linux/nvmem-consumer.h>
++#include <linux/of.h>
+ #include <linux/phy.h>
++#include <linux/slab.h>
+ 
+ #define INTERNAL_EPHY_ID			0x1234d400
++#define RK_FEPHY_ID				0x00441400
+ 
+ #define MII_INTERNAL_CTRL_STATUS		17
+ #define SMI_ADDR_TSTCNTL			20
+@@ -170,6 +174,259 @@ static int rockchip_phy_resume(struct phy_device *phydev)
+ 	return rockchip_integrated_phy_config_init(phydev);
+ }
+ 
++/*
++ * Integrated 10/100 PHY of the RK3528 (and RV1106), reached on MDIO
++ * address 2. It reports the same ID as the RK630 and the Allwinner AC200
++ * EPHY, so the driver only claims it below a Rockchip GMAC.
++ */
++#define RK_FEPHY_PAGE_SEL			0x1f
++#define RK_FEPHY_PAGE(p)			((p) << 8)
++
++/* Page 0 */
++#define RK_FEPHY_MMD_CTRL			0x0d
++#define RK_FEPHY_MMD_DATA			0x0e
++
++/* Page 1 */
++#define RK_FEPHY_P1_OFFSET_CLK			0x10
++#define RK_FEPHY_P1_APS_CTRL			0x12
++#define RK_FEPHY_P1_UAPS_CFG			0x13
++#define RK_FEPHY_P1_EEE_CFG			0x17
++
++/* Page 2 */
++#define RK_FEPHY_P2_AFE_CTRL			0x18
++
++/* Page 6 */
++#define RK_FEPHY_P6_ADC_CTRL			0x10
++#define RK_FEPHY_P6_GAIN_CTRL			0x12
++#define RK_FEPHY_P6_AFE_TX_CTRL			0x14
++#define RK_FEPHY_P6_AFE_DRIVER2			0x15
++#define RK_FEPHY_P6_CP_CURRENT			0x17
++#define RK_FEPHY_P6_ADC_OP_BIAS			0x18
++#define RK_FEPHY_P6_RX_DETECTOR			0x19
++#define RK_FEPHY_P6_TX_MOS_DRV			0x1b
++#define RK_FEPHY_P6_AFE_PDCW			0x1c
++
++/* Page 8 */
++#define RK_FEPHY_P8_OFFSET_CAL			0x13
++#define RK_FEPHY_P8_AUTO_CAL			0x1d
++
++#define RK_FEPHY_TX_LEVEL_100M			0x2d
++#define RK_FEPHY_TX_LEVEL_10M			0x32
++
++struct rk_fephy_priv {
++	u8 tx_level_100m;
++	u8 tx_level_10m;
++	bool tx_level_read;
++};
++
++static int rk_fephy_read_page(struct phy_device *phydev)
++{
++	int ret = __phy_read(phydev, RK_FEPHY_PAGE_SEL);
++
++	return ret < 0 ? ret : ret >> 8;
++}
++
++static int rk_fephy_write_page(struct phy_device *phydev, int page)
++{
++	return __phy_write(phydev, RK_FEPHY_PAGE_SEL, RK_FEPHY_PAGE(page));
++}
++
++static int rk_fephy_match_phy_device(struct phy_device *phydev,
++				     const struct phy_driver *phydrv)
++{
++	struct device_node *np = phydev->mdio.dev.of_node;
++	struct device_node *mac;
++	bool match;
++
++	if (!phy_id_compare(phydev->phy_id, RK_FEPHY_ID, 0xffffffff))
++		return 0;
++
++	if (!np || !of_property_read_bool(np, "phy-is-integrated"))
++		return 0;
++
++	/* PHY node -> mdio node -> GMAC node */
++	mac = of_get_parent(np);
++	if (mac) {
++		struct device_node *tmp = mac;
++
++		mac = of_get_parent(tmp);
++		of_node_put(tmp);
++	}
++	if (!mac)
++		return 0;
++
++	match = of_device_is_compatible(mac, "rockchip,rk3528-gmac");
++	of_node_put(mac);
++
++	return match;
++}
++
++static void rk_fephy_get_tx_level(struct phy_device *phydev)
++{
++	struct rk_fephy_priv *priv = phydev->priv;
++	struct nvmem_cell *cell;
++	size_t len;
++	u8 *buf;
++
++	priv->tx_level_100m = RK_FEPHY_TX_LEVEL_100M;
++	priv->tx_level_10m = RK_FEPHY_TX_LEVEL_10M;
++	priv->tx_level_read = true;
++
++	cell = nvmem_cell_get(&phydev->mdio.dev, "txlevel");
++	if (IS_ERR(cell)) {
++		if (PTR_ERR(cell) == -EPROBE_DEFER) {
++			/* Try again on the next config_init() */
++			priv->tx_level_read = false;
++			phydev_warn(phydev, "txlevel cell not ready, using defaults\n");
++		}
++		return;
++	}
++
++	buf = nvmem_cell_read(cell, &len);
++	nvmem_cell_put(cell);
++	if (IS_ERR(buf)) {
++		phydev_warn(phydev, "failed to read the txlevel cell: %pe\n", buf);
++		return;
++	}
++
++	if (len == 2 && buf[0] && buf[1]) {
++		priv->tx_level_10m = buf[0];
++		priv->tx_level_100m = buf[1];
++	}
++	kfree(buf);
++}
++
++static int rk_fephy_probe(struct phy_device *phydev)
++{
++	struct rk_fephy_priv *priv;
++
++	priv = devm_kzalloc(&phydev->mdio.dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	phydev->priv = priv;
++
++	/* EEE is not supported reliably, as in the vendor driver */
++	phy_disable_eee(phydev);
++
++	return 0;
++}
++
++static int rk_fephy_config_init(struct phy_device *phydev)
++{
++	struct rk_fephy_priv *priv = phydev->priv;
++	int oldpage, ret = 0;
++
++	if (!priv->tx_level_read)
++		rk_fephy_get_tx_level(phydev);
++
++	oldpage = phy_select_page(phydev, 1);
++	if (oldpage < 0)
++		goto out;
++
++	/* Enable the offset clock */
++	ret = __phy_write(phydev, RK_FEPHY_P1_OFFSET_CLK, 0xfbfe);
++	if (ret)
++		goto out;
++	/* Disable APS, Rx detection time 2 s (default 4 s) */
++	ret = __phy_write(phydev, RK_FEPHY_P1_APS_CTRL, 0x4822);
++	if (ret)
++		goto out;
++	/* Disable Ultra Auto Power Saving */
++	ret = __phy_modify(phydev, RK_FEPHY_P1_UAPS_CFG, BIT(15), 0);
++	if (ret)
++		goto out;
++	ret = __phy_modify(phydev, RK_FEPHY_P1_EEE_CFG, 0, BIT(3));
++	if (ret)
++		goto out;
++
++	/* AFE TRX optimization */
++	ret = rk_fephy_write_page(phydev, 2);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_P2_AFE_CTRL, 0x0000);
++	if (ret)
++		goto out;
++
++	ret = rk_fephy_write_page(phydev, 6);
++	if (ret)
++		goto out;
++	/* ADC and gain optimization */
++	ret = __phy_write(phydev, RK_FEPHY_P6_ADC_CTRL, 0x5540);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_P6_GAIN_CTRL, 0x0400);
++	if (ret)
++		goto out;
++	/* Rx detection threshold 160 mV */
++	ret = __phy_write(phydev, RK_FEPHY_P6_AFE_TX_CTRL, 0x1088);
++	if (ret)
++		goto out;
++	/* Tx amplitude, factory trimmed */
++	ret = __phy_write(phydev, RK_FEPHY_P6_AFE_DRIVER2,
++			  (priv->tx_level_100m << 8) | priv->tx_level_10m);
++	if (ret)
++		goto out;
++	/* Charge pump current, ADC bias and Rx signal detector level */
++	ret = __phy_write(phydev, RK_FEPHY_P6_CP_CURRENT, 0x0575);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_P6_ADC_OP_BIAS, 0x0000);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_P6_RX_DETECTOR, 0x0408);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_P6_AFE_PDCW, 0x8880);
++	if (ret)
++		goto out;
++	/* Stronger Tx MOS drive, less power noise and jitter */
++	ret = __phy_write(phydev, RK_FEPHY_P6_TX_MOS_DRV, 0x888e);
++	if (ret)
++		goto out;
++
++	ret = rk_fephy_write_page(phydev, 8);
++	if (ret)
++		goto out;
++	/* Disable auto calibration and restart the offset calibration */
++	ret = __phy_write(phydev, RK_FEPHY_P8_AUTO_CAL, 0x0844);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_P8_OFFSET_CAL, 0xc096);
++	if (ret)
++		goto out;
++
++	ret = rk_fephy_write_page(phydev, 0);
++	if (ret)
++		goto out;
++	/* Do not advertise EEE */
++	ret = __phy_write(phydev, RK_FEPHY_MMD_CTRL, MDIO_MMD_AN);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_MMD_DATA, MDIO_AN_EEE_ADV);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_MMD_CTRL,
++			  MII_MMD_CTRL_NOINCR | MDIO_MMD_AN);
++	if (ret)
++		goto out;
++	ret = __phy_write(phydev, RK_FEPHY_MMD_DATA, 0x0000);
++
++out:
++	return phy_restore_page(phydev, oldpage, ret);
++}
++
++static int rk_fephy_resume(struct phy_device *phydev)
++{
++	int ret;
++
++	ret = genphy_resume(phydev);
++	if (ret)
++		return ret;
++
++	return rk_fephy_config_init(phydev);
++}
++
+ static struct phy_driver rockchip_phy_driver[] = {
+ {
+ 	.phy_id			= INTERNAL_EPHY_ID,
+@@ -184,12 +441,25 @@ static struct phy_driver rockchip_phy_driver[] = {
+ 	.suspend		= genphy_suspend,
+ 	.resume			= rockchip_phy_resume,
+ },
++{
++	.name			= "Rockchip integrated FEPHY",
++	/* PHY_BASIC_FEATURES */
++	.match_phy_device	= rk_fephy_match_phy_device,
++	.probe			= rk_fephy_probe,
++	.read_page		= rk_fephy_read_page,
++	.write_page		= rk_fephy_write_page,
++	.soft_reset		= genphy_soft_reset,
++	.config_init		= rk_fephy_config_init,
++	.suspend		= genphy_suspend,
++	.resume			= rk_fephy_resume,
++},
+ };
+ 
+ module_phy_driver(rockchip_phy_driver);
+ 
+ static const struct mdio_device_id __maybe_unused rockchip_phy_tbl[] = {
+ 	{ INTERNAL_EPHY_ID, 0xfffffff0 },
++	{ RK_FEPHY_ID, 0xffffffff },
+ 	{ }
+ };
+ 
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+

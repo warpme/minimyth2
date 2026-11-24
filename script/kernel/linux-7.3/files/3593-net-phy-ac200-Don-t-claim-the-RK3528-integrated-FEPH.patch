@@ -1,0 +1,97 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 309d13f198caed234ac79fa728aefc64ef1bf881 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Tue, 24 Nov 2026 12:28:30 +0100
+Subject: [PATCH] net: phy: ac200: Don't claim the RK3528 integrated FEPHY
+
+The integrated 10/100 PHY of the Rockchip RK3528 reports the same ID as
+the AC200 EPHY. The AC200 driver registers first and binds to it, so the
+Rockchip FEPHY setup (AFE tuning, OTP Tx level, noise hardening) never
+runs and the link drops under load.
+
+Match the PHY through match_phy_device and skip PHYs that sit below a
+"rockchip,rk3528-gmac".
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ drivers/net/phy/ac200-phy.c | 40 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+
+diff --git a/drivers/net/phy/ac200-phy.c b/drivers/net/phy/ac200-phy.c
+index 8499914..18ce7ab 100644
+--- a/drivers/net/phy/ac200-phy.c
++++ b/drivers/net/phy/ac200-phy.c
+@@ -8,6 +8,7 @@
+ #include <linux/clk.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
++#include <linux/of.h>
+ #include <linux/phy.h>
+ 
+ #define AC200_EPHY_ID			0x00441400
+@@ -44,6 +45,44 @@ static int ac200_ephy_config_init(struct phy_device *phydev)
+ 	return 0;
+ }
+ 
++/*
++ * The integrated FEPHY of the Rockchip RK3528 reports the same ID, but
++ * needs its own setup from the Rockchip PHY driver. Leave it alone.
++ */
++static bool ac200_ephy_is_rockchip_fephy(struct phy_device *phydev)
++{
++	struct device_node *np = phydev->mdio.dev.of_node;
++	struct device_node *mdio, *mac;
++	bool ret;
++
++	if (!np)
++		return false;
++
++	/* PHY node -> mdio node -> MAC node */
++	mdio = of_get_parent(np);
++	if (!mdio)
++		return false;
++
++	mac = of_get_parent(mdio);
++	of_node_put(mdio);
++	if (!mac)
++		return false;
++
++	ret = of_device_is_compatible(mac, "rockchip,rk3528-gmac");
++	of_node_put(mac);
++
++	return ret;
++}
++
++static int ac200_ephy_match_phy_device(struct phy_device *phydev,
++				       const struct phy_driver *phydrv)
++{
++	if (!phy_id_compare(phydev->phy_id, AC200_EPHY_ID, AC200_EPHY_ID_MASK))
++		return 0;
++
++	return !ac200_ephy_is_rockchip_fephy(phydev);
++}
++
+ static int ac200_ephy_probe(struct phy_device *phydev)
+ {
+ 	struct device *dev = &phydev->mdio.dev;
+@@ -62,6 +101,7 @@ static struct phy_driver ac200_ephy_driver[] = {
+ 		.phy_id		= AC200_EPHY_ID,
+ 		.phy_id_mask	= AC200_EPHY_ID_MASK,
+ 		.name		= "Allwinner AC200 EPHY",
++		.match_phy_device = ac200_ephy_match_phy_device,
+ 		.soft_reset	= genphy_soft_reset,
+ 		.config_init	= ac200_ephy_config_init,
+ 		.probe		= ac200_ephy_probe,
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+
