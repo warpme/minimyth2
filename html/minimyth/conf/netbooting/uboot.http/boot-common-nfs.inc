@@ -34,7 +34,9 @@ if test ${dtb_overlays} != "" ; then
   done;
 fi;
 
-setenv bootargs root=/dev/nfs nfsroot=${serverip}:/var/tftpboot/PXEclient/${nfs_top_dir}/rootfs,v3,ro ro ip=dhcp ${early_con} ${extra_params} ${verbosity}
+setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/var/tftpboot/PXEclient/${nfs_top_dir}/rootfs,v3,ro ro ip=dhcp ${early_con} ${extra_params} ${verbosity}"
+
+# use this for dynamic debugging
+# setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/var/tftpboot/PXEclient/${nfs_top_dir}/rootfs,v3,ro ro ip=dhcp ${early_con} ${extra_params} ${verbosity} dyndbg=\"file drivers/iommu/rockchip-iommu.c +p\" "
 
 booti ${kernel_addr_r} - ${fdt_addr_r}
-
