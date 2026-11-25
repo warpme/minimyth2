@@ -5,10 +5,10 @@ Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 
 
 
-From f75ad483618b815b156d10145fad0b76efa532a9 Mon Sep 17 00:00:00 2001
+From 9d256cb69fbbde6131c1cd2aa47e5effbe2e37ed Mon Sep 17 00:00:00 2001
 From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 Date: Sun, 22 Nov 2026 13:09:01 +0100
-Subject: [PATCH 3586/3586] drm/rockchip: dw_hdmi: Add support for RK3528
+Subject: [PATCH] drm/rockchip: dw_hdmi: Add support for RK3528
 
 The RK3528 has a Synopsys DesignWare HDMI 2.0 TX controller with an
 Innosilicon HDMI PHY (handled by the inno-hdmi PHY driver), similar to
@@ -24,24 +24,25 @@ The DDC SDA/SCL input masks also have to be set in the VO GRF.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---
- drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 177 +++++++++++++++++++-
- 1 file changed, 169 insertions(+), 8 deletions(-)
+ drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 203 +++++++++++++++++++-
+ 1 file changed, 195 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
-index b6e154c..5ed1ac3 100644
+index b6e154c35..eee093545 100644
 --- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
 +++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
-@@ -4,7 +4,9 @@
+@@ -4,7 +4,10 @@
   */
  
  #include <linux/clk.h>
++#include <linux/delay.h>
 +#include <linux/gpio/consumer.h>
  #include <linux/hw_bitfield.h>
 +#include <linux/interrupt.h>
  #include <linux/media-bus-format.h>
  #include <linux/mfd/syscon.h>
  #include <linux/module.h>
-@@ -52,6 +54,13 @@
+@@ -52,6 +55,13 @@
  #define RK3399_GRF_SOC_CON20		0x6250
  #define RK3399_HDMI_LCDC_SEL		BIT(6)
  
@@ -55,7 +56,7 @@ index b6e154c..5ed1ac3 100644
  #define RK3568_GRF_VO_CON1		0x0364
  #define RK3568_HDMI_SDAIN_MSK		BIT(15)
  #define RK3568_HDMI_SCLIN_MSK		BIT(14)
-@@ -82,6 +91,8 @@ struct rockchip_hdmi {
+@@ -82,6 +92,8 @@ struct rockchip_hdmi {
  	struct drm_bridge *bridge;
  	struct dw_hdmi *hdmi;
  	struct phy *phy;
@@ -64,14 +65,33 @@ index b6e154c..5ed1ac3 100644
  };
  
  static struct rockchip_hdmi *to_rockchip_hdmi(struct drm_encoder *encoder)
-@@ -524,6 +535,28 @@ static const struct dw_hdmi_plat_data rk3568_hdmi_drv_data = {
+@@ -524,6 +536,47 @@ static const struct dw_hdmi_plat_data rk3568_hdmi_drv_data = {
  	.output_port = 1,
  };
  
++static void dw_hdmi_rk3528_update_snkdet(struct rockchip_hdmi *hdmi);
++
++static enum drm_connector_status
++dw_hdmi_rk3528_read_hpd(struct dw_hdmi *dw_hdmi, void *data)
++{
++	struct rockchip_hdmi *hdmi = data;
++
++	/*
++	 * The controller only sees the HPD level forwarded through the GRF.
++	 * Refresh it on every detect, so that a level the HPD interrupt
++	 * never saw an edge for (e.g. a sink already asserting HPD at boot)
++	 * is still picked up.
++	 */
++	if (hdmi->hpd_gpiod)
++		dw_hdmi_rk3528_update_snkdet(hdmi);
++
++	return dw_hdmi_phy_read_hpd(dw_hdmi, data);
++}
++
 +static const struct dw_hdmi_phy_ops rk3528_hdmi_phy_ops = {
 +	.init		= dw_hdmi_rockchip_genphy_init,
 +	.disable	= dw_hdmi_rockchip_genphy_disable,
-+	.read_hpd	= dw_hdmi_phy_read_hpd,
++	.read_hpd	= dw_hdmi_rk3528_read_hpd,
 +	.update_hpd	= dw_hdmi_phy_update_hpd,
 +	.setup_hpd	= dw_hdmi_phy_setup_hpd,
 +};
@@ -93,7 +113,7 @@ index b6e154c..5ed1ac3 100644
  static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
  	{ .compatible = "rockchip,rk3228-dw-hdmi",
  	  .data = &rk3228_hdmi_drv_data
-@@ -540,6 +573,9 @@ static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
+@@ -540,6 +593,9 @@ static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
  	{ .compatible = "rockchip,rk3399-dw-hdmi",
  	  .data = &rk3399_hdmi_drv_data
  	},
@@ -103,7 +123,7 @@ index b6e154c..5ed1ac3 100644
  	{ .compatible = "rockchip,rk3568-dw-hdmi",
  	  .data = &rk3568_hdmi_drv_data
  	},
-@@ -547,6 +583,111 @@ static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
+@@ -547,6 +603,117 @@ static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
  };
  MODULE_DEVICE_TABLE(of, dw_hdmi_rockchip_dt_ids);
  
@@ -181,6 +201,9 @@ index b6e154c..5ed1ac3 100644
 +			dev_err_probe(dev, ret, "failed to setup hpd gpio\n");
 +			goto err_put;
 +		}
++
++		/* Let the freshly enabled input settle before sampling it */
++		usleep_range(1000, 2000);
 +	}
 +
 +	dw_hdmi_rk3528_setup_grf(hdmi);
@@ -203,6 +226,9 @@ index b6e154c..5ed1ac3 100644
 +		goto err_put;
 +	}
 +
++	/* Catch an HPD change between the first sample and the IRQ setup */
++	dw_hdmi_rk3528_update_snkdet(hdmi);
++
 +	return 0;
 +
 +err_put:
@@ -215,7 +241,7 @@ index b6e154c..5ed1ac3 100644
  static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
  				 void *data)
  {
-@@ -646,27 +787,42 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
+@@ -646,27 +813,42 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
  			     FIELD_PREP_WM16(RK3568_HDMI_SCLIN_MSK, 1));
  	}
  
@@ -265,7 +291,7 @@ index b6e154c..5ed1ac3 100644
  }
  
  static void dw_hdmi_rockchip_unbind(struct device *dev, struct device *master,
-@@ -676,6 +832,7 @@ static void dw_hdmi_rockchip_unbind(struct device *dev, struct device *master,
+@@ -676,6 +858,7 @@ static void dw_hdmi_rockchip_unbind(struct device *dev, struct device *master,
  
  	drm_bridge_put(hdmi->bridge);
  	dw_hdmi_unbind(hdmi->hdmi);
@@ -273,7 +299,7 @@ index b6e154c..5ed1ac3 100644
  }
  
  static const struct component_ops dw_hdmi_rockchip_ops = {
-@@ -697,8 +854,12 @@ static int __maybe_unused dw_hdmi_rockchip_resume_early(struct device *dev)
+@@ -697,8 +880,12 @@ static int __maybe_unused dw_hdmi_rockchip_resume_early(struct device *dev)
  {
  	struct rockchip_hdmi *hdmi = dev_get_drvdata(dev);
  
