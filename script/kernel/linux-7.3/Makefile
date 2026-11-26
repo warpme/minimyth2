@@ -275,6 +275,8 @@ PATCHFILES += 1885-arm64-dts-amlogic-s7-add-clock-controllers.patch
 PATCHFILES += 1886-arm64-dts-amlogic-s7-add-MMC-controllers.patch
 PATCHFILES += 1887-arm64-dts-amlogic-s7-add-ethernet.patch
 PATCHFILES += 1888-arm64-dts-amlogic-s7-add-VPU-and-HDMI-transmitter.patch
+PATCHFILES += 1889-arm64-dts-amlogic-s7-add-audio-controllers.patch
+PATCHFILES += 1890-arm64-dts-amlogic-s7-add-Mali-GPU.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -297,6 +299,8 @@ PATCHFILES += 1981-arm64-dts-amlogic-s6-add-USB-support-kopia.patch
 # s7 board additions
 PATCHFILES += 1991-arm64-dts-amlogic-add-Tanix-TX5.patch
 PATCHFILES += 1992-arm64-dts-amlogic-tanix-tx5-enable-HDMI.patch
+PATCHFILES += 1993-arm64-dts-amlogic-tanix-tx5-add-HDMI-sound-card.patch
+PATCHFILES += 1994-arm64-dts-amlogic-tanix-tx5-enable-the-GPU.patch
 endif
 #------------------------------------------------------------
 

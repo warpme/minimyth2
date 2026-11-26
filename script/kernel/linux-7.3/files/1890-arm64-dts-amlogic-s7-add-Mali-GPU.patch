@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 11:21:48 +0100
+Subject: [PATCH 1890/1890] arm64: dts: amlogic: s7: add Mali GPU
+
+Add the Mali-G31 GPU of the Amlogic S7 SoC, handled by panfrost, with
+a frequency-only OPP table.
+
+The GPU clock is the usual glitch-free mux of two mux/div/gate
+branches, started at 500 MHz from fclk_div4 like the vendor device
+tree. The OPPs are the fclk based ones, as on S4 and T7. The 850 MHz
+vendor point needs gp1_pll, which is owned by the firmware, so it is
+not listed. The vendor device tree uses one voltage for every
+frequency, so no supply is needed.
+
+There is no GPU power domain on S7.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi | 61 +++++++++++++++++++++
+ 1 file changed, 61 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+index 7234703..963e6fb 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+@@ -116,6 +116,45 @@
+ 		#clock-cells = <0>;
+ 	};
+ 
++	gpu_opp_table: opp-table-gpu {
++		compatible = "operating-points-v2";
++
++		/*
++		 * Frequency-only: VDDGPU is not scalable on the known boards
++		 * (the vendor dts uses one voltage for every frequency).
++		 * The 850 MHz vendor point needs gp1_pll, which is owned by
++		 * the firmware, so it is not listed.
++		 */
++
++		opp-124999998 {
++			opp-hz = /bits/ 64 <124999998>;
++		};
++
++		opp-249999996 {
++			opp-hz = /bits/ 64 <249999996>;
++		};
++
++		opp-285714281 {
++			opp-hz = /bits/ 64 <285714281>;
++		};
++
++		opp-399999994 {
++			opp-hz = /bits/ 64 <399999994>;
++		};
++
++		opp-499999992 {
++			opp-hz = /bits/ 64 <499999992>;
++		};
++
++		opp-666666656 {
++			opp-hz = /bits/ 64 <666666656>;
++		};
++
++		opp-799999987 {
++			opp-hz = /bits/ 64 <799999987>;
++		};
++	};
++
+ 	tdmif_a: audio-controller-0 {
+ 		compatible = "amlogic,axg-tdm-iface";
+ 		#sound-dai-cells = <0>;
+@@ -868,6 +907,28 @@
+ 			};
+ 
+ 
++			gpu: gpu@400000 {
++				compatible = "amlogic,meson-g12a-mali", "arm,mali-bifrost";
++				reg = <0x0 0x400000 0x0 0x4000>;
++				interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
++					     <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>,
++					     <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>;
++				interrupt-names = "job", "mmu", "gpu";
++				clocks = <&clkc_periphs CLKID_MALI>,
++					 <&clkc_periphs CLKID_SYS_MALI>;
++				clock-names = "core", "bus";
++				resets = <&reset RESET_MALI_CAPB3>, <&reset RESET_MALI>;
++				assigned-clocks = <&clkc_periphs CLKID_MALI_0_MUX>,
++						  <&clkc_periphs CLKID_MALI_0>,
++						  <&clkc_periphs CLKID_MALI>;
++				assigned-clock-parents = <&clkc_pll CLKID_FCLK_DIV4>,
++							 <0>,
++							 <&clkc_periphs CLKID_MALI_0>;
++				assigned-clock-rates = <0>, <500000000>, <0>;
++				operating-points-v2 = <&gpu_opp_table>;
++				#cooling-cells = <2>;
++				status = "disabled";
++			};
+ 		};
+ 
+ 		vpu: vpu@ff000000 {
+-- 
+2.43.0
+
