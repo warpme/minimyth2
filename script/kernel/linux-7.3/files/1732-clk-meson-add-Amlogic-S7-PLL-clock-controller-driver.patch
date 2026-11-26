@@ -1,0 +1,434 @@
+From 3e6b923def309e47d5be9eb8620bbc9468319c7f Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 25 Nov 2026 14:30:11 +0100
+Subject: [PATCH] clk: meson: add Amlogic S7 PLL clock controller driver
+
+Add the PLL clock controller driver of the Amlogic S7 SoC family (S805X3,
+S905Y5), based on the Amlogic BSP s7 clock driver.
+
+The fixed PLL is set up by the bootloader and is read only. The gp0,
+hifi and hifi1 PLLs see half of the input rate (en0p5), have active high
+resets and a lock detector reset. Like for S6, their power of two output
+divider is modeled as a separate clock on top of the DCO.
+
+The sys, gp1 and cpu PLLs are owned by the firmware and are reached
+through SCMI, they are not handled here.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/clk/meson/Kconfig  |  13 ++
+ drivers/clk/meson/Makefile |   1 +
+ drivers/clk/meson/s7-pll.c | 368 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 382 insertions(+)
+ create mode 100644 drivers/clk/meson/s7-pll.c
+
+diff --git a/drivers/clk/meson/Kconfig b/drivers/clk/meson/Kconfig
+index 616447241..22da2b5f8 100644
+--- a/drivers/clk/meson/Kconfig
++++ b/drivers/clk/meson/Kconfig
+@@ -230,6 +230,19 @@ config COMMON_CLK_S6_PERIPHERALS
+ 	  Support for the peripherals clock controller on Amlogic S6 based
+ 	  devices. Say Y if you want peripherals to work.
+ 
++config COMMON_CLK_S7_PLL
++	tristate "S7 SoC PLL clock controller support"
++	depends on ARM64 || COMPILE_TEST
++	default ARCH_MESON
++	select COMMON_CLK_MESON_CLKC_UTILS
++	select COMMON_CLK_MESON_PLL
++	select COMMON_CLK_MESON_REGMAP
++	help
++	  Support for the PLL clock controller on Amlogic S805X3 and S905Y5
++	  based devices, AKA S7. It provides the fixed, gp0, hifi and hifi1
++	  PLLs and the fixed PLL dividers, which are the parents of most
++	  peripherals. Say Y if you want the board to work.
++
+ config COMMON_CLK_S4_PLL
+ 	tristate "S4 SoC PLL clock controllers support"
+ 	depends on ARM64
+diff --git a/drivers/clk/meson/Makefile b/drivers/clk/meson/Makefile
+index 1e6803ce3..0b4d7f2b1 100644
+--- a/drivers/clk/meson/Makefile
++++ b/drivers/clk/meson/Makefile
+@@ -32,6 +32,7 @@ obj-$(CONFIG_COMMON_CLK_S4_PLL) += s4-pll.o
+ obj-$(CONFIG_COMMON_CLK_S4_PERIPHERALS) += s4-peripherals.o
+ obj-$(CONFIG_COMMON_CLK_S6_PLL) += s6-pll.o
+ obj-$(CONFIG_COMMON_CLK_S6_PERIPHERALS) += s6-peripherals.o
++obj-$(CONFIG_COMMON_CLK_S7_PLL) += s7-pll.o
+ obj-$(CONFIG_COMMON_CLK_T7_CPU) += t7-cpu-clkc.o
+ obj-$(CONFIG_COMMON_CLK_T7_PLL) += t7-pll.o
+ obj-$(CONFIG_COMMON_CLK_T7_PERIPHERALS) += t7-peripherals.o
+diff --git a/drivers/clk/meson/s7-pll.c b/drivers/clk/meson/s7-pll.c
+new file mode 100644
+index 000000000..4defd997f
+--- /dev/null
++++ b/drivers/clk/meson/s7-pll.c
+@@ -0,0 +1,368 @@
++// SPDX-License-Identifier: (GPL-2.0-only OR MIT)
++/*
++ * Amlogic S7 PLL Clock Controller Driver
++ *
++ * Copyright (c) 2019 Amlogic, Inc. All rights reserved.
++ */
++
++#include <linux/clk-provider.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++
++#include "clk-pll.h"
++#include "clk-regmap.h"
++#include "meson-clkc-utils.h"
++#include <dt-bindings/clock/amlogic,s7-pll-clkc.h>
++
++#define ANACTRL_FIXPLL_CTRL0			0x040
++#define ANACTRL_FIXPLL_CTRL1			0x044
++#define ANACTRL_GP0PLL_CTRL0			0x080
++#define ANACTRL_GP0PLL_CTRL1			0x084
++#define ANACTRL_GP0PLL_CTRL2			0x088
++#define ANACTRL_GP0PLL_CTRL3			0x08c
++#define ANACTRL_HIFI0PLL_CTRL0			0x100
++#define ANACTRL_HIFI0PLL_CTRL1			0x104
++#define ANACTRL_HIFI0PLL_CTRL2			0x108
++#define ANACTRL_HIFI0PLL_CTRL3			0x10c
++#define ANACTRL_HIFI1PLL_CTRL0			0x110
++#define ANACTRL_HIFI1PLL_CTRL1			0x114
++#define ANACTRL_HIFI1PLL_CTRL2			0x118
++#define ANACTRL_HIFI1PLL_CTRL3			0x11c
++
++/*
++ * The fixed PLL is set up by the bootloader and is only read here. Its
++ * output divider (OD) is a power of two divider, modeled as a separate
++ * clock like for the other PLLs.
++ */
++static struct clk_regmap s7_fixed_pll_dco = {
++	.data = &(struct meson_clk_pll_data){
++		.en = {
++			.reg_off = ANACTRL_FIXPLL_CTRL0,
++			.shift   = 28,
++			.width   = 1,
++		},
++		.m = {
++			.reg_off = ANACTRL_FIXPLL_CTRL0,
++			.shift   = 0,
++			.width   = 9,
++		},
++		.n = {
++			.reg_off = ANACTRL_FIXPLL_CTRL0,
++			.shift   = 11,
++			.width   = 5,
++		},
++		.l = {
++			.reg_off = ANACTRL_FIXPLL_CTRL0,
++			.shift   = 31,
++			.width   = 1,
++		},
++		.rst = {
++			.reg_off = ANACTRL_FIXPLL_CTRL0,
++			.shift   = 29,
++			.width   = 1,
++		},
++	},
++	.hw.init = &(struct clk_init_data){
++		.name = "fixed_pll_dco",
++		.ops = &meson_clk_pll_ro_ops,
++		.parent_data = &(const struct clk_parent_data) {
++			.fw_name = "xtal",
++		},
++		.num_parents = 1,
++	},
++};
++
++static struct clk_regmap s7_fixed_pll = {
++	.data = &(struct clk_regmap_div_data){
++		.offset = ANACTRL_FIXPLL_CTRL0,
++		.shift = 9,
++		.width = 2,
++		.flags = CLK_DIVIDER_POWER_OF_TWO,
++	},
++	.hw.init = &(struct clk_init_data){
++		.name = "fixed_pll",
++		.ops = &clk_regmap_divider_ro_ops,
++		.parent_hws = (const struct clk_hw *[]) {
++			&s7_fixed_pll_dco.hw
++		},
++		.num_parents = 1,
++	},
++};
++
++/*
++ * The S7 PLLs see half of the input rate (en0p5), use a plain N divider,
++ * and active high resets. The output divider (OD) is a power of two divider
++ * at bits [10:9] of CTRL0, modeled as a separate clock.
++ */
++
++/* GP0 PLL */
++static const struct pll_params_table s7_gp0_pll_table[] = {
++	PLL_PARAMS(256, 1), /* DCO = 3072M */
++	PLL_PARAMS(192, 1), /* DCO = 2304M */
++	{ /* sentinel */ }
++};
++
++static const struct reg_sequence s7_gp0_pll_init_regs[] = {
++	{ .reg = ANACTRL_GP0PLL_CTRL0, .def = 0x02520000 },
++	{ .reg = ANACTRL_GP0PLL_CTRL1, .def = 0x09900322 },
++	{ .reg = ANACTRL_GP0PLL_CTRL2, .def = 0x00000000 },
++	{ .reg = ANACTRL_GP0PLL_CTRL3, .def = 0x00000006 }
++};
++
++static struct clk_regmap s7_gp0_pll_dco = {
++	.data = &(struct meson_clk_pll_data){
++		.en = {
++			.reg_off = ANACTRL_GP0PLL_CTRL0,
++			.shift   = 28,
++			.width   = 1,
++		},
++		.m = {
++			.reg_off = ANACTRL_GP0PLL_CTRL0,
++			.shift   = 0,
++			.width   = 9,
++		},
++		.n = {
++			.reg_off = ANACTRL_GP0PLL_CTRL0,
++			.shift   = 11,
++			.width   = 5,
++		},
++		.frac = {
++			.reg_off = ANACTRL_GP0PLL_CTRL2,
++			.shift   = 0,
++			.width   = 17,
++		},
++		.l = {
++			.reg_off = ANACTRL_GP0PLL_CTRL0,
++			.shift   = 31,
++			.width   = 1,
++		},
++		.rst = {
++			.reg_off = ANACTRL_GP0PLL_CTRL0,
++			.shift   = 29,
++			.width   = 1,
++		},
++		.l_rst = {
++			.reg_off = ANACTRL_GP0PLL_CTRL0,
++			.shift   = 16,
++			.width   = 1,
++		},
++		.table = s7_gp0_pll_table,
++		.init_regs = s7_gp0_pll_init_regs,
++		.init_count = ARRAY_SIZE(s7_gp0_pll_init_regs),
++		.flags = CLK_MESON_PLL_FIXED_EN0P5 |
++			 CLK_MESON_PLL_NOINIT_ENABLED,
++	},
++	.hw.init = &(struct clk_init_data){
++		.name = "gp0_pll_dco",
++		.ops = &meson_clk_pll_ops,
++		.parent_data = &(const struct clk_parent_data) {
++			.fw_name = "xtal",
++		},
++		.num_parents = 1,
++	},
++};
++
++static struct clk_regmap s7_gp0_pll = {
++	.data = &(struct clk_regmap_div_data){
++		.offset = ANACTRL_GP0PLL_CTRL0,
++		.shift = 9,
++		.width = 2,
++		.flags = CLK_DIVIDER_POWER_OF_TWO,
++	},
++	.hw.init = &(struct clk_init_data){
++		.name = "gp0_pll",
++		.ops = &clk_regmap_divider_ops,
++		.parent_hws = (const struct clk_hw *[]) {
++			&s7_gp0_pll_dco.hw
++		},
++		.num_parents = 1,
++		.flags = CLK_SET_RATE_PARENT,
++	},
++};
++
++/* HIFI and HIFI1 PLLs */
++static const struct pll_params_table s7_hifi_pll_table[] = {
++	PLL_PARAMS(150, 1), /* DCO = 1800M */
++	PLL_PARAMS(163, 1), /* DCO = 1956M */
++	{ /* sentinel */ }
++};
++
++#define S7_HIFI_PLL(_name, _pfx, _flags)					\
++static const struct reg_sequence s7_##_name##_init_regs[] = {		\
++	{ .reg = ANACTRL_##_pfx##_CTRL0, .def = 0x02520000 },		\
++	{ .reg = ANACTRL_##_pfx##_CTRL1, .def = 0x09900322 },		\
++	{ .reg = ANACTRL_##_pfx##_CTRL2, .def = 0x00004e20 },		\
++	{ .reg = ANACTRL_##_pfx##_CTRL3, .def = 0x00000006 }		\
++};									\
++									\
++static struct clk_regmap s7_##_name##_dco = {				\
++	.data = &(struct meson_clk_pll_data){				\
++		.en = {							\
++			.reg_off = ANACTRL_##_pfx##_CTRL0,		\
++			.shift   = 28,					\
++			.width   = 1,					\
++		},							\
++		.m = {							\
++			.reg_off = ANACTRL_##_pfx##_CTRL0,		\
++			.shift   = 0,					\
++			.width   = 9,					\
++		},							\
++		.n = {							\
++			.reg_off = ANACTRL_##_pfx##_CTRL0,		\
++			.shift   = 11,					\
++			.width   = 5,					\
++		},							\
++		.frac = {						\
++			.reg_off = ANACTRL_##_pfx##_CTRL2,		\
++			.shift   = 0,					\
++			.width   = 17,					\
++		},							\
++		.l = {							\
++			.reg_off = ANACTRL_##_pfx##_CTRL0,		\
++			.shift   = 31,					\
++			.width   = 1,					\
++		},							\
++		.rst = {						\
++			.reg_off = ANACTRL_##_pfx##_CTRL0,		\
++			.shift   = 29,					\
++			.width   = 1,					\
++		},							\
++		.l_rst = {						\
++			.reg_off = ANACTRL_##_pfx##_CTRL0,		\
++			.shift   = 16,					\
++			.width   = 1,					\
++		},							\
++		.frac_max = 100000,					\
++		.table = s7_hifi_pll_table,				\
++		.init_regs = s7_##_name##_init_regs,			\
++		.init_count = ARRAY_SIZE(s7_##_name##_init_regs),	\
++		.flags = CLK_MESON_PLL_FIXED_EN0P5 |			\
++			 CLK_MESON_PLL_ROUND_CLOSEST | (_flags),	\
++	},								\
++	.hw.init = &(struct clk_init_data){				\
++		.name = #_name "_dco",					\
++		.ops = &meson_clk_pll_ops,				\
++		.parent_data = &(const struct clk_parent_data) {	\
++			.fw_name = "xtal",				\
++		},							\
++		.num_parents = 1,					\
++	},								\
++};									\
++									\
++static struct clk_regmap s7_##_name = {					\
++	.data = &(struct clk_regmap_div_data){				\
++		.offset = ANACTRL_##_pfx##_CTRL0,			\
++		.shift = 9,						\
++		.width = 2,						\
++		.flags = CLK_DIVIDER_POWER_OF_TWO,			\
++	},								\
++	.hw.init = &(struct clk_init_data){				\
++		.name = #_name,						\
++		.ops = &clk_regmap_divider_ops,				\
++		.parent_hws = (const struct clk_hw *[]) {		\
++			&s7_##_name##_dco.hw				\
++		},							\
++		.num_parents = 1,					\
++		.flags = CLK_SET_RATE_PARENT,				\
++	},								\
++}
++
++S7_HIFI_PLL(hifi_pll, HIFI0PLL, CLK_MESON_PLL_NOINIT_ENABLED);
++S7_HIFI_PLL(hifi1_pll, HIFI1PLL, 0);
++
++/*
++ * The fixed PLL dividers. The gates are initialized by the firmware and
++ * must not be changed.
++ */
++#define S7_FCLK_DIV(_name, _m, _d, _bit)				\
++static struct clk_fixed_factor s7_##_name##_div = {			\
++	.mult = (_m),							\
++	.div = (_d),							\
++	.hw.init = &(struct clk_init_data) {				\
++		.name = #_name "_div",					\
++		.ops = &clk_fixed_factor_ops,				\
++		.parent_hws = (const struct clk_hw *[]) {		\
++			&s7_fixed_pll.hw				\
++		},							\
++		.num_parents = 1,					\
++	},								\
++};									\
++									\
++static struct clk_regmap s7_##_name = {					\
++	.data = &(struct clk_regmap_gate_data) {			\
++		.offset = ANACTRL_FIXPLL_CTRL1,				\
++		.bit_idx = (_bit),					\
++	},								\
++	.hw.init = &(struct clk_init_data) {				\
++		.name = #_name,						\
++		.ops = &clk_regmap_gate_ro_ops,				\
++		.parent_hws = (const struct clk_hw *[]) {		\
++			&s7_##_name##_div.hw				\
++		},							\
++		.num_parents = 1,					\
++	},								\
++}
++
++S7_FCLK_DIV(fclk_50m, 1, 40, 31);
++S7_FCLK_DIV(fclk_div2, 1, 2, 30);
++S7_FCLK_DIV(fclk_div2p5, 2, 5, 25);
++S7_FCLK_DIV(fclk_div3, 1, 3, 26);
++S7_FCLK_DIV(fclk_div4, 1, 4, 27);
++S7_FCLK_DIV(fclk_div5, 1, 5, 28);
++S7_FCLK_DIV(fclk_div7, 1, 7, 29);
++
++/* Array of all clocks provided by this provider */
++static struct clk_hw *s7_pll_hw_clks[] = {
++	[CLKID_FIXED_PLL_DCO]	= &s7_fixed_pll_dco.hw,
++	[CLKID_FIXED_PLL]	= &s7_fixed_pll.hw,
++	[CLKID_GP0_PLL_DCO]	= &s7_gp0_pll_dco.hw,
++	[CLKID_GP0_PLL]		= &s7_gp0_pll.hw,
++	[CLKID_HIFI_PLL_DCO]	= &s7_hifi_pll_dco.hw,
++	[CLKID_HIFI_PLL]	= &s7_hifi_pll.hw,
++	[CLKID_HIFI1_PLL_DCO]	= &s7_hifi1_pll_dco.hw,
++	[CLKID_HIFI1_PLL]	= &s7_hifi1_pll.hw,
++	[CLKID_FCLK_50M_DIV]	= &s7_fclk_50m_div.hw,
++	[CLKID_FCLK_50M]	= &s7_fclk_50m.hw,
++	[CLKID_FCLK_DIV2_DIV]	= &s7_fclk_div2_div.hw,
++	[CLKID_FCLK_DIV2]	= &s7_fclk_div2.hw,
++	[CLKID_FCLK_DIV2P5_DIV]	= &s7_fclk_div2p5_div.hw,
++	[CLKID_FCLK_DIV2P5]	= &s7_fclk_div2p5.hw,
++	[CLKID_FCLK_DIV3_DIV]	= &s7_fclk_div3_div.hw,
++	[CLKID_FCLK_DIV3]	= &s7_fclk_div3.hw,
++	[CLKID_FCLK_DIV4_DIV]	= &s7_fclk_div4_div.hw,
++	[CLKID_FCLK_DIV4]	= &s7_fclk_div4.hw,
++	[CLKID_FCLK_DIV5_DIV]	= &s7_fclk_div5_div.hw,
++	[CLKID_FCLK_DIV5]	= &s7_fclk_div5.hw,
++	[CLKID_FCLK_DIV7_DIV]	= &s7_fclk_div7_div.hw,
++	[CLKID_FCLK_DIV7]	= &s7_fclk_div7.hw,
++};
++
++static const struct meson_clkc_data s7_pll_clkc_data = {
++	.hw_clks = {
++		.hws = s7_pll_hw_clks,
++		.num = ARRAY_SIZE(s7_pll_hw_clks),
++	},
++};
++
++static const struct of_device_id s7_pll_clkc_match_table[] = {
++	{
++		.compatible = "amlogic,s7-pll-clkc",
++		.data = &s7_pll_clkc_data,
++	},
++	{}
++};
++MODULE_DEVICE_TABLE(of, s7_pll_clkc_match_table);
++
++static struct platform_driver s7_pll_clkc_driver = {
++	.probe		= meson_clkc_mmio_probe,
++	.driver		= {
++		.name	= "s7-pll-clkc",
++		.of_match_table = s7_pll_clkc_match_table,
++	},
++};
++module_platform_driver(s7_pll_clkc_driver);
++
++MODULE_DESCRIPTION("Amlogic S7 PLL Clock Controller driver");
++MODULE_AUTHOR("Amlogic, Inc.");
++MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS("CLK_MESON");

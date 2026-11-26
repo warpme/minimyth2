@@ -1,0 +1,166 @@
+From 43e0844a49ad46dc782258d47da1c7249a6fda8b Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 25 Nov 2026 14:37:05 +0100
+Subject: [PATCH] arm64: dts: amlogic: add Tanix TX5
+
+Add the device tree of the Tanix TX5 TV box (Amlogic S905Y5, 2 GiB RAM),
+based on its Android device tree. It enables the serial console, the SD
+card, the eMMC (in high speed mode only for now), the 10/100 ethernet
+with the internal PHY and the power LED.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm64/boot/dts/amlogic/Makefile          |   1 +
+ .../amlogic/amlogic-s7-s905y5-tanix-tx5.dts   | 131 ++++++++++++++++++
+ 2 files changed, 132 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/amlogic/amlogic-s7-s905y5-tanix-tx5.dts
+
+diff --git a/arch/arm64/boot/dts/amlogic/Makefile b/arch/arm64/boot/dts/amlogic/Makefile
+index 57bc440fa..db65b01c3 100644
+--- a/arch/arm64/boot/dts/amlogic/Makefile
++++ b/arch/arm64/boot/dts/amlogic/Makefile
+@@ -6,6 +6,7 @@ dtb-$(CONFIG_ARCH_MESON) += amlogic-c3-c302x-aw409.dtb
+ dtb-$(CONFIG_ARCH_MESON) += amlogic-c3-c308l-aw419.dtb
+ dtb-$(CONFIG_ARCH_MESON) += amlogic-s6-s905x5-bl209.dtb
+ dtb-$(CONFIG_ARCH_MESON) += amlogic-s7-s805x3-bp201.dtb
++dtb-$(CONFIG_ARCH_MESON) += amlogic-s7-s905y5-tanix-tx5.dtb
+ dtb-$(CONFIG_ARCH_MESON) += amlogic-s7d-s905x5m-bm202.dtb
+ dtb-$(CONFIG_ARCH_MESON) += amlogic-t7-a311d2-an400.dtb
+ dtb-$(CONFIG_ARCH_MESON) += amlogic-t7-a311d2-khadas-vim4.dtb
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s7-s905y5-tanix-tx5.dts b/arch/arm64/boot/dts/amlogic/amlogic-s7-s905y5-tanix-tx5.dts
+new file mode 100644
+index 000000000..5b39683ff
+--- /dev/null
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s7-s905y5-tanix-tx5.dts
+@@ -0,0 +1,131 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright (c) 2026 Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++ *
++ * Based on the Amlogic S7 BSP device tree of the Tanix TX5 (s7_s905y5_bh201)
++ */
++
++/dts-v1/;
++
++#include "amlogic-s7.dtsi"
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "Tanix TX5";
++	compatible = "oranth,tx5", "amlogic,s7";
++	interrupt-parent = <&gic>;
++	#address-cells = <2>;
++	#size-cells = <2>;
++
++	aliases {
++		serial0 = &uart_b;
++		mmc1 = &emmc;
++		mmc0 = &sd;
++		ethernet0 = &ethmac;
++	};
++
++	chosen {
++		stdout-path = "serial0:921600n8";
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x0 0x0 0x80000000>;
++	};
++
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		/* 35 MiB reserved for ARM Trusted Firmware */
++		secmon_reserved: secmon@5000000 {
++			compatible = "shared-dma-pool";
++			reg = <0x0 0x05000000 0x0 0x2300000>;
++			no-map;
++		};
++	};
++
++	emmc_pwrseq: emmc-pwrseq {
++		compatible = "mmc-pwrseq-emmc";
++		reset-gpios = <&gpiob 9 GPIO_ACTIVE_LOW>;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-power {
++			color = <LED_COLOR_ID_BLUE>;
++			function = LED_FUNCTION_POWER;
++			gpios = <&gpiod 10 GPIO_ACTIVE_HIGH>;
++			default-state = "on";
++		};
++	};
++
++	main_12v: regulator-main-12v {
++		compatible = "regulator-fixed";
++		regulator-name = "12V";
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++		regulator-always-on;
++	};
++
++	vddao_3v3: regulator-vddao-3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "VDDAO_3V3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&main_12v>;
++		regulator-always-on;
++	};
++
++	vddio_ao1v8: regulator-vddio-ao1v8 {
++		compatible = "regulator-fixed";
++		regulator-name = "VDD_AO18_LDO";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		vin-supply = <&vddao_3v3>;
++		regulator-always-on;
++	};
++};
++
++&uart_b {
++	status = "okay";
++};
++
++&ethmac {
++	pinctrl-0 = <&eth_led_pins>;
++	pinctrl-names = "default";
++	phy-handle = <&internal_ephy>;
++	phy-mode = "rmii";
++	status = "okay";
++};
++
++&sd {
++	pinctrl-0 = <&sdcard_pins>;
++	pinctrl-1 = <&sdcard_clk_gate_pins>;
++	pinctrl-names = "default", "clk-gate";
++	bus-width = <4>;
++	cap-sd-highspeed;
++	max-frequency = <50000000>;
++	disable-wp;
++	cd-gpios = <&gpioc 6 GPIO_ACTIVE_LOW>;
++	vmmc-supply = <&vddao_3v3>;
++	vqmmc-supply = <&vddao_3v3>;
++	status = "okay";
++};
++
++&emmc {
++	pinctrl-0 = <&emmc_pins>, <&emmc_clk_pins>, <&emmc_ds_pins>;
++	pinctrl-1 = <&emmc_clk_gate_pins>;
++	pinctrl-names = "default", "clk-gate";
++	bus-width = <8>;
++	cap-mmc-highspeed;
++	max-frequency = <52000000>;
++	non-removable;
++	disable-wp;
++	mmc-pwrseq = <&emmc_pwrseq>;
++	vmmc-supply = <&vddao_3v3>;
++	vqmmc-supply = <&vddio_ao1v8>;
++	status = "okay";
++};

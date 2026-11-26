@@ -1,0 +1,194 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 25 Nov 2026 17:36:10 +0100
+Subject: [PATCH] net: mdio: mux-meson-g12a: add support for Amlogic S7
+
+The internal PHY of the Amlogic S7 SoC sits behind the same MDIO
+multiplexer as on G12A, but its PLL is a different block: it has no
+EN/RST bits in CTL0 and needs other settings. With the G12A values the
+PLL never locks and every MDIO access to the internal PHY times out.
+
+Move the PLL and ETH_PHY_CNTL1 values to per-SoC match data and add
+the S7 values, taken from the registers programmed by the vendor
+bootloader, together with the two PHY analog registers it sets.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/net/mdio/mdio-mux-meson-g12a.c | 89 ++++++++++++++++++++++----
+ 1 file changed, 75 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/net/mdio/mdio-mux-meson-g12a.c b/drivers/net/mdio/mdio-mux-meson-g12a.c
+index 71c4438..3904f78 100644
+--- a/drivers/net/mdio/mdio-mux-meson-g12a.c
++++ b/drivers/net/mdio/mdio-mux-meson-g12a.c
+@@ -12,6 +12,7 @@
+ #include <linux/iopoll.h>
+ #include <linux/mdio-mux.h>
+ #include <linux/module.h>
++#include <linux/of.h>
+ #include <linux/phy.h>
+ #include <linux/platform_device.h>
+ 
+@@ -48,19 +49,62 @@
+ #define  PHY_CNTL2_USE_INTERNAL	BIT(5)
+ #define  PHY_CNTL2_SMI_SRC_MAC	BIT(6)
+ #define  PHY_CNTL2_RX_CLK_EPHY	BIT(9)
++#define ETH_PHY_ANA_9C		0x9c
++#define ETH_PHY_ANA_A0		0xa0
+ 
+ #define MESON_G12A_MDIO_EXTERNAL_ID 0
+ #define MESON_G12A_MDIO_INTERNAL_ID 1
+ 
++struct g12a_mdio_mux_data {
++	u32 pll_ctl[8];		/* ETH_PLL_CTL0..CTL7 init values */
++	u32 phy_cntl1;		/* ETH_PHY_CNTL1 without PHY_ENB */
++	bool pll_en_rst;	/* PLL enabled through EN/RST bits of CTL0 */
++	bool has_ana;		/* program the PHY analog registers */
++	u32 ana_9c;
++	u32 ana_a0;
++};
++
+ struct g12a_mdio_mux {
+ 	void __iomem *regs;
+ 	void *mux_handle;
+ 	struct clk *pll;
++	const struct g12a_mdio_mux_data *data;
+ };
+ 
+ struct g12a_ephy_pll {
+ 	void __iomem *base;
+ 	struct clk_hw hw;
++	const struct g12a_mdio_mux_data *data;
++};
++
++static const struct g12a_mdio_mux_data g12a_mdio_mux_data = {
++	.pll_ctl = { 0x29c0040a, 0x927e0000, 0xac5f49e5, 0x00000000,
++		     0x00000000, 0x20200000, 0x0000c002, 0x00000023 },
++	.phy_cntl1 = FIELD_PREP_CONST(PHY_CNTL1_ST_MODE, 3) |
++		     FIELD_PREP_CONST(PHY_CNTL1_ST_PHYADD, EPHY_DFLT_ADD) |
++		     FIELD_PREP_CONST(PHY_CNTL1_MII_MODE, EPHY_MODE_RMII) |
++		     PHY_CNTL1_CLK_EN |
++		     PHY_CNTL1_CLKFREQ,
++	.pll_en_rst = true,
++};
++
++/*
++ * S7: values programmed by the vendor bootloader (bl-3.5.x), the PHY PLL
++ * is a different block than on G12A and has no EN/RST bits in CTL0.
++ */
++static const struct g12a_mdio_mux_data s7_mdio_mux_data = {
++	.pll_ctl = { 0x00118630, 0x222200a0, 0x00000000, 0xaa800000,
++		     0x00000000, 0x20000000, 0x00004001, 0x00000023 },
++	.phy_cntl1 = BIT(30) | BIT(25) | BIT(8) |
++		     FIELD_PREP_CONST(PHY_CNTL1_ST_MODE, 7) |
++		     FIELD_PREP_CONST(PHY_CNTL1_ST_PHYADD, EPHY_DFLT_ADD) |
++		     FIELD_PREP_CONST(PHY_CNTL1_MII_MODE, EPHY_MODE_RMII) |
++		     PHY_CNTL1_CLK_EN |
++		     PHY_CNTL1_CLKFREQ,
++	.pll_en_rst = false,
++	.has_ana = true,
++	.ana_9c = 0x4417e001,
++	.ana_a0 = 0x10000000,
+ };
+ 
+ #define g12a_ephy_pll_to_dev(_hw)			\
+@@ -83,6 +127,18 @@ static int g12a_ephy_pll_enable(struct clk_hw *hw)
+ {
+ 	struct g12a_ephy_pll *pll = g12a_ephy_pll_to_dev(hw);
+ 	u32 val = readl(pll->base + ETH_PLL_CTL0);
++	int ret;
++
++	if (!pll->data->pll_en_rst) {
++		writel(pll->data->pll_ctl[0], pll->base + ETH_PLL_CTL0);
++		ret = readl_poll_timeout(pll->base + ETH_PLL_CTL0, val,
++					 val & PLL_CTL0_LOCK_DIG, 0,
++					 PLL_LOCK_TIMEOUT);
++		if (ret)
++			pr_warn("%s: no PLL lock (CTL0 0x%08x)\n",
++				clk_hw_get_name(hw), val);
++		return 0;
++	}
+ 
+ 	/* Apply both enable an reset */
+ 	val |= PLL_CTL0_RST | PLL_CTL0_EN;
+@@ -106,6 +162,9 @@ static void g12a_ephy_pll_disable(struct clk_hw *hw)
+ 	struct g12a_ephy_pll *pll = g12a_ephy_pll_to_dev(hw);
+ 	u32 val;
+ 
++	if (!pll->data->pll_en_rst)
++		return;
++
+ 	val = readl(pll->base + ETH_PLL_CTL0);
+ 	val &= ~PLL_CTL0_EN;
+ 	val |= PLL_CTL0_RST;
+@@ -125,16 +184,11 @@ static int g12a_ephy_pll_is_enabled(struct clk_hw *hw)
+ static int g12a_ephy_pll_init(struct clk_hw *hw)
+ {
+ 	struct g12a_ephy_pll *pll = g12a_ephy_pll_to_dev(hw);
++	int i;
+ 
+ 	/* Apply PLL HW settings */
+-	writel(0x29c0040a, pll->base + ETH_PLL_CTL0);
+-	writel(0x927e0000, pll->base + ETH_PLL_CTL1);
+-	writel(0xac5f49e5, pll->base + ETH_PLL_CTL2);
+-	writel(0x00000000, pll->base + ETH_PLL_CTL3);
+-	writel(0x00000000, pll->base + ETH_PLL_CTL4);
+-	writel(0x20200000, pll->base + ETH_PLL_CTL5);
+-	writel(0x0000c002, pll->base + ETH_PLL_CTL6);
+-	writel(0x00000023, pll->base + ETH_PLL_CTL7);
++	for (i = 0; i < ARRAY_SIZE(pll->data->pll_ctl); i++)
++		writel(pll->data->pll_ctl[i], pll->base + ETH_PLL_CTL0 + 4 * i);
+ 
+ 	return 0;
+ }
+@@ -162,12 +216,13 @@ static int g12a_enable_internal_mdio(struct g12a_mdio_mux *priv)
+ 	/* Initialize ephy control */
+ 	writel(EPHY_G12A_ID, priv->regs + ETH_PHY_CNTL0);
+ 
++	if (priv->data->has_ana) {
++		writel(priv->data->ana_9c, priv->regs + ETH_PHY_ANA_9C);
++		writel(priv->data->ana_a0, priv->regs + ETH_PHY_ANA_A0);
++	}
++
+ 	/* Make sure we get a 0 -> 1 transition on the enable bit */
+-	value = FIELD_PREP(PHY_CNTL1_ST_MODE, 3) |
+-		FIELD_PREP(PHY_CNTL1_ST_PHYADD, EPHY_DFLT_ADD) |
+-		FIELD_PREP(PHY_CNTL1_MII_MODE, EPHY_MODE_RMII) |
+-		PHY_CNTL1_CLK_EN |
+-		PHY_CNTL1_CLKFREQ;
++	value = priv->data->phy_cntl1;
+ 	writel(value, priv->regs + ETH_PHY_CNTL1);
+ 	writel(PHY_CNTL2_USE_INTERNAL |
+ 	       PHY_CNTL2_SMI_SRC_MAC |
+@@ -214,7 +269,8 @@ static int g12a_mdio_switch_fn(int current_child, int desired_child,
+ }
+ 
+ static const struct of_device_id g12a_mdio_mux_match[] = {
+-	{ .compatible = "amlogic,g12a-mdio-mux", },
++	{ .compatible = "amlogic,g12a-mdio-mux", .data = &g12a_mdio_mux_data },
++	{ .compatible = "amlogic,s7-mdio-mux", .data = &s7_mdio_mux_data },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, g12a_mdio_mux_match);
+@@ -287,6 +343,7 @@ static int g12a_ephy_glue_clk_register(struct device *dev)
+ 	init.num_parents = 1;
+ 
+ 	pll->base = priv->regs;
++	pll->data = priv->data;
+ 	pll->hw.init = &init;
+ 
+ 	clk = devm_clk_register(dev, &pll->hw);
+@@ -314,6 +371,10 @@ static int g12a_mdio_mux_probe(struct platform_device *pdev)
+ 
+ 	platform_set_drvdata(pdev, priv);
+ 
++	priv->data = of_device_get_match_data(dev);
++	if (!priv->data)
++		return -EINVAL;
++
+ 	priv->regs = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(priv->regs))
+ 		return PTR_ERR(priv->regs);
+-- 
+2.43.0
+

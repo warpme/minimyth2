@@ -1,0 +1,160 @@
+From 181e879b9cf954933f4db63648427bad60f44424 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Wed, 25 Nov 2026 14:33:22 +0100
+Subject: [PATCH] arm64: dts: amlogic: s7: add MMC controllers
+
+Add the SDIO (A), SD card (B) and eMMC (C) controllers of the Amlogic S7
+SoC with their pin groups, based on the Amlogic BSP. The controllers are
+the AXG ones, they are also behind secure power domains. The eMMC
+controller needs the TX clock phase at 180 degrees to work at 52 MHz.
+
+The pin group node names are unique across the pin controller, as the
+A4 pinctrl driver looks the groups up by node name.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi | 124 ++++++++++++++++++++
+ 1 file changed, 124 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+index 295dcfa8e..a9d73aa73 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+@@ -258,6 +258,77 @@ gpiocc: gpio@300 {
+ 					#gpio-cells = <2>;
+ 					gpio-ranges = <&periphs_pinctrl 0 (AMLOGIC_GPIO_CC<<8) 2>;
+ 				};
++
++				func-emmc {
++					emmc_pins: group-emmc-default {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_B, 0, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_B, 1, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_B, 2, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_B, 3, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_B, 4, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_B, 5, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_B, 6, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_B, 7, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_B, 10, 1)>;
++						bias-pull-up;
++						drive-strength-microamp = <4000>;
++					};
++
++					emmc_clk_pins: group-emmc-clk {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_B, 8, 1)>;
++						bias-disable;
++						drive-strength-microamp = <4000>;
++					};
++
++					emmc_ds_pins: group-emmc-ds {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_B, 11, 1)>;
++						bias-pull-down;
++						drive-strength-microamp = <4000>;
++					};
++
++					emmc_clk_gate_pins: group-emmc-clk-gate {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_B, 8, 0)>;
++						bias-pull-down;
++					};
++				};
++
++				func-sdcard {
++					sdcard_pins: group-sdcard-default {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_C, 0, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_C, 1, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_C, 2, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_C, 3, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_C, 4, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_C, 5, 1)>;
++						bias-pull-up;
++						drive-strength-microamp = <4000>;
++					};
++
++					sdcard_clk_gate_pins: group-sdcard-clk-gate {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_C, 4, 0)>;
++						bias-pull-down;
++						drive-strength-microamp = <4000>;
++					};
++				};
++
++				func-sdio {
++					sdio_pins: group-sdio-default {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_X, 0, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_X, 1, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_X, 2, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_X, 3, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_X, 4, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_X, 5, 1)>;
++						bias-pull-up;
++						drive-strength-microamp = <4000>;
++					};
++
++					sdio_clk_gate_pins: group-sdio-clk-gate {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_X, 4, 0)>;
++						bias-pull-down;
++						drive-strength-microamp = <4000>;
++					};
++				};
+ 			};
+ 
+ 			gpio_intc: interrupt-controller@4080 {
+@@ -282,6 +353,59 @@ clk_msr: clock-measure@48000 {
+ 				compatible = "amlogic,s7-clk-measure";
+ 				reg = <0x0 0x48000 0x0 0x1c>;
+ 			};
++
++			sdio: mmc@88000 {
++				compatible = "amlogic,s7-mmc", "amlogic,meson-axg-mmc";
++				reg = <0x0 0x88000 0x0 0x800>;
++				interrupts = <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&clkc_periphs CLKID_SYS_SD_EMMC_A>,
++					 <&clkc_periphs CLKID_SD_EMMC_A>,
++					 <&clkc_pll CLKID_FCLK_DIV2>;
++				clock-names = "core", "clkin0", "clkin1";
++				resets = <&reset RESET_SD_EMMC_A>;
++				power-domains = <&pwrc PWRC_S7_SD_EMMC_A_ID>;
++				cap-sdio-irq;
++				keep-power-in-suspend;
++				status = "disabled";
++
++				assigned-clocks = <&clkc_periphs CLKID_SD_EMMC_A>;
++				assigned-clock-rates = <24000000>;
++			};
++
++			sd: mmc@8a000 {
++				compatible = "amlogic,s7-mmc", "amlogic,meson-axg-mmc";
++				reg = <0x0 0x8a000 0x0 0x800>;
++				interrupts = <GIC_SPI 177 IRQ_TYPE_EDGE_RISING>;
++				clocks = <&clkc_periphs CLKID_SYS_SD_EMMC_B>,
++					 <&clkc_periphs CLKID_SD_EMMC_B>,
++					 <&clkc_pll CLKID_FCLK_DIV2>;
++				clock-names = "core", "clkin0", "clkin1";
++				resets = <&reset RESET_SD_EMMC_B>;
++				power-domains = <&pwrc PWRC_S7_SD_EMMC_B_ID>;
++				status = "disabled";
++
++				assigned-clocks = <&clkc_periphs CLKID_SD_EMMC_B>;
++				assigned-clock-rates = <24000000>;
++			};
++
++			emmc: mmc@8c000 {
++				compatible = "amlogic,s7-mmc", "amlogic,meson-axg-mmc";
++				reg = <0x0 0x8c000 0x0 0x800>;
++				interrupts = <GIC_SPI 178 IRQ_TYPE_EDGE_RISING>;
++				clocks = <&clkc_periphs CLKID_SYS_SD_EMMC_C>,
++					 <&clkc_periphs CLKID_SD_EMMC_C>,
++					 <&clkc_pll CLKID_FCLK_DIV2>;
++				clock-names = "core", "clkin0", "clkin1";
++				resets = <&reset RESET_SD_EMMC_C>;
++				power-domains = <&pwrc PWRC_S7_SD_EMMC_C_ID>;
++				no-sdio;
++				no-sd;
++				amlogic,tx-phase = <180>;
++				status = "disabled";
++
++				assigned-clocks = <&clkc_periphs CLKID_SD_EMMC_C>;
++				assigned-clock-rates = <24000000>;
++			};
+ 		};
+ 	};
+ };
