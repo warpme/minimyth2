@@ -1,0 +1,140 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 09:58:20 +0100
+Subject: [PATCH] arm64: dts: amlogic: s7: add VPU and HDMI transmitter
+
+Add the VPU, the canvas LUT of the DMC and the HDMI 2.1 transmitter of
+the Amlogic S7 SoC with the HDMI HPD and DDC pin groups, based on the
+Amlogic BSP device tree.
+
+The VPU and the transmitter are in the VPU_HDMI power domain. The
+transmitter needs, besides the APB clock, the prif (controller
+registers), 200M (DDC master) and sys (TOP registers) clocks.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi | 88 +++++++++++++++++++++
+ 1 file changed, 88 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+index 751f17a..021753b 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+@@ -299,6 +299,20 @@
+ 					};
+ 				};
+ 
++				func-hdmitx {
++					hdmitx_hpd_pins: group-hdmitx-hpd {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_H, 2, 1)>;
++						bias-disable;
++					};
++
++					hdmitx_ddc_pins: group-hdmitx-ddc {
++						pinmux = <AML_PINMUX(AMLOGIC_GPIO_H, 0, 1)>,
++							 <AML_PINMUX(AMLOGIC_GPIO_H, 1, 1)>;
++						bias-disable;
++						drive-strength-microamp = <4000>;
++					};
++				};
++
+ 				func-sdcard {
+ 					sdcard_pins: group-sdcard-default {
+ 						pinmux = <AML_PINMUX(AMLOGIC_GPIO_C, 0, 1)>,
+@@ -356,6 +370,11 @@
+ 				amlogic,has-chip-id;
+ 			};
+ 
++			canvas: video-lut@36048 {
++				compatible = "amlogic,canvas";
++				reg = <0x0 0x36048 0x0 0x14>;
++			};
++
+ 			clk_msr: clock-measure@48000 {
+ 				compatible = "amlogic,s7-clk-measure";
+ 				reg = <0x0 0x48000 0x0 0x1c>;
+@@ -414,6 +433,41 @@
+ 				assigned-clock-rates = <24000000>;
+ 			};
+ 
++			hdmi_tx: hdmi-tx@300000 {
++				compatible = "amlogic,s7-hdmi-tx";
++				reg = <0x0 0x300000 0x0 0x10000>,
++				      <0x0 0x310000 0x0 0x10000>;
++				reg-names = "top", "cor";
++				interrupts = <GIC_SPI 204 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&clkc_periphs CLKID_SYS_HDMITX_APB>,
++					 <&clkc_periphs CLKID_HDMITX_PRIF>,
++					 <&clkc_periphs CLKID_HDMITX_200M>,
++					 <&clkc_periphs CLKID_HDMITX_SYS>;
++				clock-names = "pclk", "prif", "i2c", "sys";
++				resets = <&reset RESET_HDMITX_CAPB3>,
++					 <&reset RESET_HDMITXPHY>,
++					 <&reset RESET_HDMI_TX>;
++				power-domains = <&pwrc PWRC_S7_VPU_HDMI_ID>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++				#sound-dai-cells = <0>;
++				status = "disabled";
++
++				/* VPU VENC Input */
++				hdmi_tx_venc_port: port@0 {
++					reg = <0>;
++
++					hdmi_tx_in: endpoint {
++						remote-endpoint = <&hdmi_tx_out>;
++					};
++				};
++
++				/* TMDS Output */
++				hdmi_tx_tmds_port: port@1 {
++					reg = <1>;
++				};
++			};
++
+ 			eth_phy: mdio-multiplexer@360000 {
+ 				compatible = "amlogic,s7-mdio-mux";
+ 				reg = <0x0 0x360000 0x0 0xa4>;
+@@ -469,5 +523,39 @@
+ 				};
+ 			};
+ 		};
++
++		vpu: vpu@ff000000 {
++			compatible = "amlogic,meson-s7-vpu";
++			reg = <0x0 0xff000000 0x0 0x40000>,
++			      <0x0 0xfe008000 0x0 0x1000>,
++			      <0x0 0xfe010000 0x0 0x1000>,
++			      <0x0 0xfe000000 0x0 0x1000>,
++			      <0x0 0xfe00c000 0x0 0x1000>;
++			reg-names = "vpu", "hhi", "sysctrl", "clkctrl", "pwrctrl";
++			interrupts = <GIC_SPI 197 IRQ_TYPE_EDGE_RISING>;
++			clocks = <&clkc_periphs CLKID_SYS_VPU_INTR>,
++				 <&clkc_periphs CLKID_VPU>,
++				 <&clkc_periphs CLKID_VAPB>;
++			clock-names = "intr", "vpu", "vapb";
++			power-domains = <&pwrc PWRC_S7_VPU_HDMI_ID>;
++			amlogic,canvas = <&canvas>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++			status = "disabled";
++
++			/* CVBS VDAC output port */
++			cvbs_vdac_port: port@0 {
++				reg = <0>;
++			};
++
++			/* HDMI-TX output port */
++			hdmi_tx_port: port@1 {
++				reg = <1>;
++
++				hdmi_tx_out: endpoint {
++					remote-endpoint = <&hdmi_tx_in>;
++				};
++			};
++		};
+ 	};
+ };
+-- 
+2.43.0
+

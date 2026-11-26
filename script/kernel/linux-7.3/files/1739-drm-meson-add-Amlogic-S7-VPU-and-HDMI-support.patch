@@ -1,0 +1,516 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 09:57:52 +0100
+Subject: [PATCH] drm/meson: add Amlogic S7 VPU and HDMI support
+
+The Amlogic S7 (S905Y5) has the same S4 class VPU and HDMI 2.1
+transmitter as S6, with another HDMI PLL and PHY and without OSD
+canvas:
+
+- HDMI PLL: M is VCO / 24 MHz, other control values and enable
+  sequence, the OD1/OD2 stages are 2 bit fields in CTRL2 and the analog
+  /5 divider (OD3) is in CTRL0.
+- analog clock path: selected by the VCLK source (vid_pix_clk) instead
+  of bit 15 of CLKCTRL_HDMI_CLK_CTRL.
+- PHY: other CTRL0/CTRL5 values, no bit 30 lane enable, and the TMDS
+  clock bits of PHY_CTRL3 stay on when the output is off.
+- OSD: like T7 the OSD1 MIF reads the frame buffer by linear address,
+  through the canvas the picture is garbage.
+- VPU HDMI interface: the Y/Cb/Cr data swap of VPU_HDMI_SETTING is in
+  front of the YCbCr to RGB matrix (behind it on S6), use the YCBCR
+  order so that the matrix gets Y, Cb, Cr.
+
+Add VPU_COMPATIBLE_S7, a meson_vpu_is_s6_like() helper for the paths
+S6 and S7 share and meson_vpu_osd_is_linear() for T7 and S7, the
+amlogic,meson-s7-vpu and amlogic,s7-hdmi-tx compatibles, and an
+optional "sys" clock of the transmitter for the cts_hdmitx_sys gate
+that clocks the TOP registers on S7.
+
+Values and sequences from the vendor driver (hdmitx_hw_s7.c,
+meson_vpu_osd_mif.c).
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/gpu/drm/meson/meson_crtc.c         |   5 +-
+ drivers/gpu/drm/meson/meson_drv.c          |  15 ++-
+ drivers/gpu/drm/meson/meson_drv.h          |  23 +++-
+ drivers/gpu/drm/meson/meson_encoder_hdmi.c |  12 +-
+ drivers/gpu/drm/meson/meson_hdmitx21.c     |  70 ++++++++++-
+ drivers/gpu/drm/meson/meson_vclk.c         | 136 +++++++++++++++++++--
+ drivers/gpu/drm/meson/meson_venc.c         |   6 +-
+ 7 files changed, 239 insertions(+), 28 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_crtc.c b/drivers/gpu/drm/meson/meson_crtc.c
+index 440e287..0e08ef0 100644
+--- a/drivers/gpu/drm/meson/meson_crtc.c
++++ b/drivers/gpu/drm/meson/meson_crtc.c
+@@ -395,9 +395,8 @@ void meson_crtc_irq(struct meson_drm *priv)
+ 					    MESON_CANVAS_WRAP_NONE,
+ 					    MESON_CANVAS_BLKMODE_LINEAR, 0);
+ 
+-		/* T7: the OSD1 MIF reads by linear address, not by canvas */
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) &&
+-		    !priv->viu.osd1_afbcd) {
++		/* T7, S7: the OSD1 MIF reads by linear address, not by canvas */
++		if (meson_vpu_osd_is_linear(priv) && !priv->viu.osd1_afbcd) {
+ 			writel_relaxed(priv->viu.osd1_addr >> 4,
+ 				       priv->io_base + _REG(VIU_OSD1_BLK1_CFG_W4));
+ 			writel_bits_relaxed(GENMASK(11, 0),
+diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv.c
+index f97d3c1..dbb24c5 100644
+--- a/drivers/gpu/drm/meson/meson_drv.c
++++ b/drivers/gpu/drm/meson/meson_drv.c
+@@ -340,12 +340,12 @@ static int meson_drv_bind_master(struct device *dev, bool has_components)
+ 		}
+ 
+ 		/*
+-		 * T7, S6: the VPU interrupt gate also clocks the OSD registers.
+-		 * Keep it on through the clock framework (optional: the
+-		 * S6 device tree may leave the gate to the boot loader).
++		 * T7, S6, S7: the VPU interrupt gate also clocks the OSD
++		 * registers. Keep it on through the clock framework (optional:
++		 * the S6 device tree may leave the gate to the boot loader).
+ 		 */
+ 		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) ||
+-		    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6)) {
++		    meson_vpu_is_s6_like(priv)) {
+ 			struct clk *intr_clk;
+ 
+ 			intr_clk = devm_clk_get_optional_enabled(&pdev->dev, "intr");
+@@ -694,6 +694,11 @@ static struct meson_drm_match_data meson_drm_s6_data = {
+ 	.compat = VPU_COMPATIBLE_S6,
+ };
+ 
++/* S7: same VPU and HDMI 2.1 transmitter as S6, another HDMI PLL and PHY */
++static struct meson_drm_match_data meson_drm_s7_data = {
++	.compat = VPU_COMPATIBLE_S7,
++};
++
+ static struct meson_drm_match_data meson_drm_s4_data = {
+ 	.compat = VPU_COMPATIBLE_S4,
+ 	.afbcd_ops = &meson_afbcd_g12a_ops,
+@@ -714,6 +719,8 @@ static const struct of_device_id dt_match[] = {
+ 	  .data       = (void *)&meson_drm_t7_data },
+ 	{ .compatible = "amlogic,meson-s6-vpu",
+ 	  .data       = (void *)&meson_drm_s6_data },
++	{ .compatible = "amlogic,meson-s7-vpu",
++	  .data       = (void *)&meson_drm_s7_data },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, dt_match);
+diff --git a/drivers/gpu/drm/meson/meson_drv.h b/drivers/gpu/drm/meson/meson_drv.h
+index 519ece4..a359350 100644
+--- a/drivers/gpu/drm/meson/meson_drv.h
++++ b/drivers/gpu/drm/meson/meson_drv.h
+@@ -27,6 +27,7 @@ enum vpu_compatible {
+ 	VPU_COMPATIBLE_S4 = 4,
+ 	VPU_COMPATIBLE_T7 = 5,
+ 	VPU_COMPATIBLE_S6 = 6,
++	VPU_COMPATIBLE_S7 = 7,
+ };
+ 
+ enum {
+@@ -194,12 +195,30 @@ static inline int meson_vpu_is_compatible(struct meson_drm *priv,
+ 	return priv->compat == family;
+ }
+ 
+-/* T7 and S6 share the S4 register layout and clock control blocks */
++/* T7, S6 and S7 share the S4 register layout and clock control blocks */
+ static inline bool meson_vpu_is_s4_like(struct meson_drm *priv)
+ {
+ 	return priv->compat == VPU_COMPATIBLE_S4 ||
+ 	       priv->compat == VPU_COMPATIBLE_T7 ||
+-	       priv->compat == VPU_COMPATIBLE_S6;
++	       priv->compat == VPU_COMPATIBLE_S6 ||
++	       priv->compat == VPU_COMPATIBLE_S7;
++}
++
++/*
++ * S6 and S7: S4 class VPU with the HDMI 2.1 transmitter, the HDMI PLL output
++ * dividers ("analog" path) and the YCbCr to RGB matrix in front of the TX
++ */
++static inline bool meson_vpu_is_s6_like(struct meson_drm *priv)
++{
++	return priv->compat == VPU_COMPATIBLE_S6 ||
++	       priv->compat == VPU_COMPATIBLE_S7;
++}
++
++/* T7 and S7 have no OSD canvas: the OSD MIF reads by linear address */
++static inline bool meson_vpu_osd_is_linear(struct meson_drm *priv)
++{
++	return priv->compat == VPU_COMPATIBLE_T7 ||
++	       priv->compat == VPU_COMPATIBLE_S7;
+ }
+ 
+ /* Map a G12 OSD1 free scaler register to its T7 address */
+diff --git a/drivers/gpu/drm/meson/meson_encoder_hdmi.c b/drivers/gpu/drm/meson/meson_encoder_hdmi.c
+index 3d18d48..b0ca2d5 100644
+--- a/drivers/gpu/drm/meson/meson_encoder_hdmi.c
++++ b/drivers/gpu/drm/meson/meson_encoder_hdmi.c
+@@ -199,7 +199,7 @@ static enum drm_mode_status meson_encoder_hdmi_mode_valid(struct drm_bridge *bri
+ }
+ 
+ /*
+- * S6: the VPP sends limited range BT.601 YCbCr like on G12A, but the HDMI 2.1
++ * S6, S7: the VPP sends limited range BT.601 YCbCr like on G12A, but the HDMI 2.1
+  * transmitter takes RGB and has no colour space converter in use: convert
+  * to full range RGB in the matrix of the VPU HDMI interface (same values as
+  * the vendor driver).
+@@ -272,7 +272,13 @@ static void meson_encoder_hdmi_atomic_enable(struct drm_bridge *bridge,
+ 		yuv420_mode = true;
+ 	} else if (encoder_hdmi->output_bus_fmt == MEDIA_BUS_FMT_UYVY8_1X16)
+ 		ycrcb_map = VPU_HDMI_OUTPUT_CRYCB;
+-	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S7))
++		/*
++		 * S7: the data swap is in front of the YCbCr to RGB matrix,
++		 * feed it Y, Cb, Cr, its R, G, B output goes to the transmitter
++		 */
++		ycrcb_map = VPU_HDMI_OUTPUT_YCBCR;
++	else if (meson_vpu_is_s6_like(priv))
+ 		/* the matrix output goes to the transmitter as {2, 1, 0} */
+ 		ycrcb_map = VPU_HDMI_OUTPUT_CRYCB;
+ 
+@@ -290,7 +296,7 @@ static void meson_encoder_hdmi_atomic_enable(struct drm_bridge *bridge,
+ 		/* Setup YUV422 to HDMI-TX, no 10bit diphering */
+ 		writel_relaxed(1 | (2 << 2),
+ 				priv->io_base + _REG(VPU_HDMI_FMT_CTRL));
+-	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++	else if (meson_vpu_is_s6_like(priv))
+ 		/* Setup YUV444 to RGB for HDMI-TX */
+ 		meson_encoder_hdmi_s6_csc(priv);
+ 	else
+diff --git a/drivers/gpu/drm/meson/meson_hdmitx21.c b/drivers/gpu/drm/meson/meson_hdmitx21.c
+index 1f1feed..62ae847 100644
+--- a/drivers/gpu/drm/meson/meson_hdmitx21.c
++++ b/drivers/gpu/drm/meson/meson_hdmitx21.c
+@@ -169,6 +169,10 @@
+ #define S6_PHY_CTRL3_EN_29_28	GENMASK(29, 28)
+ #define S6_PHY_CTRL3_EN_30	BIT(30)
+ 
++/* S7 PHY: as S6 without the bit 30 lane enable */
++#define S7_PHY_CTRL3_OFF	0x0000000b	/* keep the TMDS clock bits */
++#define S7_PHY_CTRL5_OFF	0x00000800
++
+ /* Secure monitor: read the termination resistor trim from the efuse */
+ #define MESON_SMC_HDCPTX_IOOPR	0x820000ab
+ #define MESON_HDCPTX_GET_RTERM	10
+@@ -577,6 +581,57 @@ static void meson_hdmitx21_s6_phy_off(struct meson_hdmitx21 *tx)
+ 	phy_write(tx, PHY_CTRL5, 0);
+ }
+ 
++static void meson_hdmitx21_s7_phy_set(struct meson_hdmitx21 *tx, int tmds_khz)
++{
++	struct arm_smccc_res res;
++	u32 val;
++
++	/* PHY values by TMDS bit rate: 5.94/4.5/3.7 Gbps, 2.97 Gbps, lower */
++	if (tmds_khz > 300000)
++		phy_write(tx, PHY_CTRL0, 0xa003a0ea);
++	else if (tmds_khz > 150000)
++		phy_write(tx, PHY_CTRL0, 0xa00380a4);
++	else
++		phy_write(tx, PHY_CTRL0, 0xa2238080);
++	phy_write(tx, PHY_CTRL5, 0x555);
++	phy_write(tx, PHY_CTRL3, 0x004ef00b);
++
++	/* Termination resistor trim from the efuse, 0xff: not programmed */
++	arm_smccc_smc(MESON_SMC_HDCPTX_IOOPR, MESON_HDCPTX_GET_RTERM,
++		      0, 0, 0, 0, 0, 0, &res);
++	if ((res.a0 & 0xff) != MESON_RTERM_INVALID) {
++		val = phy_read(tx, PHY_CTRL0);
++		val &= ~S6_PHY_CTRL0_RTERM;
++		val |= FIELD_PREP(S6_PHY_CTRL0_RTERM, res.a0 & 0xff);
++		phy_write(tx, PHY_CTRL0, val);
++	}
++
++	/* The reset bit is set later than the other ones */
++	usleep_range(100, 110);
++	val = phy_read(tx, PHY_CTRL3);
++	val |= S6_PHY_CTRL3_EN_11_10 | S6_PHY_CTRL3_RESETN;
++	phy_write(tx, PHY_CTRL3, val);
++	/* Enable the lanes last, S7 has no bit 30 */
++	usleep_range(1000, 1010);
++	val = phy_read(tx, PHY_CTRL3);
++	val |= S6_PHY_CTRL3_EN_29_28;
++	phy_write(tx, PHY_CTRL3, val);
++
++	/* Clock and data to the controller: restart the TMDS clock output */
++	val = phy_read(tx, PHY_CTRL3);
++	phy_write(tx, PHY_CTRL3, val & ~(BIT(1) | S6_PHY_CTRL3_TMDS_CLK));
++	usleep_range(100, 110);
++	phy_write(tx, PHY_CTRL3, val | S6_PHY_CTRL3_CLK_TODIG | S6_PHY_CTRL3_TMDS_CLK);
++}
++
++/* The vendor driver keeps the TMDS clock bits of PHY_CTRL3 on S7 */
++static void meson_hdmitx21_s7_phy_off(struct meson_hdmitx21 *tx)
++{
++	phy_write(tx, PHY_CTRL0, 0);
++	phy_write(tx, PHY_CTRL3, S7_PHY_CTRL3_OFF);
++	phy_write(tx, PHY_CTRL5, S7_PHY_CTRL5_OFF);
++}
++
+ static void meson_hdmitx21_phy_off(struct meson_hdmitx21 *tx)
+ {
+ 	tx->data->phy_off(tx);
+@@ -597,6 +652,12 @@ static const struct meson_hdmitx21_data meson_hdmitx21_s6_data = {
+ 	.phy_off = meson_hdmitx21_s6_phy_off,
+ };
+ 
++/* S7: like S6, no bandgap step in the vendor driver either */
++static const struct meson_hdmitx21_data meson_hdmitx21_s7_data = {
++	.phy_set = meson_hdmitx21_s7_phy_set,
++	.phy_off = meson_hdmitx21_s7_phy_off,
++};
++
+ static void meson_hdmitx21_write_infoframe(struct meson_hdmitx21 *tx, u8 sel,
+ 					   const u8 *buf, ssize_t len)
+ {
+@@ -1028,7 +1089,7 @@ static int meson_hdmitx21_probe(struct platform_device *pdev)
+ 	struct device *dev = &pdev->dev;
+ 	struct meson_hdmitx21 *tx;
+ 	struct reset_control *rst;
+-	struct clk *prif, *i2c;
++	struct clk *prif, *i2c, *sys;
+ 	int irq, ret;
+ 
+ 	tx = devm_drm_bridge_alloc(dev, struct meson_hdmitx21, bridge,
+@@ -1061,6 +1122,10 @@ static int meson_hdmitx21_probe(struct platform_device *pdev)
+ 	i2c = devm_clk_get_optional_enabled(dev, "i2c");
+ 	if (IS_ERR(i2c))
+ 		return dev_err_probe(dev, PTR_ERR(i2c), "failed to get i2c clock\n");
++	/* S7: cts_hdmitx_sys clocks the TOP registers, keep it on from probe */
++	sys = devm_clk_get_optional_enabled(dev, "sys");
++	if (IS_ERR(sys))
++		return dev_err_probe(dev, PTR_ERR(sys), "failed to get sys clock\n");
+ 
+ 	rst = devm_reset_control_array_get_optional_exclusive(dev);
+ 	if (IS_ERR(rst))
+@@ -1118,6 +1183,7 @@ static int meson_hdmitx21_probe(struct platform_device *pdev)
+ static const struct of_device_id meson_hdmitx21_of_match[] = {
+ 	{ .compatible = "amlogic,t7-hdmi-tx", .data = &meson_hdmitx21_t7_data },
+ 	{ .compatible = "amlogic,s6-hdmi-tx", .data = &meson_hdmitx21_s6_data },
++	{ .compatible = "amlogic,s7-hdmi-tx", .data = &meson_hdmitx21_s7_data },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, meson_hdmitx21_of_match);
+@@ -1131,5 +1197,5 @@ static struct platform_driver meson_hdmitx21_driver = {
+ };
+ module_platform_driver(meson_hdmitx21_driver);
+ 
+-MODULE_DESCRIPTION("Amlogic T7/S6 HDMI 2.1 transmitter bridge");
++MODULE_DESCRIPTION("Amlogic T7/S6/S7 HDMI 2.1 transmitter bridge");
+ MODULE_LICENSE("GPL");
+diff --git a/drivers/gpu/drm/meson/meson_vclk.c b/drivers/gpu/drm/meson/meson_vclk.c
+index fd1b8e2..f360420 100644
+--- a/drivers/gpu/drm/meson/meson_vclk.c
++++ b/drivers/gpu/drm/meson/meson_vclk.c
+@@ -1006,6 +1006,118 @@ static void s6_hdmi_pll_set(struct meson_drm *priv, unsigned long long phy_freq)
+ 			   FIELD_PREP(S6_HDMI_PLL_CTRL0_OD0, (od01 << 3) | od00));
+ }
+ 
++/*
++ * S7: same output divider structure as S6 but another PLL block: M is VCO /
++ * 24 MHz, the fraction is in CTRL3, the OD stages are in CTRL2 with 2 bit
++ * fields and the analog /5 divider (OD3) is in CTRL0. Values and sequence
++ * from the vendor driver (hdmitx_hw_s7.c).
++ */
++#define S7_HDMI_PLL_REF		24000000ULL
++#define S7_HDMI_PLL_FRAC_BITS	17
++#define S7_HDMI_PLL_LOCK	BIT(31)
++#define S7_HDMI_PLL_RSTN	BIT(29)	/* CTRL0 */
++#define S7_HDMI_PLL_EN		BIT(28)	/* CTRL0 */
++#define S7_HDMI_PLL_CTRL0_CLKSEL BIT(19)
++#define S7_HDMI_PLL_CTRL0_OD3	GENMASK(10, 9)
++#define S7_HDMI_PLL_CTRL1_EN	BIT(2)
++#define S7_HDMI_PLL_CTRL2_RST	BIT(29)
++#define S7_HDMI_PLL_CTRL2_OD1	GENMASK(22, 19)
++#define S7_HDMI_PLL_CTRL2_OD2	GENMASK(18, 15)
++#define S7_VCLK_SEL_VID_PIX	3	/* CLKCTRL_VID_CLK_CTRL source: PLL OD3 */
++
++static void s7_hdmi_pll_set(struct meson_drm *priv, unsigned long long phy_freq)
++{
++	unsigned long long vco = phy_freq;
++	unsigned int div = 1, od10, od11, od20, od21, m, frac;
++	unsigned int val, i;
++
++	/* Find the power of two that puts the VCO in range */
++	while (vco < S6_HDMI_PLL_MIN_VCO && div <= 32) {
++		vco *= 2;
++		div *= 2;
++	}
++
++	if (vco < S6_HDMI_PLL_MIN_VCO || vco >= S6_HDMI_PLL_MAX_VCO) {
++		drm_err(priv->drm, "HDMI PLL: %llu Hz out of range\n", phy_freq);
++		return;
++	}
++
++	m = div_u64_rem(vco, S7_HDMI_PLL_REF, &val);
++	frac = div_u64((u64)val << S7_HDMI_PLL_FRAC_BITS, S7_HDMI_PLL_REF);
++
++	/* Power down first, as the vendor driver does */
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL0, 0);
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL3, 0);
++
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL0, 0x00801000 | m);
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL1, 0x2c6011c8);
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL2, 0x86801000);
++	regmap_write(priv->hhi, ANACTRL_HDMIPLL_CTRL3, frac);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0,
++			   S7_HDMI_PLL_EN, S7_HDMI_PLL_EN);
++	usleep_range(10, 20);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL2,
++			   S7_HDMI_PLL_CTRL2_RST, S7_HDMI_PLL_CTRL2_RST);
++	usleep_range(10, 20);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0,
++			   S7_HDMI_PLL_RSTN, S7_HDMI_PLL_RSTN);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL2,
++			   S7_HDMI_PLL_CTRL2_RST, 0);
++	usleep_range(80, 90);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL1,
++			   S7_HDMI_PLL_CTRL1_EN, S7_HDMI_PLL_CTRL1_EN);
++	usleep_range(80, 90);
++
++	for (i = 0; i < 10; i++) {
++		usleep_range(50, 60);
++		regmap_read(priv->hhi, ANACTRL_HDMIPLL_CTRL0, &val);
++		if (val & S7_HDMI_PLL_LOCK)
++			break;
++		/* Not locked: pulse the PLL reset */
++		regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0,
++				   S7_HDMI_PLL_RSTN, 0);
++		regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0,
++				   S7_HDMI_PLL_RSTN, S7_HDMI_PLL_RSTN);
++	}
++	if (i == 10)
++		drm_err(priv->drm, "HDMI PLL: not locked at %llu Hz\n", vco);
++
++	/*
++	 * OD1 is two cascaded /1,/2,/4,/8 stages, OD2 a /1,/2,/4 stage for
++	 * the PHY clock and another one (one more /2 for RGB/YUV444) for the
++	 * second output, OD3 the analog /5 (24 bit) to the pixel clock.
++	 */
++	od10 = s6_pll_od_split(&div);
++	od11 = s6_pll_od_split(&div);
++	od20 = 0;
++	if (!(div % 4)) {
++		od20 = 2;
++		div /= 4;
++	} else if (!(div % 2)) {
++		od20 = 1;
++		div /= 2;
++	}
++	od21 = od20 + 1;
++
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0, S7_HDMI_PLL_CTRL0_CLKSEL,
++			   S7_HDMI_PLL_CTRL0_CLKSEL);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0, S7_HDMI_PLL_CTRL0_OD3, 0);
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL2, S7_HDMI_PLL_CTRL2_OD2,
++			   FIELD_PREP(S7_HDMI_PLL_CTRL2_OD2, (od20 << 2) | od21));
++	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL2, S7_HDMI_PLL_CTRL2_OD1,
++			   FIELD_PREP(S7_HDMI_PLL_CTRL2_OD1, (od10 << 2) | od11));
++}
++
++/* S6/S7: the HDMI PLL is programmed with its output dividers up front */
++static void meson_hdmi21_pll_set(struct meson_drm *priv,
++				 unsigned long long phy_freq)
++{
++	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++		s6_hdmi_pll_set(priv, phy_freq);
++	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S7))
++		s7_hdmi_pll_set(priv, phy_freq);
++}
++
+ #define XTAL_FREQ (24 * 1000 * 1000)
+ 
+ static unsigned int meson_hdmi_pll_get_m(struct meson_drm *priv,
+@@ -1257,7 +1369,7 @@ static void meson_vclk_set(struct meson_drm *priv,
+ 	}
+ 
+ 	/* Set HDMI PLL rate */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6)) {
++	if (meson_vpu_is_s6_like(priv)) {
+ 		/* programmed by meson_vclk_setup(), the dividers are in the PLL */
+ 	} else if (!od1 && !od2 && !od3) {
+ 		meson_hdmi_pll_generic_set(priv, pll_base_freq);
+@@ -1332,13 +1444,15 @@ static void meson_vclk_set(struct meson_drm *priv,
+ 	}
+ 
+ 	/* Setup vid_pll divider */
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6)) {
++	if (meson_vpu_is_s6_like(priv)) {
+ 		/*
+ 		 * Analog path: the PLL output dividers replace the digital
+-		 * vid_pll divider, only its output gate is used.
++		 * vid_pll divider, only its output gate is used. S6 selects
++		 * it in CLKCTRL_HDMI_CLK_CTRL, S7 with the VCLK source below.
+ 		 */
+-		regmap_update_bits(priv->clkctrl, CLKCTRL_HDMI_CLK_CTRL,
+-				   S6_HDMI_CLK_ANALOG, S6_HDMI_CLK_ANALOG);
++		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++			regmap_update_bits(priv->clkctrl, CLKCTRL_HDMI_CLK_CTRL,
++					   S6_HDMI_CLK_ANALOG, S6_HDMI_CLK_ANALOG);
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_PLL_CLK_DIV,
+ 				   VID_PLL_EN, VID_PLL_EN);
+ 	} else {
+@@ -1347,8 +1461,10 @@ static void meson_vclk_set(struct meson_drm *priv,
+ 
+ 	/* Set VCLK div */
+ 	if (meson_vpu_is_s4_like(priv)) {
+-		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL,
+-				   VCLK_SEL_MASK, 0);
++		/* S7: the VCLK source is the PLL OD3 output (vid_pix_clk) */
++		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_CTRL, VCLK_SEL_MASK,
++				   meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S7) ?
++				   S7_VCLK_SEL_VID_PIX << VCLK_SEL_SHIFT : 0);
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_VID_CLK_DIV,
+ 				   VCLK_DIV_MASK, vclk_div - 1);
+ 	} else {
+@@ -1684,8 +1800,7 @@ void meson_vclk_setup(struct meson_drm *priv, unsigned int target,
+ 		 * - venc_div = 1
+ 		 * - encp encoder
+ 		 */
+-		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
+-			s6_hdmi_pll_set(priv, phy_freq);
++		meson_hdmi21_pll_set(priv, phy_freq);
+ 		meson_vclk_set(priv, phy_freq, 0, 0, 0,
+ 			       VID_PLL_DIV_5, 2, 1, 1, false, false);
+ 		return;
+@@ -1740,8 +1855,7 @@ void meson_vclk_setup(struct meson_drm *priv, unsigned int target,
+ 		return;
+ 	}
+ 
+-	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
+-		s6_hdmi_pll_set(priv, phy_freq);
++	meson_hdmi21_pll_set(priv, phy_freq);
+ 
+ 	meson_vclk_set(priv, params[freq].pll_freq,
+ 		       params[freq].pll_od1, params[freq].pll_od2,
+diff --git a/drivers/gpu/drm/meson/meson_venc.c b/drivers/gpu/drm/meson/meson_venc.c
+index c13d378..0e20da7 100644
+--- a/drivers/gpu/drm/meson/meson_venc.c
++++ b/drivers/gpu/drm/meson/meson_venc.c
+@@ -2327,9 +2327,9 @@ void meson_venc_enable_vsync(struct meson_drm *priv)
+ 			       priv->io_base + _REG(VENC_INTCTRL));
+ 	}
+ 
+-	/* T7, S6: the interrupt gate is not in SYS_CLK_EN0_REG2 */
++	/* T7, S6, S7: the interrupt gate is handled by the clock framework */
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++	    meson_vpu_is_s6_like(priv))
+ 		;
+ 	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_SYS_CLK_EN0_REG2, BIT(25), BIT(25));
+@@ -2340,7 +2340,7 @@ void meson_venc_enable_vsync(struct meson_drm *priv)
+ void meson_venc_disable_vsync(struct meson_drm *priv)
+ {
+ 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_T7) ||
+-	    meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S6))
++	    meson_vpu_is_s6_like(priv))
+ 		;
+ 	else if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_S4))
+ 		regmap_update_bits(priv->clkctrl, CLKCTRL_SYS_CLK_EN0_REG2, BIT(4), 0);
+-- 
+2.43.0
+

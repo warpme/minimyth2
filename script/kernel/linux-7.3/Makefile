@@ -242,6 +242,7 @@ PATCHFILES += 1732-clk-meson-add-Amlogic-S7-PLL-clock-controller-driver.patch
 PATCHFILES += 1733-clk-meson-add-Amlogic-S7-peripherals-clock-controlle.patch
 PATCHFILES += 1736-net-mdio-mux-meson-g12a-add-support-for-Amlogic-S7.patch
 PATCHFILES += 1738-mmc-meson-gx-add-amlogic-tx-phase-property.patch
+PATCHFILES += 1739-drm-meson-add-Amlogic-S7-VPU-and-HDMI-support.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -273,6 +274,7 @@ PATCHFILES += 1878-arm64-dtsi-amlogic-s6-add-USB-support.patch
 PATCHFILES += 1885-arm64-dts-amlogic-s7-add-clock-controllers.patch
 PATCHFILES += 1886-arm64-dts-amlogic-s7-add-MMC-controllers.patch
 PATCHFILES += 1887-arm64-dts-amlogic-s7-add-ethernet.patch
+PATCHFILES += 1888-arm64-dts-amlogic-s7-add-VPU-and-HDMI-transmitter.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -294,6 +296,7 @@ PATCHFILES += 1980-arm64-dts-amlogic-add-s905x5-bl201-board.patch
 PATCHFILES += 1981-arm64-dts-amlogic-s6-add-USB-support-kopia.patch
 # s7 board additions
 PATCHFILES += 1991-arm64-dts-amlogic-add-Tanix-TX5.patch
+PATCHFILES += 1992-arm64-dts-amlogic-tanix-tx5-enable-HDMI.patch
 endif
 #------------------------------------------------------------
 
