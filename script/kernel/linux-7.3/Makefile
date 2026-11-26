@@ -235,6 +235,7 @@ PATCHFILES += 1709-thermal-amlogic-add-Amlogic-S6-support.patch
 PATCHFILES += 1710-cpufreq-amlogic-add-Amlogic-S6-support.patch
 PATCHFILES += 1711-phy-amlogic-add-Amlogic-S6-USB2-USB3-PHY-driver.patch
 PATCHFILES += 1712-usb-xhci-plat-add-Amlogic-S6-CRG-xHCI-support.patch
+PATCHFILES += 1713-tee-optee-use-the-reserved-shared-memory-pool-on-s6.patch
 # s7 drivers additions
 PATCHFILES += 1730-dt-bindings-clock-add-Amlogic-S7-PLL-clock-controlle.patch
 PATCHFILES += 1731-dt-bindings-clock-add-Amlogic-S7-peripherals-clock-c.patch
@@ -243,6 +244,8 @@ PATCHFILES += 1733-clk-meson-add-Amlogic-S7-peripherals-clock-controlle.patch
 PATCHFILES += 1736-net-mdio-mux-meson-g12a-add-support-for-Amlogic-S7.patch
 PATCHFILES += 1738-mmc-meson-gx-add-amlogic-tx-phase-property.patch
 PATCHFILES += 1739-drm-meson-add-Amlogic-S7-VPU-and-HDMI-support.patch
+PATCHFILES += 1740-media-amvdec-add-Amlogic-S7-support.patch
+PATCHFILES += 1741-tee-optee-use-the-reserved-shared-memory-pool-on-s7.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -277,6 +280,8 @@ PATCHFILES += 1887-arm64-dts-amlogic-s7-add-ethernet.patch
 PATCHFILES += 1888-arm64-dts-amlogic-s7-add-VPU-and-HDMI-transmitter.patch
 PATCHFILES += 1889-arm64-dts-amlogic-s7-add-audio-controllers.patch
 PATCHFILES += 1890-arm64-dts-amlogic-s7-add-Mali-GPU.patch
+PATCHFILES += 1891-arm64-dts-amlogic-s7-add-video-decoder.patch
+PATCHFILES += 1892-arm64-dtsi-amlogic-s7-add-optee-node.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -301,6 +306,7 @@ PATCHFILES += 1991-arm64-dts-amlogic-add-Tanix-TX5.patch
 PATCHFILES += 1992-arm64-dts-amlogic-tanix-tx5-enable-HDMI.patch
 PATCHFILES += 1993-arm64-dts-amlogic-tanix-tx5-add-HDMI-sound-card.patch
 PATCHFILES += 1994-arm64-dts-amlogic-tanix-tx5-enable-the-GPU.patch
+PATCHFILES += 1995-arm64-dts-amlogic-tanix-tx5-enable-the-video-decoder.patch
 endif
 #------------------------------------------------------------
 
@@ -802,7 +808,7 @@ PATCHFILES += 5450-arm64-dts-qcom-sc8280xp-add-dragon-q8b.patch
 endif
 #------------------------------------------------------------
 
-ifeq (1,1)
+ifeq (0,1)
 #-- Allwinner A733 patches -----------------------------------
 # kernal, device drivers
 # clk

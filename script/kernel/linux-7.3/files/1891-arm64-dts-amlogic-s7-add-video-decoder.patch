@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 12:47:58 +0100
+Subject: [PATCH] arm64: dts: amlogic: s7: add video decoder
+
+Add the video decoder (VDEC_1 and HEVC cores) of the Amlogic S7 SoC,
+based on the vendor device tree: mailbox 0 and VDEC interrupts, the
+DOS bus and the DMC window for the port parking, and the VDEC and
+HEVC power domains.
+
+S7 has a single HEVC clock (HEVCF), used for both the HEVC front-end
+and back-end. The vendor driver resets only the HEVCF pipeline 1 bridge
+of RESET5 before starting the HEVC core.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi | 23 +++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+index 963e6fb..134aafa 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+@@ -541,6 +541,29 @@
+ 				};
+ 			};
+ 
++			vdec: video-decoder@320000 {
++				compatible = "amlogic,s7-vdec";
++				reg = <0x0 0x320000 0x0 0x10000>,
++				      <0x0 0x36000 0x0 0x400>;
++				reg-names = "dos", "dmc";
++				interrupts = <GIC_SPI 91 IRQ_TYPE_EDGE_RISING>,
++					     <GIC_SPI 92 IRQ_TYPE_EDGE_RISING>;
++				interrupt-names = "mbox0", "vdec";
++				/* S7 has a single HEVC clock (HEVCF), used for both names */
++				clocks = <&clkc_periphs CLKID_SYS_DOS>,
++					 <&clkc_periphs CLKID_VDEC>,
++					 <&clkc_periphs CLKID_HEVCF>,
++					 <&clkc_periphs CLKID_HEVCF>;
++				clock-names = "dos", "vdec_1", "vdec_hevc", "vdec_hevcf";
++				power-domains = <&pwrc PWRC_S7_DOS_VDEC_ID>,
++						<&pwrc PWRC_S7_DOS_HEVC_ID>;
++				power-domain-names = "vdec", "hevc";
++				resets = <&reset RESET_BRG_HEVCF_PIPL1>;
++				reset-names = "hevcf-pipl1";
++				amlogic,canvas = <&canvas>;
++				status = "disabled";
++			};
++
+ 			/*
+ 			 * The audio clock controller is the same as on S4:
+ 			 * the vendor txhd2 driver uses the SC2/S4 register
+-- 
+2.43.0
+

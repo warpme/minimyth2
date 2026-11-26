@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 12:47:36 +0100
+Subject: [PATCH] media: amvdec: add Amlogic S7 support
+
+The S7 video decoder is the S4 one, with the decoder settings of the
+newer generations, like S6:
+ - the canvas LUT is in the DOS bus (MDEC_CAV_*), there is no DMC
+   canvas for the decoder;
+ - the AV1 microcode needs the host parser setup and swaps the RPM
+   words, as on T7 and S6.
+
+The DMC port parking follows the vendor driver: the channel status
+word is 0xcc (byte 0x330), VDEC_1 is bit 8 and HEVC is bit 7 only, as
+S7 has no separate HEVC back-end port.
+
+S7 also moves HEVC_SLICE_DATA_CTL, HEVC_STREAM_CRC and VP9_ACP_CTRL,
+but the driver uses none of them, so no register remap is needed.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/media/platform/amlogic/amvdec/amvdec.c |  2 ++
+ .../platform/amlogic/amvdec/amvdec_platform.c  | 18 ++++++++++++++++++
+ .../platform/amlogic/amvdec/amvdec_platform.h  |  1 +
+ 3 files changed, 21 insertions(+)
+
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec.c b/drivers/media/platform/amlogic/amvdec/amvdec.c
+index 8726d29..30df5df 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec.c
+@@ -1540,6 +1540,8 @@ static const struct of_device_id vdec_dt_match[] = {
+ 	  .data = &meson_amvdec_platform_t7 },
+ 	{ .compatible = "amlogic,s6-vdec",
+ 	  .data = &meson_amvdec_platform_s6 },
++	{ .compatible = "amlogic,s7-vdec",
++	  .data = &meson_amvdec_platform_s7 },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, vdec_dt_match);
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+index 05563ea..4cd4912 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -663,6 +663,24 @@ const struct amvdec_platform meson_amvdec_platform_s6 = {
+ 	.dos_reg_s6 = true,
+ };
+ 
++/*
++ * S7: the S4 decoder with the DOS-bus canvas and the T7/S6 AV1 handling.
++ * DMC port parking as on S6 but with its own status word (0xcc) and only
++ * the HEVC front-end port (bit 7). The DOS register layout is the S4 one
++ * for everything the driver touches.
++ */
++const struct amvdec_platform meson_amvdec_platform_s7 = {
++	.formats = amvdec_formats_s4,
++	.num_formats = ARRAY_SIZE(amvdec_formats_s4),
++	.revision = AMVDEC_REVISION_S4,
++	.dmc_chan_sts = 0x330,
++	.dmc_vdec_mask = BIT(8),
++	.dmc_hevc_mask = BIT(7),
++	.dos_canvas = true,
++	.av1_host_parser = true,
++	.av1_rpm_swap = true,
++};
++
+ MODULE_FIRMWARE("amrisc/amrisc_vc1.bin");
+ MODULE_FIRMWARE("meson/vdec/g12a_h264_multi.bin");
+ MODULE_FIRMWARE("meson/vdec/g12a_hevc_mmu.bin");
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+index 7c418cc..7aa49e6 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.h
+@@ -76,5 +76,6 @@ extern const struct amvdec_platform meson_amvdec_platform_s4;
+ extern const struct amvdec_platform meson_amvdec_platform_sc2;
+ extern const struct amvdec_platform meson_amvdec_platform_t7;
+ extern const struct amvdec_platform meson_amvdec_platform_s6;
++extern const struct amvdec_platform meson_amvdec_platform_s7;
+ 
+ #endif
+-- 
+2.43.0
+
