@@ -25,8 +25,9 @@ install-custom:
 	@cp -Rdf $(WORKDIR)/../../files/* $(DESTDIR)$(elibdir)/firmware/optee_armtz/
 
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/meson/vdec
-	@cp -Rdf $(WORKSRC)/meson/vdec/s4/video_ucode.bin $(DESTDIR)$(elibdir)/firmware/meson/vdec/
-	@cp -Rdf $(WORKSRC)/meson/vdec/t7/video_ucode.bin $(DESTDIR)$(elibdir)/firmware/meson/vdec/video_ucode.bin-t7
+	@cp -Rdf $(WORKSRC)/meson/vdec/s4/video_ucode.bin  $(DESTDIR)$(elibdir)/firmware/meson/vdec/
+	@cp -Rdf $(WORKSRC)/meson/vdec/t7/video_ucode.bin  $(DESTDIR)$(elibdir)/firmware/meson/vdec/video_ucode.bin-t7
+	@cp -Rdf $(WORKDIR)/../../files/video_ucode.bin-s7 $(DESTDIR)$(elibdir)/firmware/meson/vdec/video_ucode.bin-s7
 	@$(MAKECOOKIE)
 
 clean-all: clean
