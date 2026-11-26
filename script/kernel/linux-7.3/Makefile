@@ -247,6 +247,11 @@ PATCHFILES += 1739-drm-meson-add-Amlogic-S7-VPU-and-HDMI-support.patch
 PATCHFILES += 1740-media-amvdec-add-Amlogic-S7-support.patch
 PATCHFILES += 1741-tee-optee-use-the-reserved-shared-memory-pool-on-s7.patch
 PATCHFILES += 1741-clk-scmi-support-the-clock-critical-property.patch
+PATCHFILES += 1742-thermal-amlogic-add-S7-support.patch
+PATCHFILES += 1743-phy-amlogic-s6-usb-add-S7-USB2-PHY-support.patch
+PATCHFILES += 1744-phy-amlogic-s6-usb-do-not-claim-the-shared-trim-regi.patch
+PATCHFILES += 1745-usb-xhci-plat-add-Amlogic-S7-support.patch
+PATCHFILES += 1746-media-amvdec-s7-do-not-swap-the-AV1-RPM-block.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -285,6 +290,9 @@ PATCHFILES += 1891-arm64-dts-amlogic-s7-add-video-decoder.patch
 PATCHFILES += 1892-arm64-dts-amlogic-s7-add-HDMI-CEC-controller.patch
 PATCHFILES += 1893-arm64-dts-amlogic-s7-add-SCMI-clocks-and-CPU-OPP-tab.patch
 PATCHFILES += 1894-arm64-dtsi-amlogic-s7-add-optee-node.patch
+PATCHFILES += 1894-arm64-dts-amlogic-s7-add-temperature-sensor-and-ther.patch
+PATCHFILES += 1895-arm64-dts-amlogic-s7-add-USB-controllers-and-PHYs.patch
+PATCHFILES += 1896-arm64-dts-amlogic-s7-add-IR-receiver.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -312,6 +320,9 @@ PATCHFILES += 1994-arm64-dts-amlogic-tanix-tx5-enable-the-GPU.patch
 PATCHFILES += 1995-arm64-dts-amlogic-tanix-tx5-enable-the-video-decoder.patch
 PATCHFILES += 1996-arm64-dts-amlogic-tanix-tx5-enable-HDMI-CEC.patch
 PATCHFILES += 1997-arm64-dts-amlogic-tanix-tx5-enable-CPU-frequency-sca.patch
+PATCHFILES += 1998-arm64-dts-amlogic-tanix-tx5-enable-USB.patch
+PATCHFILES += 1999-arm64-dts-amlogic-tanix-tx5-add-the-GPU-supply.patch
+PATCHFILES += 2000-arm64-dts-amlogic-tanix-tx5-enable-the-IR-receiver.patch
 endif
 #------------------------------------------------------------
 

@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 17:25:43 +0100
+Subject: [PATCH] media: amvdec: s7: do not swap the AV1 RPM block
+
+The S7 AV1 microcode is of the S4 generation and writes the RPM
+parameter block in natural order. With the T7 word swap the RPM check
+reports wrong values for every frame, e.g.:
+
+  av1: firmware parsed type 0 hint 7 size 1920x1920, controls 1 32 1920x1080
+
+Drop av1_rpm_swap from the S7 platform data, keep the host parser setup.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ .../media/platform/amlogic/amvdec/amvdec_platform.c   | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+index 4cd4912..d4cb3c8 100644
+--- a/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
++++ b/drivers/media/platform/amlogic/amvdec/amvdec_platform.c
+@@ -664,10 +664,12 @@ const struct amvdec_platform meson_amvdec_platform_s6 = {
+ };
+ 
+ /*
+- * S7: the S4 decoder with the DOS-bus canvas and the T7/S6 AV1 handling.
+- * DMC port parking as on S6 but with its own status word (0xcc) and only
+- * the HEVC front-end port (bit 7). The DOS register layout is the S4 one
+- * for everything the driver touches.
++ * S7: the S4 decoder with the DOS-bus canvas and the AV1 host parser
++ * setup of T7/S6. The S7 microcode is of the S4 generation and stores the
++ * AV1 RPM block in natural order (no word swap). DMC port parking as on
++ * S6 but with its own status word (0xcc) and only the HEVC front-end port
++ * (bit 7). The DOS register layout is the S4 one for everything the
++ * driver touches.
+  */
+ const struct amvdec_platform meson_amvdec_platform_s7 = {
+ 	.formats = amvdec_formats_s4,
+@@ -678,7 +680,6 @@ const struct amvdec_platform meson_amvdec_platform_s7 = {
+ 	.dmc_hevc_mask = BIT(7),
+ 	.dos_canvas = true,
+ 	.av1_host_parser = true,
+-	.av1_rpm_swap = true,
+ };
+ 
+ MODULE_FIRMWARE("amrisc/amrisc_vc1.bin");
+-- 
+2.43.0
+

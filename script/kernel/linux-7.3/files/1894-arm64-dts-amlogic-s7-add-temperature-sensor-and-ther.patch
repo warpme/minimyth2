@@ -1,0 +1,134 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 16:33:13 +0100
+Subject: [PATCH] arm64: dts: amlogic: s7: add temperature sensor and thermal
+ zone
+
+Add the temperature sensor of the Amlogic S7 SoC (tsensor 1 of the
+secure monitor calibration data) and one SoC thermal zone with the trip
+points of the vendor device tree: passive at 85 C, hot at 95 C and
+critical at 105 C. The CPUs and the GPU are throttled from the passive
+trip point.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi | 61 +++++++++++++++++++++
+ 1 file changed, 61 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+index b2fd491..6b888ee 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+@@ -14,6 +14,7 @@
+ #include <dt-bindings/reset/amlogic,meson-axg-audio-arb.h>
+ #include <dt-bindings/reset/amlogic,meson-g12a-audio-reset.h>
+ #include <dt-bindings/sound/meson-g12a-tohdmitx.h>
++#include <dt-bindings/thermal/thermal.h>
+ #include "amlogic-s7-reset.h"
+ 
+ / {
+@@ -27,6 +28,7 @@
+ 			reg = <0x0 0x0>;
+ 			enable-method = "psci";
+ 			clocks = <&scmi_clk 9>;
++			#cooling-cells = <2>;
+ 			d-cache-line-size = <32>;
+ 			d-cache-size = <0x8000>;
+ 			d-cache-sets = <32>;
+@@ -42,6 +44,7 @@
+ 			reg = <0x0 0x100>;
+ 			enable-method = "psci";
+ 			clocks = <&scmi_clk 9>;
++			#cooling-cells = <2>;
+ 			d-cache-line-size = <32>;
+ 			d-cache-size = <0x8000>;
+ 			d-cache-sets = <32>;
+@@ -57,6 +60,7 @@
+ 			reg = <0x0 0x200>;
+ 			enable-method = "psci";
+ 			clocks = <&scmi_clk 9>;
++			#cooling-cells = <2>;
+ 			d-cache-line-size = <32>;
+ 			d-cache-size = <0x8000>;
+ 			d-cache-sets = <32>;
+@@ -72,6 +76,7 @@
+ 			reg = <0x0 0x300>;
+ 			enable-method = "psci";
+ 			clocks = <&scmi_clk 9>;
++			#cooling-cells = <2>;
+ 			d-cache-line-size = <32>;
+ 			d-cache-size = <0x8000>;
+ 			d-cache-sets = <32>;
+@@ -299,6 +304,51 @@
+ 		clock-names = "sclk", "lrclk","mclk";
+ 	};
+ 
++	thermal-zones {
++		soc_thermal: soc-thermal {
++			polling-delay = <1000>;
++			polling-delay-passive = <100>;
++			thermal-sensors = <&tsensor>;
++
++			trips {
++				soc_passive: soc-passive {
++					temperature = <85000>; /* millicelsius */
++					hysteresis = <5000>; /* millicelsius */
++					type = "passive";
++				};
++
++				soc_hot: soc-hot {
++					temperature = <95000>; /* millicelsius */
++					hysteresis = <5000>; /* millicelsius */
++					type = "hot";
++				};
++
++				soc_critical: soc-critical {
++					temperature = <105000>; /* millicelsius */
++					hysteresis = <1000>; /* millicelsius */
++					type = "critical";
++				};
++			};
++
++			cooling-maps {
++				map-cpu {
++					trip = <&soc_passive>;
++					cooling-device =
++						<&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++				};
++
++				map-gpu {
++					trip = <&soc_passive>;
++					cooling-device =
++						<&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++				};
++			};
++		};
++	};
++
+ 	soc {
+ 		compatible = "simple-bus";
+ 		#address-cells = <2>;
+@@ -564,6 +614,17 @@
+ 				amlogic,has-chip-id;
+ 			};
+ 
++			tsensor: temperature-sensor@20000 {
++				compatible = "amlogic,s7-thermal";
++				reg = <0x0 0x20000 0x0 0x50>;
++				interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&clkc_periphs CLKID_SYS_TS_PLL>,
++					 <&clkc_periphs CLKID_TS>;
++				clock-names = "bus", "core";
++				#thermal-sensor-cells = <0>;
++				amlogic,secure-monitor = <&sm 1>;
++			};
++
+ 			canvas: video-lut@36048 {
+ 				compatible = "amlogic,canvas";
+ 				reg = <0x0 0x36048 0x0 0x14>;
+-- 
+2.43.0
+

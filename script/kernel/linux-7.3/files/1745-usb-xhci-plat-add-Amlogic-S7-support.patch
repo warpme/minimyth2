@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 17:21:16 +0100
+Subject: [PATCH] usb: xhci-plat: add Amlogic S7 support
+
+The CRG DRD controllers of the Amlogic S7 come out of reset in device
+role. The xHC then does not complete its reset and the probe fails:
+
+  xhci-hcd fe350000.usb: can't setup: -110
+
+Before the core setup, select the host role (bit 0 of 0x20fc cleared)
+and set the IN NAK retry count to 5, as the vendor driver does. The
+vendor device tree does not enable 64-bit DMA for these controllers, so
+set XHCI_NO_64BIT_SUPPORT. The start hook is the S6 one.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/usb/host/xhci-plat.c | 36 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+
+diff --git a/drivers/usb/host/xhci-plat.c b/drivers/usb/host/xhci-plat.c
+index f1c2ac6..e3684a3 100644
+--- a/drivers/usb/host/xhci-plat.c
++++ b/drivers/usb/host/xhci-plat.c
+@@ -8,6 +8,7 @@
+  * A lot of code borrowed from the Linux xHCI driver.
+  */
+ 
++#include <linux/bitfield.h>
+ #include <linux/clk.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/module.h>
+@@ -149,6 +150,38 @@ static const struct xhci_plat_priv xhci_plat_amlogic_s6 = {
+ 	.plat_start = xhci_plat_amlogic_s6_start,
+ };
+ 
++/*
++ * The CRG DRD controllers of the S7 start in device role: the xHC does not
++ * answer the reset until the role bit is cleared. Also set the IN NAK
++ * retry count used by the vendor driver.
++ */
++#define XHCI_AMLOGIC_CRG_ROLE		0x20fc
++#define XHCI_AMLOGIC_CRG_ROLE_DEVICE	BIT(0)
++#define XHCI_AMLOGIC_CRG_NAK		0x2110
++#define XHCI_AMLOGIC_CRG_NAK_RTY	GENMASK(20, 13)
++
++static int xhci_plat_amlogic_s7_init_quirk(struct usb_hcd *hcd)
++{
++	u32 val;
++
++	val = readl(hcd->regs + XHCI_AMLOGIC_CRG_ROLE);
++	val &= ~XHCI_AMLOGIC_CRG_ROLE_DEVICE;
++	writel(val, hcd->regs + XHCI_AMLOGIC_CRG_ROLE);
++
++	val = readl(hcd->regs + XHCI_AMLOGIC_CRG_NAK);
++	val &= ~XHCI_AMLOGIC_CRG_NAK_RTY;
++	val |= FIELD_PREP(XHCI_AMLOGIC_CRG_NAK_RTY, 5);
++	writel(val, hcd->regs + XHCI_AMLOGIC_CRG_NAK);
++
++	return 0;
++}
++
++static const struct xhci_plat_priv xhci_plat_amlogic_s7 = {
++	.quirks = XHCI_RESET_ON_RESUME | XHCI_NO_64BIT_SUPPORT,
++	.init_quirk = xhci_plat_amlogic_s7_init_quirk,
++	.plat_start = xhci_plat_amlogic_s6_start,
++};
++
+ static const struct of_device_id usb_xhci_of_match[] = {
+ 	{
+ 		.compatible = "generic-xhci",
+@@ -178,6 +211,9 @@ static const struct of_device_id usb_xhci_of_match[] = {
+ 	}, {
+ 		.compatible = "amlogic,s6-xhci",
+ 		.data = &xhci_plat_amlogic_s6,
++	}, {
++		.compatible = "amlogic,s7-xhci",
++		.data = &xhci_plat_amlogic_s7,
+ 	},
+ 	{},
+ };
+-- 
+2.43.0
+

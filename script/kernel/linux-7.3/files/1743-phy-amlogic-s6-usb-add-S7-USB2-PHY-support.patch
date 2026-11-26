@@ -1,0 +1,181 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 17:10:07 +0100
+Subject: [PATCH] phy: amlogic: s6-usb: add S7 USB2 PHY support
+
+The Amlogic S7 has the same two CRG controllers as the S6, with a USB2
+PHY each and no USB3 PHY. The USB2 PHY differs in two points, per the
+vendor driver:
+ - the PLL is programmed with two setting words (0x40 and 0x44) and a
+   different enable/reset sequence;
+ - the squelch/disconnect tuning is 0x7, and there is no misc or edge
+   driver tuning.
+
+Add the "amlogic,s7-usb2-phy" compatible for it.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/phy/amlogic/phy-meson-s6-usb.c | 75 ++++++++++++++++++++++++--
+ 1 file changed, 71 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/phy/amlogic/phy-meson-s6-usb.c b/drivers/phy/amlogic/phy-meson-s6-usb.c
+index f912bf7..fdad1c7 100644
+--- a/drivers/phy/amlogic/phy-meson-s6-usb.c
++++ b/drivers/phy/amlogic/phy-meson-s6-usb.c
+@@ -1,11 +1,15 @@
+ // SPDX-License-Identifier: GPL-2.0
+ /*
+- * Amlogic S6 USB2 and USB3 PHY driver
++ * Amlogic S6 and S7 USB2 and USB3 PHY driver
+  *
+  * The S6 has two USB controllers (CRG DRD, "U2DRD" and "U3DRD"), each of them
+  * with its own USB2 PHY, and a USB3 PHY next to the second one. The PHYs
+  * are programmed with sequences derived from the vendor BSP.
+  *
++ * The S7 has the same two CRG controllers with USB2 PHYs only. Its USB2 PHY
++ * has a different PLL (programmed with two setting words) and a different
++ * squelch/disconnect tuning.
++ *
+  * Copyright (c) 2019 Amlogic, Inc. All rights reserved.
+  */
+ 
+@@ -48,6 +52,18 @@
+ #define U2_CFG_EDGEDRV			0x50
+ #define  U2_EDGEDRV_VAL			0x7e18
+ #define U2_CFG_OTG			0x54
++
++/* S7 USB2 PLL (cfg 0x40/0x44) */
++#define S7_U2_CFG_PLL0			0x40
++#define  S7_U2_PLL0_LOCKED		BIT(31)
++#define  S7_U2_PLL0_LK_RST		BIT(28)
++#define  S7_U2_PLL0_EN			BIT(11)
++#define  S7_U2_PLL0_MPLL_EN_CTRL	BIT(1)
++#define  S7_U2_PLL0_RST			BIT(0)
++#define  S7_U2_PLL0_DEFAULT		0x244a0030
++#define S7_U2_CFG_PLL1			0x44
++#define  S7_U2_PLL1_DEFAULT		0x03200022
++#define  S7_U2_CFG_DISC_SQUELCH_VAL	0x07
+ #define  U2_OTG_ACA_EN			BIT(2)
+ 
+ /* USB2 PHY efuse trim shadow register (reg index 2) */
+@@ -109,6 +125,7 @@ struct meson_s6_usb2_phy {
+ 	struct regulator *vbus;
+ 	enum phy_mode mode;
+ 	bool vbus_on;
++	bool s7;
+ };
+ 
+ struct meson_s6_usb3_phy {
+@@ -165,6 +182,33 @@ static int meson_s6_usb2_set_pll(struct meson_s6_usb2_phy *priv)
+ 	return -ETIMEDOUT;
+ }
+ 
++static int meson_s7_usb2_set_pll(struct meson_s6_usb2_phy *priv)
++{
++	void __iomem *pll0 = priv->cfg + S7_U2_CFG_PLL0;
++	u32 base = S7_U2_PLL0_DEFAULT | S7_U2_PLL0_MPLL_EN_CTRL;
++	int retry;
++
++	for (retry = 0; retry < 5; retry++) {
++		writel(base | S7_U2_PLL0_LK_RST | S7_U2_PLL0_RST, pll0);
++		usleep_range(100, 150);
++		writel(S7_U2_PLL1_DEFAULT, priv->cfg + S7_U2_CFG_PLL1);
++		usleep_range(100, 150);
++		writel(base | S7_U2_PLL0_LK_RST | S7_U2_PLL0_RST |
++		       S7_U2_PLL0_EN, pll0);
++		usleep_range(100, 150);
++		writel(base | S7_U2_PLL0_LK_RST | S7_U2_PLL0_EN, pll0);
++		usleep_range(100, 150);
++		writel(base | S7_U2_PLL0_EN, pll0);
++		usleep_range(100, 150);
++
++		if (readl(pll0) & S7_U2_PLL0_LOCKED)
++			return 0;
++	}
++
++	dev_err(priv->dev, "USB2 PLL did not lock (0x%08x)\n", readl(pll0));
++	return -ETIMEDOUT;
++}
++
+ static void meson_s6_usb2_calibrate(struct meson_s6_usb2_phy *priv)
+ {
+ 	u32 cali = U2_TRIM_DEFAULT, val;
+@@ -180,6 +224,14 @@ static void meson_s6_usb2_calibrate(struct meson_s6_usb2_phy *priv)
+ 	meson_s6_modify(priv->cfg + U2_CFG_TRIM, U2_CFG_TRIM_MASK,
+ 			(1U << cali) - 1);
+ 
++	if (priv->s7) {
++		/* squelch trim 0b111, disconnect trim 0b000 */
++		writel(S7_U2_CFG_DISC_SQUELCH_VAL,
++		       priv->cfg + U2_CFG_DISC_SQUELCH);
++		usleep_range(200, 300);
++		return;
++	}
++
+ 	/*
+ 	 * The default disconnect threshold of 0 leads to HS handshake errors.
+ 	 * REG_CFG_DIS is unused but set by default, clear it.
+@@ -273,7 +325,10 @@ static int meson_s6_usb2_init(struct phy *phy)
+ 	if (ret)
+ 		dev_warn(priv->dev, "timeout waiting for PHY ready\n");
+ 
+-	ret = meson_s6_usb2_set_pll(priv);
++	if (priv->s7)
++		ret = meson_s7_usb2_set_pll(priv);
++	else
++		ret = meson_s6_usb2_set_pll(priv);
+ 	if (ret)
+ 		goto err_rst;
+ 
+@@ -332,7 +387,7 @@ static const struct phy_ops meson_s6_usb2_ops = {
+ 	.owner		= THIS_MODULE,
+ };
+ 
+-static int meson_s6_usb2_probe(struct platform_device *pdev)
++static int meson_usb2_probe(struct platform_device *pdev, bool s7)
+ {
+ 	struct device *dev = &pdev->dev;
+ 	struct meson_s6_usb2_phy *priv;
+@@ -344,6 +399,7 @@ static int meson_s6_usb2_probe(struct platform_device *pdev)
+ 		return -ENOMEM;
+ 
+ 	priv->dev = dev;
++	priv->s7 = s7;
+ 	priv->mode = PHY_MODE_USB_HOST;
+ 
+ 	priv->ctrl = devm_platform_ioremap_resource_byname(pdev, "ctrl");
+@@ -398,6 +454,16 @@ static int meson_s6_usb2_probe(struct platform_device *pdev)
+ 	return PTR_ERR_OR_ZERO(provider);
+ }
+ 
++static int meson_s6_usb2_probe(struct platform_device *pdev)
++{
++	return meson_usb2_probe(pdev, false);
++}
++
++static int meson_s7_usb2_probe(struct platform_device *pdev)
++{
++	return meson_usb2_probe(pdev, true);
++}
++
+ /* ---------------------------------- USB3 -------------------------------- */
+ 
+ static int meson_s6_usb3_wait_pll(struct meson_s6_usb3_phy *priv)
+@@ -626,6 +692,7 @@ static int meson_s6_usb3_probe(struct platform_device *pdev)
+ static const struct of_device_id meson_s6_usb_phy_of_match[] = {
+ 	{ .compatible = "amlogic,s6-usb2-phy", .data = meson_s6_usb2_probe },
+ 	{ .compatible = "amlogic,s6-usb3-phy", .data = meson_s6_usb3_probe },
++	{ .compatible = "amlogic,s7-usb2-phy", .data = meson_s7_usb2_probe },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, meson_s6_usb_phy_of_match);
+@@ -650,5 +717,5 @@ static struct platform_driver meson_s6_usb_phy_driver = {
+ };
+ module_platform_driver(meson_s6_usb_phy_driver);
+ 
+-MODULE_DESCRIPTION("Amlogic S6 USB2 and USB3 PHY driver");
++MODULE_DESCRIPTION("Amlogic S6/S7 USB2 and USB3 PHY driver");
+ MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

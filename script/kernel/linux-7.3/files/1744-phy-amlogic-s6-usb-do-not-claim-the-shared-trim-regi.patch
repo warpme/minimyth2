@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 17:21:02 +0100
+Subject: [PATCH] phy: amlogic: s6-usb: do not claim the shared trim registers
+
+The USB2 trim register is an efuse shadow register shared by both USB2
+PHYs. devm_of_iomap() requests the memory region, so the second PHY
+fails to map it:
+
+  meson-s6-usb-phy fe358000.phy: error -EBUSY: can't request region
+  for resource [mem 0xfe010330-0xfe010333]
+
+and runs without its trim value. Map the trim registers with
+devm_ioremap() instead, as the comment already intended.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/phy/amlogic/phy-meson-s6-usb.c | 24 ++++++++++++++++++------
+ 1 file changed, 18 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/phy/amlogic/phy-meson-s6-usb.c b/drivers/phy/amlogic/phy-meson-s6-usb.c
+index fdad1c7..0956a6e 100644
+--- a/drivers/phy/amlogic/phy-meson-s6-usb.c
++++ b/drivers/phy/amlogic/phy-meson-s6-usb.c
+@@ -147,6 +147,22 @@ static void meson_s6_modify(void __iomem *reg, u32 clear, u32 set)
+ 	writel(val, reg);
+ }
+ 
++/*
++ * The trim registers are efuse shadow registers in the middle of another
++ * block, shared by both USB2 PHYs: map them without claiming the region.
++ */
++static void __iomem *meson_s6_usb_map_trim(struct platform_device *pdev,
++					   unsigned int index)
++{
++	struct resource *res;
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, index);
++	if (!res)
++		return NULL;
++
++	return devm_ioremap(&pdev->dev, res->start, resource_size(res));
++}
++
+ /* ---------------------------------- USB2 -------------------------------- */
+ 
+ static int meson_s6_usb2_set_pll(struct meson_s6_usb2_phy *priv)
+@@ -414,9 +430,7 @@ static int meson_usb2_probe(struct platform_device *pdev, bool s7)
+ 	 * The trim register is an efuse shadow register that lives in the
+ 	 * middle of another block, do not claim the region.
+ 	 */
+-	priv->trim = devm_of_iomap(dev, dev->of_node, 2, NULL);
+-	if (IS_ERR(priv->trim))
+-		priv->trim = NULL;
++	priv->trim = meson_s6_usb_map_trim(pdev, 2);
+ 
+ 	priv->clk = devm_clk_get(dev, NULL);
+ 	if (IS_ERR(priv->clk))
+@@ -651,9 +665,7 @@ static int meson_s6_usb3_probe(struct platform_device *pdev)
+ 	if (IS_ERR(priv->ctrl))
+ 		return PTR_ERR(priv->ctrl);
+ 
+-	priv->trim = devm_of_iomap(dev, dev->of_node, 1, NULL);
+-	if (IS_ERR(priv->trim))
+-		priv->trim = NULL;
++	priv->trim = meson_s6_usb_map_trim(pdev, 1);
+ 
+ 	priv->clks[0].id = "apb";
+ 	priv->clks[1].id = "pipe";
+-- 
+2.43.0
+
