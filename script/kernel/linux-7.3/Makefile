@@ -246,6 +246,7 @@ PATCHFILES += 1738-mmc-meson-gx-add-amlogic-tx-phase-property.patch
 PATCHFILES += 1739-drm-meson-add-Amlogic-S7-VPU-and-HDMI-support.patch
 PATCHFILES += 1740-media-amvdec-add-Amlogic-S7-support.patch
 PATCHFILES += 1741-tee-optee-use-the-reserved-shared-memory-pool-on-s7.patch
+PATCHFILES += 1741-clk-scmi-support-the-clock-critical-property.patch
 # s4 dtsi additions
 PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
@@ -281,7 +282,9 @@ PATCHFILES += 1888-arm64-dts-amlogic-s7-add-VPU-and-HDMI-transmitter.patch
 PATCHFILES += 1889-arm64-dts-amlogic-s7-add-audio-controllers.patch
 PATCHFILES += 1890-arm64-dts-amlogic-s7-add-Mali-GPU.patch
 PATCHFILES += 1891-arm64-dts-amlogic-s7-add-video-decoder.patch
-PATCHFILES += 1892-arm64-dtsi-amlogic-s7-add-optee-node.patch
+PATCHFILES += 1892-arm64-dts-amlogic-s7-add-HDMI-CEC-controller.patch
+PATCHFILES += 1893-arm64-dts-amlogic-s7-add-SCMI-clocks-and-CPU-OPP-tab.patch
+PATCHFILES += 1894-arm64-dtsi-amlogic-s7-add-optee-node.patch
 # s4 board dts additions
 PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
@@ -307,6 +310,8 @@ PATCHFILES += 1992-arm64-dts-amlogic-tanix-tx5-enable-HDMI.patch
 PATCHFILES += 1993-arm64-dts-amlogic-tanix-tx5-add-HDMI-sound-card.patch
 PATCHFILES += 1994-arm64-dts-amlogic-tanix-tx5-enable-the-GPU.patch
 PATCHFILES += 1995-arm64-dts-amlogic-tanix-tx5-enable-the-video-decoder.patch
+PATCHFILES += 1996-arm64-dts-amlogic-tanix-tx5-enable-HDMI-CEC.patch
+PATCHFILES += 1997-arm64-dts-amlogic-tanix-tx5-enable-CPU-frequency-sca.patch
 endif
 #------------------------------------------------------------
 

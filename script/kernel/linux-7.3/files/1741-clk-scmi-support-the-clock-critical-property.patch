@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 14:34:09 +0100
+Subject: [PATCH] clk: scmi: support the clock-critical property
+
+Some firmwares expose through SCMI clocks that the OS must never gate,
+like the CPU, DSU and DDR clocks or the clock of the PWM that drives
+the CPU supply. They often have no consumer in Linux, so the unused
+clocks cleanup switches them off and the system hangs.
+
+The Amlogic S7 firmware is one of them: it reports all its clocks as
+enabled, and the boot stops at "clk: Disabling unused clocks".
+
+Read the standard "clock-critical" property of the clock protocol node
+and register the listed clocks with CLK_IS_CRITICAL.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/clk/clk-scmi.c | 27 ++++++++++++++++++++++++---
+ 1 file changed, 24 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/clk/clk-scmi.c b/drivers/clk/clk-scmi.c
+index 2dd50c5..df72fea 100644
+--- a/drivers/clk/clk-scmi.c
++++ b/drivers/clk/clk-scmi.c
+@@ -176,12 +176,13 @@ static int scmi_clk_set_duty_cycle(struct clk_hw *hw, struct clk_duty *duty)
+ }
+ 
+ static int scmi_clk_ops_init(struct device *dev, struct scmi_clk *sclk,
+-			     const struct clk_ops *scmi_ops)
++			     const struct clk_ops *scmi_ops,
++			     unsigned long flags)
+ {
+ 	int ret;
+ 
+ 	struct clk_init_data init = {
+-		.flags = CLK_GET_RATE_NOCACHE,
++		.flags = CLK_GET_RATE_NOCACHE | flags,
+ 		.num_parents = sclk->info->num_parents,
+ 		.ops = scmi_ops,
+ 		.name = sclk->info->name,
+@@ -350,6 +351,24 @@ scmi_clk_ops_select(struct scmi_device *sdev, struct scmi_clk *sclk,
+ 	return ops;
+ }
+ 
++/*
++ * Some firmwares expose clocks that must never be gated by the OS, for
++ * example the CPU, DSU and DDR clocks, or the clock of the PWM that drives
++ * the CPU supply. They may have no consumer in Linux, so the unused clocks
++ * cleanup would switch them off. Let the device tree list them in the
++ * standard "clock-critical" property.
++ */
++static bool scmi_clk_is_critical(struct device_node *np, unsigned int idx)
++{
++	u32 id;
++
++	of_property_for_each_u32(np, "clock-critical", id)
++		if (id == idx)
++			return true;
++
++	return false;
++}
++
+ static int scmi_clocks_probe(struct scmi_device *sdev)
+ {
+ 	int idx, count, err;
+@@ -439,7 +458,9 @@ static int scmi_clocks_probe(struct scmi_device *sdev)
+ 			}
+ 		}
+ 
+-		err = scmi_clk_ops_init(dev, sclk, scmi_ops);
++		err = scmi_clk_ops_init(dev, sclk, scmi_ops,
++					scmi_clk_is_critical(np, idx) ?
++					CLK_IS_CRITICAL : 0);
+ 		if (err) {
+ 			dev_err(dev, "failed to register clock %d\n", idx);
+ 			devm_kfree(dev, sclk->parent_data);
+-- 
+2.43.0
+
