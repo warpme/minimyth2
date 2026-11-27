@@ -120,7 +120,7 @@ Rockchip 3399      | RockPI 4-b       | works  (ap6256@SDIO)                   |
 Rockchip 3399      | RockPI 4-se      | works  (ap6255@SDIO)                   | works     | not tested| works     | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3399      | OrangePi-4 LTS   | works  (uwe5622@SDIO)                  | works     | not tested| not works | works       | n/a         | not works                      | good prospects                |
 Rockchip 3528      | Rock-2A          | not works                              | not tested| not tested| works     | works       | n/a         | not works                      | missing VOP3 so no HDMI       |
-Rockchip 3528      | Vontar R3        | works  (aic8800@SDIO)                  | not tested| n/a       | works     | works       | FD650 works | not works                      | missing VOP3 so no HDMI       |
+Rockchip 3528      | Vontar R3        | works  (aic8800@SDIO)                  | works     | n/a       | works     | works       | FD650 works | not works                      | missing VOP3 so no HDMI       |
 Rockchip 3566      | X96-X6           | works  (am7256@SDIO)                   | works     | n/a       | not tested| works       |AiP1628 works| not works                      | good prospects                |
 Rockchip 3566      | Quartz64 Model B | works  (cm256sm@SDIO)                  | not tested| works     | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3566      | URVE Pi          | works  (rtl8821@SDIO)                  | works     | n/a       | not tested| not works   | n/a         | not works                      | good prospects                |
@@ -162,6 +162,7 @@ Amlogic s905y4(s4) | Khadas VIM1S     | works  (ap6256@SDIO)                   |
 Amlogic s905x4(sc2)| X96 MaxPlusUltra | not works  (FN-Link K255B-SR@SDIO)     | not tested| n/a       | works     | works       |AiP1628 works| not works (firmware issue)     | support in-progress           |
 Amlogic s905x4(sc2)| RBox HK1         | wip (HK6334Q)                          | not tested| n/a       | works     | works       | FD6551 works| not works (firmware issue)     | support in-progress           |
 Amlogic a311d2(t7) | Khadas VIM4      | wip (AP6275@SDIO)                      | not tested| n/a       | works     | works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic s905y5(s7) | Tanix TX5        | not works (cdtech 47W3155)             | not tested| n/a       | not works | works       | FD650 works | not works (firmware issue)     | support in-progress           |
 Broadcom 2837      | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | n/a       | not tested| works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2711      | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2712      | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | works     | works     | works       | n/a         | no plans                       | all basics works nicelly      |
@@ -174,7 +175,6 @@ Intel D2550        | ION2             | n/a                                    |
 
 ### Hardware Video Decode support
 This is video related functionality avaliable on current code (Linux kernel + Mesa + MythTV)
-At the moment quality of playback is good for technology preview.
 
 SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing     | Supported video render (MythTV)| Supported video render (KODI)  | Remarks |
 -----------------|----------------------------------------------|---------------------------------------|--------------------------------------------|-----------------------|--------------------------------|--------------------------------|---------|
@@ -185,7 +185,7 @@ Allwinner H618   | Vontar H618, OrangePI-Zero3, OrangePI-Zero2W | cedrus/v4l2_re
 Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
 Rockchip 3399    | RockPi4, RockPi4SE, OrangePi4-LTS            | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
 Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2/v4l2_request           | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
-Rockchip 3528    | Rock-2A                                      | hantro,rkvdec2/v4l2_request           | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
+Rockchip 3528    | Rock-2A, Vontar R3                           | hantro,rkvdec2/v4l2_request           | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
 Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2/v4l2_request           | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
 Rockchip 3576    | Nanopi-M5                                    | rkvdec2/v4l2_request                  | H.264, HEVC, VP9, AV1                      | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
 Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2/v4l2_request           | MPEG2, H.264, HEVC, VP8, VP9, AV1          | X11, EGLFS(9), Wayland| EGL_DMABUF, Direct-to-plane(10)| EGL_DMABUF, Direct-to-plane(10)|
@@ -197,6 +197,7 @@ Amlogic sm1      | Khadas VIM3L                                 | amvdec/v4l2_re
 Amlogic s4       | Khadas VIM1S                                 | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, AV1               | X11, EGLFS (14)       | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
 Amlogic sc2      | X96 MaxPlusUltra                             | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, AV1               | X11, EGLFS (14)       | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
 Amlogic t7       | Khadas VIM4                                  | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, AV1               | X11, EGLFS (14)       | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
+Amlogic s7       | Tanix TX5                                    | amvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP9, AV1               | X11, EGLFS (14)       | EGL_DMABUF, (15)               | EGL_DMABUF, Direct-to-plane    |
 Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
 Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland   | EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
 Broadcom 2712    | Rpi5-b                                       | rpivid/v4l2_request                   | HEVC                                       | X11, EGLFS(12),Wayland| EGL_DMABUF, Direct-to-plane    | EGL_DMABUF, Direct-to-plane    |
