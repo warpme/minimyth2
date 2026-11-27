@@ -1,0 +1,98 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+From 2ee970489ea593c423fb73a22d69e8bdbf41a368 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 27 Nov 2026 11:20:08 +0100
+Subject: [PATCH] drm/meson: s6: enable HDMI PLL spread spectrum, enable the
+ hdmitx sys clock
+
+Two details found by comparing with the vendor hdmitx_hw_s6.c:
+
+ - The vendor driver enables spread spectrum (1000 ppm) on the HDMI PLL for
+   the 720p, 1080i and 1080p 50/60 Hz modes to lower EMI. Do the same for
+   TMDS bit rates of 742.5 MHz and 1.485 GHz (and their 59.94 Hz variants).
+ - The registers of the HDMI TX top level are only accessible while
+   cts_hdmitx_sys_clk is running. Take it as the optional "sys" clock instead
+   of relying on the boot loader and CLK_IGNORE_UNUSED.
+
+Based on the Amlogic BSP; not tested on hardware.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01EwquNdqpH4REK1LBbHc8Qv
+---
+ drivers/gpu/drm/meson/meson_vclk.c     | 36 ++++++++++++++++++++++++++
+ 2 files changed, 42 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_vclk.c b/drivers/gpu/drm/meson/meson_vclk.c
+index fd1b8e2..75740f7 100644
+--- a/drivers/gpu/drm/meson/meson_vclk.c
++++ b/drivers/gpu/drm/meson/meson_vclk.c
+@@ -906,6 +906,9 @@ static void meson_hdmi_pll_set_params(struct meson_drm *priv, unsigned int m,
+ #define S6_HDMI_PLL_CTRL3_OD2	GENMASK(29, 24)
+ #define S6_HDMI_PLL_CTRL3_CLKSEL BIT(19)
+ #define S6_HDMI_CLK_ANALOG	BIT(15)	/* CLKCTRL_HDMI_CLK_CTRL */
++#define S6_HDMI_PLL_CTRL3_SSC_EN GENMASK(21, 20)
++#define S6_HDMI_PLL_CTRL2_SSC_PPM GENMASK(19, 16)
++#define S6_HDMI_PLL_CTRL2_SSC_STR BIT(4)
+ 
+ /* Take a /2, /4 or /8 stage out of div: OD register value 1, 2, 3 or 0 (/1) */
+ static unsigned int s6_pll_od_split(unsigned int *div)
+@@ -926,6 +929,27 @@ static unsigned int s6_pll_od_split(unsigned int *div)
+ 	return od;
+ }
+ 
++/*
++ * The vendor driver enables spread spectrum (1000 ppm) for the 720p, 1080i and
++ * 1080p modes at 50/60 Hz (and the 59.94 Hz variants), i.e. TMDS bit rates of
++ * 742.5 MHz and 1.485 GHz.
++ */
++static bool s6_hdmi_pll_wants_ssc(unsigned long long phy_freq)
++{
++	static const unsigned long long rates[] = { 742500000ULL, 1485000000ULL };
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(rates); i++) {
++		unsigned long long alt = div_u64(rates[i] * 1000, 1001);
++
++		if (abs_diff(phy_freq, rates[i]) < 1000 ||
++		    abs_diff(phy_freq, alt) < 1000)
++			return true;
++	}
++
++	return false;
++}
++
+ static void s6_hdmi_pll_set(struct meson_drm *priv, unsigned long long phy_freq)
+ {
+ 	unsigned long long vco = phy_freq;
+@@ -1004,6 +1028,18 @@ static void s6_hdmi_pll_set(struct meson_drm *priv, unsigned long long phy_freq)
+ 			   FIELD_PREP(S6_HDMI_PLL_CTRL3_OD2, (od20 << 3) | od21));
+ 	regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL0, S6_HDMI_PLL_CTRL0_OD0,
+ 			   FIELD_PREP(S6_HDMI_PLL_CTRL0_OD0, (od01 << 3) | od00));
++
++	if (s6_hdmi_pll_wants_ssc(phy_freq)) {
++		regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL3,
++				   S6_HDMI_PLL_CTRL3_SSC_EN,
++				   S6_HDMI_PLL_CTRL3_SSC_EN);
++		regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL2,
++				   S6_HDMI_PLL_CTRL2_SSC_PPM,
++				   FIELD_PREP(S6_HDMI_PLL_CTRL2_SSC_PPM, 2));
++		regmap_update_bits(priv->hhi, ANACTRL_HDMIPLL_CTRL2,
++				   S6_HDMI_PLL_CTRL2_SSC_STR,
++				   S6_HDMI_PLL_CTRL2_SSC_STR);
++	}
+ }
+ 
+ #define XTAL_FREQ (24 * 1000 * 1000)
+-- 
+2.43.0
+
+--
+
+MiniMyth2
+
