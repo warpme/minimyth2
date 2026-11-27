@@ -1,0 +1,163 @@
+From 22f6a394a92b7573e0943a94830e3906645ede97 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 27 Nov 2026 14:20:00 +0000
+Subject: [PATCH 2728/2728] drm/sun4i: tcon-top: Program DE35 DE to TCON mux on
+ A523
+
+Display Engine 3.5 found in A523 has its own DE -> TCON mux in the DE
+top register block (DE + 0x8010, 4 bits per display, see vendor BSP
+de_top_set_de2tcon_mux()), in addition to the DE port select register
+in TCON TOP. Its reset value 0x3210 routes mixer 0 to TCON_LCD0, so
+with only TCON TOP programmed, HDMI on TCON_TV0 (index 2) gets no pixel
+data.
+
+The register is located in the DE clock register space. Add optional
+"allwinner,de-mux" phandle pointing to the DE clock node and, for
+SoCs with the has_de_mux quirk, map it (without requesting the region,
+which belongs to the DE clock driver) and program it together with
+TCON TOP mux, including parking of the other display.
+
+Other SoCs are not affected.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/gpu/drm/sun4i/sun8i_tcon_top.c | 57 ++++++++++++++++++++++++++
+ drivers/gpu/drm/sun4i/sun8i_tcon_top.h |  5 +++
+ 2 files changed, 62 insertions(+)
+
+diff --git a/drivers/gpu/drm/sun4i/sun8i_tcon_top.c b/drivers/gpu/drm/sun4i/sun8i_tcon_top.c
+index d63f322..ae48dc9 100644
+--- a/drivers/gpu/drm/sun4i/sun8i_tcon_top.c
++++ b/drivers/gpu/drm/sun4i/sun8i_tcon_top.c
+@@ -9,6 +9,7 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/of_graph.h>
++#include <linux/of_address.h>
+ #include <linux/platform_device.h>
+ 
+ #include <dt-bindings/clock/sun8i-tcon-top.h>
+@@ -30,6 +31,11 @@ struct sun8i_tcon_top_quirks {
+ 	u8 num_tcons;
+ 	/* TCON TV1 clock gate bit. If zero, R40 / H6 bit is used. */
+ 	u8 tv1_gate_bit;
++	/*
++	 * DE has its own DE -> TCON mux (DE35), located in DE clock register
++	 * space, which must match TCON TOP mux.
++	 */
++	bool has_de_mux;
+ };
+ 
+ static bool sun8i_tcon_top_node_is_tcon_top(struct device_node *node)
+@@ -113,6 +119,35 @@ int sun8i_tcon_top_set_hdmi_src(struct device *dev, int tcon)
+ }
+ EXPORT_SYMBOL(sun8i_tcon_top_set_hdmi_src);
+ 
++static void sun8i_tcon_top_de_mux_config(struct sun8i_tcon_top *tcon_top,
++					 int mixer, int tcon)
++{
++	u32 mixer_msk = DE35_DE2TCON_MUX_MSK(mixer);
++	u32 other_msk = DE35_DE2TCON_MUX_MSK(!mixer);
++	unsigned long flags;
++	u32 val;
++
++	if (!tcon_top->de_mux_regs)
++		return;
++
++	spin_lock_irqsave(&tcon_top->reg_lock, flags);
++
++	val = readl(tcon_top->de_mux_regs + DE35_DE2TCON_MUX_REG);
++
++	val &= ~mixer_msk;
++	val |= field_prep(mixer_msk, tcon);
++
++	if (field_get(other_msk, val) == tcon) {
++		val &= ~other_msk;
++		val |= field_prep(other_msk,
++				  sun8i_tcon_top_park_index(tcon_top, tcon));
++	}
++
++	writel(val, tcon_top->de_mux_regs + DE35_DE2TCON_MUX_REG);
++
++	spin_unlock_irqrestore(&tcon_top->reg_lock, flags);
++}
++
+ int sun8i_tcon_top_de_config(struct device *dev, int mixer, int tcon)
+ {
+ 	struct sun8i_tcon_top *tcon_top = dev_get_drvdata(dev);
+@@ -158,6 +193,8 @@ int sun8i_tcon_top_de_config(struct device *dev, int mixer, int tcon)
+ 
+ 	spin_unlock_irqrestore(&tcon_top->reg_lock, flags);
+ 
++	sun8i_tcon_top_de_mux_config(tcon_top, mixer, tcon);
++
+ 	return 0;
+ }
+ EXPORT_SYMBOL(sun8i_tcon_top_de_config);
+@@ -296,6 +333,23 @@ static int sun8i_tcon_top_bind(struct device *dev, struct device *master,
+ 	if (ret)
+ 		goto err_unregister_gates;
+ 
++	if (quirks->has_de_mux) {
++		struct device_node *np;
++
++		/*
++		 * The register lives in DE clock register space. Map it
++		 * without requesting the region, which is owned by the DE
++		 * clock driver.
++		 */
++		np = of_parse_phandle(dev->of_node, "allwinner,de-mux", 0);
++		if (np) {
++			tcon_top->de_mux_regs = of_iomap(np, 0);
++			of_node_put(np);
++		}
++		if (!tcon_top->de_mux_regs)
++			dev_warn(dev, "DE -> TCON mux not available\n");
++	}
++
+ 	dev_set_drvdata(dev, tcon_top);
+ 
+ 	return 0;
+@@ -325,6 +379,8 @@ static void sun8i_tcon_top_unbind(struct device *dev, struct device *master,
+ 				clk_hw_unregister_gate(clk_data->hws[i]);
+ 	}
+ 
++	if (tcon_top->de_mux_regs)
++		iounmap(tcon_top->de_mux_regs);
+ 	clk_disable_unprepare(tcon_top->bus);
+ 	reset_control_assert(tcon_top->rst);
+ }
+@@ -369,6 +425,7 @@ static const struct sun8i_tcon_top_quirks sun55i_a523_tcon_top_quirks = {
+ 	/* TCON_LCD0, TCON_LCD1, TCON_TV0, TCON_TV1, TCON_LCD2 */
+ 	.num_tcons	= 5,
+ 	.tv1_gate_bit	= A523_TCON_TOP_TCON_TV1_GATE,
++	.has_de_mux	= true,
+ };
+ 
+ static const struct sun8i_tcon_top_quirks sun55i_a523_tcon_top1_quirks = {
+diff --git a/drivers/gpu/drm/sun4i/sun8i_tcon_top.h b/drivers/gpu/drm/sun4i/sun8i_tcon_top.h
+index 58d7b63..b86d389 100644
+--- a/drivers/gpu/drm/sun4i/sun8i_tcon_top.h
++++ b/drivers/gpu/drm/sun4i/sun8i_tcon_top.h
+@@ -30,6 +30,10 @@
+ 
+ #define CLK_NUM					3
+ 
++/* DE35 DE -> TCON mux, in DE clock (DE top) register space */
++#define DE35_DE2TCON_MUX_REG			0x10
++#define DE35_DE2TCON_MUX_MSK(disp)		(GENMASK(3, 0) << ((disp) * 4))
++
+ struct sun8i_tcon_top {
+ 	struct clk			*bus;
+ 	struct clk_hw_onecell_data	*clk_data;
+@@ -38,6 +42,7 @@ struct sun8i_tcon_top {
+ 
+ 	unsigned int			tcon_map;
+ 	unsigned int			num_tcons;
++	void __iomem			*de_mux_regs;
+ 	u32				port_de0_msk;
+ 	u32				port_de1_msk;
+ 	bool				no_mux;
+-- 
+2.34.1
+

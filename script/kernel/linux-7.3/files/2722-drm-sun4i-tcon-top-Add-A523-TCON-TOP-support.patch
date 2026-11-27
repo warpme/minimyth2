@@ -1,122 +1,152 @@
-From 7aec9112d4f2a62a655c02f9ad9309fe14b4996a Mon Sep 17 00:00:00 2001
+From 94784ecdc0cda0f6bcf63441199103a306f034a6 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
-Date: Fri, 22 May 2026 16:41:27 +0000
-Subject: [PATCH 27/33] drm/sun4i: tcon-top: Add A523 TCON TOP support
+Date: Fri, 27 Nov 2026 11:39:57 +0000
+Subject: [PATCH 2722/2728] drm/sun4i: tcon-top: Add A523 TCON TOP support
 
 The A523 display interface top (DPSS top) has the same control
 register at offset 0x1C as previous TCON TOPs, but the DE port ->
 TCON mux fields are 4-bit wide (DE0 at bits 3:0, DE1 at bits 7:4)
-instead of the 2-bit fields with a reserved gap used on R40 / D1 /
-H6 / H616.
+instead of the 2-bit fields used on R40 / D1 / H6 / H616. It can
+route to five TCONs (TCON_LCD0, TCON_LCD1, TCON_TV0, TCON_TV1 and
+TCON_LCD2) and the TCON TV1 clock gate is at bit 21 instead of 24
+(layout taken from vendor BSP, lowlevel_v35x tcon_clk_gate).
 
-Plumb the mask through the quirks and the tcon_top state instead of
-hard-coding TCON_TOP_PORT_DE{0,1}_MSK. Since the mask is no longer
-a compile-time constant, replace the FIELD_PREP() call with a
-manual shift.
+Keep the mux masks and the number of TCONs in the tcon_top state and
+let quirks override them, together with the TV1 gate bit. Quirks
+which don't set them (R40, D1, H6, H616) fall back to the current
+values, so register programming on those SoCs, including parking of
+the other mixer, is unchanged.
 
 A523 exposes TV0, TV1 and DSI clock gates and routes from both
 mixers, so set the has_tcon_tv1 and has_dsi quirks.
 
+The second A523 top block has no mux and no clock gates. Add a
+no_mux quirk for it, which only handles bus clock and reset and
+turns sun8i_tcon_top_de_config() / sun8i_tcon_top_set_hdmi_src()
+into no-ops.
+
 Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
- drivers/gpu/drm/sun4i/sun8i_tcon_top.c | 76 ++++++++++++++++++++------
- drivers/gpu/drm/sun4i/sun8i_tcon_top.h |  6 ++
- 2 files changed, 65 insertions(+), 17 deletions(-)
+ drivers/gpu/drm/sun4i/sun8i_tcon_top.c | 76 ++++++++++++++++++++++----
+ drivers/gpu/drm/sun4i/sun8i_tcon_top.h |  7 +++
+ 2 files changed, 72 insertions(+), 11 deletions(-)
 
 diff --git a/drivers/gpu/drm/sun4i/sun8i_tcon_top.c b/drivers/gpu/drm/sun4i/sun8i_tcon_top.c
-index c9e846657..c4871d693 100644
+index b9aea4f..d63f322 100644
 --- a/drivers/gpu/drm/sun4i/sun8i_tcon_top.c
 +++ b/drivers/gpu/drm/sun4i/sun8i_tcon_top.c
-@@ -18,6 +18,9 @@
+@@ -18,6 +18,18 @@
  struct sun8i_tcon_top_quirks {
  	bool has_tcon_tv1;
  	bool has_dsi;
++	/*
++	 * Block has no DE -> TCON mux and no clock gates. Only bus clock
++	 * and reset are handled.
++	 */
 +	bool no_mux;
++	/* DE -> TCON mux fields. If zero, R40 / H6 layout is used. */
 +	u32 port_de0_msk;
 +	u32 port_de1_msk;
++	/* Number of TCONs selectable by the mux. If zero, 4 is used. */
++	u8 num_tcons;
++	/* TCON TV1 clock gate bit. If zero, R40 / H6 bit is used. */
++	u8 tv1_gate_bit;
  };
  
  static bool sun8i_tcon_top_node_is_tcon_top(struct device_node *node)
-@@ -58,7 +61,7 @@ int sun8i_tcon_top_de_config(struct device *dev, int mixer, int tcon)
- {
- 	struct sun8i_tcon_top *tcon_top = dev_get_drvdata(dev);
- 	unsigned long flags;
--	u32 reg;
-+	u32 reg, msk;
+@@ -25,7 +37,8 @@ static bool sun8i_tcon_top_node_is_tcon_top(struct device_node *node)
+ 	return !!of_match_node(sun8i_tcon_top_of_table, node);
+ }
  
- 	if (!sun8i_tcon_top_node_is_tcon_top(dev->of_node)) {
- 		dev_err(dev, "Device is not TCON TOP!\n");
-@@ -75,16 +78,16 @@ int sun8i_tcon_top_de_config(struct device *dev, int mixer, int tcon)
+-static unsigned int sun8i_tcon_top_get_tcon_map(struct device_node *node)
++static unsigned int sun8i_tcon_top_get_tcon_map(struct device_node *node,
++						unsigned int num_tcons)
+ {
+ 	static const u32 out_ports[] = {
+ 		TCON_TOP_MIXER0_OUT_PORT,
+@@ -46,7 +59,7 @@ static unsigned int sun8i_tcon_top_get_tcon_map(struct device_node *node)
+ 			if (of_graph_parse_endpoint(ep, &endpoint))
+ 				continue;
+ 
+-			if (endpoint.id < TCON_TOP_PORT_TCON_NUM)
++			if (endpoint.id < num_tcons)
+ 				map |= BIT(endpoint.id);
+ 		}
+ 
+@@ -63,7 +76,7 @@ static unsigned int sun8i_tcon_top_park_index(struct sun8i_tcon_top *tcon_top,
+ 
+ 	candidates = tcon_top->tcon_map & ~BIT(tcon);
+ 	if (!candidates)
+-		candidates = GENMASK(TCON_TOP_PORT_TCON_NUM - 1, 0) & ~BIT(tcon);
++		candidates = GENMASK(tcon_top->num_tcons - 1, 0) & ~BIT(tcon);
+ 
+ 	return ffs(candidates) - 1;
+ }
+@@ -79,6 +92,9 @@ int sun8i_tcon_top_set_hdmi_src(struct device *dev, int tcon)
  		return -EINVAL;
  	}
  
 +	if (tcon_top->no_mux)
 +		return 0;
 +
-+	msk = mixer == 0 ? tcon_top->port_de0_msk : tcon_top->port_de1_msk;
-+
- 	spin_lock_irqsave(&tcon_top->reg_lock, flags);
- 
- 	reg = readl(tcon_top->regs + TCON_TOP_PORT_SEL_REG);
--	if (mixer == 0) {
--		reg &= ~TCON_TOP_PORT_DE0_MSK;
--		reg |= FIELD_PREP(TCON_TOP_PORT_DE0_MSK, tcon);
--	} else {
--		reg &= ~TCON_TOP_PORT_DE1_MSK;
--		reg |= FIELD_PREP(TCON_TOP_PORT_DE1_MSK, tcon);
--	}
-+	reg &= ~msk;
-+	reg |= (tcon << __ffs(msk)) & msk;
- 	writel(reg, tcon_top->regs + TCON_TOP_PORT_SEL_REG);
- 
- 	spin_unlock_irqrestore(&tcon_top->reg_lock, flags);
-@@ -158,6 +161,9 @@ static int sun8i_tcon_top_bind(struct device *dev, struct device *master,
- 		return PTR_ERR(tcon_top->bus);
+ 	if (tcon < 2 || tcon > 3) {
+ 		dev_err(dev, "TCON index must be 2 or 3!\n");
+ 		return -EINVAL;
+@@ -114,13 +130,16 @@ int sun8i_tcon_top_de_config(struct device *dev, int mixer, int tcon)
+ 		return -EINVAL;
  	}
  
-+	tcon_top->port_de0_msk = quirks->port_de0_msk;
-+	tcon_top->port_de1_msk = quirks->port_de1_msk;
+-	if (tcon < 0 || tcon >= TCON_TOP_PORT_TCON_NUM) {
++	if (tcon < 0 || tcon >= tcon_top->num_tcons) {
+ 		dev_err(dev, "TCON index is invalid!\n");
+ 		return -EINVAL;
+ 	}
+ 
+-	mixer_msk = mixer ? TCON_TOP_PORT_DE1_MSK : TCON_TOP_PORT_DE0_MSK;
+-	other_msk = mixer ? TCON_TOP_PORT_DE0_MSK : TCON_TOP_PORT_DE1_MSK;
++	if (tcon_top->no_mux)
++		return 0;
 +
- 	regs = devm_platform_ioremap_resource(pdev, 0);
- 	tcon_top->regs = regs;
- 	if (IS_ERR(regs))
-@@ -175,6 +181,10 @@ static int sun8i_tcon_top_bind(struct device *dev, struct device *master,
++	mixer_msk = mixer ? tcon_top->port_de1_msk : tcon_top->port_de0_msk;
++	other_msk = mixer ? tcon_top->port_de0_msk : tcon_top->port_de1_msk;
+ 
+ 	spin_lock_irqsave(&tcon_top->reg_lock, flags);
+ 
+@@ -193,7 +212,12 @@ static int sun8i_tcon_top_bind(struct device *dev, struct device *master,
+ 		return -ENOMEM;
+ 	clk_data->num = CLK_NUM;
+ 	tcon_top->clk_data = clk_data;
+-	tcon_top->tcon_map = sun8i_tcon_top_get_tcon_map(dev->of_node);
++	tcon_top->num_tcons = quirks->num_tcons ?: TCON_TOP_PORT_TCON_NUM;
++	tcon_top->tcon_map = sun8i_tcon_top_get_tcon_map(dev->of_node,
++							 tcon_top->num_tcons);
++	tcon_top->no_mux = quirks->no_mux;
++	tcon_top->port_de0_msk = quirks->port_de0_msk ?: TCON_TOP_PORT_DE0_MSK;
++	tcon_top->port_de1_msk = quirks->port_de1_msk ?: TCON_TOP_PORT_DE1_MSK;
+ 
+ 	spin_lock_init(&tcon_top->reg_lock);
+ 
+@@ -226,6 +250,11 @@ static int sun8i_tcon_top_bind(struct device *dev, struct device *master,
  		goto err_assert_reset;
  	}
  
-+	tcon_top->no_mux = quirks->no_mux;
-+	if (tcon_top->no_mux)
-+		goto skip_mux;
-+
- 	/*
- 	 * At least on H6, some registers have some bits set by default
- 	 * which may cause issues. Clear them here.
-@@ -208,16 +218,20 @@ static int sun8i_tcon_top_bind(struct device *dev, struct device *master,
- 						     &tcon_top->reg_lock,
- 						     TCON_TOP_TCON_DSI_GATE, i++);
- 
-+skip_mux:
-+
- 	for (i = 0; i < CLK_NUM; i++)
- 		if (IS_ERR(clk_data->hws[i])) {
- 			ret = PTR_ERR(clk_data->hws[i]);
- 			goto err_unregister_gates;
- 		}
- 
--	ret = of_clk_add_hw_provider(dev->of_node, of_clk_hw_onecell_get,
--				     clk_data);
--	if (ret)
--		goto err_unregister_gates;
-+	if (!tcon_top->no_mux) {
-+		ret = of_clk_add_hw_provider(dev->of_node,
-+					     of_clk_hw_onecell_get, clk_data);
-+		if (ret)
-+			goto err_unregister_gates;
++	if (tcon_top->no_mux) {
++		dev_set_drvdata(dev, tcon_top);
++		return 0;
 +	}
++
+ 	writel(0, regs + TCON_TOP_PORT_SEL_REG);
+ 	writel(0, regs + TCON_TOP_GATE_SRC_REG);
  
- 	dev_set_drvdata(dev, tcon_top);
+@@ -247,6 +276,7 @@ static int sun8i_tcon_top_bind(struct device *dev, struct device *master,
+ 		clk_data->hws[CLK_TCON_TOP_TV1] =
+ 			sun8i_tcon_top_register_gate(dev, "tcon-tv1", regs,
+ 						     &tcon_top->reg_lock,
++						     quirks->tv1_gate_bit ?:
+ 						     TCON_TOP_TCON_TV1_GATE, i++);
  
-@@ -241,10 +255,12 @@ static void sun8i_tcon_top_unbind(struct device *dev, struct device *master,
+ 	if (quirks->has_dsi)
+@@ -288,10 +318,12 @@ static void sun8i_tcon_top_unbind(struct device *dev, struct device *master,
  	struct clk_hw_onecell_data *clk_data = tcon_top->clk_data;
  	int i;
  
@@ -133,45 +163,28 @@ index c9e846657..c4871d693 100644
  
  	clk_disable_unprepare(tcon_top->bus);
  	reset_control_assert(tcon_top->rst);
-@@ -268,18 +284,36 @@ static void sun8i_tcon_top_remove(struct platform_device *pdev)
- static const struct sun8i_tcon_top_quirks sun8i_r40_tcon_top_quirks = {
+@@ -329,6 +361,20 @@ static const struct sun8i_tcon_top_quirks sun50i_h616_tcon_top_quirks = {
  	.has_tcon_tv1	= true,
- 	.has_dsi	= true,
-+	.port_de0_msk	= TCON_TOP_PORT_DE0_MSK,
-+	.port_de1_msk	= TCON_TOP_PORT_DE1_MSK,
  };
  
- static const struct sun8i_tcon_top_quirks sun20i_d1_tcon_top_quirks = {
- 	.has_dsi	= true,
-+	.port_de0_msk	= TCON_TOP_PORT_DE0_MSK,
-+	.port_de1_msk	= TCON_TOP_PORT_DE1_MSK,
- };
- 
- static const struct sun8i_tcon_top_quirks sun50i_h6_tcon_top_quirks = {
--	/* Nothing special */
-+	.port_de0_msk	= TCON_TOP_PORT_DE0_MSK,
-+	.port_de1_msk	= TCON_TOP_PORT_DE1_MSK,
- };
- 
- static const struct sun8i_tcon_top_quirks sun50i_h616_tcon_top_quirks = {
- 	.has_tcon_tv1	= true,
-+	.port_de0_msk	= TCON_TOP_PORT_DE0_MSK,
-+	.port_de1_msk	= TCON_TOP_PORT_DE1_MSK,
-+};
-+
 +static const struct sun8i_tcon_top_quirks sun55i_a523_tcon_top_quirks = {
 +	.has_tcon_tv1	= true,
 +	.has_dsi	= true,
 +	.port_de0_msk	= A523_TCON_TOP_PORT_DE0_MSK,
 +	.port_de1_msk	= A523_TCON_TOP_PORT_DE1_MSK,
++	/* TCON_LCD0, TCON_LCD1, TCON_TV0, TCON_TV1, TCON_LCD2 */
++	.num_tcons	= 5,
++	.tv1_gate_bit	= A523_TCON_TOP_TCON_TV1_GATE,
 +};
 +
 +static const struct sun8i_tcon_top_quirks sun55i_a523_tcon_top1_quirks = {
 +	.no_mux		= true,
- };
- 
++};
++
  /* sun4i_drv uses this list to check if a device node is a TCON TOP */
-@@ -300,6 +334,14 @@ const struct of_device_id sun8i_tcon_top_of_table[] = {
+ const struct of_device_id sun8i_tcon_top_of_table[] = {
+ 	{
+@@ -347,6 +393,14 @@ const struct of_device_id sun8i_tcon_top_of_table[] = {
  		.compatible = "allwinner,sun50i-h616-tcon-top",
  		.data = &sun50i_h616_tcon_top_quirks
  	},
@@ -187,7 +200,7 @@ index c9e846657..c4871d693 100644
  };
  MODULE_DEVICE_TABLE(of, sun8i_tcon_top_of_table);
 diff --git a/drivers/gpu/drm/sun4i/sun8i_tcon_top.h b/drivers/gpu/drm/sun4i/sun8i_tcon_top.h
-index 0390584a3..736808d8f 100644
+index 2b88747..58d7b63 100644
 --- a/drivers/gpu/drm/sun4i/sun8i_tcon_top.h
 +++ b/drivers/gpu/drm/sun4i/sun8i_tcon_top.h
 @@ -14,6 +14,8 @@
@@ -196,20 +209,28 @@ index 0390584a3..736808d8f 100644
  #define TCON_TOP_PORT_DE1_MSK			GENMASK(5, 4)
 +#define A523_TCON_TOP_PORT_DE0_MSK		GENMASK(3, 0)
 +#define A523_TCON_TOP_PORT_DE1_MSK		GENMASK(7, 4)
+ #define TCON_TOP_PORT_TCON_NUM			4
  
+ #define TCON_TOP_MIXER0_OUT_PORT		1
+@@ -22,6 +24,7 @@
  #define TCON_TOP_GATE_SRC_REG		0x20
  #define TCON_TOP_HDMI_SRC_MSK			GENMASK(29, 28)
-@@ -29,6 +31,10 @@ struct sun8i_tcon_top {
- 	void __iomem			*regs;
+ #define TCON_TOP_TCON_TV1_GATE			24
++#define A523_TCON_TOP_TCON_TV1_GATE		21
+ #define TCON_TOP_TCON_TV0_GATE			20
+ #define TCON_TOP_TCON_DSI_GATE			16
+ 
+@@ -34,6 +37,10 @@ struct sun8i_tcon_top {
  	struct reset_control		*rst;
  
+ 	unsigned int			tcon_map;
++	unsigned int			num_tcons;
 +	u32				port_de0_msk;
 +	u32				port_de1_msk;
 +	bool				no_mux;
-+
+ 
  	/*
  	 * spinlock is used to synchronize access to same
- 	 * register where multiple clock gates can be set.
 -- 
-2.53.0
+2.34.1
 

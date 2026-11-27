@@ -1,0 +1,44 @@
+From 0d0dda99d27f337a71f7793daffcbb65d809b75b Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 27 Nov 2026 15:48:17 +0000
+Subject: [PATCH] clk: sunxi-ng: a523: Keep IOMMU clock running
+
+On A523 the display engine (and other IOMMU masters) access DRAM through
+the IOMMU even when translation is disabled. There is no IOMMU node in
+mainline DT yet, so the IOMMU module clock has no consumer and is gated
+by clk_disable_unused() late in boot. From that point the display engine
+fetches only zeros and the screen goes black while HDMI keeps running.
+
+Mark the clock as critical until an IOMMU driver takes care of it.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/clk/sunxi-ng/ccu-sun55i-a523.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/clk/sunxi-ng/ccu-sun55i-a523.c b/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
+index 0714090..8141924 100644
+--- a/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
++++ b/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
+@@ -572,12 +572,17 @@ static const struct clk_parent_data iommu_parents[] = {
+ 	{ .fw_name = "hosc" },
+ };
+ 
++/*
++ * DRAM accesses of IOMMU masters (e.g. the display engine) go through the
++ * IOMMU even when address translation is disabled. Gating its clock stalls
++ * them, so keep it running until there is an IOMMU driver claiming it.
++ */
+ static SUNXI_CCU_M_DATA_WITH_MUX_GATE_FEAT(iommu_clk, "iommu", iommu_parents,
+ 					   0x7b0,
+ 					   0, 5,	/* M */
+ 					   24, 3,	/* mux */
+ 					   BIT(31),	/* gate */
+-					   CLK_SET_RATE_PARENT,
++					   CLK_SET_RATE_PARENT | CLK_IS_CRITICAL,
+ 					   CCU_FEATURE_UPDATE_BIT);
+ 
+ static SUNXI_CCU_GATE_HWS(bus_iommu_clk, "bus-iommu", apb0_hws, 0x7bc,
+-- 
+2.34.1
+

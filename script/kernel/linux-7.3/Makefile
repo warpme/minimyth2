@@ -440,8 +440,6 @@ PATCHFILES += 2703-add-initial-cpufreq-support.patch
 PATCHFILES += 2704-net-drivers-stmmac-add-25M-phy-clock-support.patch
 PATCHFILES += 2705-clk-sunxi-ng-ccu-sun55i-make-mmc-high-speed-working.patch
 # hdmi
-ifeq (0,1)
-# to do update to 7.3 kernel
 PATCHFILES += 2720-drm-sun4i-planes-Add-A523-plane-driver-compatible.patch
 PATCHFILES += 2721-drm-sun4i-mixer-Add-A523-mixer-compatible.patch
 PATCHFILES += 2722-drm-sun4i-tcon-top-Add-A523-TCON-TOP-support.patch
@@ -449,7 +447,9 @@ PATCHFILES += 2723-drm-sun4i-tcon-Add-A523-TCON-LCD-and-TV-compatibles.patch
 PATCHFILES += 2724-drm-sun4i-Add-A523-HDMI-PHY-driver.patch
 PATCHFILES += 2725-drm-sun4i-Add-A523-dw-hdmi-compatible.patch
 PATCHFILES += 2726-drm-sun4i-Add-compatible-for-A523-display-engine.patch
-endif
+PATCHFILES += 2727-drm-sun4i-planes-Defer-probe-until-mapping-regmap-is.patch
+PATCHFILES += 2728-drm-sun4i-tcon-top-Program-DE35-DE-to-TCON-mux-on-A5.patch
+PATCHFILES += 2729-clk-sunxi-ng-a523-Keep-IOMMU-clock-running.patch
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch

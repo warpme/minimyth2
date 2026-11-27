@@ -1,0 +1,57 @@
+From a03525eafaf970ff2415e618f5516347a84d642d Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Fri, 27 Nov 2026 13:27:24 +0000
+Subject: [PATCH 2727/2728] drm/sun4i: planes: Defer probe until mapping regmap
+ is available
+
+The plane mapping regmap is provided by the DE clock driver, which is
+referenced only through the "allwinner,plane-mapping" phandle. There
+is no device link for it, so the planes driver can probe before the
+clock driver is bound, e.g. when the clock driver is still waiting for
+its power domain. In that case dev_get_regmap() returns NULL and probe
+fails permanently with -EINVAL, which in turn makes the mixers defer
+forever and the DRM device is never created.
+
+Return -EPROBE_DEFER instead. While at it, drop the reference to the
+clock device only after the device link was created.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/gpu/drm/sun4i/sun50i_planes.c | 18 ++++++++++++++----
+ 1 file changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/sun4i/sun50i_planes.c b/drivers/gpu/drm/sun4i/sun50i_planes.c
+index 95bb6f6..efb09e5 100644
+--- a/drivers/gpu/drm/sun4i/sun50i_planes.c
++++ b/drivers/gpu/drm/sun4i/sun50i_planes.c
+@@ -200,13 +200,23 @@ static int sun50i_planes_probe(struct platform_device *pdev)
+ 	if (!clk_pdev)
+ 		return dev_err_probe(dev, -EPROBE_DEFER, "Unable to get mapping\n");
+ 
++	/*
++	 * Mapping regmap is registered by the DE clock driver. There is no
++	 * standard DT link to it, so the clock device may exist but not be
++	 * bound yet (e.g. while waiting for its power domain). Wait for it.
++	 */
+ 	planes->mapping = dev_get_regmap(&clk_pdev->dev, NULL);
+-	platform_device_put(clk_pdev);
+-	if (!planes->mapping)
+-		return dev_err_probe(dev, -EINVAL, "Unable to get regmap\n");
++	if (!planes->mapping) {
++		platform_device_put(clk_pdev);
++		return dev_err_probe(dev, -EPROBE_DEFER,
++				     "Waiting for mapping regmap\n");
++	}
+ 
+-	if(!device_link_add(dev, &clk_pdev->dev, DL_FLAG_AUTOREMOVE_CONSUMER))
++	if (!device_link_add(dev, &clk_pdev->dev, DL_FLAG_AUTOREMOVE_CONSUMER)) {
++		platform_device_put(clk_pdev);
+ 		return dev_err_probe(dev, -EINVAL, "Failed to create link\n");
++	}
++	platform_device_put(clk_pdev);
+ 
+ 	regs = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(regs))
+-- 
+2.34.1
+
