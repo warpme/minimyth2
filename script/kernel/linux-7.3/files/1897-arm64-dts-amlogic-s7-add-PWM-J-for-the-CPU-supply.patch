@@ -1,0 +1,128 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Thu, 26 Nov 2026 19:16:24 +0100
+Subject: [PATCH] arm64: dts: amlogic: s7: add PWM J for the CPU supply
+
+PWM J drives VDDCPU on the S7 boards. The vendor kernel programs it
+through the TEE, but its registers are reachable from Linux, so add it
+as an S4 type PWM with its SCMI input clock set to 666.67 MHz, as in the
+vendor device tree. The meson PWM driver asks its input clock for the
+highest possible rate, which an SCMI clock with a discrete rate list
+cannot answer, so feed it through a fixed 1:1 factor clock.
+
+The DSU shares the CPU supply but cpufreq-dt does not scale it. Keep it
+at 1 GHz, the rate the vendor uses up to 1200 MHz CPU, and raise the
+lower OPPs to 869 mV, the voltage the vendor uses with the DSU at 1 GHz.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi | 52 +++++++++++++++++++--
+ 1 file changed, 47 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+index bd54541..fe7842d 100644
+--- a/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s7.dtsi
+@@ -149,6 +149,15 @@
+ 				clock-critical = <2>, <3>, <4>, <5>, <6>, <7>, <8>,
+ 						 <9>, <10>, <11>, <12>, <13>, <14>,
+ 						 <15>, <16>;
++
++				/*
++				 * The DSU is on the CPU supply. cpufreq-dt does
++				 * not scale it, so keep it at 1 GHz, the rate the
++				 * vendor uses up to 1200 MHz CPU, where VDDCPU is
++				 * 869 mV.
++				 */
++				assigned-clocks = <&scmi_clk 10>;
++				assigned-clock-rates = <1000000000>;
+ 			};
+ 		};
+ 	};
+@@ -169,38 +178,55 @@
+ 	 * Vendor "high_table0": the highest voltages of the four speed bins,
+ 	 * safe for every chip. Not referenced here: a board needs a working
+ 	 * VDDCPU regulator before it can use the table.
++	 *
++	 * The vendor points below 1200 MHz (789 and 859 mV) are raised to
++	 * 869 mV: the DSU, on the same supply, stays at 1 GHz and the vendor
++	 * only runs it at that rate from 869 mV.
++	 */
++	/*
++	 * Fixed view of the SCMI pwm_j clock: the meson PWM driver asks its
++	 * input for the highest possible rate, which an SCMI clock with a
++	 * discrete rate list cannot answer.
+ 	 */
++	pwm_j_clkin: clock-pwm-j {
++		compatible = "fixed-factor-clock";
++		#clock-cells = <0>;
++		clocks = <&scmi_clk 16>;
++		clock-div = <1>;
++		clock-mult = <1>;
++	};
++
+ 	cpu_opp_table: opp-table-cpu {
+ 		compatible = "operating-points-v2";
+ 		opp-shared;
+ 
+ 		opp-100000000 {
+ 			opp-hz = /bits/ 64 <100000000>;
+-			opp-microvolt = <789000>;
++			opp-microvolt = <869000>;
+ 			clock-latency-ns = <50000>;
+ 		};
+ 
+ 		opp-250000000 {
+ 			opp-hz = /bits/ 64 <250000000>;
+-			opp-microvolt = <789000>;
++			opp-microvolt = <869000>;
+ 			clock-latency-ns = <50000>;
+ 		};
+ 
+ 		opp-500000000 {
+ 			opp-hz = /bits/ 64 <500000000>;
+-			opp-microvolt = <789000>;
++			opp-microvolt = <869000>;
+ 			clock-latency-ns = <50000>;
+ 		};
+ 
+ 		opp-666666666 {
+ 			opp-hz = /bits/ 64 <666666666>;
+-			opp-microvolt = <789000>;
++			opp-microvolt = <869000>;
+ 			clock-latency-ns = <50000>;
+ 		};
+ 
+ 		opp-1000000000 {
+ 			opp-hz = /bits/ 64 <1000000000>;
+-			opp-microvolt = <859000>;
++			opp-microvolt = <869000>;
+ 			clock-latency-ns = <50000>;
+ 		};
+ 
+@@ -656,6 +682,22 @@
+ 				reg = <0x0 0x48000 0x0 0x1c>;
+ 			};
+ 
++			/*
++			 * PWM J drives VDDCPU. The vendor kernel goes through the
++			 * TEE, but the registers are reachable from Linux. Its
++			 * input is set to 666.67 MHz as in the vendor device tree.
++			 * Only channel A exists; both clocks are the same.
++			 */
++			pwm_j: pwm@59200 {
++				compatible = "amlogic,meson-s7-pwm", "amlogic,meson-s4-pwm";
++				reg = <0x0 0x59200 0x0 0x24>;
++				clocks = <&pwm_j_clkin>, <&pwm_j_clkin>;
++				assigned-clocks = <&scmi_clk 16>;
++				assigned-clock-rates = <666666666>;
++				#pwm-cells = <3>;
++				status = "disabled";
++			};
++
+ 			ir: ir@84040 {
+ 				compatible = "amlogic,meson-s7-ir", "amlogic,meson-s4-ir";
+ 				reg = <0x0 0x84040 0x0 0x30>;
+-- 
+2.43.0
+

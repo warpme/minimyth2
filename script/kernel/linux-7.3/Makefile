@@ -314,15 +314,6 @@ PATCHFILES += 1980-arm64-dts-amlogic-add-s905x5-bl201-board.patch
 PATCHFILES += 1981-arm64-dts-amlogic-s6-add-USB-support-kopia.patch
 # s7 board additions
 PATCHFILES += 1991-arm64-dts-amlogic-add-Tanix-TX5.patch
-PATCHFILES += 1992-arm64-dts-amlogic-tanix-tx5-enable-HDMI.patch
-PATCHFILES += 1993-arm64-dts-amlogic-tanix-tx5-add-HDMI-sound-card.patch
-PATCHFILES += 1994-arm64-dts-amlogic-tanix-tx5-enable-the-GPU.patch
-PATCHFILES += 1995-arm64-dts-amlogic-tanix-tx5-enable-the-video-decoder.patch
-PATCHFILES += 1996-arm64-dts-amlogic-tanix-tx5-enable-HDMI-CEC.patch
-PATCHFILES += 1997-arm64-dts-amlogic-tanix-tx5-enable-CPU-frequency-sca.patch
-PATCHFILES += 1998-arm64-dts-amlogic-tanix-tx5-enable-USB.patch
-PATCHFILES += 1999-arm64-dts-amlogic-tanix-tx5-add-the-GPU-supply.patch
-PATCHFILES += 2000-arm64-dts-amlogic-tanix-tx5-enable-the-IR-receiver.patch
 endif
 #------------------------------------------------------------
 
@@ -824,77 +815,24 @@ PATCHFILES += 5450-arm64-dts-qcom-sc8280xp-add-dragon-q8b.patch
 endif
 #------------------------------------------------------------
 
-ifeq (0,1)
+ifeq (1,1)
 #-- Allwinner A733 patches -----------------------------------
 # kernal, device drivers
-# clk
-PATCHFILES += 6000-dt-bindings-clk-sun60i-a733-ccu-Add-allwinner-A733-s.patch
-PATCHFILES += 6001-clk-sunxi-ng-sdm-Add-dual-patterns-support.patch
-PATCHFILES += 6002-clk-sunxi-ng-a733-Add-PRCM-CCU.patch
-PATCHFILES += 6003-clk-sunxi-ng-a733-Add-PLL-clocks-support.patch
-PATCHFILES += 6004-clk-sunxi-ng-a733-Add-bus-clocks-support.patch
-PATCHFILES += 6005-clk-sunxi-ng-a733-Add-mod-clocks-support.patch
-PATCHFILES += 6006-clk-sunxi-ng-a733-Add-bus-clock-gates.patch
-PATCHFILES += 6007-clk-sunxi-ng-a733-Add-reset-lines.patch
-PATCHFILES += 6008-clk-sunxi-ng-a733-mark-the-CPUS-bus-gate-as-critical.patch
-PATCHFILES += 6009-clk-sunxi-ng-a733-keep-the-MSI-Lite-bus-clocks-runni.patch
-PATCHFILES += 6010-clk-sunxi-ng-a733-keep-the-USB-bus-fabric-clock-runn.patch
-PATCHFILES += 6011-clk-sunxi-ng-a733-the-USB-reference-clocks-have-a-ga.patch
-PATCHFILES += 6012-dt-bindings-clock-add-the-Allwinner-A733-SerDes-subs.patch
-PATCHFILES += 6013-clk-sunxi-ng-add-the-Allwinner-A733-SerDes-subsystem.patch
-PATCHFILES += 6014-dt-bindings-clock-sun60i-a733-serdes-ccu-add-the-PCI.patch
-PATCHFILES += 6015-clk-sunxi-ng-sun60i-a733-serdes-add-the-PCIe-gate-an.patch
-PATCHFILES += 6016-clk-sunxi-ng-a733-feed-the-GPU-bus-gate-from-the-GPU.patch
-PATCHFILES += 6017-dt-bindings-clock-add-the-Allwinner-A733-CPU-clock-c.patch
-PATCHFILES += 6018-clk-sunxi-ng-add-support-for-the-A733-CPU-clock-cont.patch
-# applied by 2014 PATCHFILES += 6019-clk-sunxi-ng-de2-Fix-Display-Engine-3.3-definitions.patch
-# applied by 2015 PATCHFILES += 6020-clk-sunxi-ng-de2-Export-register-regmap-for-DE33.patch
-# needed for testing PATCHFILES += 6021-clk-sunxi-ng-de2-Allow-H616-writeback-routing-regist.patch
-PATCHFILES += 6022-clk-sunxi-ng-a733-keep-the-display-fabric-clocks-run.patch
-PATCHFILES += 6023-clk-sunxi-ng-de2-Add-A733-display-clocks.patch
-PATCHFILES += 6024-clk-sunxi-ng-sun60i-a733-Keep-the-video-output-regis.patch
-PATCHFILES += 6025-clk-sunxi-ng-sun60i-a733-Let-the-GPU-clock-retune-it.patch
-# pinctrl
-PATCHFILES += 6030-pinctrl-sunxi-rename-SUNXI_PINCTRL_NEW_REG_LAYOUT.patch
-PATCHFILES += 6031-pinctrl-sunxi-only-use-PortK-special-handling-on-A52.patch
-PATCHFILES += 6032-pinctrl-sunxi-refactor-IRQ-register-accessors.patch
-PATCHFILES += 6033-pinctrl-sunxi-support-A733-generation-MMIO-register-.patch
-PATCHFILES += 6034-pinctrl-sunxi-add-support-for-set-clear-regs.patch
-PATCHFILES += 6035-pinctrl-sunxi-a523-r-add-a733-r-compatible-string.patch
-PATCHFILES += 6036-pinctrl-sunxi-Add-support-for-the-Allwinner-A733.patch
-PATCHFILES += 6037-pinctrl-sunxi-keep-the-new-disabled-mux-value-for-bo.patch
-PATCHFILES += 6038-pinctrl-sunxi-fix-EINT-bank-indexing-for-SoCs-with-e.patch
-PATCHFILES += 6039-pinctrl-sunxi-a733-fix-the-GPIO-withstand-voltage-en.patch
-# dmaengine
-PATCHFILES += 6045-dmaengine-sun6i-dma-Refactor-to-support-A733-interru.patch
-PATCHFILES += 6046-dmaengine-sun6i-dma-Support-variable-address-widths-.patch
-PATCHFILES += 6047-dmaengine-sun6i-dma-Add-num_channels_per_reg-for-fle.patch
-PATCHFILES += 6048-dmaengine-sun6i-dma-Implement-support-for-Allwinner-.patch
-# mfd pmic
-PATCHFILES += 6055-mfd-axp20x-Constify-axp313-and-axp717-cells.patch
-PATCHFILES += 6056-mfd-axp20x-i2c-Fix-i2c-instantiation.patch
-PATCHFILES += 6057-mfd-axp20x-Add-support-for-AXP318W-PMIC.patch
-PATCHFILES += 6058-regulator-axp20x-add-support-for-the-AXP318W.patch
-# mmc
-PATCHFILES += 6065-mmc-sunxi-Use-readl_poll_timeout.patch
-PATCHFILES += 6066-mmc-sunxi-Name-cleared-IDMA-status-bits.patch
-PATCHFILES += 6067-mmc-sunxi-Propagate-clock-phase-errors.patch
-PATCHFILES += 6068-mmc-sunxi-Double-the-module-clock-for-UHS-DDR50.patch
-PATCHFILES += 6069-mmc-sunxi-Add-A523-clock-phases.patch
-PATCHFILES += 6070-mmc-sunxi-Add-A523-delay-chain-tuning.patch
-# usb, eth
-PATCHFILES += 6075-phy-sun4i-usb-request-the-PHY-resets-shared.patch
-PATCHFILES += 6076-phy-allwinner-add-the-A733-SerDes-combo-PHY-driver.patch
-PATCHFILES += 6080-usb-dwc3-of-simple-add-the-Allwinner-A733.patch
-PATCHFILES += 6081-PCI-dwc-add-the-Allwinner-A733-host-controller-glue.patch
-PATCHFILES += 6085-net-stmmac-Add-support-for-Allwinner-A733-GMAC210.patch
-PATCHFILES += 6086-cpufreq-sun50i-add-support-for-the-Allwinner-A733.patch
-PATCHFILES += 6087-thermal-drivers-sun8i-add-support-for-the-Allwinner-.patch
-PATCHFILES += 6088-net-stmmac-dwmac-sun8i-Add-support-for-H616-EMAC1.patch
-PATCHFILES += 6089-soc-sunxi-sram-Expose-the-HDMI-resistance-calibratio.patch
-# iommu
-# applied by 2431 PATCHFILES += 6095-iommu-sun50i-Support-DRAM-above-4-GiB.patch
-PATCHFILES += 6096-iommu-sun50i-Rate-limit-page-fault-messages.patch
+PATCHFILES += 6005-clk-sunxi-ng-add-a733-clock-driver.patch
+PATCHFILES += 6010-pinctrl-sunxi-add-a733-driver.patch
+PATCHFILES += 6015-dmaengine-sun6i-add-a733-driver.patch
+PATCHFILES += 6016-pmic-axp20x-add-a733-support.patch
+PATCHFILES += 6017-mmc-sunxi-add-a733-support.patch
+PATCHFILES += 6020-phy-sun4i-usb-request-the-PHY-resets-shared.patch
+PATCHFILES += 6021-phy-allwinner-add-the-A733-SerDes-combo-PHY-driver.patch
+PATCHFILES += 6022-usb-dwc3-of-simple-add-the-Allwinner-A733.patch
+PATCHFILES += 6023-PCI-dwc-add-the-Allwinner-A733-host-controller-glue.patch
+PATCHFILES += 6024-net-stmmac-Add-support-for-Allwinner-A733-GMAC210.patch
+PATCHFILES += 6025-cpufreq-sun50i-add-support-for-the-Allwinner-A733.patch
+PATCHFILES += 6026-thermal-drivers-sun8i-add-support-for-the-Allwinner-.patch
+PATCHFILES += 6027-net-stmmac-dwmac-sun8i-Add-support-for-H616-EMAC1.patch
+PATCHFILES += 6028-soc-sunxi-sram-Expose-the-HDMI-resistance-calibratio.patch
+PATCHFILES += 6030-iommu-sun50i-Rate-limit-page-fault-messages.patch
 # dtsi
 PATCHFILES += 6200-arm64-dtsi-allwinner-a733-add-initial-dtsi.patch
 PATCHFILES += 6201-arm64-dtsi-allwinner-a733-add-cpu-opp-dtsi.patch
