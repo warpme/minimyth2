@@ -421,7 +421,7 @@ case "${selection}" in
         file_list=${file_list21}
         epilog_cmd="${epilog_cmd21}" ;;
 
-    3)  "Updating ${component_3} ..."
+    3)  echo "Updating ${component_3} ..."
         directory_list=${directory_list3}
         file_list=${file_list3}
         epilog_cmd="${epilog_cmd3}" ;;
