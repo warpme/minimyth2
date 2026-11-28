@@ -450,12 +450,14 @@ PATCHFILES += 2726-drm-sun4i-Add-compatible-for-A523-display-engine.patch
 PATCHFILES += 2727-drm-sun4i-planes-Defer-probe-until-mapping-regmap-is.patch
 PATCHFILES += 2728-drm-sun4i-tcon-top-Program-DE35-DE-to-TCON-mux-on-A5.patch
 PATCHFILES += 2729-clk-sunxi-ng-a523-Keep-IOMMU-clock-running.patch
+PATCHFILES += 2730-media-cedrus-Add-A523-support.patch
 # a523 dtsi additions
 PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
 PATCHFILES += 2803-arm64-dtsi-allwinner-a523-Add-display-pipeline.patch
 PATCHFILES += 2804-arm64-dtsi-allwinner-a523-Add-HDMI-audio.patch
+PATCHFILES += 2805-arm64-dtsi-allwinner-a523-Add-video-engine.patch
 # a523 board dts additions
 # todo PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch

@@ -1,0 +1,139 @@
+From 49e39be14fcd7aabb9aa40e9ba99f205cdb9203e Mon Sep 17 00:00:00 2001
+From: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Date: Sat, 28 Nov 2026 00:04:49 +0000
+Subject: [PATCH] media: cedrus: Add A523 support
+
+The A523/T527 video engine is the same generation as the H616 one
+(H.265 10-bit, VP9), so reuse the H616 capabilities and module clock
+rate.
+
+As on H6/H616, two SRAM switches in the system controller must be
+handed to the VE (SYS_CFG 0x0 bit 0 and 0x4 bit 24, see the device
+tree); with bit 24 left in its boot-mode state every access to the VE
+registers hangs the bus.
+
+On A523 the secondary output never completes when asked to convert the
+10-bit reconstruction to P010 (H.265 and VP9 alike): the engine raises
+no interrupt and the P010 related bits of the 10-bit config register
+are not implemented. Add a CEDRUS_CAPABILITY_P010_OUT capability, set
+it for H6 and H616 (no change there) and leave it out for A523, so
+10-bit streams are decoded to the 8-bit NV12 primary output instead
+(low 2 bits dropped).
+
+Likewise gate the AFBC capture formats behind CEDRUS_CAPABILITY_AFBC_OUT
+(H616 only for now). Userspace such as FFmpeg's v4l2-request picks the
+first capture format matching the stream bit depth, which on A523 would
+otherwise be 10-bit AFBC for VP9 profile 2, a format not yet verified
+with the A523 display path.
+
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+---
+ drivers/staging/media/sunxi/cedrus/cedrus.c   | 29 +++++++++++++++++++
+ drivers/staging/media/sunxi/cedrus/cedrus.h   |  4 +++
+ .../staging/media/sunxi/cedrus/cedrus_video.c |  9 ++++--
+ 3 files changed, 39 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.c b/drivers/staging/media/sunxi/cedrus/cedrus.c
+index 3333b52..2dc40dd 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.c
+@@ -767,12 +767,37 @@ static const struct cedrus_variant sun50i_h6_cedrus_variant = {
+ 			  CEDRUS_CAPABILITY_H264_DEC |
+ 			  CEDRUS_CAPABILITY_H265_DEC |
+ 			  CEDRUS_CAPABILITY_H265_10_DEC |
++			  CEDRUS_CAPABILITY_P010_OUT |
+ 			  CEDRUS_CAPABILITY_VP8_DEC |
+ 			  CEDRUS_CAPABILITY_VC1_DEC,
+ 	.mod_rate	= 600000000,
+ };
+ 
+ static const struct cedrus_variant sun50i_h616_cedrus_variant = {
++	.capabilities	= CEDRUS_CAPABILITY_UNTILED |
++			  CEDRUS_CAPABILITY_MPEG2_DEC |
++			  CEDRUS_CAPABILITY_H264_DEC |
++			  CEDRUS_CAPABILITY_H265_DEC |
++			  CEDRUS_CAPABILITY_H265_10_DEC |
++			  CEDRUS_CAPABILITY_P010_OUT |
++			  CEDRUS_CAPABILITY_AFBC_OUT |
++			  CEDRUS_CAPABILITY_VP8_DEC |
++			  CEDRUS_CAPABILITY_VP9_DEC |
++			  CEDRUS_CAPABILITY_VC1_DEC,
++	.mod_rate	= 600000000,
++};
++
++/*
++ * A523/T527: same VE generation as H616 (H.265 10-bit, VP9, AFBC output),
++ * except that the secondary output hangs the engine when asked for P010
++ * (no interrupt, the P010 format bits 22-24 of the 10-bit config register
++ * are not implemented).  10-bit streams are therefore output as 8-bit
++ * NV12 from the primary reconstruction (low 2 bits dropped).  AFBC output
++ * is not offered either until it is verified with the A523 display path;
++ * userspace picks the first 10-bit capture format, which would otherwise
++ * be AFBC for VP9 profile 2.
++ */
++static const struct cedrus_variant sun55i_a523_cedrus_variant = {
+ 	.capabilities	= CEDRUS_CAPABILITY_UNTILED |
+ 			  CEDRUS_CAPABILITY_MPEG2_DEC |
+ 			  CEDRUS_CAPABILITY_H264_DEC |
+@@ -833,6 +858,10 @@ static const struct of_device_id cedrus_dt_match[] = {
+ 		.compatible = "allwinner,sun50i-h616-video-engine",
+ 		.data = &sun50i_h616_cedrus_variant,
+ 	},
++	{
++		.compatible = "allwinner,sun55i-a523-video-engine",
++		.data = &sun55i_a523_cedrus_variant,
++	},
+ 	{ /* sentinel */ }
+ };
+ MODULE_DEVICE_TABLE(of, cedrus_dt_match);
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
+index be1987f..d856079 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.h
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
+@@ -36,6 +36,10 @@
+ #define CEDRUS_CAPABILITY_H265_10_DEC	BIT(5)
+ #define CEDRUS_CAPABILITY_VC1_DEC	BIT(6)
+ #define CEDRUS_CAPABILITY_VP9_DEC	BIT(7)
++/* Secondary output can convert the 10-bit reconstruction to P010. */
++#define CEDRUS_CAPABILITY_P010_OUT	BIT(8)
++/* AFBC compressed output is supported and usable by the display side. */
++#define CEDRUS_CAPABILITY_AFBC_OUT	BIT(9)
+ 
+ enum cedrus_irq_status {
+ 	CEDRUS_IRQ_NONE,
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_video.c b/drivers/staging/media/sunxi/cedrus/cedrus_video.c
+index 7fae7a4..53fb564 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_video.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_video.c
+@@ -59,7 +59,8 @@ static struct cedrus_format cedrus_formats[] = {
+ 		.pixelformat	= V4L2_PIX_FMT_P010,
+ 		.directions	= CEDRUS_DECODE_DST,
+ 		.capabilities	= CEDRUS_CAPABILITY_UNTILED |
+-				  CEDRUS_CAPABILITY_H265_10_DEC,
++				  CEDRUS_CAPABILITY_H265_10_DEC |
++				  CEDRUS_CAPABILITY_P010_OUT,
+ 		.depth		= 10,
+ 	},
+ 	{
+@@ -99,14 +100,16 @@ static struct cedrus_format cedrus_formats[] = {
+ 	{
+ 		.pixelformat	= V4L2_PIX_FMT_YUV420_10_AFBC_16X16_SPLIT,
+ 		.directions	= CEDRUS_DECODE_DST,
+-		.capabilities	= CEDRUS_CAPABILITY_UNTILED,
++		.capabilities	= CEDRUS_CAPABILITY_UNTILED |
++				  CEDRUS_CAPABILITY_AFBC_OUT,
+ 		.depth		= 10,
+ 		.src_format	= V4L2_PIX_FMT_VP9_FRAME,
+ 	},
+ 	{
+ 		.pixelformat	= V4L2_PIX_FMT_YUV420_8_AFBC_16X16_SPLIT,
+ 		.directions	= CEDRUS_DECODE_DST,
+-		.capabilities	= CEDRUS_CAPABILITY_UNTILED,
++		.capabilities	= CEDRUS_CAPABILITY_UNTILED |
++				  CEDRUS_CAPABILITY_AFBC_OUT,
+ 		.depth		= 8,
+ 		.src_format	= V4L2_PIX_FMT_VP9_FRAME,
+ 	},
+-- 
+2.34.1
+
